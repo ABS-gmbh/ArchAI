@@ -1,0 +1,16 @@
+weights:
+  layout_yolo: weights/layout_yolo.pt
+  kraken_segmentation: weights/kraken_segmentation.mlmodel
+  kraken_recognition: weights/kraken_recognition.mlmodel
+
+layout:
+  main_text_class: main_text
+  confidence_threshold: 0.25
+  iou_threshold: 0.5
+  max_regions: 50
+  crop_padding: 5
+
+runtime:
+  output_dir: outputs
+  kraken_device: cpu
+  write_page_xml: false

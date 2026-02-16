@@ -1,0 +1,16 @@
+# Data and weights
+data/**
+assets/models/**/weights/**
+
+# Environments and deps
+backend/.venv/**
+frontend/node_modules/**
+
+# Secrets
+.env
+
+# Model files
+*.mlmodel
+*.pt
+*.pth
+*.onnx

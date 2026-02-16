@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "archai-ocr"
+version = "0.1.0"
+description = "Backend OCR/HTR pipeline: YOLO layout + Kraken recognition to TXT."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "ultralytics>=8.2.0",
+  "kraken>=5.3.0",
+  "Pillow>=10.0.0",
+  "opencv-python-headless>=4.9.0",
+  "PyYAML>=6.0.1",
+  "python-dotenv>=1.0.1",
+]
+
+[project.scripts]
+archai-ocr = "archai_ocr.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
