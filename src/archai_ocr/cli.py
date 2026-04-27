@@ -11,8 +11,8 @@ from archai_ocr.utils.image_io import validate_image_path
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="archai-ocr",
-        description="YOLO layout + Kraken HTR pipeline producing a .txt output per image.",
+        prog="archai",
+        description="ArchAI OCR pipeline producing a .txt output per image.",
     )
     parser.add_argument("--image", required=True, help="Path to manuscript page image (png/jpg/tif)")
     parser.add_argument(

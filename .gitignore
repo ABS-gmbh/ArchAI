@@ -11,3 +11,18 @@ weights/
 outputs/
 
 .DS_Store
+.claude/
+test_opencv_output.png
+
+# frontend workspace outputs
+archai/frontend/node_modules/
+archai/frontend/dist/
+
+# local backend runtime data
+archai/backend/venv/
+archai/backend/.pytest_cache/
+archai/vendor/layout/backend/.data/
+archai/vendor/layout/backend/app/.data/
+archai/vendor/layout/backend/outputs/
+archai/vendor/layout/backend/.tasks/
+archai/vendor/layout/backend/archai.db

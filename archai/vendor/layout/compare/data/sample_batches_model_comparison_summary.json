@@ -1,0 +1,68 @@
+[
+    {
+        "folder": "SampleBatch2",
+        "old_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "list index out of range"
+        },
+        "new_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "list index out of range"
+        },
+        "old_annotations": 50,
+        "new_annotations": 1465,
+        "gt_annotations": 1437
+    },
+    {
+        "folder": "SampleBatch3",
+        "old_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "list index out of range"
+        },
+        "new_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "list index out of range"
+        },
+        "old_annotations": 50,
+        "new_annotations": 923,
+        "gt_annotations": 909
+    },
+    {
+        "folder": "SampleBatch4",
+        "old_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "list index out of range"
+        },
+        "new_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "list index out of range"
+        },
+        "old_annotations": 50,
+        "new_annotations": 1167,
+        "gt_annotations": 1160
+    }
+]

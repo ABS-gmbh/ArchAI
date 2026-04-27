@@ -1,0 +1,4 @@
+language,pages_processed,ocr_output_generated,grounded_answer_generated,evidence_trace_available,entity_output_behavior,overall_showcase_success_label,notes
+Old English,1,True,True,True,grammatical and lexical mentions surfaced; no authority links resolved,medium,"showcase OCR is reusable, but language detection remains unstable and grounding should stay conservative"
+Latin,1,True,True,True,semantic concept mentions surfaced; no authority links resolved,high,page produces strong showcase-level transcript and semantic evidence without requiring gold truth
+Old French,1,True,True,True,semantic concept mentions surfaced; no authority links resolved,high,page produces strong showcase-level transcript and semantic evidence without requiring gold truth

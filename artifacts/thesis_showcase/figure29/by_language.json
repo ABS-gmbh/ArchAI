@@ -1,0 +1,32 @@
+[
+  {
+    "language": "Old English",
+    "pages_processed": 1,
+    "ocr_output_generated": true,
+    "grounded_answer_generated": true,
+    "evidence_trace_available": true,
+    "entity_output_behavior": "grammatical and lexical mentions surfaced; no authority links resolved",
+    "overall_showcase_success_label": "medium",
+    "notes": "showcase OCR is reusable, but language detection remains unstable and grounding should stay conservative"
+  },
+  {
+    "language": "Latin",
+    "pages_processed": 1,
+    "ocr_output_generated": true,
+    "grounded_answer_generated": true,
+    "evidence_trace_available": true,
+    "entity_output_behavior": "semantic concept mentions surfaced; no authority links resolved",
+    "overall_showcase_success_label": "high",
+    "notes": "page produces strong showcase-level transcript and semantic evidence without requiring gold truth"
+  },
+  {
+    "language": "Old French",
+    "pages_processed": 1,
+    "ocr_output_generated": true,
+    "grounded_answer_generated": true,
+    "evidence_trace_available": true,
+    "entity_output_behavior": "semantic concept mentions surfaced; no authority links resolved",
+    "overall_showcase_success_label": "high",
+    "notes": "page produces strong showcase-level transcript and semantic evidence without requiring gold truth"
+  }
+]

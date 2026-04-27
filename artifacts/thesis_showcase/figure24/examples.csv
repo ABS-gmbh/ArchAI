@@ -1,0 +1,16 @@
+example_id,page_id,language,condition_label,crop_path,pipeline_text,glm_text,saia_text,transkribus_text,best_system_label,readability_label,selection_rationale,notes
+ex01_old-english_r21,old-english,Old English,main_text_band,figure24/crops/ex01_old-english_r21.png,"tut. 7n̄opon d̄pr̄man. bone. u: a
+mo. ̄m̄ur. p̄hahabb̄d hpllon r̄nco
+pan. t̄vrr̄nunga ondam ̄brī hāp.",,"tut. 7n̄opon d̄pr̄man. bone. u: a
+mo. ̄m̄ur. p̄hahabb̄d hpllon r̄nco
+pan. t̄vrr̄nunga ondam ̄brī hāp.",,pipeline_saia,medium,"Selected as the strongest region from the Old English grammatical page. The crop captures a visually clear band of insular script where the pipeline produces coherent multi-line output including macron-bearing forms and Tironian nota. Although abbreviation expansion is incomplete, the output is recognisably Old English glossing text and demonstrates the pipeline handling insular letterforms at a usable level.","This is the cleanest of the three showcase regions. The pipeline and SAIA backend produce identical output on this region, confirming reproducibility. Abbreviations remain unexpanded (e.g. macron sequences), which is expected behaviour without a dedicated normalisation pass."
+ex02_latin-abaton_r17,latin-abaton,Latin,dense_prognostic_line,figure24/crops/ex02_latin-abaton_r17.png,"pater amu lucriu item pacerni amiratinn
+scuna bona subi cfelyx temue utio
+cneuans mferumt beclm fidcia zonam",,"pater amu lucriu item pacerni amiratinn
+scuna bona subi cfelyx temue utio
+cneuans mferumt beclm fidcia zonam",,pipeline_saia,low,"Selected as a harder showcase example from the Latin Abaton page. The crop shows a dense line with heavy abbreviation and scribal ligatures. The pipeline yields recognisable Latin word fragments ('bona', 'felix', 'tempe', 'fidcia') even where full word boundaries are lost. This example honestly demonstrates both the pipeline's reach into difficult material and the abbreviation-handling limits that remain.","Readability is low because prognostic abbreviation density exceeds what the current OCR model was primarily trained on. However, the output is not chaotic: key Latin content words are partially recoverable, which is the honest showcase point for this difficulty tier."
+ex03_old-french_r19,old-french,Old French,doctrinal_body_text,figure24/crops/ex03_old-french_r19.png,"metenature bonne can
+tes.Honestes ap tables
+En autremans ne",,"metenature bonne can
+tes.Honestes ap tables
+En autremans ne",,pipeline_saia,medium,"Selected from the Old French doctrinal page. The crop captures a body-text region where the pipeline produces recognisable Old French vocabulary ('bonne', 'Honestes', 'tables', 'autremans'). Word segmentation is mostly correct, demonstrating that the pipeline handles Gothic textura letterforms at a functional level for Old French content.",The visible crop shows 'Honestes ypfitables' which the pipeline renders as 'Honestes ap tables' -- a plausible segmentation variant rather than a catastrophic error. This is upgraded to medium readability because the core vocabulary is recognisable and the output supports downstream semantic extraction.

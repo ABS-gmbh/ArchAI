@@ -1,0 +1,126 @@
+{
+  "generated_at": "2026-04-07T13:02:53.540577+00:00",
+  "updated_at": "2026-04-07T18:00:00+00:00",
+  "backend_url": "http://127.0.0.1:8000",
+  "bundle_type": "qualitative_showcase",
+  "bundle_note": "This is a showcase build, not a gold-standard benchmark. No ground truth, CER/WER, or gold entity links are fabricated.",
+  "source_pages": [
+    {
+      "page_id": "old-english",
+      "label": "Old English page",
+      "language": "Old English",
+      "description": "Grammatical / glossing text in insular script",
+      "source_path": "archai/vendor/layout/backend/.tasks/dcc6a542dff2/Old English.jpg",
+      "run_id": "c10d2520-51f2-4321-a022-1fbb1cd57dda",
+      "asset_sha256": "62ad3e357c6120bc7845096a403db994d397641f6dde9598310262273391283a"
+    },
+    {
+      "page_id": "latin-abaton",
+      "label": "Latin page",
+      "language": "Latin",
+      "description": "Abaton prognostic page",
+      "source_path": "archai/vendor/layout/backend/.tasks/0b4c5f554ce5/Latin.png",
+      "run_id": "22a5c0f0-4416-4b36-af35-fbd84fe83454",
+      "asset_sha256": "625b69d4299b2a2e1685648709cbf3b7c8a7d8541a4ca535d5d168ed8e7340f5"
+    },
+    {
+      "page_id": "old-french",
+      "label": "Old French page",
+      "language": "Old French",
+      "description": "Moral / doctrinal page",
+      "source_path": "archai/vendor/layout/backend/.tasks/9e778f5a76de/french.JPEG",
+      "run_id": "9036ca2c-c39b-48dc-9742-5bc1eb3cbe40",
+      "asset_sha256": "f248cb4a92d1e1785ea1dd4e3c288b6ee8484303d3c8bd54d8c6de5728ee79f4"
+    }
+  ],
+  "systems_used": {
+    "full_page_trace_pipeline": "backend /api/ocr/page_with_trace",
+    "layout_segmentation": "backend /api/predict/single",
+    "region_showcase_ocr": "backend /api/ocr/extract with backend=saia",
+    "plain_chat_baseline": "qwen3-30b-a3b-instruct-2507",
+    "grounded_chat_answer": "qwen3-30b-a3b-instruct-2507 over ArchAI retrieved evidence"
+  },
+  "unavailable_subsystems": [
+    "kraken region OCR: package not installed in this environment",
+    "calamari region OCR: package not installed in this environment",
+    "transkribus: no API credentials configured",
+    "GLM: not integrated in current pipeline version",
+    "gold ground truth: no authoritative transcriptions available for these pages"
+  ],
+  "figures": {
+    "figure24": {
+      "title": "OCR Example Comparison (Showcase Version)",
+      "examples_selected": 3,
+      "systems_compared": ["pipeline_saia"],
+      "readability_distribution": {"medium": 2, "low": 1}
+    },
+    "figure25": {
+      "title": "Plain Chat vs ArchAI Grounded Answer",
+      "selected_page": "latin-abaton",
+      "selected_question": "What kind of text is this page, and which recurring concepts or warnings are visible on it?"
+    },
+    "figure26": {
+      "title": "Error / Limitation Analysis (Showcase Version)",
+      "total_cases": 6,
+      "categories": [
+        "OCR ambiguity",
+        "abbreviation handling difficulty",
+        "layout/segmentation challenge",
+        "weak entity extraction on non-entity pages",
+        "unsupported inference risk avoided or reduced by grounding"
+      ],
+      "severity_distribution": {"medium": 3, "low": 3}
+    },
+    "figure29": {
+      "title": "Performance by Language (Showcase Version)",
+      "languages": ["Old English", "Latin", "Old French"],
+      "success_distribution": {"high": 2, "medium": 1}
+    },
+    "figure30": {
+      "title": "Semantic Extraction / Mention-Handling Panel",
+      "framing": "semantic_extraction_pivot",
+      "examples_selected": 6,
+      "outcome_distribution": {"suppressed_correctly": 6}
+    }
+  },
+  "files": [
+    "manifest.json",
+    "README.md",
+    "scripts/build_thesis_showcase_payloads.py",
+    "figure24/README.md",
+    "figure24/examples.json",
+    "figure24/examples.csv",
+    "figure24/crops/ex01_old-english_r21.png",
+    "figure24/crops/ex02_latin-abaton_r17.png",
+    "figure24/crops/ex03_old-french_r19.png",
+    "figure24/outputs/ex01_old-english_r21_pipeline.txt",
+    "figure24/outputs/ex01_old-english_r21_saia.txt",
+    "figure24/outputs/ex02_latin-abaton_r17_pipeline.txt",
+    "figure24/outputs/ex02_latin-abaton_r17_saia.txt",
+    "figure24/outputs/ex03_old-french_r19_pipeline.txt",
+    "figure24/outputs/ex03_old-french_r19_saia.txt",
+    "figure25/README.md",
+    "figure25/comparison.json",
+    "figure25/comparison.md",
+    "figure25/screenshots/answer_panel.png",
+    "figure25/screenshots/evidence_panel.png",
+    "figure26/README.md",
+    "figure26/limitations_summary.json",
+    "figure26/limitations.csv",
+    "figure26/screenshots/latin_abaton_panel.png",
+    "figure26/screenshots/old_french_layout_panel.png",
+    "figure29/README.md",
+    "figure29/by_language.json",
+    "figure29/by_language.csv",
+    "figure30/README.md",
+    "figure30/examples.json",
+    "figure30/examples.csv",
+    "figure30/pivot_to_semantic_extraction.md",
+    "figure30/screenshots/latin-abaton_1249f283-bfe0-4ca9-b860-074449376d2e.png",
+    "figure30/screenshots/latin-abaton_c7727e61-dd15-45cb-98c6-743d8f3688ce.png",
+    "figure30/screenshots/old-english_9a43a2f5-a7c5-4aa3-92a9-d1341b6d0bec.png",
+    "figure30/screenshots/old-english_eeed1d11-7e8f-4652-9491-1b99825644bc.png",
+    "figure30/screenshots/old-french_5ddf6469-d2ee-4f50-95b7-8e106dbc96cd.png",
+    "figure30/screenshots/old-french_cf517c5f-9b63-4dc2-90cd-27e21652dec5.png"
+  ]
+}

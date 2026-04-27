@@ -1,0 +1,31 @@
+{
+    "total_batches": 3,
+    "successful": 3,
+    "failed": 0,
+    "results": [
+        {
+            "folder": "SampleBatch2",
+            "status": "success",
+            "images": 25,
+            "annotations": 1437,
+            "categories": 25,
+            "visualizations_path": "/home/hasan/layout/compare/data/SampleBatch2/visualizations"
+        },
+        {
+            "folder": "SampleBatch3",
+            "status": "success",
+            "images": 25,
+            "annotations": 909,
+            "categories": 25,
+            "visualizations_path": "/home/hasan/layout/compare/data/SampleBatch3/visualizations"
+        },
+        {
+            "folder": "SampleBatch4",
+            "status": "success",
+            "images": 25,
+            "annotations": 1160,
+            "categories": 25,
+            "visualizations_path": "/home/hasan/layout/compare/data/SampleBatch4/visualizations"
+        }
+    ]
+}

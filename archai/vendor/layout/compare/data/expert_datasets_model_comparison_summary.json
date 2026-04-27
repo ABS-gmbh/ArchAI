@@ -1,0 +1,134 @@
+[
+    {
+        "folder": "Aleyna 1 (2024)",
+        "old_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "No valid prediction annotations"
+        },
+        "new_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "segm error: 'score', bbox error: 'score'"
+        },
+        "old_annotations": 829,
+        "new_annotations": 1127,
+        "gt_annotations": 44
+    },
+    {
+        "folder": "Annika 2 (2024)",
+        "old_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "No valid prediction annotations"
+        },
+        "new_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "segm error: 'score', bbox error: 'score'"
+        },
+        "old_annotations": 769,
+        "new_annotations": 898,
+        "gt_annotations": 136
+    },
+    {
+        "folder": "Luise 1 (2024)",
+        "old_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "No valid GT annotations"
+        },
+        "new_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "No valid GT annotations"
+        },
+        "old_annotations": 415,
+        "new_annotations": 712,
+        "gt_annotations": 0
+    },
+    {
+        "folder": "Luise 2 (2024)",
+        "old_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "No valid prediction annotations"
+        },
+        "new_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "segm error: 'score', bbox error: 'score'"
+        },
+        "old_annotations": 715,
+        "new_annotations": 759,
+        "gt_annotations": 99
+    },
+    {
+        "folder": "Nuray 1 (2024)",
+        "old_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "No valid prediction annotations"
+        },
+        "new_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "segm error: 'score', bbox error: 'score'"
+        },
+        "old_annotations": 301,
+        "new_annotations": 417,
+        "gt_annotations": 64
+    },
+    {
+        "folder": "Nuray 2 (2024)",
+        "old_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "No valid prediction annotations"
+        },
+        "new_metrics": {
+            "mAP@50": 0.0,
+            "mAP@[.50:.95]": 0.0,
+            "Precision": 0.0,
+            "Recall": 0.0,
+            "F1": 0.0,
+            "error": "segm error: 'score', bbox error: 'score'"
+        },
+        "old_annotations": 419,
+        "new_annotations": 467,
+        "gt_annotations": 25
+    }
+]

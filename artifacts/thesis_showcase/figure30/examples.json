@@ -1,0 +1,74 @@
+[
+  {
+    "example_id": "old-english_9a43a2f5-a7c5-4aa3-92a9-d1341b6d0bec",
+    "page_id": "old-english",
+    "language": "Old English",
+    "mention_text": "oxan",
+    "page_context": "oxan",
+    "candidates": [],
+    "selected_link": "",
+    "outcome_class": "suppressed_correctly",
+    "explanation": "curated semantic concept for old english fixture; lexical example",
+    "screenshot_path": "artifacts/thesis_showcase/figure30/screenshots/old-english_9a43a2f5-a7c5-4aa3-92a9-d1341b6d0bec.png"
+  },
+  {
+    "example_id": "old-english_eeed1d11-7e8f-4652-9491-1b99825644bc",
+    "page_id": "old-english",
+    "language": "Old English",
+    "mention_text": "mulissi",
+    "page_context": "mulissi",
+    "candidates": [],
+    "selected_link": "",
+    "outcome_class": "suppressed_correctly",
+    "explanation": "curated semantic concept for old english fixture; lexical example",
+    "screenshot_path": "artifacts/thesis_showcase/figure30/screenshots/old-english_eeed1d11-7e8f-4652-9491-1b99825644bc.png"
+  },
+  {
+    "example_id": "latin-abaton_c7727e61-dd15-45cb-98c6-743d8f3688ce",
+    "page_id": "latin-abaton",
+    "language": "Latin",
+    "mention_text": "uxore",
+    "page_context": "uxore",
+    "candidates": [],
+    "selected_link": "",
+    "outcome_class": "suppressed_correctly",
+    "explanation": "curated semantic concept for latin fixture; social role",
+    "screenshot_path": "artifacts/thesis_showcase/figure30/screenshots/latin-abaton_c7727e61-dd15-45cb-98c6-743d8f3688ce.png"
+  },
+  {
+    "example_id": "latin-abaton_1249f283-bfe0-4ca9-b860-074449376d2e",
+    "page_id": "latin-abaton",
+    "language": "Latin",
+    "mention_text": "Inmicos",
+    "page_context": "Inmicos",
+    "candidates": [],
+    "selected_link": "",
+    "outcome_class": "suppressed_correctly",
+    "explanation": "curated semantic concept for latin fixture; social relation",
+    "screenshot_path": "artifacts/thesis_showcase/figure30/screenshots/latin-abaton_1249f283-bfe0-4ca9-b860-074449376d2e.png"
+  },
+  {
+    "example_id": "old-french_5ddf6469-d2ee-4f50-95b7-8e106dbc96cd",
+    "page_id": "old-french",
+    "language": "Old French",
+    "mention_text": "nr̃e seigneur",
+    "page_context": "nr̃e seigneur",
+    "candidates": [],
+    "selected_link": "",
+    "outcome_class": "suppressed_correctly",
+    "explanation": "curated semantic concept for french fixture; non-linkable title",
+    "screenshot_path": "artifacts/thesis_showcase/figure30/screenshots/old-french_5ddf6469-d2ee-4f50-95b7-8e106dbc96cd.png"
+  },
+  {
+    "example_id": "old-french_cf517c5f-9b63-4dc2-90cd-27e61652dec5",
+    "page_id": "old-french",
+    "language": "Old French",
+    "mention_text": "nire faus",
+    "page_context": "nire faus",
+    "candidates": [],
+    "selected_link": "",
+    "outcome_class": "suppressed_correctly",
+    "explanation": "curated semantic concept for french fixture; non-linkable moral action",
+    "screenshot_path": "artifacts/thesis_showcase/figure30/screenshots/old-french_cf517c5f-9b63-4dc2-90cd-27e61652dec5.png"
+  }
+]
