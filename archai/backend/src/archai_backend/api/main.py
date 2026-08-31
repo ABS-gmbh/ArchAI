@@ -1,3 +1,21 @@
+"""ArchAI prototype backend — MOCK IMPLEMENTATION, NOT A PIPELINE.
+
+This package is scaffolding: 41 of its 47 modules contain only
+`# TODO: implement`. The ingest endpoint does not run OCR. It calls
+`_simulate_pipeline`, which sleeps through fake stage names and inserts
+hardcoded English sentences (`_SIMULATED_SPAN_TEXTS`) as document spans.
+
+Nothing here is derived from a manuscript image. The real pipelines are:
+  * archai/vendor/layout/backend  — the production FastAPI OCR service
+  * src/archai_ocr                — the YOLO + Kraken command-line pipeline
+
+Because the fabricated output is indistinguishable from genuine results, the
+mock refuses to run unless ARCHAI_ALLOW_MOCK_BACKEND=1 is set explicitly.
+"""
+
+from __future__ import annotations
+
+import os
 import random
 import time
 from pathlib import Path
@@ -15,7 +33,30 @@ from archai_backend.store import db
 
 
 configure_logging()
-app = FastAPI(title="ArchAI Backend")
+
+# Explicit opt-in required: see the module docstring.
+MOCK_BACKEND_ENABLED = os.getenv("ARCHAI_ALLOW_MOCK_BACKEND") == "1"
+
+app = FastAPI(
+    title="ArchAI Backend (MOCK — returns fabricated data)",
+    description=(
+        "Prototype scaffolding. Ingest returns hardcoded text, not OCR output. "
+        "Set ARCHAI_ALLOW_MOCK_BACKEND=1 to enable. Use "
+        "archai/vendor/layout/backend for the real service."
+    ),
+)
+
+
+def _require_mock_opt_in() -> None:
+    if not MOCK_BACKEND_ENABLED:
+        raise HTTPException(
+            status_code=501,
+            detail=(
+                "This prototype backend is a mock: it returns fabricated spans "
+                "rather than running OCR. Set ARCHAI_ALLOW_MOCK_BACKEND=1 to run it "
+                "anyway, or use archai/vendor/layout/backend for the real pipeline."
+            ),
+        )
 
 db.init_db()
 
@@ -48,17 +89,21 @@ def _simulate_pipeline(job_id: str, doc_id: str, page_id: str) -> None:
             _create_spans(doc_id, page_id)
 
 
+# Fabricated text. Not derived from any image. See the module docstring.
+_SIMULATED_SPAN_TEXTS = [
+    "The document notes a transfer recorded in the ledger.",
+    "A marginal note references a shipment date and location.",
+    "The scribe lists three witnesses to the agreement.",
+    "The entry mentions a payment of four florins.",
+    "A correction indicates the date was later amended.",
+    "The record describes a boundary near the river bend.",
+    "An endorsement cites approval by the magistrate.",
+    "The notation includes a seal impression remark.",
+]
+
+
 def _create_spans(doc_id: str, page_id: str) -> None:
-    span_texts = [
-        "The document notes a transfer recorded in the ledger.",
-        "A marginal note references a shipment date and location.",
-        "The scribe lists three witnesses to the agreement.",
-        "The entry mentions a payment of four florins.",
-        "A correction indicates the date was later amended.",
-        "The record describes a boundary near the river bend.",
-        "An endorsement cites approval by the magistrate.",
-        "The notation includes a seal impression remark.",
-    ]
+    span_texts = list(_SIMULATED_SPAN_TEXTS)
     random.shuffle(span_texts)
     count = random.randint(3, 8)
     for i in range(count):
@@ -91,6 +136,9 @@ def ingest_image(
     doc_id: Optional[str] = None,
     page_id: Optional[str] = None,
 ) -> dict:
+    # This endpoint fabricates its results; refuse unless explicitly opted in.
+    _require_mock_opt_in()
+
     doc_id = doc_id or str(uuid4())
     page_id = page_id or str(uuid4())
 

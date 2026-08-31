@@ -1,108 +1,165 @@
 # ArchAI
 
-ArchAI is a unified research and engineering repository for medieval manuscript OCR,
-layout analysis, grounded document chat, and thesis showcase artifacts.
+Medieval manuscript OCR/HTR: YOLO layout analysis, Kraken recognition, multi-agent
+post-OCR verification, authority linking, and grounded document chat.
 
-This repository intentionally keeps all project tracks in one place on `master`:
+[![CI](https://github.com/ABS-gmbh/ArchAI/actions/workflows/ci.yml/badge.svg)](https://github.com/ABS-gmbh/ArchAI/actions/workflows/ci.yml)
 
-- Root OCR CLI pipeline (`src/archai_ocr`)
-- Monorepo workspace (`archai/`) with scaffolded backend/frontend and vendor integrations
-- Thesis showcase outputs (`artifacts/thesis_showcase`)
+## What is actually in here
 
-## Repository Contents
+The repository holds three tracks with very different maturity. Read this table
+before picking an entry point.
 
-| Path | Purpose | Status |
+| Path | What it is | Status |
 |---|---|---|
-| `pyproject.toml` | Root Python package for OCR CLI (`archai`, `archai-ocr`) | Active |
-| `src/archai_ocr/` | OCR pipeline modules (layout, crop, Kraken recognition, text assembly) | Active |
-| `scripts/` | OCR/model/thesis helper scripts | Active |
-| `config.example.yaml` | Root OCR defaults (weights/layout/runtime) | Active |
-| `.env.example` | Root env defaults for model paths/output | Active |
-| `data/` | Project data and evidence resources | Active |
-| `docs/` | Root technical documentation | Active |
-| `artifacts/thesis_showcase/` | Thesis figure payloads, screenshots, manifests | Active |
-| `archai/` | Workspace monorepo (frontend/backend/vendor/docker/docs) | Mixed |
-| `weights/` | Local model files (ignored runtime assets) | Runtime |
-| `outputs/` | Local OCR run outputs/debug files (ignored runtime assets) | Runtime |
+| `src/archai_ocr/` | Command-line pipeline: YOLO layout → crop → Kraken HTR → `.txt` | **Working**, tested, type-checked |
+| `archai/vendor/layout/backend/` | FastAPI service: OCR backends, agent verification, authority linking, RAG chat (~28k LOC) | **Working**, partial test coverage |
+| `archai/vendor/layout/frontend/` | Next.js UI for the above | Working |
+| `archai/frontend/` | Vue/Vite prototype UI | Prototype |
+| `archai/backend/` | Scaffolding: 41 of 47 modules are `# TODO: implement` | **Mock — fabricates output** |
+| `artifacts/thesis_showcase/` | Reproducible figure payloads and manifests cited by the thesis | Reference data |
 
-Detailed map: [`docs/repository_map.md`](docs/repository_map.md)
+> `archai/backend` is a mock. Its `/ingest/image` endpoint does not run OCR — it
+> sleeps through fake stage names and inserts hardcoded English sentences as
+> document spans. It refuses to start unless `ARCHAI_ALLOW_MOCK_BACKEND=1` is set.
+> Use `archai/vendor/layout/backend` for the real service.
 
-## Quick Start
-
-### 1) Root OCR pipeline
+## Quick start — OCR command line
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -e .
-python -m archai_ocr.cli --image sample.png --config config.example.yaml
+python -m venv venv && source venv/bin/activate
+pip install -e ".[dev]"
 ```
 
-You can also use installed entrypoints:
+Place model weights in `weights/` (see [`weights/README.md`](weights/README.md)), then:
 
-- `archai --image sample.png --config config.example.yaml`
-- `archai-ocr --image sample.png --config config.example.yaml`
+```bash
+archai --image page.jpg --config config.example.yaml
+```
 
-### 2) Vendor Document + Chat workspace (`archai/vendor/layout`)
+Validate configuration and inputs without loading any model:
+
+```bash
+archai --image page.jpg --config config.example.yaml --dry-run
+```
+
+Process a directory, continuing past individual failures:
+
+```bash
+archai --image pages/ --recursive --continue-on-error
+```
+
+Exit codes: `0` success, `1` configuration or input error, `2` some pages failed.
+
+### The layout class must match your model
+
+`layout.main_text_class` has to name a class your layout model actually emits.
+The shipped weights use the [SegmOnto](https://segmonto.github.io/) zone
+vocabulary, where body text is `MainZone`:
+
+```
+DigitizationArtefactZone  DropCapitalZone  GraphicZone  MainZone  MarginTextZone
+MusicZone  NumberingZone  QuireMarksZone  RunningTitleZone  StampZone  TitlePageZone
+```
+
+Matching is case-insensitive, and a list is accepted to include more than body
+text, e.g. `main_text_class: [MainZone, MarginTextZone]`. If the configured class
+matches nothing the model emits, the run fails with the list of available classes
+rather than silently writing an empty file.
+
+### Reading order
+
+`layout.reading_order: column` (the default) groups regions into columns, orders
+columns left to right, then reads each column top to bottom. This is required for
+multi-column manuscript pages — a global top-to-bottom sort interleaves the
+columns, producing a transcription that alternates between them line by line.
+
+Set `reading_order: simple` to reproduce the pre-0.2.0 global sort exactly.
+
+### Configuration precedence
+
+`defaults` < `config.yaml` < environment variables < command-line flags.
+
+Relative paths in the config file resolve against **the directory containing that
+config file**, not the working directory. Unknown keys and out-of-range values are
+rejected at load time. See [`.env.example`](.env.example) for the environment
+variables.
+
+## Quick start — document workspace
 
 Backend:
 
 ```bash
 cd archai/vendor/layout/backend
 pip install -e .
+cp .env.example .env    # then fill in ANALYTICS_USERNAME / ANALYTICS_PASSWORD / JWT_SECRET
 uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+The analytics endpoints fail closed with HTTP 503 until credentials are
+configured; there are deliberately no default credentials. Generate a secret with:
+
+```bash
+python -c 'import secrets; print(secrets.token_urlsafe(48))'
 ```
 
 Frontend:
 
 ```bash
-cd archai/vendor/layout/frontend
-npm install
-npm run dev
+cd archai/vendor/layout/frontend && npm install && npm run dev
 ```
 
-### 3) Vite Vue workspace (`archai/frontend`)
+## Development
 
 ```bash
-cd archai/frontend
-npm install
-npm run dev
+ruff check src tests        # lint
+ruff format src tests      # format
+mypy                       # strict type check
+pytest tests -q            # 84 tests, no model weights required
 ```
 
-## Thesis Artifacts
+The `archai_ocr` test suite runs without model weights or Kraken installed, so it
+works in CI. The vendor backend suite needs weights and the full inference stack:
 
-`artifacts/thesis_showcase/` holds reproducible figure datasets and screenshots for
-Figures 24/25/26/29/30. Use:
+```bash
+cd archai/vendor/layout/backend && pytest tests -q
+```
+
+CI runs lint, format, strict typing and tests on Python 3.11 and 3.12,
+byte-compiles the vendor backend, and scans tracked files for credential
+literals. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+## Reproducibility notes
+
+- `YOLO_AUTOINSTALL=false` is set before ultralytics is imported. Ultralytics
+  otherwise pip-installs optional packages at inference time, mutating the
+  environment mid-run and requiring network access.
+- Canned OCR fixtures exist in the vendor backend for demos and regression tests
+  (`app/services/test_ocr_overrides.py`). They match three specific images by
+  SHA-256 and return hand-written transcriptions. They are **off by default** and
+  require `ENABLE_TEST_OCR_FIXTURES=true`; when active they log a warning naming
+  the digest.
+- Transcriptions are Unicode NFC-normalized so accented forms compare equal
+  across regions.
+
+## Thesis artifacts
+
+`artifacts/thesis_showcase/` holds reproducible figure datasets for Figures
+24/25/26/29/30. Verify bundle integrity with:
 
 ```bash
 python scripts/build_thesis_showcase_payloads.py --verify
 ```
 
-to validate bundle integrity.
+## Repository hygiene
 
-## Repository Hygiene
+Tracked: source, config templates (`*.example`), docs, manifests, curated thesis
+artifacts.
 
-Tracked:
+Ignored: virtual environments, caches, model weights (`weights/`), run outputs
+(`outputs/`, `output/`, `tmp/`), the LaTeX writing workspace (`fixes/`), local
+databases, and all `.env` files.
 
-- Source code
-- Config templates (`*.example`, docs, manifests)
-- Curated thesis artifacts
+## License
 
-Ignored:
-
-- Virtual environments and local caches
-- Runtime outputs/models (`outputs/`, `weights/`, `.tasks/`, local DB/runtime dirs)
-- Local agent/editor workspaces (`.claude/`)
-
-## Branch And Naming Policy
-
-- Canonical branch: `master`
-- Project/repository identity: `ArchAI`
-
-GitHub rename command (requires authenticated `gh`):
-
-```bash
-gh repo rename -R mohamedbasuony/thesis-project ArchAI --yes
-git remote set-url origin https://github.com/mohamedbasuony/ArchAI.git
-git push -u origin master
-```
+MIT — see [LICENSE](LICENSE).

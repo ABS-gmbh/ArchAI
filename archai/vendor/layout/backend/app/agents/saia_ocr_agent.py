@@ -2452,6 +2452,13 @@ class SaiaOCRAgent:
         stitched_text = "\n".join(all_lines)
         stitched_lines = all_lines
 
+        # Script hint from stitched text. Computed here because the language
+        # vote below reads final_script_hint; it used to be assigned only after
+        # that block, so the no-majority branch raised UnboundLocalError.
+        final_script_hint = _detect_script_hint(stitched_text)
+        if final_script_hint not in ALLOWED_SCRIPT_HINTS:
+            final_script_hint = "unknown"
+
         # Final detected_language: most frequent non-unknown
         if languages:
             from collections import Counter
@@ -2477,11 +2484,6 @@ class SaiaOCRAgent:
         total_area = sum(area for _, area in confidences) or 1.0
         final_confidence = sum(conf * area for conf, area in confidences) / total_area
         final_confidence = max(0.0, min(1.0, final_confidence))
-
-        # Script hint from stitched text
-        final_script_hint = _detect_script_hint(stitched_text)
-        if final_script_hint not in ALLOWED_SCRIPT_HINTS:
-            final_script_hint = "unknown"
 
         # Apply confidence caps
         final_confidence, all_warnings = _apply_ocr_confidence_caps(stitched_text, final_confidence, all_warnings)

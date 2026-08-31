@@ -1,5 +1,10 @@
+import logging
 import os
+import secrets
+
 from pydantic_settings import BaseSettings
+
+_EPHEMERAL_JWT_SECRET: str | None = None
 
 
 class Settings(BaseSettings):
@@ -18,12 +23,23 @@ class Settings(BaseSettings):
     analytics_db_path: str = os.path.join(
         os.path.dirname(os.path.dirname(__file__)), "analytics.db"
     )
-    analytics_username: str = "admin"
-    analytics_password: str = "layout2024"
+    # Analytics auth. These intentionally have NO usable defaults: shipping
+    # working credentials and a fixed JWT signing secret in tracked source lets
+    # anyone who can read the repository forge a valid analytics token. Both must
+    # be supplied via environment/.env, or the analytics endpoints refuse to serve.
+    analytics_username: str = ""
+    analytics_password: str = ""
 
     # JWT
-    jwt_secret: str = "change-this-to-a-random-string"
+    jwt_secret: str = ""
     jwt_expiry_minutes: int = 60
+
+    # Canned OCR fixtures (app/services/test_ocr_overrides.py) bypass the real
+    # OCR pipeline for four specific images matched by SHA-256. They exist for
+    # demos and regression tests and MUST stay off by default: with them enabled,
+    # an endpoint can return hand-written transcriptions indistinguishable from
+    # genuine model output.
+    enable_test_ocr_fixtures: bool = False
 
     # Processing
     max_pool_workers: int = 3
@@ -130,6 +146,30 @@ class Settings(BaseSettings):
     @property
     def zone_model_path(self) -> str:
         return os.path.join(self.model_dir, "best_zone_detection.pt")
+
+    @property
+    def analytics_auth_configured(self) -> bool:
+        """True only when operator-supplied analytics credentials are present."""
+        return bool(self.analytics_username and self.analytics_password)
+
+    def resolve_jwt_secret(self) -> str:
+        """Return the configured JWT secret, or a per-process ephemeral one.
+
+        Falling back to a random secret keeps a dev instance usable while making
+        the consequence explicit: tokens do not survive a restart, and no secret
+        is ever baked into the source tree.
+        """
+        if self.jwt_secret:
+            return self.jwt_secret
+        global _EPHEMERAL_JWT_SECRET
+        if _EPHEMERAL_JWT_SECRET is None:
+            _EPHEMERAL_JWT_SECRET = secrets.token_urlsafe(48)
+            logging.getLogger(__name__).warning(
+                "JWT_SECRET is not set; generated an ephemeral signing secret. "
+                "Analytics tokens will be invalidated on restart. Set JWT_SECRET "
+                "to a persistent random value in production."
+            )
+        return _EPHEMERAL_JWT_SECRET
 
     model_config = {"env_file": (".env", ".env.local"), "extra": "ignore"}
 

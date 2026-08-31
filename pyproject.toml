@@ -4,10 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "archai"
-version = "0.1.0"
+version = "0.2.0"
 description = "ArchAI OCR/HTR pipeline: YOLO layout + Kraken recognition to TXT."
 readme = "README.md"
 requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Mohamed Basuony" }]
+keywords = ["ocr", "htr", "manuscripts", "kraken", "yolo", "digital-humanities"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Image Recognition",
+]
 dependencies = [
   "ultralytics>=8.2.0",
   "kraken>=5.3.0",
@@ -17,12 +27,86 @@ dependencies = [
   "python-dotenv>=1.0.1",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+  "pytest-cov>=5.0.0",
+  "ruff>=0.6.0",
+  "mypy>=1.11.0",
+  "types-PyYAML>=6.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ABS-gmbh/ArchAI"
+Repository = "https://github.com/ABS-gmbh/ArchAI"
+
 [project.scripts]
 archai = "archai_ocr.cli:main"
 archai-ocr = "archai_ocr.cli:main"
 
 [tool.setuptools]
-package-dir = {"" = "src"}
+package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# ---------------------------------------------------------------- tooling ----
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+  "requires_models: test needs real YOLO/Kraken weights on disk (skipped in CI)",
+]
+filterwarnings = ["error::DeprecationWarning:archai_ocr.*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",   # pycodestyle
+  "F",        # pyflakes
+  "I",        # isort
+  "B",        # bugbear
+  "UP",       # pyupgrade
+  "C4",       # comprehensions
+  "SIM",      # simplify
+  "PTH",      # use pathlib
+  "RET",      # return consistency
+  "ARG",      # unused arguments
+  "TRY",      # exception antipatterns
+  "LOG",      # logging correctness
+  "G",        # logging format
+]
+ignore = [
+  "TRY003",  # long messages outside exception class — deliberate, they are user-facing
+  "TRY400",  # logger.error over logger.exception in CLI top-level handler is intentional
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ARG001", "ARG002", "B011"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/archai_ocr"]
+strict = true
+warn_unreachable = true
+# ultralytics / kraken / PIL ship no usable stubs
+[[tool.mypy.overrides]]
+module = ["ultralytics.*", "kraken.*", "cv2.*", "PIL.*", "dotenv.*"]
+ignore_missing_imports = true
+# follow_imports = skip makes these modules Any whether or not they happen to be
+# installed, so the type check gives the same result locally (full inference
+# stack present) and in CI (deliberately absent).
+follow_imports = "skip"
+
+[tool.coverage.run]
+source = ["src/archai_ocr"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]

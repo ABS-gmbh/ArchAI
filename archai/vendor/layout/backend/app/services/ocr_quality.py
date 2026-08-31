@@ -550,7 +550,10 @@ def compute_cross_pass_stability(text_a: str, text_b: str) -> float:
     - Returns 0..1 (1.0 = identical).
     """
     def _norm(t: str) -> str:
-        return re.sub(r"\\s+", " ", t.strip().lower())
+        # r"\\s+" (escaped backslash + literal "s") matched a backslash followed
+        # by s, never whitespace, so this normalizer was a no-op and two passes
+        # differing only in spacing scored as unstable.
+        return re.sub(r"\s+", " ", t.strip().lower())
 
     na, nb = _norm(text_a), _norm(text_b)
     if na == nb:

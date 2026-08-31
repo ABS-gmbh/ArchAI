@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import io
+import logging
 from dataclasses import dataclass
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 
+from app.config import settings
 from app.services.glm_ollama_ocr import GlmOllamaOcrResult
 
+_LOGGER = logging.getLogger(__name__)
 
 _FIXTURE_WAIT_SECONDS = 5.0
 
@@ -420,8 +423,24 @@ enit qui compedes diuina potñcia soluit E & hac uxore non erit sermo pudieus I
 
 
 def get_test_ocr_fixture(image_bytes: bytes) -> TestOcrOverride | None:
+    """Look up a canned transcription for this exact image, if fixtures are enabled.
+
+    Returns None unless settings.enable_test_ocr_fixtures is explicitly true.
+    Previously this was unconditional, so three production endpoints would serve
+    hand-written text instead of running OCR whenever one of these four images
+    was submitted, with nothing in the response marking it as a fixture.
+    """
+    if not settings.enable_test_ocr_fixtures:
+        return None
     digest = hashlib.sha256(image_bytes).hexdigest()
-    return _FIXTURE_OVERRIDES.get(digest)
+    fixture = _FIXTURE_OVERRIDES.get(digest)
+    if fixture is not None:
+        _LOGGER.warning(
+            "Serving CANNED OCR FIXTURE instead of running the pipeline "
+            "(sha256=%s). This output is not model-generated.",
+            digest[:16],
+        )
+    return fixture
 
 
 def get_test_ocr_override(image_bytes: bytes) -> GlmOllamaOcrResult | None:

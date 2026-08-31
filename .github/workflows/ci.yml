@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Ultralytics otherwise pip-installs optional packages at runtime, which would
+  # mutate the CI environment mid-test and reach out to the network.
+  YOLO_AUTOINSTALL: "false"
+
+jobs:
+  quality:
+    name: archai_ocr (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install tooling and test deps
+        # The heavy inference stack (ultralytics, kraken, torch) is deliberately
+        # not installed: the test suite is designed to run without model weights.
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ruff mypy types-PyYAML pytest pytest-cov PyYAML Pillow python-dotenv
+
+      - name: Lint (ruff)
+        run: ruff check src tests
+
+      - name: Format check (ruff)
+        run: ruff format --check src tests
+
+      - name: Type check (mypy strict)
+        run: mypy
+
+      - name: Tests
+        run: pytest tests -q --cov=archai_ocr --cov-report=term-missing
+
+  vendor-backend:
+    name: vendor layout backend (compile + import surface)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Byte-compile the backend
+        # A full test run needs model weights and the heavy inference stack, so
+        # CI checks that every module at least compiles. Run the backend's own
+        # pytest suite locally: see archai/vendor/layout/backend/README.md.
+        run: python -m compileall -q archai/vendor/layout/backend/app
+
+  secret-scan:
+    name: no committed secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan tracked files for credential literals
+        run: |
+          set -eu
+          pattern='sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{50,}|AKIA[0-9A-Z]{16}|hf_[A-Za-z0-9]{34}|xox[baprs]-[A-Za-z0-9-]{10,}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+          if git grep -nIE "$pattern" -- . ; then
+            echo "::error::Credential-like literal found in tracked files."
+            exit 1
+          fi
+          echo "No credential literals in tracked files."
+
+      - name: Ensure no real .env is tracked
+        run: |
+          set -eu
+          if git ls-files | grep -E '(^|/)\.env$'; then
+            echo "::error::A .env file is tracked. Only *.example templates belong in git."
+            exit 1
+          fi
+          echo "No tracked .env files."
