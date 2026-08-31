@@ -8,18 +8,44 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from archai_ocr.config import AppConfig
+from archai_ocr.utils.coco_writer import RegionDict, write_layout_coco
+from archai_ocr.utils.image_io import get_image_size
+
 # Ultralytics installs missing optional packages with pip at runtime (see
 # ultralytics.utils.checks.check_requirements, gated on YOLO_AUTOINSTALL which
 # defaults to true). Silently mutating the environment mid-run breaks
 # reproducibility for a research pipeline and requires network access at
-# inference time. setdefault leaves an explicit operator choice intact.
+# inference time. setdefault leaves an explicit operator choice intact, and it
+# must run before ultralytics is imported — hence the deferred import below.
 os.environ.setdefault("YOLO_AUTOINSTALL", "false")
 
-from ultralytics import YOLO  # type: ignore[attr-defined]  # noqa: E402 - follows env guard
+_ULTRALYTICS_INSTALL_HINT = (
+    "ultralytics is required for layout detection but is not installed. "
+    "Install it with:  pip install 'ultralytics>=8.2.0'  (or `pip install -e .` "
+    "from the repository root)."
+)
 
-from archai_ocr.config import AppConfig
-from archai_ocr.utils.coco_writer import RegionDict, write_layout_coco
-from archai_ocr.utils.image_io import get_image_size
+try:
+    from ultralytics import YOLO  # noqa: E402 - must follow the env guard above
+
+    ULTRALYTICS_AVAILABLE = True
+except ImportError as exc:  # pragma: no cover - exercised only without ultralytics
+    YOLO = None
+    ULTRALYTICS_AVAILABLE = False
+    _ULTRALYTICS_IMPORT_ERROR: ImportError | None = exc
+else:
+    _ULTRALYTICS_IMPORT_ERROR = None
+
+
+def require_ultralytics() -> None:
+    """Raise a user-facing error if the optional ultralytics dependency is missing.
+
+    Guarding the import keeps this module's pure logic — reading order, NMS,
+    geometry — importable and testable without the inference stack installed.
+    """
+    if not ULTRALYTICS_AVAILABLE:
+        raise RuntimeError(_ULTRALYTICS_INSTALL_HINT) from _ULTRALYTICS_IMPORT_ERROR
 
 
 @dataclass(frozen=True)
@@ -47,17 +73,19 @@ class RegionDetection:
 
 
 @lru_cache(maxsize=4)
-def _load_model(weights_path: str, mtime_ns: int) -> YOLO:  # noqa: ARG001 - mtime busts the cache
+def _load_model(weights_path: str, mtime_ns: int) -> Any:  # noqa: ARG001 - mtime busts the cache
     """Load a YOLO model once per (path, mtime).
 
     The detector was previously constructed on every call, which reloaded weights
     from disk for each page. mtime_ns is part of the key so that replacing the
     weights file invalidates the cache rather than serving a stale model.
     """
+    require_ultralytics()
     return YOLO(weights_path)
 
 
-def load_layout_model(weights: Path) -> YOLO:
+def load_layout_model(weights: Path) -> Any:
+    require_ultralytics()
     return _load_model(str(weights), weights.stat().st_mtime_ns)
 
 

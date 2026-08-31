@@ -46,4 +46,5 @@ def validate_image_path(path: str | Path) -> Path:
 
 def get_image_size(path: str | Path) -> tuple[int, int]:
     with Image.open(path) as im:
-        return im.size
+        width, height = im.size
+        return int(width), int(height)

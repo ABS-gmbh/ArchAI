@@ -99,6 +99,10 @@ warn_unreachable = true
 [[tool.mypy.overrides]]
 module = ["ultralytics.*", "kraken.*", "cv2.*", "PIL.*", "dotenv.*"]
 ignore_missing_imports = true
+# follow_imports = skip makes these modules Any whether or not they happen to be
+# installed, so the type check gives the same result locally (full inference
+# stack present) and in CI (deliberately absent).
+follow_imports = "skip"
 
 [tool.coverage.run]
 source = ["src/archai_ocr"]
