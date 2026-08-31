@@ -4,7 +4,8 @@ This directory is the monorepo workspace inside the root ArchAI repository.
 
 It contains three tracks:
 
-1. `backend/` and `frontend/`: prototype implementation track.
+1. `backend/` and `frontend/`: **non-functional** prototype scaffolding. `backend/` is a mock — its
+   ingest endpoint fabricates span text and is disabled unless `ARCHAI_ALLOW_MOCK_BACKEND=1`.
 2. `vendor/layout/`: active full-stack document + chat + OCR workspace.
 3. Shared workspace assets/config/data/docs/docker files.
 
@@ -17,7 +18,7 @@ It contains three tracks:
 | `data/` | Workspace data folders (`raw`, `processed`, `derived`, `indexes`, `exports`) | Active |
 | `docs/` | Workspace architecture and schema docs | In progress |
 | `docker/` | Dockerfiles and compose setup | Active |
-| `backend/` | Prototype FastAPI backend package `archai_backend` | Prototype |
+| `backend/` | **MOCK** scaffolding: 41/47 modules are `# TODO: implement`; ingest returns fabricated text | Not functional |
 | `frontend/` | Prototype Vue/Vite UI | Prototype |
 | `vendor/layout/` | Main integrated document workspace (FastAPI + Next.js) | Active |
 

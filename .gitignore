@@ -1,28 +1,64 @@
+# ---- Python ----
 __pycache__/
 *.py[cod]
 *.egg-info/
+.eggs/
+build/
+dist/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 .venv/
 venv/
+env/
 
-weights/
+# ---- Secrets ----
+# Never commit real environment files; *.example templates are tracked instead.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- Models and runtime outputs (large, machine-local) ----
+weights/*
+# ...but keep the note explaining which weights to obtain and where.
+!weights/README.md
 outputs/
+output/
+tmp/
+*.db
+*.sqlite3
 
+# ---- Thesis writing workspace (LaTeX sources + build artefacts, ~121 MB) ----
+# Kept outside version control deliberately; the reproducible figure payloads
+# that the thesis cites live in artifacts/thesis_showcase/ and ARE tracked.
+fixes/
+
+# ---- OS / editor / agent workspaces ----
 .DS_Store
+Thumbs.db
 .claude/
+.last-presentation-workspace
 test_opencv_output.png
 
-# frontend workspace outputs
+# ---- Frontend ----
+node_modules/
 archai/frontend/node_modules/
 archai/frontend/dist/
 
-# local backend runtime data
+# ---- Local backend runtime data ----
 archai/backend/venv/
 archai/backend/.pytest_cache/
+archai/vendor/layout/.venv/
 archai/vendor/layout/backend/.data/
 archai/vendor/layout/backend/app/.data/
 archai/vendor/layout/backend/outputs/
 archai/vendor/layout/backend/.tasks/
+archai/vendor/layout/backend/weights/
+archai/vendor/layout/backend/models/
 archai/vendor/layout/backend/archai.db
+archai/vendor/layout/backend/analytics.db

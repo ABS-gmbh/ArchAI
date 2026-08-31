@@ -24,6 +24,10 @@ dependencies = [
     "rtree>=1.0.0",
     "langdetect>=1.0.9",
     "openai>=1.51.0",
+    # Imported unguarded at module scope; without these `pip install -e .`
+    # followed by `uvicorn app.main:app` fails at import time.
+    "chromadb>=0.5.0",          # app/services/rag_store.py
+    "requests>=2.31.0",         # app/services/glm_ollama_ocr.py
 ]
 
 [project.optional-dependencies]

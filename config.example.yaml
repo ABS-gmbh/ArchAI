@@ -1,14 +1,27 @@
+# ArchAI OCR pipeline configuration.
+# Relative paths resolve against the directory containing this file.
+
 weights:
   layout_yolo: weights/layout_yolo.pt
   kraken_segmentation: weights/kraken_segmentation.mlmodel
   kraken_recognition: weights/kraken_recognition.mlmodel
 
 layout:
-  main_text_class: main_text
+  # Must be a class the layout model actually emits. The shipped weights use the
+  # SegmOnto vocabulary: DigitizationArtefactZone, DropCapitalZone, GraphicZone,
+  # MainZone, MarginTextZone, MusicZone, NumberingZone, QuireMarksZone,
+  # RunningTitleZone, StampZone, TitlePageZone.
+  # Matching is case-insensitive. A list is accepted, e.g. [MainZone, MarginTextZone].
+  main_text_class: MainZone
   confidence_threshold: 0.25
   iou_threshold: 0.5
   max_regions: 50
   crop_padding: 5
+  # column: read each column top-to-bottom, columns left-to-right (multi-column safe)
+  # simple: global top-to-bottom sort (reproduces pre-0.2.0 output)
+  reading_order: column
+  column_overlap_ratio: 0.5
+  min_region_size: 8
 
 runtime:
   output_dir: outputs

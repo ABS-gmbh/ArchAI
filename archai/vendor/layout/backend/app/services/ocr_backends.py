@@ -169,21 +169,39 @@ def select_backend_plan(
 
 
 def _resolve_model_path(raw_path: str | None, *fallbacks: str | None) -> Path:
+    """Resolve the first candidate model path that actually exists.
+
+    Candidates are tried in order (raw_path, then each fallback). A relative
+    candidate is probed against every entry in _PATH_ROOTS. Only an existing
+    file short-circuits the search; previously a relative candidate that matched
+    no root still returned its last probed path, so the whole fallback chain
+    after the first candidate was unreachable and callers got a path that does
+    not exist.
+    """
     candidates = [str(raw_path or "").strip(), *[str(item or "").strip() for item in fallbacks]]
+    first_probe: Path | None = None
+
     for candidate in candidates:
         if not candidate:
             continue
         path = Path(candidate).expanduser()
         if path.is_absolute():
-            return path
-        last_candidate: Path | None = None
+            if path.exists():
+                return path
+            if first_probe is None:
+                first_probe = path
+            continue
         for root in _PATH_ROOTS:
             rooted = (root / path).resolve()
-            last_candidate = rooted
             if rooted.exists():
                 return rooted
-        if last_candidate is not None:
-            return last_candidate
+            if first_probe is None:
+                first_probe = rooted
+
+    if first_probe is not None:
+        # Nothing on disk. Return the first place we looked so the error message
+        # downstream names a path the operator recognises.
+        return first_probe
     raise OCRBackendError("No Kraken model path configured.")
 
 

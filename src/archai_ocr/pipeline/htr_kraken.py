@@ -1,17 +1,41 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any
 from xml.etree import ElementTree as ET
 
-import logging
-
 from PIL import Image
-from kraken import binarization, blla, pageseg, rpred
-from kraken.lib.models import load_any
-from kraken.lib.vgsl import TorchVGSLModel
 
 from archai_ocr.config import AppConfig
+
+_KRAKEN_INSTALL_HINT = (
+    "Kraken is required for the recognition stage but is not installed in this "
+    "environment. Install it with:  pip install 'kraken>=5.3.0'  "
+    "(or `pip install -e .` from the repository root). "
+    "Layout detection and cropping work without it; use --dry-run to validate "
+    "configuration and inputs only."
+)
+
+try:
+    from kraken import binarization, blla, pageseg, rpred
+    from kraken.lib.models import load_any
+    from kraken.lib.vgsl import TorchVGSLModel
+
+    KRAKEN_AVAILABLE = True
+    _KRAKEN_IMPORT_ERROR: ImportError | None = None
+except ImportError as exc:  # pragma: no cover - exercised only without kraken installed
+    binarization = blla = pageseg = rpred = None
+    load_any = TorchVGSLModel = None
+    KRAKEN_AVAILABLE = False
+    _KRAKEN_IMPORT_ERROR = exc
+
+
+def require_kraken() -> None:
+    """Raise a user-facing error if the optional Kraken dependency is missing."""
+    if not KRAKEN_AVAILABLE:
+        raise RuntimeError(_KRAKEN_INSTALL_HINT) from _KRAKEN_IMPORT_ERROR
 
 
 def recognize_crops(
@@ -19,6 +43,7 @@ def recognize_crops(
     config: AppConfig,
     logger: logging.Logger,
 ) -> list[str]:
+    require_kraken()
     try:
         rec_model = load_any(str(config.weights.kraken_recognition))
     except Exception as exc:
@@ -46,27 +71,42 @@ def recognize_crops(
         )
 
     region_texts: list[str] = []
-    for crop_path in crop_paths:
-        with Image.open(crop_path) as im:
-            crop_img = im.convert("L")
+    failed_regions = 0
+    for index, crop_path in enumerate(crop_paths):
+        try:
+            with Image.open(crop_path) as im:
+                crop_img = im.convert("L")
             segmentation = _segment_crop(crop_img, seg_model)
             records = _run_recognition(rec_model, crop_img, segmentation)
+        except Exception:
+            # One unreadable region must not discard the rest of the page. Emit an
+            # empty region so downstream region indices stay aligned with layout.
+            failed_regions += 1
+            logger.exception(
+                "htr.region_failed",
+                extra={"stage": "htr", "count": index, "output": str(crop_path)},
+            )
+            region_texts.append("")
+            continue
 
-        lines = [_extract_prediction_text(record) for record in records]
+        lines = [_extract_prediction_text(record, logger) for record in records]
         lines = [line for line in lines if line]
-        region_text = "\n".join(lines)
-        region_texts.append(region_text)
+        region_texts.append("\n".join(lines))
 
         if config.runtime.write_page_xml:
-            xml_path = crop_path.with_suffix(".xml")
             _write_page_xml(
-                xml_path=xml_path,
+                xml_path=crop_path.with_suffix(".xml"),
                 image_name=crop_path.name,
                 image_size=crop_img.size,
                 segmentation=segmentation,
                 line_texts=lines,
             )
 
+    if failed_regions:
+        logger.warning(
+            "htr.regions_failed",
+            extra={"stage": "htr", "count": failed_regions},
+        )
     return region_texts
 
 
@@ -85,7 +125,9 @@ def _segment_crop(image: Image.Image, seg_model: Any | None) -> Any:
 
 
 def _run_recognition(rec_model: Any, image: Image.Image, segmentation: Any) -> list[Any]:
-    attempts = (
+    # kraken is untyped, so these closures are Callable[[], Any]; annotate the
+    # tuple so strict mode does not treat each call as an untyped call.
+    attempts: tuple[Callable[[], list[Any]], ...] = (
         lambda: list(rpred.rpred(rec_model, image, segmentation)),
         lambda: list(rpred.rpred(rec_model, image, bounds=segmentation)),
         lambda: list(rpred.rpred(network=rec_model, im=image, bounds=segmentation)),
@@ -93,14 +135,22 @@ def _run_recognition(rec_model: Any, image: Image.Image, segmentation: Any) -> l
     last_exc: Exception | None = None
     for attempt in attempts:
         try:
-            return attempt()
+            records: list[Any] = attempt()
         except TypeError as exc:
             last_exc = exc
             continue
+        else:
+            return records
     raise RuntimeError(f"Unable to run Kraken recognition with available call signatures: {last_exc}")
 
 
-def _extract_prediction_text(record: Any) -> str:
+def _extract_prediction_text(record: Any, logger: logging.Logger | None = None) -> str:
+    """Pull the recognized string out of a Kraken record.
+
+    Anything we cannot positively identify yields an empty string. Falling back to
+    str(record) put reprs such as "<kraken.rpred.ocr_record object at 0x...>" into
+    the transcription, where they are indistinguishable from recognized text.
+    """
     if record is None:
         return ""
 
@@ -108,11 +158,22 @@ def _extract_prediction_text(record: Any) -> str:
         text = record.get("prediction") or record.get("text")
         return str(text).strip() if text is not None else ""
 
-    if hasattr(record, "prediction"):
-        return str(getattr(record, "prediction")).strip()
-    if hasattr(record, "text"):
-        return str(getattr(record, "text")).strip()
-    return str(record).strip()
+    for attribute in ("prediction", "text"):
+        value = getattr(record, attribute, None)
+        if isinstance(value, str):
+            return value.strip()
+        if value is not None:
+            return str(value).strip()
+
+    if isinstance(record, str):
+        return record.strip()
+
+    if logger is not None:
+        logger.warning(
+            "htr.unrecognized_record_type",
+            extra={"stage": "htr", "output": type(record).__name__},
+        )
+    return ""
 
 
 def _try_move_to_device(model: Any, device: str, logger: logging.Logger) -> None:
@@ -177,7 +238,7 @@ def _line_bboxes(segmentation: Any) -> list[tuple[int, int, int, int]]:
         candidate = segmentation.get("lines") or segmentation.get("boxes") or []
         lines = candidate
     elif hasattr(segmentation, "lines"):
-        lines = getattr(segmentation, "lines")
+        lines = segmentation.lines
 
     out: list[tuple[int, int, int, int]] = []
     for line in lines:
@@ -194,9 +255,9 @@ def _extract_line_bbox(line: Any) -> tuple[int, int, int, int] | None:
         if "boundary" in line:
             return _boundary_to_bbox(line["boundary"])
     if hasattr(line, "bbox"):
-        return _normalize_bbox(getattr(line, "bbox"))
+        return _normalize_bbox(line.bbox)
     if hasattr(line, "boundary"):
-        return _boundary_to_bbox(getattr(line, "boundary"))
+        return _boundary_to_bbox(line.boundary)
     return None
 
 
