@@ -47,6 +47,71 @@ ENTROPY_HIGH_LIMIT: float = 5.5
 UNCERTAINTY_HARD_LIMIT: float = 0.15
 UNCERTAINTY_RISKY_LIMIT: float = 0.08  # above -> RISKY
 
+# ═══════════════════════════════════════════════════════════════════════
+# Repetition (degenerate VLM decoding loops)
+# ═══════════════════════════════════════════════════════════════════════
+
+REPETITION_HARD_LIMIT: float = 0.35
+"""Share of the page occupied by one repeated line/n-gram, above which the
+transcription is UNRELIABLE. A decoding loop that emits the same line dozens of
+times is otherwise indistinguishable from clean text to character-level signals."""
+
+REPETITION_SOFT_LIMIT: float = 0.20
+"""Above this repetition share the transcription is RISKY."""
+
+REPETITION_NGRAM: int = 5
+"""Token n-gram width used by the repetition detector."""
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Lexical implausibility (language-aware garbage detection)
+# ═══════════════════════════════════════════════════════════════════════
+
+LEXICON_CLEAN_FLOOR: float = 0.45
+"""Implausibility that genuinely clean text is expected to reach anyway.
+
+lexical_plausibility scores a trigram hit-rate against a hand-built profile, and
+profile coverage varies by language: clean Latin scores ~0.82 plausible but clean
+Old French only ~0.57, purely because the Old French profile is sparser. Feeding
+raw implausibility into the gibberish score therefore penalises clean text in
+under-profiled languages. Only implausibility *above* this floor is treated as
+evidence of garbage, and it is rescaled across the remaining range."""
+
+
+LEXICON_UNRELIABLE_LIMIT: float = 0.72
+"""Implausibility (1 - lexical_plausibility) above which text is UNRELIABLE.
+Only applied when a trigram profile exists for the detected language."""
+
+LEXICON_RISKY_LIMIT: float = 0.58
+"""Implausibility above which text is RISKY."""
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# gibberish_score component weights
+# ═══════════════════════════════════════════════════════════════════════
+
+# With a known language the lexical signal dominates, because the character
+# heuristics alone cannot separate real words from transposed ones.
+GIBBERISH_WEIGHTS_WITH_LANGUAGE: dict[str, float] = {
+    "lexical": 0.45,
+    "repetition": 0.20,
+    "non_wordlike": 0.15,
+    "entropy": 0.07,
+    "rare_bigram": 0.07,
+    "uncertainty": 0.06,
+}
+
+# Without a language profile the lexical term is unavailable; its weight is
+# redistributed onto the remaining signals.
+GIBBERISH_WEIGHTS_NO_LANGUAGE: dict[str, float] = {
+    "repetition": 0.30,
+    "non_wordlike": 0.35,
+    "entropy": 0.13,
+    "rare_bigram": 0.12,
+    "uncertainty": 0.10,
+}
+
+
 # Mention recall
 MENTION_MIN_PER_1K_CHARS: int = 2
 MENTION_ABSOLUTE_MIN: int = 1

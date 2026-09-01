@@ -2959,10 +2959,12 @@ def _run_post_ocr_pipeline_for_glm(
 
     confidence_value = float(response.confidence or 0.0)
     raw_lines = list(response.lines or [line for line in text_value.splitlines() if line.strip()])
-    quality_report = compute_quality_report(text_value, run_id=run_id, pass_idx=0)
+    lex_lang = response.detected_language if response.detected_language != "unknown" else ""
+    quality_report = compute_quality_report(
+        text_value, run_id=run_id, pass_idx=0, language=_quality_language(lex_lang)
+    )
     quality_label = quality_report.quality_label
     insert_ocr_quality_report(run_id, quality_report.to_dict())
-    lex_lang = response.detected_language if response.detected_language != "unknown" else ""
     lex_score = _lexical_plausibility(text_value, lex_lang) if lex_lang else None
     gate_decisions = enforce_quality_gates(quality_report, run_id=run_id, lexical_plausibility=lex_score)
     downstream_mode = gate_decisions["downstream_mode"]
@@ -3251,10 +3253,12 @@ async def _run_segmented_trace_pipeline(
         "downstream_mode": decide_downstream_mode("OK"),
     }
 
-    ocr_quality_report = compute_quality_report(raw_text, run_id=run_id, pass_idx=0)
+    _lex_lang = ocr_payload.get("detected_language", "unknown")
+    ocr_quality_report = compute_quality_report(
+        raw_text, run_id=run_id, pass_idx=0, language=_quality_language(_lex_lang)
+    )
     hardened_quality_label = ocr_quality_report.quality_label
     insert_ocr_quality_report(run_id, ocr_quality_report.to_dict())
-    _lex_lang = ocr_payload.get("detected_language", "unknown")
     _lex_score = _lexical_plausibility(raw_text, _lex_lang) if _lex_lang != "unknown" else None
     gate_decisions = enforce_quality_gates(ocr_quality_report, run_id=run_id, lexical_plausibility=_lex_score)
     downstream_mode = gate_decisions["downstream_mode"]
@@ -3401,6 +3405,7 @@ async def _run_segmented_trace_pipeline(
             run_id=run_id,
             pass_idx=10,
             previous_pass_tokens=[t for t in raw_text.split() if t],
+            language=_quality_language(ocr_payload.get("detected_language")),
         )
         hardened_quality_label = post_proof_report.quality_label
         insert_ocr_quality_report(run_id, post_proof_report.to_dict())
@@ -3679,6 +3684,16 @@ async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFull
 # ── Quality label ranking helper ──────────────────────────────────────
 
 _QUALITY_RANK = {"HIGH": 0, "OK": 1, "RISKY": 2, "UNRELIABLE": 3}
+
+
+def _quality_language(value: str | None) -> str | None:
+    """Normalize a detected language for compute_quality_report.
+
+    Returns None for unknown/absent values so the scorer falls back to its
+    no-language weighting instead of scoring against an absent profile.
+    """
+    normalized = _normalize_detected_language(value)
+    return None if normalized == "unknown" else normalized
 
 
 def _quality_rank(label: str) -> int:
@@ -4004,7 +4019,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                                   f"NOOP escalation failed to change geometry. "
                                   f"Recording as NOOP attempt.")
 
-            # ── Language-agnostic quality report ──────────────────────
+            # ── Quality report (language-aware when a profile exists) ──
             prev_tokens = None
             if best_ocr_payload is not None:
                 prev_tokens = [t for t in (best_ocr_payload["text"] or "").split() if t]
@@ -4013,6 +4028,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                 run_id=run_id,
                 pass_idx=attempt_idx,
                 previous_pass_tokens=prev_tokens,
+                language=_quality_language(ocr_payload.get("detected_language")),
             )
             hardened_quality_label = ocr_quality_report.quality_label
             insert_ocr_quality_report(run_id, ocr_quality_report.to_dict())
@@ -4419,6 +4435,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                 previous_pass_tokens=[
                     t for t in (ocr_payload["text"] or "").split() if t
                 ],
+                language=_quality_language(ocr_payload.get("detected_language")),
             )
             hardened_quality_label = post_proof_report.quality_label
             insert_ocr_quality_report(run_id, post_proof_report.to_dict())
