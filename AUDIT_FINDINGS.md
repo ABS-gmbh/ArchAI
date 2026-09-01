@@ -3,6 +3,8 @@
 
 Findings marked **FIXED** were addressed and verified. Everything else is open backlog.
 
+21 of 130 fixed so far. The two remaining criticals to look at next are **AL-01** (composite score ceiling below every auto-select threshold, which would mean authority linking resolves nothing beyond 23 hardcoded names) and **SVC-01**'s neighbours in the event-loop blocking cluster (**OCR-001**, **OCR-004**, **AL-05**).
+
 > Caveat on confidence: adversarial verification completed for the OCR router, the agents
 > and the DB/state layer. The verifier passes for services-linking, services-ocr,
 > root-cli and hygiene did not run (session limit), so findings in those areas carry
@@ -33,7 +35,7 @@ These are pydantic-settings *defaults*, so they apply whenever the env vars are 
 - **Impact:** A mention whose surface exactly equals the Wikidata label, with a type-compatible P31, a medieval-domain description and an exact alias hit, scores at most 0.795 and is rejected by `disambiguate` at entity_scoring.py:384 with status 'unresolved'. Real pages have 200+ context tokens, pushing alias_sim toward 0.01 and the ceiling lower. The ONLY path that ever reaches 'linked' is `rescore_with_canonical` (entity_scoring.py:298) forcing `score = max(score, 0.90/0.92)`, which fires only for the 23 hard-coded Arthurian surfaces in `_CANONICAL_ENTITIES` (authority_linking.py:874-898). Every other mention on every page is permanently unresolved.
 - **Fix:** Either (a) replace `alias_sim = context_similarity(...)` in entity_scoring.py:237 with the actual alias similarity (`max(string_similarity(surface, a) for a in candidate aliases)`, already computed as `alias_match_quality` at authority_linking.py:342) so the 0.25 weight is reachable, or (b) normalize the context signal — e.g. use containment `len(inter)/len(desc)` instead of Jaccard — and then re-tune AUTO_SELECT_THRESHOLD against the actual achievable range. Add a unit test asserting that a perfect-match candidate scores >= AUTO_SELECT_THRESHOLD for all three quality tiers.
 
-### [SVC-02] gibberish_score cannot distinguish clean text from scrambled text; the UNRELIABLE gate is unreachable
+### [SVC-02] gibberish_score cannot distinguish clean text from scrambled text; the UNRELIABLE gate is unreachable — **FIXED**
 
 - **Where:** `vendor:app/services/ocr_quality.py:591`  
 - **Category:** ocr-quality  

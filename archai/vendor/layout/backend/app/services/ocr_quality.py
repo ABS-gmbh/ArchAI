@@ -31,6 +31,14 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Sequence
 
 from app.services.ocr_quality_config import (
+    GIBBERISH_WEIGHTS_NO_LANGUAGE,
+    GIBBERISH_WEIGHTS_WITH_LANGUAGE,
+    LEXICON_CLEAN_FLOOR,
+    LEXICON_RISKY_LIMIT,
+    LEXICON_UNRELIABLE_LIMIT,
+    REPETITION_HARD_LIMIT,
+    REPETITION_NGRAM,
+    REPETITION_SOFT_LIMIT,
     CROSS_PASS_STABILITY_MIN,
     ENTROPY_HIGH_LIMIT,
     ENTROPY_LOW_LIMIT,
@@ -591,10 +599,88 @@ def uncertainty_density(text: str) -> float:
 # Gibberish detection (composite score)
 # ═══════════════════════════════════════════════════════════════════════
 
-def gibberish_score(text: str, script: str = "latin") -> float:
+def repetition_score(text: str, ngram: int = REPETITION_NGRAM) -> float:
+    """Share of the page occupied by its single most repeated line or n-gram.
+
+    0 = no repetition, 1 = the page is one phrase repeated. Detects the
+    degenerate decoding loop that vision-language models fall into, where the
+    same line is emitted dozens of times. Character-level signals are blind to
+    this: repeated *real* text has entirely normal entropy, bigrams and
+    word-likeness, so it scores identically to a clean transcription.
+    """
+    if not text or not text.strip():
+        return 0.0
+
+    # Line-level repetition: the dominant duplicated line, as a share of lines.
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    line_share = 0.0
+    if len(lines) >= 3:
+        counts = Counter(lines)
+        top_line, top_count = counts.most_common(1)[0]
+        if top_count > 1:
+            line_share = top_count / len(lines)
+
+    # Token n-gram repetition: catches loops that are not line-aligned.
+    #
+    # n-grams are collected WITHIN each line, never across a line break. Spanning
+    # breaks made structurally similar but distinct lines look like a loop: for
+    # "line number 1 of the folio" / "line number 2 of the folio" / ... the
+    # boundary-spanning 5-gram "of the folio line number" recurs on every line,
+    # which scored a templated ledger at 0.59 as if it were degenerate output.
+    all_tokens = [t for t in re.split(r"\s+", text.strip()) if t]
+    ngram_share = 0.0
+    if len(all_tokens) >= ngram * 3:
+        counts: Counter[tuple[str, ...]] = Counter()
+        for line in (lines or [text]):
+            line_tokens = [t for t in re.split(r"\s+", line.strip()) if t]
+            for i in range(len(line_tokens) - ngram + 1):
+                counts[tuple(line_tokens[i : i + ngram])] += 1
+        if counts:
+            _, top_count = counts.most_common(1)[0]
+            if top_count > 1:
+                # Occurrences of the dominant n-gram, weighted by tokens covered.
+                ngram_share = min(1.0, (top_count * ngram) / len(all_tokens))
+
+    return round(min(1.0, max(line_share, ngram_share)), 4)
+
+
+def lexical_implausibility(text: str, language: str | None) -> float | None:
+    """1 - lexical_plausibility for *language*, or None when unavailable.
+
+    Returns None when no language is supplied or no trigram profile exists, so
+    callers can redistribute the weight rather than assume a neutral 0.5.
+    """
+    if not language or not text or not text.strip():
+        return None
+    from app.services.lexicon_trust import _TRIGRAM_PROFILES, lexical_plausibility
+
+    if language not in _TRIGRAM_PROFILES or language == "unknown":
+        return None
+    return round(1.0 - lexical_plausibility(text, language), 4)
+
+
+def _rescale_lexical(implausibility: float) -> float:
+    """Map raw implausibility onto 0-1, ignoring the clean-text baseline.
+
+    Profile coverage differs per language, so clean text does not reach 0
+    implausibility. Anything at or below LEXICON_CLEAN_FLOOR counts as clean.
+    """
+    if implausibility <= LEXICON_CLEAN_FLOOR:
+        return 0.0
+    span = 1.0 - LEXICON_CLEAN_FLOOR
+    if span <= 0:
+        return 0.0
+    return round(min(1.0, (implausibility - LEXICON_CLEAN_FLOOR) / span), 4)
+
+
+def gibberish_score(text: str, script: str = "latin", language: str | None = None) -> float:
     """Composite gibberish detector (0 = clean, 1 = total gibberish).
 
-    Language-agnostic: uses character-level signals only.
+    When *language* names a language with a trigram profile, the lexical signal
+    carries most of the weight. The character-level signals this function used
+    to rely on exclusively cannot tell real words from transposed ones: a
+    sentence and the same sentence with every word reversed have identical
+    entropy, bigram load and word-likeness, and both scored 0.0.
     """
     if not text or not text.strip():
         return 0.0
@@ -613,9 +699,9 @@ def gibberish_score(text: str, script: str = "latin") -> float:
     # 2. Entropy anomaly
     ent = char_entropy(text)
     ent_penalty = 0.0
-    if ent < 2.0:
+    if ent < ENTROPY_LOW_LIMIT:
         ent_penalty = 0.3
-    elif ent > 5.5:
+    elif ent > ENTROPY_HIGH_LIMIT:
         ent_penalty = 0.2
 
     # 3. Rare bigram load
@@ -624,13 +710,28 @@ def gibberish_score(text: str, script: str = "latin") -> float:
     # 4. Uncertainty marker density
     unc = uncertainty_density(text)
 
-    # Weighted combination
-    score = (
-        0.40 * nwl_frac
-        + 0.20 * ent_penalty
-        + 0.20 * min(1.0, rbr * 5)
-        + 0.20 * min(1.0, unc * 5)
-    )
+    # 5. Repetition (decoding loops)
+    rep = repetition_score(text)
+
+    # 6. Lexical implausibility for the detected language, when we have one,
+    #    rescaled so that plausibility typical of clean text contributes nothing.
+    lex_raw = lexical_implausibility(text, language)
+    lex = None if lex_raw is None else _rescale_lexical(lex_raw)
+
+    components = {
+        "non_wordlike": nwl_frac,
+        "entropy": ent_penalty,
+        "rare_bigram": min(1.0, rbr * 5),
+        "uncertainty": min(1.0, unc * 5),
+        "repetition": rep,
+    }
+    if lex is None:
+        weights = GIBBERISH_WEIGHTS_NO_LANGUAGE
+    else:
+        weights = GIBBERISH_WEIGHTS_WITH_LANGUAGE
+        components["lexical"] = lex
+
+    score = sum(weights[name] * value for name, value in components.items() if name in weights)
     return round(min(1.0, score), 4)
 
 
@@ -690,6 +791,11 @@ class OCRQualityReport:
     gibberish_score: float = 0.0
     uncertainty_density: float = 0.0
     rare_bigram_ratio: float = 0.0
+    repetition_score: float = 0.0
+    # 1 - lexical_plausibility for the detected language; -1.0 when no trigram
+    # profile is available, so "not measured" is distinguishable from "plausible".
+    lexical_implausibility: float = -1.0
+    detected_language: str = ""
 
     # Token-level stats
     token_count: int = 0
@@ -737,6 +843,7 @@ def compute_quality_report(
     run_id: str = "",
     pass_idx: int = 0,
     previous_pass_tokens: Sequence[str] | None = None,
+    language: str | None = None,
 ) -> OCRQualityReport:
     """Compute a full OCR quality report for a text.
 
@@ -747,6 +854,9 @@ def compute_quality_report(
         run_id: Pipeline run identifier.
         pass_idx: Which OCR pass (0=baseline, 1=overlap, 2=high-recall).
         previous_pass_tokens: Tokens from a previous pass for stability scoring.
+        language: Normalized detected language (e.g. 'latin', 'old_french').
+            When it names a language with a trigram profile, the lexical
+            signal is computed and dominates the gibberish score.
 
     Returns:
         OCRQualityReport with all signals computed and quality_label set.
@@ -790,8 +900,16 @@ def compute_quality_report(
     # ── Rare bigram ratio ──────────────────────────────────────────
     report.rare_bigram_ratio = round(rare_bigram_ratio(text, report.script_family), 4)
 
+    # ── Repetition (decoding loops) ────────────────────────────────
+    report.repetition_score = repetition_score(text)
+
+    # ── Lexical implausibility for the detected language ───────────
+    report.detected_language = str(language or "")
+    lex = lexical_implausibility(text, language)
+    report.lexical_implausibility = -1.0 if lex is None else lex
+
     # ── Gibberish score ────────────────────────────────────────────
-    report.gibberish_score = gibberish_score(text, report.script_family)
+    report.gibberish_score = gibberish_score(text, report.script_family, language)
 
     # ── Uncertainty density ────────────────────────────────────────
     report.uncertainty_density = round(uncertainty_density(text), 4)
@@ -869,6 +987,13 @@ def _derive_quality_label(r: OCRQualityReport) -> str:
         return "UNRELIABLE"
     if r.char_entropy < 1.5:
         return "UNRELIABLE"
+    # A decoding loop repeating one line is lexically and statistically normal;
+    # only the repetition share exposes it.
+    if r.repetition_score >= REPETITION_HARD_LIMIT:
+        return "UNRELIABLE"
+    # Only meaningful when a trigram profile existed (-1.0 = not measured).
+    if r.lexical_implausibility >= LEXICON_UNRELIABLE_LIMIT:
+        return "UNRELIABLE"
 
     # RISKY conditions
     if r.gibberish_score >= GIBBERISH_SOFT_LIMIT:
@@ -886,6 +1011,10 @@ def _derive_quality_label(r: OCRQualityReport) -> str:
         return "RISKY"
     if r.uncertainty_density >= UNCERTAINTY_RISKY_LIMIT:
         return "RISKY"
+    if r.repetition_score >= REPETITION_SOFT_LIMIT:
+        return "RISKY"
+    if r.lexical_implausibility >= LEXICON_RISKY_LIMIT:
+        return "RISKY"
 
     # HIGH conditions
     if (r.gibberish_score < 0.10
@@ -893,7 +1022,9 @@ def _derive_quality_label(r: OCRQualityReport) -> str:
         and r.leading_fragment_ratio < 0.06
         and r.seam_fragment_ratio < 0.05
         and r.uncertainty_density < 0.03
-        and 2.5 <= r.char_entropy <= 5.0):
+        and 2.5 <= r.char_entropy <= 5.0
+        and r.repetition_score < 0.10
+        and (r.lexical_implausibility < 0 or r.lexical_implausibility < 0.45)):
         return "HIGH"
 
     return "OK"
