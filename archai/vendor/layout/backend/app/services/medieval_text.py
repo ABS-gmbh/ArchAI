@@ -124,39 +124,144 @@ _DIGRAPHS = (("æ", "e"), ("œ", "e"), ("ae", "e"), ("oe", "e"))
 _HYPHEN_CHARS = "-‐‑‒–­¬"
 _TRAILING_BREAK_RE = re.compile(rf"[{re.escape(_HYPHEN_CHARS)}]\s*$")
 _MULTI_SPACE = re.compile(r"\s+")
+# Unicode word tokens: keeps Greek, Hebrew, Arabic and Cyrillic, which an
+# ASCII-only pattern silently deleted.
+#
+# Combining marks must be allowed INSIDE a token. They are not word characters,
+# so a bare \w+ pattern splits decomposed text: NFD "dñs" became ["dn", "s"] and
+# the suspension lookup could never fire. That is the common case rather than an
+# edge case, because the Kraken models here contain zero precomposed letters and
+# emit base letter plus combining mark.
+_COMBINING = r"\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20F0"
+
+# Some abbreviation signs are not word characters at all - the Tironian et U+204A
+# is punctuation - so they must be named explicitly or the tokenizer discards
+# them and the expansion never runs. Derived from the table so the two cannot
+# drift apart.
+_SIGN_CHARS = "".join(sorted(ch for ch in ABBREVIATION_LETTERS if not ch.isalnum()))
+_SIGNS = re.escape(_SIGN_CHARS)
+_TOKEN_RE = re.compile(
+    rf"[^\W_{_SIGNS}](?:[^\W_]|[{_COMBINING}{_SIGNS}])*|[{_SIGNS}]+", re.UNICODE
+)
+
+
+def _is_latin_letter(char: str) -> bool:
+    return char.isalpha() and ("LATIN" in unicodedata.name(char, ""))
+
+
+_LATIN_VOWELS = frozenset("aeiouyAEIOUY")
+
+
+def _is_suspension_bar(base: str | None, marks_since_base: int) -> bool:
+    """Whether a macron/tilde here is a scribal nasal suspension.
+
+    Two conditions, both needed to avoid mangling ordinary modern orthography:
+
+    * The base must be a LATIN VOWEL. A medieval suspension bar stands for a
+      nasal following a vowel. Spanish and Portuguese put a tilde on a
+      consonant, so "España" was becoming "espanna".
+    * The mark must sit DIRECTLY on the base, with no other combining mark
+      between. Vietnamese stacks a tone mark on top of a vowel diacritic, so
+      "Nguyễn" (e + circumflex + tilde) was becoming "nguyenn".
+
+    A tilde directly on a vowel stays ambiguous - Portuguese "irmã" against a
+    medieval suspension - and is read as a suspension, which is the right default
+    for a medieval manuscript pipeline.
+    """
+    if base is None or marks_since_base != 0:
+        return False
+    return base in _LATIN_VOWELS and _is_latin_letter(base)
+
+
+def _expand_chars(text: str, *, resolve_nasals: bool) -> str:
+    """Shared expansion pass over a decomposed string.
+
+    A nasal bar is only honoured when the character it sits on is a LATIN letter.
+    U+0303/0304/0305 are generic combining marks that also occur in Greek
+    long vowels, Spanish/Portuguese tildes and Vietnamese tone marks; treating
+    them as suspensions there turned "España" into "espanna" and Greek long
+    alpha into a Latin "n".
+    """
+    if not text:
+        return ""
+
+    decomposed = unicodedata.normalize("NFD", text)
+    out: list[str] = []
+    # Base letter the pending combining marks belong to, and how many marks have
+    # been seen since it.
+    base: str | None = None
+    marks_since_base = 0
+
+    for char in decomposed:
+        if char in ABBREVIATION_LETTERS:
+            out.append(ABBREVIATION_LETTERS[char])
+            base = None
+            continue
+        if char in SUPERSCRIPT_LETTERS:
+            out.append(SUPERSCRIPT_LETTERS[char])
+            base = None
+            continue
+        if char in NASAL_MARKS:
+            if _is_suspension_bar(base, marks_since_base):
+                if resolve_nasals:
+                    # A placeholder object, not in-band text, so source text that
+                    # literally contains a marker cannot be mistaken for one.
+                    out.append(_NASAL)
+                # else: drop it, producing the classic abbreviation spelling.
+            else:
+                out.append(char)
+            marks_since_base += 1
+            continue
+        if unicodedata.combining(char):
+            marks_since_base += 1
+        else:
+            base = char
+            marks_since_base = 0
+        out.append(char)
+
+    return _assemble(out)
+
+
+# Sentinel object for a pending nasal. A distinct object cannot collide with
+# input text, unlike the in-band string marker this replaced.
+class _Nasal:
+    __slots__ = ()
+
+    def __repr__(self) -> str:  # pragma: no cover - debugging aid
+        return "<nasal>"
+
+
+_NASAL = _Nasal()
+
+
+def _assemble(parts: list[object]) -> str:
+    """Join expansion output, resolving each nasal from the letter that follows."""
+    result: list[str] = []
+    for index, part in enumerate(parts):
+        if not isinstance(part, _Nasal):
+            result.append(str(part))
+            continue
+        # Look ahead past any further combining marks to the next real letter,
+        # so a second, unrelated diacritic cannot flip the m/n decision.
+        following = ""
+        for candidate in parts[index + 1 :]:
+            if isinstance(candidate, _Nasal):
+                continue
+            text = str(candidate)
+            stripped = "".join(ch for ch in text if not unicodedata.combining(ch))
+            if stripped:
+                following = stripped[0].lower()
+                break
+        result.append("m" if following in {"b", "p", "m"} else "n")
+    return unicodedata.normalize("NFC", "".join(result))
 
 
 def expand_abbreviations(text: str) -> str:
     """Expand scribal abbreviation signs into letters.
 
-    Operates on a decomposed form so that a base letter and its combining mark
-    are visible as separate code points, then reassembles. A nasal bar becomes
-    "n" (the commoner expansion; "m" before a labial is handled by context).
+    A nasal bar becomes "m" before a labial and "n" elsewhere.
     """
-    if not text:
-        return ""
-
-    # NFD so combining marks detach from their base letters.
-    decomposed = unicodedata.normalize("NFD", text)
-    out: list[str] = []
-
-    for char in decomposed:
-        if char in ABBREVIATION_LETTERS:
-            out.append(ABBREVIATION_LETTERS[char])
-            continue
-        if char in SUPERSCRIPT_LETTERS:
-            out.append(SUPERSCRIPT_LETTERS[char])
-            continue
-        if char in NASAL_MARKS:
-            # A bar over a vowel stands for a following nasal. "m" is correct
-            # before a labial, so decide from the letter that follows.
-            out.append("~NASAL~")
-            continue
-        out.append(char)
-
-    joined = "".join(out)
-    joined = _resolve_nasals(joined)
-    return unicodedata.normalize("NFC", joined)
+    return _expand_chars(text, resolve_nasals=True)
 
 
 def expand_abbreviations_without_nasals(text: str) -> str:
@@ -166,48 +271,19 @@ def expand_abbreviations_without_nasals(text: str) -> str:
     is how WORD_SUSPENSIONS is keyed. Resolving the bar positionally first would
     give "dnns" and miss the entry.
     """
-    if not text:
-        return ""
-    decomposed = unicodedata.normalize("NFD", text)
-    out: list[str] = []
-    for char in decomposed:
-        if char in ABBREVIATION_LETTERS:
-            out.append(ABBREVIATION_LETTERS[char])
-        elif char in SUPERSCRIPT_LETTERS:
-            out.append(SUPERSCRIPT_LETTERS[char])
-        elif char in NASAL_MARKS:
-            continue
-        else:
-            out.append(char)
-    return unicodedata.normalize("NFC", "".join(out))
-
-
-def _resolve_nasals(text: str) -> str:
-    """Turn each nasal placeholder into m before a labial, else n."""
-    result: list[str] = []
-    index = 0
-    marker = "~NASAL~"
-    while index < len(text):
-        if text.startswith(marker, index):
-            following = text[index + len(marker) : index + len(marker) + 1].lower()
-            result.append("m" if following in {"b", "p", "m"} else "n")
-            index += len(marker)
-            continue
-        result.append(text[index])
-        index += 1
-    return "".join(result)
+    return _expand_chars(text, resolve_nasals=False)
 
 
 def rejoin_line_breaks(text: str, *, lexicon: frozenset[str] | None = None) -> str:
     """Rejoin words split across manuscript line breaks.
 
     A trailing hyphen (including ¬ and the soft hyphen) is consumed and the two
-    fragments joined. Pre-1300 hands frequently break with no mark at all; when
-    a lexicon is supplied, an unmarked break is joined only if the concatenation
-    is a known word and neither fragment is.
+    fragments joined. Pre-1300 hands frequently break with no mark at all; when a
+    lexicon is supplied, an unmarked break is joined only if the concatenation is
+    a known word and neither fragment is.
 
-    Without this, one chunk per line strands 12-26% of content words as
-    fragments that match no query token.
+    Without this, one chunk per line strands 12-26% of content words as fragments
+    that match no query token.
     """
     if not text:
         return ""
@@ -218,9 +294,12 @@ def rejoin_line_breaks(text: str, *, lexicon: frozenset[str] | None = None) -> s
 
     out: list[str] = []
     buffer = ""
-
-    for line in lines:
-        current = line.rstrip()
+    # Iterate the INPUT positions explicitly. Deriving the position from the
+    # number of emitted lines drifted backwards after every join, because a join
+    # consumes two input lines and emits one - so look-ahead inspected the wrong
+    # line, missing real joins and fabricating false ones.
+    for index, raw in enumerate(lines):
+        current = raw.rstrip()
         if buffer:
             current = buffer + current.lstrip()
             buffer = ""
@@ -230,11 +309,9 @@ def rejoin_line_breaks(text: str, *, lexicon: frozenset[str] | None = None) -> s
             buffer = _TRAILING_BREAK_RE.sub("", current)
             continue
 
-        if lexicon is not None:
-            joined = _try_unmarked_join(current, lines, out, lexicon)
-            if joined is not None:
-                buffer = joined
-                continue
+        if lexicon is not None and _looks_like_split_word(current, lines, index, lexicon):
+            buffer = current
+            continue
 
         out.append(current)
 
@@ -243,76 +320,115 @@ def rejoin_line_breaks(text: str, *, lexicon: frozenset[str] | None = None) -> s
     return "\n".join(out)
 
 
-def _try_unmarked_join(
-    current: str, lines: list[str], emitted: list[str], lexicon: frozenset[str]
-) -> str | None:
-    """Return the held fragment when an unmarked break looks like a split word."""
+def _looks_like_split_word(
+    current: str, lines: list[str], index: int, lexicon: frozenset[str]
+) -> bool:
+    """True when an unmarked break looks like a word split across two lines.
+
+    Requires positive evidence: the concatenation must be a known word and
+    neither fragment may be one on its own. Guessing without that corrupts
+    ordinary line-final words.
+    """
+    if index + 1 >= len(lines):
+        return False
+
     words = current.split()
     if not words:
-        return None
+        return False
     tail = words[-1].strip(".,;:!?")
     if len(tail) < 2 or tail.lower() in lexicon:
-        return None
+        return False
 
-    index = len(emitted)
-    if index + 1 >= len(lines):
-        return None
     next_words = lines[index + 1].split()
     if not next_words:
-        return None
+        return False
     head = next_words[0].strip(".,;:!?")
     if not head or head.lower() in lexicon:
-        return None
+        return False
 
-    if (tail + head).lower() in lexicon:
-        return current
-    return None
+    return (tail + head).lower() in lexicon
 
 
 def build_search_key(text: str, *, expand: bool = True) -> str:
     """Build the normalised, matchable form used for indexing and querying.
 
-    Diacritics are still folded, but only AFTER abbreviation signs have been
-    expanded, so the mark that carried the suspension contributes letters instead
-    of being deleted. Orthographic variation that medieval scribes did not
-    observe (i/j, u/v, ae/oe) is folded so a modern query can reach the text.
+    Each token is normalised independently. An earlier version derived two whole-
+    string readings and paired them by token index; those two tokenizations could
+    differ in length, which shifted every subsequent lookup and substituted wrong
+    words into the key ("Iesus ᾱ dns ht" produced "iesus dominus habet habet").
+    Deriving both readings per token removes that coupling entirely.
+
+    Non-Latin scripts pass through case- and diacritic-folded rather than being
+    dropped: the pipeline transcribes Greek and Hebrew pages too, and the previous
+    ASCII-only tokenizer deleted them completely.
 
     Expansion is deliberately approximate. A single nasal bar encodes one nasal,
     so "oīs" resolves positionally to "oins" rather than philologically to
-    "omnis"; WORD_SUSPENSIONS catches the frequent cases. What retrieval needs is
-    that documents and queries pass through THIS SAME function, so the two agree
-    - not that either is philologically ideal. The diplomatic text is untouched
-    and remains the citable reading.
+    "omnis"; WORD_SUSPENSIONS catches the frequent cases. The diplomatic text is
+    never mutated and remains the citable reading.
+
+    NOTE: matching only benefits where BOTH sides use this function. Authority
+    linking still normalises with text_normalization.normalize_for_search, so the
+    expanded form is currently written but not yet read by that matcher. Routing
+    it through is a separate change.
     """
     if not text:
         return ""
 
-    if not expand:
-        return _MULTI_SPACE.sub(" ", " ".join(_fold(text))).strip()
-
-    # Two readings of the same text: nasal bars resolved positionally, and nasal
-    # bars dropped. WORD_SUSPENSIONS is keyed on the latter.
-    resolved = _fold(expand_abbreviations(text))
-    classic = _fold(expand_abbreviations_without_nasals(text))
-
     tokens: list[str] = []
-    for index, token in enumerate(resolved):
-        alt = classic[index] if index < len(classic) else token
-        if alt in WORD_SUSPENSIONS:
-            tokens.append(WORD_SUSPENSIONS[alt])
-        elif token in WORD_SUSPENSIONS:
-            tokens.append(WORD_SUSPENSIONS[token])
-        else:
+    for raw in _TOKEN_RE.findall(text):
+        token = _normalise_token(raw, expand=expand)
+        if token:
             tokens.append(token)
-    return _MULTI_SPACE.sub(" ", " ".join(tokens)).strip()
+    return " ".join(tokens)
 
 
-def _fold(text: str) -> list[str]:
-    """Lowercase, fold digraphs and medieval orthography, and tokenize."""
+def _normalise_token(raw: str, *, expand: bool) -> str:
+    """Normalise one token, applying Latin-specific rules only to Latin text."""
+    if not _has_latin(raw):
+        # Fold case and diacritics but keep the script's own letters.
+        decomposed = unicodedata.normalize("NFD", raw.lower())
+        return "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+
+    if not expand:
+        return _fold_latin(raw)
+
+    resolved = _fold_latin(expand_abbreviations(raw))
+    classic = _fold_latin(expand_abbreviations_without_nasals(raw))
+
+    # Both readings describe THIS token, so no cross-token alignment is involved.
+    if classic in WORD_SUSPENSIONS:
+        return WORD_SUSPENSIONS[classic]
+    if resolved in WORD_SUSPENSIONS:
+        return WORD_SUSPENSIONS[resolved]
+    return resolved
+
+
+def _fold_latin(text: str) -> str:
+    """Lowercase, collapse digraphs, drop combining marks, fold i/j and u/v."""
     working = text.lower()
     for source, target in _DIGRAPHS:
         working = working.replace(source, target)
     decomposed = unicodedata.normalize("NFD", working)
     working = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     working = working.translate(_ORTHOGRAPHIC_FOLD)
-    return [tok for tok in re.split(r"[^0-9a-z]+", working) if tok]
+    return "".join(ch for ch in working if ch.isalnum())
+
+
+def _has_latin(text: str) -> bool:
+    """True when a token should take the Latin-specific normalisation path.
+
+    Abbreviation signs count as Latin regardless of their Unicode name: the
+    Tironian et U+204A is punctuation and U+A770 is "MODIFIER LETTER US" with no
+    "LATIN" in its name, so a name test alone sent them down the passthrough
+    branch and they survived verbatim into the search key.
+    """
+    normalized = unicodedata.normalize("NFD", text)
+    if any(ch in ABBREVIATION_LETTERS or ch in SUPERSCRIPT_LETTERS for ch in normalized):
+        return True
+    return any(_is_latin_letter(ch) for ch in normalized)
+
+
+def _fold(text: str) -> list[str]:
+    """Tokenize and fold, for the WORD_SUSPENSIONS key invariant test."""
+    return [tok for tok in (_fold_latin(t) for t in _TOKEN_RE.findall(text)) if tok]

@@ -7,9 +7,15 @@ of one page. Any question needing more than a single manuscript line could not
 be answered from retrieved evidence: the retriever located the right line and
 never returned its neighbours.
 
-This module packs consecutive lines into overlapping windows. On a real page,
-6-line windows with 2 lines of overlap raised complete-span coverage@5 from
-39.1% to 100.0% with the same embedder.
+This module packs consecutive lines into overlapping windows. Measured on a real
+page, that raises the share of multi-line spans that any single chunk can contain
+(span_containment) from 0% to 100%, and the text that 5 evidence slots can carry
+from 198 to 1304 characters.
+
+Both figures are properties of the chunk geometry, not of retrieval: they set a
+ceiling on what a retriever could return, and say nothing about ranking. Whether
+retrieval actually improves needs a query set and a recall metric, which the repo
+does not yet have.
 
 Two invariants matter:
 
@@ -151,19 +157,39 @@ def _merge_short_tail(
     return chunks[:-1]
 
 
-def coverage_at_k(
-    chunks: Sequence[dict[str, Any]], spans: Sequence[tuple[int, int]], k: int
+def span_containment(
+    chunks: Sequence[dict[str, Any]], spans: Sequence[tuple[int, int]]
 ) -> float:
-    """Fraction of spans fully contained in at least one of the first k chunks.
+    """Fraction of spans fully contained in at least one chunk.
 
-    Used to compare chunking strategies without needing a relevance judgement:
-    a span the retriever can never return whole is a span it can never support.
+    This is a property of the chunk GEOMETRY, not of retrieval: no query,
+    embedder or ranker is involved. What it establishes is a ceiling - a span
+    that no single chunk contains can never be returned whole by any retriever,
+    however good the ranking. It says nothing about whether the retriever will
+    actually rank the containing chunk highly.
+
+    Deliberately computed over ALL chunks and with no k. An earlier version took
+    the first k chunks in document order and called the result "coverage@k",
+    which was order-dependent (reversing the chunk list changed it) and monotone
+    in chunk size, so the degenerate one-chunk-per-page configuration scored a
+    perfect 1.0. Neither property belongs in a retrieval claim.
     """
     if not spans:
         return 0.0
-    window = list(chunks)[: max(0, k)]
-    complete = 0
+    contained = 0
     for span_start, span_end in spans:
-        if any(c["start_offset"] <= span_start and c["end_offset"] >= span_end for c in window):
-            complete += 1
-    return complete / len(spans)
+        if any(c["start_offset"] <= span_start and c["end_offset"] >= span_end for c in chunks):
+            contained += 1
+    return contained / len(spans)
+
+
+def evidence_budget(chunks: Sequence[dict[str, Any]], top_k: int) -> int:
+    """Characters of text that top_k chunks would hand a model.
+
+    Order-independent in aggregate and directly comparable across chunk
+    geometries: it is simply how much text fits in the evidence slots.
+    """
+    if top_k <= 0 or not chunks:
+        return 0
+    sizes = sorted((len(c["text"]) for c in chunks), reverse=True)
+    return sum(sizes[:top_k])

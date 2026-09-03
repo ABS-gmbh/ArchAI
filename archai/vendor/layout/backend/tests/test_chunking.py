@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.services.chunking import build_window_chunks, coverage_at_k
+from app.services.chunking import build_window_chunks, evidence_budget, span_containment
 
 PAGE = "\n".join(f"linea numero {i} de folio scripta" for i in range(24))
 
@@ -140,8 +140,8 @@ def test_chunk_indices_are_contiguous_from_zero() -> None:
 # ────────────────────────────────────────────────── coverage metric ──
 
 
-def test_coverage_at_k_rewards_windows_over_lines() -> None:
-    """The measurement that motivates this module."""
+def test_windows_contain_multi_line_spans_that_lines_cannot() -> None:
+    """The ceiling argument: a span no chunk contains can never be returned whole."""
     lines = PAGE.split("\n")
     spans = []
     for i in range(0, 21, 3):
@@ -151,11 +151,31 @@ def test_coverage_at_k_rewards_windows_over_lines() -> None:
 
     per_line = build_window_chunks(PAGE, window_lines=1, overlap_lines=0)
     windowed = build_window_chunks(PAGE, window_lines=6, overlap_lines=2)
-    assert coverage_at_k(windowed, spans, 5) > coverage_at_k(per_line, spans, 5)
+    assert span_containment(per_line, spans) == 0.0
+    assert span_containment(windowed, spans) == 1.0
 
 
-def test_coverage_at_k_edge_cases() -> None:
+def test_span_containment_is_order_independent() -> None:
+    """Regression: the old coverage@k metric changed when the list was reversed."""
+    lines = PAGE.split("\n")
+    spans = [(PAGE.index(lines[i]), PAGE.index(lines[i + 2]) + len(lines[i + 2])) for i in range(0, 21, 3)]
     chunks = build_window_chunks(PAGE, window_lines=6, overlap_lines=2)
-    assert coverage_at_k(chunks, [], 5) == 0.0
-    assert coverage_at_k(chunks, [(0, 10)], 0) == 0.0
-    assert coverage_at_k([], [(0, 10)], 5) == 0.0
+    assert span_containment(chunks, spans) == span_containment(list(reversed(chunks)), spans)
+
+
+def test_span_containment_edge_cases() -> None:
+    chunks = build_window_chunks(PAGE, window_lines=6, overlap_lines=2)
+    assert span_containment(chunks, []) == 0.0
+    assert span_containment([], [(0, 10)]) == 0.0
+
+
+def test_evidence_budget_grows_with_window_size() -> None:
+    per_line = build_window_chunks(PAGE, window_lines=1, overlap_lines=0)
+    windowed = build_window_chunks(PAGE, window_lines=6, overlap_lines=2)
+    assert evidence_budget(windowed, 5) > evidence_budget(per_line, 5) * 3
+
+
+def test_evidence_budget_edge_cases() -> None:
+    chunks = build_window_chunks(PAGE, window_lines=6, overlap_lines=2)
+    assert evidence_budget(chunks, 0) == 0
+    assert evidence_budget([], 5) == 0

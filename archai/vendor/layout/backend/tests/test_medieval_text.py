@@ -51,9 +51,22 @@ def test_nasal_bar_becomes_m_before_a_labial() -> None:
     assert expand_abbreviations("mōte") == "monte"
 
 
-def test_nasal_bar_is_dropped_in_the_classic_reading() -> None:
-    assert expand_abbreviations_without_nasals("dñs") == "dns"
+def test_nasal_bar_over_a_vowel_is_dropped_in_the_classic_reading() -> None:
+    """The classic reading omits the nasal the bar stands for."""
     assert expand_abbreviations_without_nasals("ſpū") == "spu"
+    assert expand_abbreviations_without_nasals("cōpanus") == "copanus"
+
+
+def test_classic_reading_folds_to_the_suspension_key() -> None:
+    """What matters is that folding the classic reading yields the table key.
+
+    A bar over a CONSONANT (the n of "dñs") is not treated as a positional nasal,
+    because that rule would also rewrite Spanish "ñ". The mark is then removed by
+    the diacritic fold, so the lookup still lands on "dns".
+    """
+    assert _fold("dñs") == ["dns"]
+    assert _fold(expand_abbreviations_without_nasals("dñs")) == ["dns"]
+    assert build_search_key("dñs") == "dominus"
 
 
 def test_word_suspensions_resolve_through_the_classic_reading() -> None:
@@ -171,3 +184,87 @@ def test_search_key_is_idempotent() -> None:
     for raw in ("ꝓpter dñs ⁊ ſanctus", "oīs cōpanus", "aut est in domo"):
         once = build_search_key(raw)
         assert build_search_key(once) == once, raw
+
+
+# ─────────────────────── regressions found by adversarial review ──
+
+
+def test_stray_mark_does_not_shift_later_token_lookups() -> None:
+    """Critical regression.
+
+    Two whole-string readings were paired by token index; a nasal mark on a
+    non-Latin base produced a token in one reading and not the other, shifting
+    every later lookup. "Iesus ᾱ dns ht" became "iesus dominus habet habet" -
+    'dns' rewritten to 'habet' and the Greek token to 'dominus'.
+    """
+    assert build_search_key("Iesus ᾱ dns ht") == "iesus α dominus habet"
+    assert build_search_key("x ̄ ht") == "x habet"
+    assert build_search_key("ᾱ ee") == "α esse"
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Ἀρχὴ σοφίας φόβος Κυρίου",
+        "الحمد لله رب العالمين",
+        "Въ начѧлѣ бѣ слово",
+        "וַיֹּאמֶר אֱלֹהִים",
+    ],
+)
+def test_non_latin_scripts_are_not_deleted(text: str) -> None:
+    """An ASCII-only tokenizer erased whole scripts; the pipeline transcribes them."""
+    assert build_search_key(text).strip()
+
+
+def test_latin_and_greek_in_one_line_both_survive() -> None:
+    key = build_search_key("Sicut dicit Aristoteles in libro Ηθικων")
+    assert "sicut" in key and "ηθικων" in key
+
+
+@pytest.mark.parametrize(
+    ("text", "must_not_contain"),
+    [("España", "espanna"), ("mañana", "mannana"), ("Nguyễn", "nguyenn")],
+)
+def test_generic_combining_marks_are_not_read_as_suspensions(text: str, must_not_contain: str) -> None:
+    """U+0303/0304 also occur in Spanish, Portuguese, Vietnamese and Greek.
+
+    Treating them as nasal bars turned "España" into "espanna".
+    """
+    assert build_search_key(text) != must_not_contain
+
+
+def test_greek_long_vowel_macron_is_not_turned_into_a_latin_n() -> None:
+    assert "n" not in expand_abbreviations("ᾱῑῡ")
+
+
+@pytest.mark.parametrize("word", ["dñs", "ſpū", "nrā", "oīs", "cōpanus", "ꝓpter"])
+def test_decomposed_and_precomposed_input_agree(word: str) -> None:
+    """The Kraken models contain zero precomposed letters, so NFD is the norm."""
+    import unicodedata as _ud
+
+    assert build_search_key(word) == build_search_key(_ud.normalize("NFD", word))
+
+
+def test_a_second_diacritic_does_not_flip_the_nasal_decision() -> None:
+    """Regression: 'cōpanus' gave 'companus' but 'cō̈panus' gave 'conpanus'."""
+    assert build_search_key("cō̈panus") == build_search_key("cōpanus")
+
+
+def test_literal_sentinel_text_is_not_rewritten() -> None:
+    """The in-band '~NASAL~' marker rewrote source text containing it."""
+    assert expand_abbreviations("a~NASAL~b") == "a~NASAL~b"
+
+
+def test_tironian_et_is_tokenized_despite_being_punctuation() -> None:
+    """U+204A is category Po, so a word-character tokenizer dropped it."""
+    assert build_search_key("pater ⁊ filius") == "pater et filius"
+
+
+def test_modifier_letter_signs_are_expanded() -> None:
+    """U+A770 is named 'MODIFIER LETTER US' with no 'LATIN', so a name test missed it."""
+    assert build_search_key("eiꝰ") == "eius"
+
+
+def test_no_abbreviation_sign_survives_into_a_search_key() -> None:
+    survivors = {sign for sign in ABBREVIATION_LETTERS if sign in build_search_key(sign)}
+    assert not survivors, f"signs passed through unexpanded: {survivors}"

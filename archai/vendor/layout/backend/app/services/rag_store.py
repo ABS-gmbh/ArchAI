@@ -171,6 +171,35 @@ def _collection_has_run(collection: chromadb.Collection, run_id: str) -> bool:
     return bool(ids)
 
 
+def _collection_chunk_ids(collection: chromadb.Collection, run_id: str) -> set[str]:
+    existing = collection.get(where={"run_id": run_id}, include=[])
+    ids = existing["ids"] if existing and existing.get("ids") else []
+    return {str(i) for i in ids}
+
+
+def _collection_chunks_are_current(collection: chromadb.Collection, run_id: str) -> bool:
+    """True only when the collection holds exactly the run's current chunk ids."""
+    db_ids = {str(ch["chunk_id"]) for ch in pipeline_db.list_chunks(run_id)}
+    if not db_ids:
+        return True  # nothing to index
+    return _collection_chunk_ids(collection, run_id) >= db_ids
+
+
+def _purge_run_chunk_vectors(collection: chromadb.Collection, run_id: str) -> int:
+    """Drop every existing chunk vector for a run before re-indexing it.
+
+    Upsert alone leaves superseded vectors behind: after the chunk geometry
+    changed, a re-index left 96 stale 24-character line vectors alongside 24 new
+    windows, so top_k could be filled entirely with the starved chunks the change
+    exists to remove.
+    """
+    stale = _collection_chunk_ids(collection, run_id)
+    if stale:
+        collection.delete(ids=sorted(stale))
+        log.info("Purged %d superseded chunk vectors for run %s", len(stale), run_id)
+    return len(stale)
+
+
 def _load_authority_aliases(entity_ids: Sequence[str]) -> dict[str, list[str]]:
     entity_ids = [str(entity_id or "").strip() for entity_id in entity_ids if str(entity_id or "").strip()]
     if not entity_ids:
@@ -395,6 +424,9 @@ def _index_chunks_for_run(run_id: str, run: dict[str, Any], *, backend_key: str 
                 }
             effective_backend_key = backend_key
     col = _collection(backend_key=effective_backend_key)
+    # Superseded vectors for this run must go, or a chunk-geometry change
+    # leaves the old granularity in the collection competing for top_k.
+    _purge_run_chunk_vectors(col, run_id)
     _upsert_collection(col, ids=ids, documents=documents, metadatas=metadatas, embeddings=embeddings)
     return {
         "run_id": run_id,
@@ -553,7 +585,11 @@ def _ensure_chunk_runs_indexed(run_ids: Sequence[str] | None, *, backend_key: st
         return
     collection = _collection(backend_key=backend_key)
     for run_id in run_ids:
-        if _collection_has_run(collection, str(run_id)):
+        # Presence is not freshness. Re-analysing a page mints new chunk ids, so a
+        # run whose vectors exist may hold an ENTIRELY different set of chunks -
+        # for instance the old one-line-per-chunk vectors after the chunk geometry
+        # changed. Skipping on existence served those stale vectors forever.
+        if _collection_chunks_are_current(collection, str(run_id)):
             continue
         run = pipeline_db.get_run(str(run_id))
         if run is None:
