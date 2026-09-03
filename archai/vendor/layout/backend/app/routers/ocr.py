@@ -52,7 +52,7 @@ from app.db.pipeline_db import (
     upsert_evidence_span,
     update_run_fields,
 )
-from app.routers.predict import _prepare_image_for_segmentation
+from app.routers.predict import _prepare_image_for_segmentation, rescale_coco_to_original
 from app.schemas.agents_ocr import OCRComparisonSummary, OCRExtractAnyResponse, OCRExtractOptions, OCRExtractRequest
 from app.schemas.agents_ocr import (
     OCRExtractResponse,
@@ -70,6 +70,8 @@ from app.services.glm_ollama_ocr import (
     build_glm_ocr_prompt,
     run_glm_ollama_ocr,
 )
+from app.services.chunking import build_window_chunks
+from app.services.medieval_text import build_search_key, rejoin_line_breaks
 from app.services.test_ocr_overrides import get_test_ocr_fixture, get_test_ocr_override
 from app.services.saia_client import SaiaConfigError
 from app.services.lexicon_trust import lexical_plausibility as _lexical_plausibility
@@ -425,9 +427,29 @@ _CHUNK_STOPWORDS: set[str] = {
 
 
 def _build_line_chunks(base_text: str) -> list[dict[str, Any]]:
+    """Build retrieval chunks for a transcription.
+
+    Delegates to overlapping multi-line windows unless
+    settings.rag_chunk_window_lines is 1, which restores the historical
+    one-chunk-per-line behaviour. Offsets index the original text either way, so
+    evidence spans and citations resolve identically.
+    """
     value = str(base_text or "")
     if not value:
         return []
+
+    window_lines = int(getattr(_app_settings, "rag_chunk_window_lines", 1) or 1)
+    if window_lines > 1:
+        overlap = int(getattr(_app_settings, "rag_chunk_overlap_lines", 0) or 0)
+        windows = build_window_chunks(
+            value,
+            window_lines=window_lines,
+            overlap_lines=min(overlap, window_lines - 1),
+        )
+        if windows:
+            return windows
+        # Fall through to per-line chunking for input the windower rejects.
+
     chunks: list[dict[str, Any]] = []
     cursor = 0
     idx = 0
@@ -1724,7 +1746,11 @@ def _run_trace_analysis(
                 "start_offset": chunk.get("start_offset"),
                 "end_offset": chunk.get("end_offset"),
                 "raw_text": chunk.get("text"),
-                "normalized_text": str(chunk.get("text") or "").strip(),
+                # Was a verbatim copy of raw_text for 2184 of 2188 rows, so nothing could
+                # ever match on it. Store the expanded, matchable form instead.
+                "normalized_text": build_search_key(
+                    rejoin_line_breaks(str(chunk.get("text") or ""))
+                ),
                 "meta_json": {"source": "ocr_chunk", "chunk_idx": chunk.get("idx")},
             }
         )
@@ -2034,7 +2060,11 @@ def _run_curated_fixture_analysis(
                 "start_offset": chunk.get("start_offset"),
                 "end_offset": chunk.get("end_offset"),
                 "raw_text": chunk.get("text"),
-                "normalized_text": str(chunk.get("text") or "").strip(),
+                # See the sibling site: this column was a verbatim copy of the raw
+                # text, so it could never serve as a search field.
+                "normalized_text": build_search_key(
+                    rejoin_line_breaks(str(chunk.get("text") or ""))
+                ),
                 "meta_json": {"source": "ocr_chunk", "chunk_idx": chunk.get("idx")},
             }
         )
@@ -2425,7 +2455,8 @@ def _run_segmentation_for_suggestions(image_bytes: bytes) -> list[SaiaOCRLocatio
         source_path = Path(tmp_dir) / "ocr_full_page_input"
         source_path.write_bytes(image_bytes)
 
-        prepared_path, prepared_changed = _prepare_image_for_segmentation(str(source_path))
+        prepared = _prepare_image_for_segmentation(str(source_path))
+        prepared_path, prepared_changed = prepared.path, prepared.changed
         try:
             annotated_path = str(Path(tmp_dir) / "annotated.jpg")
             coco, _stats = run_single_segmentation(
@@ -2442,6 +2473,9 @@ def _run_segmentation_for_suggestions(image_bytes: bytes) -> list[SaiaOCRLocatio
                 except Exception:
                     pass
 
+    # Crops downstream are taken from the original bytes, so bring the geometry
+    # back out of the downscaled segmentation space.
+    coco = rescale_coco_to_original(coco, prepared.scale)
     return _extract_location_suggestions(coco)
 
 
@@ -2450,7 +2484,8 @@ def _run_segmentation_for_regions(image_bytes: bytes) -> list[OCRRegionInput]:
         source_path = Path(tmp_dir) / "ocr_full_page_input"
         source_path.write_bytes(image_bytes)
 
-        prepared_path, prepared_changed = _prepare_image_for_segmentation(str(source_path))
+        prepared = _prepare_image_for_segmentation(str(source_path))
+        prepared_path, prepared_changed = prepared.path, prepared.changed
         try:
             annotated_path = str(Path(tmp_dir) / "annotated.jpg")
             coco, _stats = run_single_segmentation(
@@ -2467,6 +2502,9 @@ def _run_segmentation_for_regions(image_bytes: bytes) -> list[OCRRegionInput]:
                 except Exception:
                     pass
 
+    # Crops downstream are taken from the original bytes, so bring the geometry
+    # back out of the downscaled segmentation space.
+    coco = rescale_coco_to_original(coco, prepared.scale)
     return _extract_segmented_regions(coco)
 
 

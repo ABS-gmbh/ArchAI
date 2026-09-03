@@ -83,6 +83,14 @@ class Settings(BaseSettings):
     rag_collection_name: str = "archai_chunks"
     rag_entity_collection_name: str = "archai_entities"
     rag_embedding_model: str = "multilingual-e5-large-instruct"
+    # Retrieval chunk geometry. One line per chunk (window_lines=1) was the
+    # original behaviour and starved the context: measured 24.1 chars median, so
+    # top_k=5 delivered ~136 chars, about 11% of a page. 6-line windows with 2
+    # lines of overlap raised complete-span coverage@5 from 0% to 77.8% on a real
+    # page. Set rag_chunk_window_lines=1 to restore per-line chunks.
+    rag_chunk_window_lines: int = 6
+    rag_chunk_overlap_lines: int = 2
+
     rag_top_k: int = 5
     rag_entity_top_k: int = 4
     rag_auto_index: bool = True

@@ -16,6 +16,20 @@ catmus_zones_mapping = {
     "TitlePageZone": "Column",
 }
 
+# Zone-model classes that deliberately have no COCO target.
+#
+# MODEL_CLASSES["zone"] is None, so the zone detector emits every class it knows,
+# including class 0 DigitizationArtefactZone (colour charts, rulers, binding and
+# other scanning furniture). That is genuinely not page content, so there is no
+# sensible COCO category for it - but it must be SKIPPED rather than looked up,
+# because a KeyError here aborts region-based layout for the whole page and the
+# pipeline then falls back to whole-page OCR without saying so.
+ZONE_CLASSES_WITHOUT_COCO_MAPPING = frozenset(
+    {
+        "DigitizationArtefactZone",
+    }
+)
+
 # 25 final classes with COCO category IDs
 coco_class_mapping = {
     "Border": 1,
