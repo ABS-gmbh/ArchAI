@@ -93,6 +93,16 @@ def select_best_pass(reports: list[OCRQualityReport]) -> OCRQualityReport:
 # Proofreading quality guard
 # ═══════════════════════════════════════════════════════════════════════
 
+_SUSPICIOUS_REWRITE_RATIO = 0.25
+"""Character edit ratio above which a big quality jump reads as invention."""
+
+_SUSPICIOUS_TOKEN_CHURN = 0.35
+"""New-token fraction that must accompany a large rewrite to imply invention.
+
+Never sufficient on its own: correcting spelling inherently creates new
+tokens, so genuine conservative corrections score high here."""
+
+
 def proofreading_quality_guard(
     original_text: str,
     proofread_text: str,
@@ -108,6 +118,16 @@ def proofreading_quality_guard(
     """
     if not proofread_text or not proofread_text.strip():
         return original_text, False, "proofread_text is empty"
+
+    # The real hallucination check, previously reachable from only one of the
+    # four proofreader call sites. It measures how much the text CHANGED
+    # (character edit ratio, line drift, uncertainty-marker retention, token
+    # churn) rather than how good the result looks.
+    from app.agents.ocr_proofreader_agent import check_proofread_delta
+
+    delta = check_proofread_delta(original_text, proofread_text)
+    if not delta.accepted:
+        return original_text, False, delta.reason
 
     proofread_report = compute_quality_report(
         proofread_text,
@@ -143,6 +163,32 @@ def proofreading_quality_guard(
             original_text,
             False,
             "proofreading removed uncertainty markers but introduced non-wordlike tokens",
+        )
+
+    # A LARGE apparent improvement, achieved by rewriting most of the text, is
+    # evidence of invention rather than correction. The failure mode this exists
+    # to catch is a model recognising a passage and writing it out from memory:
+    # the fabricated text is fluent and scores HIGH, while the true garbled OCR
+    # scores RISKY - so a guard that only rejects DEGRADATION actively prefers
+    # the hallucination.
+    # Both signals are required. Token churn alone is not evidence of invention:
+    # correcting spelling necessarily produces new tokens, so a genuine
+    # conservative fix measured 50% churn at only 11% character edit and would
+    # have been rejected on churn alone.
+    if (
+        orig_rank - proof_rank >= 2
+        and delta.char_edit_ratio > _SUSPICIOUS_REWRITE_RATIO
+        and delta.token_churn > _SUSPICIOUS_TOKEN_CHURN
+    ):
+        return (
+            original_text,
+            False,
+            (
+                f"proofreading improved quality {original_report.quality_label} -> "
+                f"{proofread_report.quality_label} by rewriting "
+                f"{delta.char_edit_ratio:.0%} of characters "
+                f"({delta.token_churn:.0%} new tokens): treating as invention, not correction"
+            ),
         )
 
     return proofread_text, True, "proofreading accepted"

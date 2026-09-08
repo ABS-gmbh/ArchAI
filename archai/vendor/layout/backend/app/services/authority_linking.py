@@ -9,8 +9,11 @@ semantics via ``meta_json``).
 
 * ``type_compatible`` from wikidata_client.is_type_compatible() is a
   **hard gate** — candidates that fail can never be auto-selected.
-* ``AUTO_SELECT_THRESHOLD = 0.75`` and ``MIN_MARGIN = 0.10`` from
-  entity_scoring.py are enforced.
+* ``AUTO_SELECT_THRESHOLD`` (0.80 HIGH / 0.85 MEDIUM / 0.90 LOW) and
+  ``MIN_MARGIN = 0.15`` from entity_scoring.py are enforced. This docstring
+  previously still quoted the pre-v3 values of 0.75 / 0.10; the thresholds
+  were raised without recalibrating the scorer, which is how the composite
+  came to top out below the lowest of them.
 * Gate D in the validation report flags type-mismatch detections.
 * VIAF / GeoNames IDs are only surfaced when backed by a Wikidata
   property value (P214 / P1566).
@@ -33,6 +36,7 @@ from typing import Any
 
 from app.db import pipeline_db
 from app.services.entity_scoring import (
+    context_coverage,
     context_similarity,
     compute_score,
     disambiguate,
@@ -348,7 +352,10 @@ def _score_candidate(
         " ".join(str(item) for item in list(candidate.get("titles") or [])[:5]),
     ]
     description_text = " ".join(part for part in description_parts if part).strip()
-    document_context_compatibility = context_similarity(context, description_text)
+    # Reported for auditing. It is already folded into base_score below via
+    # compute_score's context term; adding it again here double-counted a signal
+    # that measures ~0.014 on real text, while the genuine alias match got 0.12.
+    document_context_compatibility = context_coverage(context, description_text)
 
     source = str(candidate.get("source") or "wikidata").strip() or "wikidata"
     source_confidence = float(candidate.get("source_confidence") or {"wikidata": 1.0, "viaf": 0.92, "geonames": 0.95}.get(source, 0.8))
@@ -387,13 +394,18 @@ def _score_candidate(
         type_compatible=type_ok,
         canonical_norm=canonical_norm,
         domain_bonus=domain_bonus,
+        # The real alias signal, instead of leaving compute_score to substitute a
+        # context measurement into the slot named alias_sim.
+        alias_sim=alias_match_quality,
     )
 
+    # base_score already carries label, alias, type, context and domain and can
+    # reach 1.0. Only source confidence is added proportionally; the priors stay
+    # small additive nudges. The previous form could not exceed 0.7936 even for a
+    # perfect candidate, which is below every AUTO_SELECT threshold.
     final_score = (
-        base_score * 0.68
-        + alias_match_quality * 0.12
-        + document_context_compatibility * 0.08
-        + source_confidence * 0.06
+        base_score * 0.88
+        + source_confidence * 0.12
         + segmentation_label_prior
         + cooccurrence_bonus
         + chronology_bonus
