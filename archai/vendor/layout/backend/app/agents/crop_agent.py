@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import io
+from typing import NamedTuple
 
 from PIL import Image, ImageDraw
 
@@ -63,7 +64,25 @@ def _expand_bbox(
     )
 
 
-def crop_region(image_b64: str, region: OCRRegionInput, upscale_factor: int = 2) -> tuple[str, str]:
+class CropResult(NamedTuple):
+    """A cropped region plus the page rectangle it was actually taken from.
+
+    crop_box matters because _expand_bbox pads the region before cropping - by
+    45% of its height per side for line-like labels, making the crop 1.9x taller
+    than the line. Returning only the PNG left the recognition path unable to
+    know that, so it treated the padded crop as if it were the region and handed
+    Kraken a line boundary spanning the neighbours above and below.
+    """
+
+    region_id: str
+    crop_b64: str
+    crop_box: tuple[int, int, int, int]
+    upscale_factor: int
+
+
+def crop_region(
+    image_b64: str, region: OCRRegionInput, upscale_factor: int = 2
+) -> CropResult:
     image_bytes = decode_image_bytes(image_b64)
     try:
         with Image.open(io.BytesIO(image_bytes)) as image:
@@ -101,4 +120,4 @@ def crop_region(image_b64: str, region: OCRRegionInput, upscale_factor: int = 2)
     if upscale_factor > 1:
         crop = crop.resize((crop.width * upscale_factor, crop.height * upscale_factor), Image.Resampling.LANCZOS)
     region_id = region.region_id or f"region-{x1}-{y1}-{x2}-{y2}"
-    return region_id, encode_png_base64(crop)
+    return CropResult(region_id, encode_png_base64(crop), (x1, y1, x2, y2), max(1, upscale_factor))
