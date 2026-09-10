@@ -1046,7 +1046,8 @@ def _reorder_attempt_backends_from_samples(
 
     for index in range(sample_count):
         region = regions_input[index]
-        region_id, crop_b64 = crop_region(source_b64, region, upscale_factor=upscale_factor)
+        _crop = crop_region(source_b64, region, upscale_factor=upscale_factor)
+        region_id, crop_b64 = _crop.region_id, _crop.crop_b64
         metadata = OCRRecognitionMetadata(
             page_id=payload.page_id,
             image_id=payload.image_id,
@@ -1060,6 +1061,8 @@ def _reorder_attempt_backends_from_samples(
             script_family=payload.metadata.script_family if payload.metadata else None,
             document_type=payload.metadata.document_type if payload.metadata else None,
             notes=payload.metadata.notes if payload.metadata else None,
+            crop_box=_crop.crop_box,
+            crop_upscale=_crop.upscale_factor,
         )
         prepared_regions[index] = (region_id, crop_b64, metadata)
         for backend_id in plan.attempt_backends:
@@ -1139,7 +1142,8 @@ def _run_segmented_ocr_extraction(
         if index in prefetched_regions:
             region_id, crop_b64, metadata = prefetched_regions[index]
         else:
-            region_id, crop_b64 = crop_region(source_b64, region, upscale_factor=upscale_factor)
+            _crop = crop_region(source_b64, region, upscale_factor=upscale_factor)
+            region_id, crop_b64 = _crop.region_id, _crop.crop_b64
             metadata = OCRRecognitionMetadata(
                 page_id=payload.page_id,
                 image_id=payload.image_id,
@@ -1153,6 +1157,8 @@ def _run_segmented_ocr_extraction(
                 script_family=payload.metadata.script_family if payload.metadata else None,
                 document_type=payload.metadata.document_type if payload.metadata else None,
                 notes=payload.metadata.notes if payload.metadata else None,
+                crop_box=_crop.crop_box,
+                crop_upscale=_crop.upscale_factor,
             )
 
         selected_backend_id: str | None = None
