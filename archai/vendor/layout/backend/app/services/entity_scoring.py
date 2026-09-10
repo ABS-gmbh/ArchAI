@@ -28,6 +28,7 @@ import logging
 import re
 import unicodedata
 from difflib import SequenceMatcher
+from collections.abc import Sequence
 from typing import Any
 
 log = logging.getLogger("archai.entity_scoring")
@@ -195,17 +196,44 @@ def context_similarity(context_text: str, candidate_description: str) -> float:
 
 # ── Composite score ───────────────────────────────────────────────────
 
-# Scoring weights (v5 — requirement 6):
-#   final_score = 0.55*label_sim + 0.25*alias_sim + 0.15*type_bonus + 0.05*domain_bonus - penalties
-_W_LABEL = 0.55
-_W_ALIAS = 0.25           # alias_sim ≈ context/description overlap
+# Scoring weights (v6):
+#   0.45*label_sim + 0.25*alias_sim + 0.15*type_bonus + 0.10*context + 0.05*domain - penalties
+# Weights sum to 1.0 at full signal, so a perfect candidate can actually reach
+# 1.0. Previously the 0.25 "alias" weight was fed context/description Jaccard,
+# which measures 0.00-0.03 on real Old French against a 2-10 token English
+# Wikidata description. That capped the composite at 0.75 and, once the
+# orchestrator's own terms were added, at 0.7936 - below every AUTO_SELECT
+# threshold (0.80/0.85/0.90), so scoring alone could never produce a link.
+_W_LABEL = 0.45
+_W_ALIAS = 0.25           # genuine best-alias string similarity
 _W_TYPE = 0.15
+_W_CONTEXT = 0.10         # description supported by the surrounding text
 _W_DOMAIN = 0.05
 _TYPE_MISMATCH_PENALTY = 0.30   # subtract this when type is incompatible
 
 # Keep legacy names for backwards-compatible imports
 _W_STRING = _W_LABEL
-_W_CONTEXT = _W_ALIAS
+
+
+def context_coverage(context_text: str, candidate_description: str) -> float:
+    """Fraction of the candidate description's tokens supported by the context.
+
+    Asymmetric on purpose. context_similarity is a Jaccard over token SETS, so a
+    200-400 character manuscript context against a 2-10 token Wikidata gloss
+    scores 0.00-0.03 no matter how well the description fits - the union is
+    dominated by context tokens the description could never contain. Measured on
+    a real page against the real Q215681 description, Jaccard gave 0.0145 where
+    every description token was present.
+
+    Dividing by the DESCRIPTION size instead asks the question that matters: how
+    much of what this candidate claims is actually borne out by the surrounding
+    text. It reaches 1.0 when the description is fully supported.
+    """
+    context_tokens = _tokenise(context_text)
+    description_tokens = _tokenise(candidate_description)
+    if not description_tokens or not context_tokens:
+        return 0.0
+    return len(context_tokens & description_tokens) / len(description_tokens)
 
 
 def compute_score(
@@ -217,10 +245,15 @@ def compute_score(
     type_compatible: bool = True,
     canonical_norm: str = "",
     domain_bonus: float = 0.0,
+    alias_sim: float | None = None,
+    candidate_aliases: Sequence[str] | None = None,
 ) -> float:
     """Compute composite linking score (0..1).
 
-    ``final_score = 0.55*label_sim + 0.25*alias_sim + 0.15*type_bonus + 0.05*domain_bonus - penalties``
+    ``0.45*label_sim + 0.25*alias_sim + 0.15*type_bonus + 0.10*context + 0.05*domain - penalties``
+
+    *alias_sim* is the best string similarity between the surface and any of the
+    candidate's aliases. Pass it when the caller has already computed it.
 
     When *canonical_norm* is provided (the normalised canonical name,
     e.g. "lancelot"), the string similarity is computed against the
@@ -234,14 +267,26 @@ def compute_score(
     # Use canonical form for string comparison when available
     compare_surface = canonical_norm if canonical_norm else surface
     label_sim = string_similarity(compare_surface, candidate_label)
-    alias_sim = context_similarity(context_text, candidate_description)
+
+    # The alias term now carries the real best-alias similarity. When the caller
+    # does not supply one, fall back to the aliases it passed, and only then to
+    # zero - never to a context measurement, which is a different quantity.
+    if alias_sim is None:
+        alias_sim = max(
+            (string_similarity(compare_surface, alias) for alias in (candidate_aliases or [])),
+            default=0.0,
+        )
+    alias_signal = max(0.0, min(1.0, float(alias_sim)))
+
+    context_signal = context_coverage(context_text, candidate_description)
 
     type_bonus = 1.0 if type_compatible else 0.0
     dom_signal = min(1.0, domain_bonus / 0.20) if domain_bonus > 0 else 0.0
 
     raw = (_W_LABEL * label_sim
-           + _W_ALIAS * alias_sim
+           + _W_ALIAS * alias_signal
            + _W_TYPE * type_bonus
+           + _W_CONTEXT * context_signal
            + _W_DOMAIN * dom_signal)
 
     if not type_compatible:
