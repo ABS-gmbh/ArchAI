@@ -8,7 +8,7 @@ import os
 import tempfile
 import zipfile
 from math import sqrt
-from typing import Optional
+from typing import Any, NamedTuple, Optional
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
@@ -81,13 +81,83 @@ def _safe_extract_zip(zip_path: str, extract_dir: str) -> None:
                 dst.write(src.read())
 
 
-def _prepare_image_for_segmentation(image_path: str) -> tuple[str, bool]:
+class PreparedImage(NamedTuple):
+    """Result of preparing a page for YOLO inference.
+
+    ``scale`` is the factor the page was multiplied by. Coordinates produced by
+    segmenting ``path`` are in the prepared image's space, so they must be
+    divided by ``scale`` before being used against the ORIGINAL upload.
+    """
+
+    path: str
+    changed: bool
+    scale: float
+
+
+def rescale_coco_to_original(coco: dict[str, Any], scale: float) -> dict[str, Any]:
+    """Map COCO geometry from a downscaled page back onto original coordinates.
+
+    Segmentation runs on a bounded copy of the page (SEGMENTATION_MAX_PIXELS /
+    SEGMENTATION_MAX_LONG_EDGE), but every crop downstream is taken from the
+    original upload. Without this inverse scale the two disagree, and on a page
+    large enough to trigger the resize every region crop is cut from the wrong
+    pixels while still looking like a plausible box.
+
+    Mutates nothing; returns a new dict.
+    """
+    if not coco or scale >= 1.0 or scale <= 0.0:
+        return coco
+
+    inv = 1.0 / scale
+    out = dict(coco)
+
+    images = []
+    for image in coco.get("images") or []:
+        entry = dict(image)
+        if entry.get("width"):
+            entry["width"] = int(round(float(entry["width"]) * inv))
+        if entry.get("height"):
+            entry["height"] = int(round(float(entry["height"]) * inv))
+        images.append(entry)
+    if images:
+        out["images"] = images
+
+    annotations = []
+    for annotation in coco.get("annotations") or []:
+        entry = dict(annotation)
+        bbox = entry.get("bbox")
+        if isinstance(bbox, (list, tuple)) and len(bbox) >= 4:
+            entry["bbox"] = [float(v) * inv for v in bbox[:4]]
+        if entry.get("area") is not None:
+            try:
+                # Area is two-dimensional, so it scales by the square.
+                entry["area"] = float(entry["area"]) * inv * inv
+            except (TypeError, ValueError):
+                pass
+        segmentation = entry.get("segmentation")
+        if isinstance(segmentation, list):
+            rescaled_polys = []
+            for poly in segmentation:
+                if isinstance(poly, (list, tuple)):
+                    rescaled_polys.append([float(v) * inv for v in poly])
+                else:
+                    rescaled_polys.append(poly)
+            entry["segmentation"] = rescaled_polys
+        annotations.append(entry)
+    if annotations:
+        out["annotations"] = annotations
+
+    return out
+
+
+def _prepare_image_for_segmentation(image_path: str) -> PreparedImage:
     """
     Ensure image is valid for YOLO inference:
     - decodable image
     - 3-channel RGB
     - bounded dimensions/pixel count for safer processing
-    Returns (prepared_path, changed).
+    Returns PreparedImage(path, changed, scale). Callers that use the resulting
+    coordinates against the original image MUST apply rescale_coco_to_original.
     """
     try:
         with Image.open(image_path) as im:
@@ -116,11 +186,11 @@ def _prepare_image_for_segmentation(image_path: str) -> tuple[str, bool]:
                 changed = True
 
             if not changed:
-                return image_path, False
+                return PreparedImage(image_path, False, 1.0)
 
             normalized_path = f"{image_path}.seg.jpg"
             working.save(normalized_path, format="JPEG", quality=95)
-            return normalized_path, True
+            return PreparedImage(normalized_path, True, scale)
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Uploaded file is not a valid image: {exc}") from exc
 
@@ -160,7 +230,8 @@ async def predict_single(
         f.write(contents)
 
     # Validate + normalize to RGB and safe size for model inference.
-    prepared_img_path, prepared_changed = _prepare_image_for_segmentation(img_path)
+    prepared = _prepare_image_for_segmentation(img_path)
+    prepared_img_path, prepared_changed = prepared.path, prepared.changed
 
     annotated_path = os.path.join(task_dir, "annotated.jpg")
     try:
@@ -178,6 +249,10 @@ async def predict_single(
                 os.remove(prepared_img_path)
             except OSError:
                 pass
+
+    # Segmentation ran on a possibly downscaled copy; return coordinates in the
+    # original page's space so callers can crop the upload directly.
+    filtered_coco = rescale_coco_to_original(filtered_coco, prepared.scale)
 
     # Store results
     task.status = "completed"
@@ -229,7 +304,8 @@ def _process_batch(task: TaskState, zip_path: str, conf: float, iou: float, sele
             task.progress = idx
 
             try:
-                prepared_path, prepared_changed = _prepare_image_for_segmentation(path)
+                _prep = _prepare_image_for_segmentation(path)
+                prepared_path, prepared_changed = _prep.path, _prep.changed
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     labels_folders = run_models_parallel(prepared_path, tmp_dir, conf=conf, iou=iou)
                     coco_json = combine_and_filter_predictions(prepared_path, labels_folders)

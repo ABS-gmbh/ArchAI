@@ -6,6 +6,7 @@ class name unification, and COCO format generation.
 """
 
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -15,6 +16,29 @@ from rtree import index
 from shapely.geometry import box
 
 from app.core.constants import catmus_zones_mapping, coco_class_mapping
+
+_LOGGER = logging.getLogger(__name__)
+
+
+class UnmappedAnnotationClass(KeyError):
+    """Raised when a detected layout class has no COCO category."""
+
+
+def _mappable_annotations(annotations):
+    """Drop annotations whose class has no COCO category, logging once per class."""
+    kept = []
+    dropped = {}
+    for annotation in annotations:
+        if annotation.has_coco_mapping():
+            kept.append(annotation)
+        else:
+            name = getattr(annotation, "name", "<unknown>")
+            dropped[name] = dropped.get(name, 0) + 1
+    for name, count in sorted(dropped.items()):
+        _LOGGER.info(
+            "Skipping %d annotation(s) of layout class %r: no COCO category.", count, name
+        )
+    return kept
 
 
 class Annotation:
@@ -54,8 +78,26 @@ class Annotation:
     def unify_names(self):
         self.name = catmus_zones_mapping.get(self.name, self.name)
 
+    def coco_class_name(self):
+        return catmus_zones_mapping.get(self.name, self.name)
+
+    def has_coco_mapping(self):
+        """True when this annotation can be expressed as a COCO category.
+
+        The zone detector emits classes that have no COCO target (see
+        ZONE_CLASSES_WITHOUT_COCO_MAPPING). Callers must skip those instead of
+        letting the category lookup raise, which would discard every region on
+        the page rather than the one unmappable annotation.
+        """
+        return self.coco_class_name() in coco_class_mapping
+
     def to_coco_format(self, current_annotation_id):
-        cls_string = catmus_zones_mapping.get(self.name, self.name)
+        cls_string = self.coco_class_name()
+        if cls_string not in coco_class_mapping:
+            raise UnmappedAnnotationClass(
+                f"Layout class {self.name!r} (-> {cls_string!r}) has no COCO category. "
+                f"Filter with has_coco_mapping() before calling to_coco_format."
+            )
         cls_int = coco_class_mapping[cls_string]
 
         if self.segments:
@@ -329,7 +371,9 @@ class ImageBatch:
             "annotations": [
                 annotation.to_coco_format(annotation_id)
                 for image in self.images
-                for annotation_id, annotation in enumerate(image.filter_annotations(), start=1)
+                for annotation_id, annotation in enumerate(
+                    _mappable_annotations(image.filter_annotations()), start=1
+                )
             ],
             "images": [image.to_coco_image_dict() for image in self.images],
         }
