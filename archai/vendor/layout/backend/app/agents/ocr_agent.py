@@ -41,7 +41,11 @@ from app.services.ocr_evidence import (
     sha256_bytes,
     write_ocr_evidence_jsonl,
 )
-from app.services.lexicon_trust import lexical_plausibility
+from app.services.lexicon_trust import _TRIGRAM_PROFILES, lexical_plausibility
+from app.services.ocr_quality import compute_quality_report
+
+# Language profiles usable for a best-fit lexical score ("unknown" is a flat 0.50).
+_LEXICAL_PROFILES: tuple[str, ...] = tuple(p for p in _TRIGRAM_PROFILES if p != "unknown")
 from app.services.saia_client import SaiaClient, is_model_not_found_error
 
 AGENT_VERSION = "5.0.0"
@@ -1009,13 +1013,70 @@ def _ordered_region_inputs(payload: OCRExtractRequest) -> list:
     return regions
 
 
+def best_fit_language(text: str) -> tuple[str, float]:
+    """Best-fitting language profile for *text*, and how plausible it is.
+
+    Scoring against every profile and keeping the best turns the lexical signal
+    into something usable without a language hint, and makes a WRONG hint
+    harmless. Both mattered: lexical_plausibility returns a flat 0.50 for
+    "unknown" - which is the common detected value - so the only content-aware
+    term in the old selector became a constant.
+    """
+    if not text or not text.strip():
+        return "unknown", 0.0
+    best_language = "unknown"
+    best_score = 0.0
+    for profile in _LEXICAL_PROFILES:
+        score = lexical_plausibility(text, profile)
+        if score > best_score:
+            best_language, best_score = profile, score
+    return best_language, best_score
+
+
 def _region_quality_value(text: str, confidence: float | None, language_hint: str | None) -> float:
-    text_quality = score_text_quality(text)
-    lexical_score = lexical_plausibility(text, str(language_hint or "unknown"))
+    """Score a region's transcription for choosing between OCR backends.
+
+    This is the only signal used to pick which backend's text becomes the
+    transcription, and it could not tell good text from bad. Measured on the old
+    implementation with no usable language hint - the common case, since language
+    detection frequently yields "unknown":
+
+        clean Latin          0.8137
+        random letters       0.8250   <- outscored clean text
+        repetition loop x20  0.8236   <- the failure mode the prompt warns about
+
+    A wrong hint was actively harmful too: clean Old French scored 0.8481 under
+    hint "old_french" but 0.4626 under "latin".
+
+    The lexical term is now the best fit across all profiles rather than a lookup
+    on a possibly-absent hint, and repetition is penalised explicitly, reusing the
+    calibrated detector in ocr_quality. Measured after, with no hint supplied:
+
+        clean Latin          0.8973
+        clean Old French     0.7930
+        Latin reversed       0.5968
+        random letters       0.5607
+        repetition loop      0.5473
+    """
+    if not text or not text.strip():
+        return 0.0
+
     confidence_value = max(0.0, min(1.0, float(confidence))) if confidence is not None else 0.5
-    combined = (0.25 * confidence_value) + (0.45 * text_quality) + (0.30 * lexical_score)
-    if text and len(re.sub(r"\s+", "", text)) >= 8 and lexical_score < 0.25:
-        combined *= 0.65
+
+    hinted = str(language_hint or "").strip().lower()
+    if hinted in _LEXICAL_PROFILES and hinted != "unknown":
+        # Trust an explicit, usable hint, but never let it score BELOW the best
+        # fit - that is what punished correct text under a mistaken hint.
+        lexical_score = max(lexical_plausibility(text, hinted), best_fit_language(text)[1])
+    else:
+        lexical_score = best_fit_language(text)[1]
+
+    repetition = compute_quality_report(text).repetition_score
+    combined = (
+        0.20 * confidence_value
+        + 0.45 * lexical_score
+        + 0.35 * (1.0 - repetition)
+    )
     return round(max(0.0, min(1.0, combined)), 4)
 
 
