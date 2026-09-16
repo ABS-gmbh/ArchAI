@@ -409,21 +409,28 @@ def disambiguate(
         key=lambda c: c.get("score", 0.0),
         reverse=True,
     )
-    best = ranked[0]
-    best_score = float(best.get("score", 0.0))
-
-    # Hard gate 1: type_compatible must be True
-    if not best.get("type_compatible", True):
+    # The type gate filters the field rather than vetoing the mention. It used to
+    # inspect ranked[0] only, so a single type-incompatible candidate landing on
+    # top made the mention unresolvable even when a perfectly typed candidate sat
+    # directly beneath it. Incompatible candidates are still never selectable -
+    # they are simply removed from contention instead of poisoning it.
+    eligible = [c for c in ranked if c.get("type_compatible", True)]
+    rejected_for_type = len(ranked) - len(eligible)
+    if not eligible:
+        top = ranked[0]
         return {
             **base_result,
             "selected": None,
             "status": "unresolved",
             "reason": (
-                f"best candidate type_incompatible "
-                f"(score={best_score:.3f}, qid={best.get('qid', '?')})"
+                f"all {len(ranked)} candidate(s) type_incompatible "
+                f"(best score={float(top.get('score', 0.0)):.3f}, qid={top.get('qid', '?')})"
             ),
             "all": ranked,
         }
+
+    best = eligible[0]
+    best_score = float(best.get("score", 0.0))
 
     # Hard gate 2: score must reach AUTO_SELECT_THRESHOLD
     if best_score < threshold:
@@ -439,8 +446,11 @@ def disambiguate(
         }
 
     # Gate 3: margin check for ambiguity
-    if len(ranked) >= 2:
-        second_score = float(ranked[1].get("score", 0.0))
+    # Compare against the next ELIGIBLE candidate. Measuring the margin against
+    # a type-incompatible runner-up reports ambiguity between a selectable
+    # candidate and one that could never be selected.
+    if len(eligible) >= 2:
+        second_score = float(eligible[1].get("score", 0.0))
         margin = best_score - second_score
         if margin < min_margin:
             return {
