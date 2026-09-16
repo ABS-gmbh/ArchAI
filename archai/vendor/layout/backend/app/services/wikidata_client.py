@@ -499,6 +499,9 @@ _ETYPE_TO_COMPATIBLE_QIDS: dict[str, set[str]] = {
         "Q1549591",     # big city
         "Q3957",        # town
         "Q532",         # village
+        "Q5119",        # capital
+        "Q56061",       # administrative territorial entity
+        "Q15642541",    # human-geographic territorial entity
     },
     "org": {
         "Q43229",       # organization
