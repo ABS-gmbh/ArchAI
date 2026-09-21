@@ -233,6 +233,15 @@ def cache_put(source: str, query: str, results: list[dict[str, Any]]) -> None:
 
 # ── HTTP helpers ───────────────────────────────────────────────────────
 
+class WikidataUnavailable(RuntimeError):
+    """Raised when a Wikidata request could not be completed.
+
+    Distinct from "the entity has no such claim". Returning {} for both made a
+    transient network failure indistinguishable from a genuine empty answer, and
+    the empty answer was then cached forever.
+    """
+
+
 def _http_get(url: str, params: dict[str, str]) -> dict[str, Any]:
     """Simple synchronous HTTP GET returning JSON.
 
@@ -251,11 +260,14 @@ def _http_get(url: str, params: dict[str, str]) -> dict[str, Any]:
             return json.loads(body)
     except urllib.error.HTTPError as exc:
         log.warning("Wikidata HTTP error %s for %s", exc.code, full_url)
-        return {}
+        raise WikidataUnavailable(f"HTTP {exc.code} for {url}") from exc
     except Exception as exc:
         log.warning("Wikidata request failed for %s: %s", full_url, exc)
-        return {}
+        raise WikidataUnavailable(f"request failed for {url}: {exc}") from exc
 
+
+_ENRICH_EMPTY_TTL_HOURS = 24.0
+"""How long an empty enrichment is trusted before the API is asked again."""
 
 _last_request_ts: float = 0.0
 _rate_lock = threading.Lock()
@@ -317,7 +329,11 @@ def search_wikidata(
         "limit": str(k),
         "type": "item",
     }
-    data = _http_get(_WBSEARCH_URL, params)
+    try:
+        data = _http_get(_WBSEARCH_URL, params)
+    except WikidataUnavailable:
+        log.warning("Wikidata search unavailable for %r; not caching the failure.", surface)
+        return []
     results: list[dict[str, Any]] = []
     for item in data.get("search", []):
         results.append({
@@ -401,7 +417,9 @@ def enrich_wikidata_item(qid: str) -> dict[str, Any]:
     ``instance_of_qids`` (list of Q-IDs for P31 values).
     """
     cache_key_str = f"enrich:{qid}"
-    cached = cache_get("wikidata_enrich", cache_key_str)
+    # A TTL so an entity that genuinely had no claims when we asked is retried
+    # eventually, rather than being written off for the life of the cache.
+    cached = cache_get("wikidata_enrich", cache_key_str, max_age_hours=_ENRICH_EMPTY_TTL_HOURS)
     if cached is not None:
         return cached[0] if cached else {}
 
@@ -412,7 +430,18 @@ def enrich_wikidata_item(qid: str) -> dict[str, Any]:
         "props": "claims|labels|aliases|descriptions",
         "format": "json",
     }
-    data = _http_get(_WBGETENTITIES_URL, params)
+    try:
+        data = _http_get(_WBGETENTITIES_URL, params)
+    except WikidataUnavailable:
+        # Deliberately NOT cached. Caching this wrote an all-empty enrichment
+        # under the QID permanently: cache_put's "empty results are never
+        # cached" guard sees [result] as a one-element list, not an empty one,
+        # and cache_get without a TTL returns non-empty entries regardless of
+        # age. With instance_of_qids empty, is_type_compatible then rejects the
+        # candidate forever - one transient failure, one entity permanently
+        # unlinkable.
+        log.warning("Enrichment unavailable for %s; not caching the failure.", qid)
+        return {}
     entity = data.get("entities", {}).get(qid, {})
     claims = entity.get("claims", {})
 
