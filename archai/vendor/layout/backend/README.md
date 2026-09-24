@@ -51,8 +51,9 @@ pip install -e ".[dev]"
 python -m pytest tests -q
 ```
 
-CI runs the dependency-light subset (evaluation, chunking, medieval text) on
-every push; the rest of the suite needs the inference stack.
+CI runs the dependency-light subset (evaluation, chunking, medieval text,
+lexical retrieval, retrieval benchmark) on every push; the rest of the suite
+needs the inference stack.
 
 ## Measure accuracy
 
@@ -79,6 +80,24 @@ runs against each other measures their agreement, not their accuracy.
 
 Retrieval metrics (recall@k, precision@k, MRR, nDCG@k) live in
 `app/services/evaluation.py` alongside the OCR metrics.
+
+## Retrieval
+
+Chunk retrieval is hybrid. The dense ranking from the embedding model is fused
+by Reciprocal Rank Fusion with BM25 over character 4-grams of the
+abbreviation-expanded search key (`app/services/lexical_retrieval.py`), so a
+query meets OCR text that spells the same words differently. Each hit reports
+`dense_rank`, `lexical_rank` and `fusion_score` next to the usual fields; set
+`RAG_LEXICAL_FUSION=false` to fall back to dense retrieval only.
+
+`scripts/benchmark_retrieval.py` measures this on the pipeline DB. No relevance
+judgments are needed: it looks up passages from one OCR reading of a page in a
+different reading of the same page, locating the right chunk by character
+alignment.
+
+```bash
+python scripts/benchmark_retrieval.py --db app/archai.sqlite
+```
 
 ## Environment
 

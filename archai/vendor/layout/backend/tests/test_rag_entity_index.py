@@ -24,15 +24,25 @@ class _FakeCollection:
     def count(self) -> int:
         return len(self.records)
 
-    def get(self, where: dict[str, Any] | None = None, include: list[str] | None = None) -> dict[str, Any]:
-        _ = include
+    def get(
+        self,
+        where: dict[str, Any] | None = None,
+        include: list[str] | None = None,
+        limit: int | None = None,
+    ) -> dict[str, Any]:
         ids = []
         for doc_id, record in self.records.items():
             metadata = record["metadata"]
             if where and any(metadata.get(key) != value for key, value in where.items()):
                 continue
             ids.append(doc_id)
-        return {"ids": ids}
+        ids = ids[:limit]
+        result: dict[str, Any] = {"ids": ids}
+        if include and "documents" in include:
+            result["documents"] = [self.records[doc_id]["document"] for doc_id in ids]
+        if include and "metadatas" in include:
+            result["metadatas"] = [self.records[doc_id]["metadata"] for doc_id in ids]
+        return result
 
     def delete(self, ids: list[str]) -> None:
         for doc_id in ids:

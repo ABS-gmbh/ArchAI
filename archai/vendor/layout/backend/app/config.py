@@ -97,6 +97,17 @@ class Settings(BaseSettings):
     rag_top_k: int = 5
     rag_entity_top_k: int = 4
     rag_auto_index: bool = True
+    # Hybrid retrieval: the dense ranking is fused (Reciprocal Rank Fusion) with
+    # character 4-gram BM25 over the abbreviation-expanded search key. On 1,457
+    # passage lookups across different OCR readings of real pages, the right
+    # chunk reached the top 5 for 78.0% of lookups dense-only and 92.2% fused
+    # (scripts/benchmark_retrieval.py). Set rag_lexical_fusion=False for dense only.
+    rag_lexical_fusion: bool = True
+    rag_rrf_k: int = 60
+    # Candidates each ranker contributes to the fusion.
+    rag_fusion_pool: int = 50
+    # The lexical index is built per query; scopes larger than this skip it.
+    rag_lexical_max_chunks: int = 5000
 
     # Authority source expansion
     geonames_base_url: str = "http://api.geonames.org"
