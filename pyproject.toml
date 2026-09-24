@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "archai"
-version = "0.2.0"
-description = "ArchAI OCR/HTR pipeline: YOLO layout + Kraken recognition to TXT."
+version = "0.3.0"
+description = "ArchAI OCR/HTR pipeline: YOLO layout + Kraken recognition to TXT and PAGE XML."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

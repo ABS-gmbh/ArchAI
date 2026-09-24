@@ -62,10 +62,47 @@ DigitizationArtefactZone  DropCapitalZone  GraphicZone  MainZone  MarginTextZone
 MusicZone  NumberingZone  QuireMarksZone  RunningTitleZone  StampZone  TitlePageZone
 ```
 
-Matching is case-insensitive, and a list is accepted to include more than body
-text, e.g. `main_text_class: [MainZone, MarginTextZone]`. If the configured class
-matches nothing the model emits, the run fails with the list of available classes
-rather than silently writing an empty file.
+Matching is case-insensitive and a list is accepted. If the configured class
+matches nothing the model can emit, the run fails with the list of available
+classes rather than silently writing an empty file. To transcribe marginalia,
+use the secondary lane below rather than adding `MarginTextZone` here: listed
+here, glosses are spliced into the body's reading order.
+
+### Outputs
+
+Each page gets a directory `outputs/<stem>/` containing:
+
+| File | Contents |
+|---|---|
+| `<stem>.txt` | The body text (main-text zones) in reading order. |
+| `<stem>.secondary.txt` | Text outside the body, one section per zone type. Written only when there is some. |
+| `<stem>.page.xml` | With `--page-xml` (or `runtime.write_page_xml`): the whole page as [PAGE XML](https://github.com/PRImA-Research-Lab/PAGE-XML) 2019 - every zone, each line's polygon, baseline and confidence, and the reading order. |
+| `layout_coco.json` | Every detected zone as COCO, one category per zone class. |
+| `crops/` | The region images recognition ran on; PAGE region ids match their file names. |
+
+The PAGE file opens in eScriptorium and Transkribus. Correcting it there and
+exporting is the practical way to build the ground truth this pipeline's accuracy
+can be measured against. Zone types are written in the `custom="structure
+{type:MarginTextZone;}"` form those tools read.
+
+### Text outside the body
+
+Marginalia, running titles, foliation and quire marks
+(`layout.secondary_text_class`) are transcribed separately from the body, so a
+gloss never lands in the middle of a sentence. They use a lower detection
+threshold (`layout.secondary_confidence_threshold`, 0.10). Zones mostly inside
+the body are left to it, since their lines are already recognised there.
+`--no-secondary-text` turns the lane off.
+
+These zones are often under 100 px high, too small for Kraken's page
+segmenter, which found no usable line in any of 20 such zones on ten real
+pages. They are instead cut into lines where their ink profile falls to near
+white between two lines. Folio numbers, shelfmarks and short references come
+out readable ("B.109.", "28", "Apoc / 21.3"). Tightly written multi-line notes
+in small hands still come out poorly, and colour bars or decoration the
+detector mistakes for text produce short junk strings; the PAGE output keeps
+their geometry for correction. The body text is unchanged: on those ten pages
+every `.txt` is byte-identical to the previous release.
 
 ### Reading order
 

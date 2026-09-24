@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Sequence
+from functools import lru_cache
 from pathlib import Path
-from typing import Any
-from xml.etree import ElementTree as ET
+from typing import Any, Literal
 
 from PIL import Image
 
 from archai_ocr.config import AppConfig
+from archai_ocr.pipeline.page import Point, RecognizedLine, mean_confidence
+from archai_ocr.pipeline.zone_lines import line_bands
 
 _KRAKEN_INSTALL_HINT = (
     "Kraken is required for the recognition stage but is not installed in this "
@@ -20,6 +22,7 @@ _KRAKEN_INSTALL_HINT = (
 
 try:
     from kraken import binarization, blla, pageseg, rpred
+    from kraken.containers import BaselineLine, Segmentation
     from kraken.lib.models import load_any
     from kraken.lib.vgsl import TorchVGSLModel
 
@@ -28,8 +31,13 @@ try:
 except ImportError as exc:  # pragma: no cover - exercised only without kraken installed
     binarization = blla = pageseg = rpred = None
     load_any = TorchVGSLModel = None
+    BaselineLine = Segmentation = None
     KRAKEN_AVAILABLE = False
     _KRAKEN_IMPORT_ERROR = exc
+
+# "page": Kraken's baseline segmenter, for zones as large as a text block.
+# "zone": ink-profile bands, for the small zones that segmenter finds nothing in.
+Segmenter = Literal["page", "zone"]
 
 
 def require_kraken() -> None:
@@ -43,71 +51,181 @@ def recognize_crops(
     config: AppConfig,
     logger: logging.Logger,
 ) -> list[str]:
+    """One transcription per crop: its non-empty lines, newline-joined."""
+    return [
+        "\n".join(line.text for line in lines if line.text)
+        for lines in recognize_crop_lines(crop_paths, config, logger)
+    ]
+
+
+def recognize_crop_lines(
+    crop_paths: Sequence[Path],
+    config: AppConfig,
+    logger: logging.Logger,
+    *,
+    segmenter: Segmenter = "page",
+) -> list[list[RecognizedLine]]:
+    """Recognise every crop, keeping each line's geometry and confidence.
+
+    Geometry is in crop pixels. A crop that fails yields no lines rather than
+    aborting the page, so the result stays aligned with *crop_paths*.
+    """
+    if not crop_paths:
+        return []
     require_kraken()
-    try:
-        rec_model = load_any(str(config.weights.kraken_recognition))
-    except Exception as exc:
-        raise RuntimeError(
-            "Failed to load Kraken recognition model. "
-            f"Expected a Kraken-compatible model file at: {config.weights.kraken_recognition}"
-        ) from exc
-    _try_move_to_device(rec_model, config.runtime.kraken_device, logger)
+    device = config.runtime.kraken_device
+    rec_model = _recognition_model(config.weights.kraken_recognition, device)
+    seg_model = (
+        _segmentation_model(config.weights.kraken_segmentation, device, logger)
+        if segmenter == "page"
+        else None
+    )
 
-    seg_model: Any | None = None
-    if config.weights.kraken_segmentation.exists():
-        try:
-            seg_model = TorchVGSLModel.load_model(str(config.weights.kraken_segmentation))
-            _try_move_to_device(seg_model, config.runtime.kraken_device, logger)
-        except Exception:
-            seg_model = None
-            logger.warning(
-                "Failed to load Kraken segmentation model. Falling back to legacy segmentation.",
-                extra={"stage": "htr"},
-            )
-    else:
-        logger.warning(
-            "Kraken segmentation model not found. Falling back to legacy segmentation.",
-            extra={"stage": "htr"},
-        )
-
-    region_texts: list[str] = []
+    results: list[list[RecognizedLine]] = []
     failed_regions = 0
     for index, crop_path in enumerate(crop_paths):
         try:
             with Image.open(crop_path) as im:
                 crop_img = im.convert("L")
-            segmentation = _segment_crop(crop_img, seg_model)
+            if segmenter == "zone":
+                segmentation = _zone_segmentation(crop_img)
+            else:
+                segmentation = _segment_crop(crop_img, seg_model)
             records = _run_recognition(rec_model, crop_img, segmentation)
         except Exception:
-            # One unreadable region must not discard the rest of the page. Emit an
-            # empty region so downstream region indices stay aligned with layout.
+            # One unreadable region must not discard the rest of the page.
             failed_regions += 1
             logger.exception(
                 "htr.region_failed",
                 extra={"stage": "htr", "count": index, "output": str(crop_path)},
             )
-            region_texts.append("")
+            results.append([])
             continue
-
-        lines = [_extract_prediction_text(record, logger) for record in records]
-        lines = [line for line in lines if line]
-        region_texts.append("\n".join(lines))
-
-        if config.runtime.write_page_xml:
-            _write_page_xml(
-                xml_path=crop_path.with_suffix(".xml"),
-                image_name=crop_path.name,
-                image_size=crop_img.size,
-                segmentation=segmentation,
-                line_texts=lines,
-            )
+        # Each record carries its own geometry. The previous per-crop PAGE writer
+        # paired texts with segmentation boxes by index after dropping empty
+        # predictions, so every line after the first empty one got the wrong box.
+        results.append([_line_from_record(record, logger) for record in records])
 
     if failed_regions:
         logger.warning(
             "htr.regions_failed",
             extra={"stage": "htr", "count": failed_regions},
         )
-    return region_texts
+    return results
+
+
+def _recognition_model(path: Path, device: str) -> Any:
+    try:
+        return _load_recognition_model(str(path), path.stat().st_mtime_ns, device)
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to load Kraken recognition model. Expected a Kraken-compatible model file at: {path}"
+        ) from exc
+
+
+def _segmentation_model(path: Path, device: str, logger: logging.Logger) -> Any | None:
+    if not path.exists():
+        logger.warning(
+            "Kraken segmentation model not found. Falling back to legacy segmentation.",
+            extra={"stage": "htr"},
+        )
+        return None
+    try:
+        return _load_segmentation_model(str(path), path.stat().st_mtime_ns, device)
+    except Exception:
+        logger.warning(
+            "Failed to load Kraken segmentation model. Falling back to legacy segmentation.",
+            extra={"stage": "htr"},
+        )
+        return None
+
+
+# Models were reloaded for every page (0.9 s per page for the shipped pair).
+# The key includes the file's mtime, so replacing a model is never served stale.
+@lru_cache(maxsize=4)
+def _load_recognition_model(path: str, mtime_ns: int, device: str) -> Any:  # noqa: ARG001
+    model = load_any(path)
+    _try_move_to_device(model, device, logging.getLogger("archai_ocr"))
+    return model
+
+
+@lru_cache(maxsize=4)
+def _load_segmentation_model(path: str, mtime_ns: int, device: str) -> Any:  # noqa: ARG001
+    model = TorchVGSLModel.load_model(path)
+    _try_move_to_device(model, device, logging.getLogger("archai_ocr"))
+    return model
+
+
+def _line_from_record(record: Any, logger: logging.Logger | None = None) -> RecognizedLine:
+    """Text, mean confidence and geometry of one Kraken record, in crop pixels."""
+    text = _extract_prediction_text(record, logger)
+    confidences = _field(record, "confidences") or []
+    baseline = _points(_field(record, "baseline"))
+    boundary = _points(_field(record, "boundary"))
+    if not boundary:
+        boundary = _bbox_polygon(_field(record, "bbox"))
+    return RecognizedLine(
+        text=text,
+        confidence=mean_confidence(confidences) if text else None,
+        baseline=baseline,
+        boundary=boundary,
+    )
+
+
+def _field(record: Any, name: str) -> Any:
+    if isinstance(record, dict):
+        return record.get(name)
+    return getattr(record, name, None)
+
+
+def _points(raw: Any) -> tuple[Point, ...]:
+    """Coordinate pairs from Kraken's [[x, y], ...] (or dict) point lists."""
+    if not raw:
+        return ()
+    points: list[Point] = []
+    for point in raw:
+        if isinstance(point, dict):
+            points.append((int(point.get("x", 0)), int(point.get("y", 0))))
+        elif isinstance(point, (list, tuple)) and len(point) >= 2:
+            points.append((int(point[0]), int(point[1])))
+    return tuple(points)
+
+
+def _bbox_polygon(raw: Any) -> tuple[Point, ...]:
+    """The rectangle of an (x1, y1, x2, y2) box, as the legacy segmenter reports."""
+    if not isinstance(raw, (list, tuple)) or len(raw) < 4:
+        return ()
+    x1, y1, x2, y2 = (int(v) for v in raw[:4])
+    return ((x1, y1), (x2, y1), (x2, y2), (x1, y2))
+
+
+# Where the baseline falls in a band running from ascenders to descenders: about
+# three quarters of the way down. Kraken centres the line image on it.
+_BASELINE_DEPTH = 0.78
+
+
+def _zone_segmentation(image: Image.Image) -> Any:
+    """One straight, full-width baseline line per ink band of a small zone."""
+    width = image.width
+    lines = []
+    for index, (top, bottom) in enumerate(line_bands(image)):
+        baseline_y = top + int(_BASELINE_DEPTH * (bottom - top))
+        lines.append(
+            BaselineLine(
+                id=f"line_{index}",
+                baseline=[(0, baseline_y), (width - 1, baseline_y)],
+                boundary=[(0, top), (width - 1, top), (width - 1, bottom - 1), (0, bottom - 1)],
+            )
+        )
+    return Segmentation(
+        type="baselines",
+        imagename="zone",
+        text_direction="horizontal-lr",
+        script_detection=False,
+        lines=lines,
+        regions={},
+        line_orders=[],
+    )
 
 
 def _segment_crop(image: Image.Image, seg_model: Any | None) -> Any:
@@ -187,107 +305,3 @@ def _try_move_to_device(model: Any, device: str, logger: logging.Logger) -> None
                 "Unable to move model to device; continuing with framework default.",
                 extra={"stage": "htr"},
             )
-
-
-def _write_page_xml(
-    xml_path: Path,
-    image_name: str,
-    image_size: tuple[int, int],
-    segmentation: Any,
-    line_texts: Sequence[str],
-) -> None:
-    width, height = image_size
-    namespace = "http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15"
-    ET.register_namespace("", namespace)
-
-    root = ET.Element("PcGts", {"xmlns": namespace})
-    page = ET.SubElement(
-        root,
-        "Page",
-        {
-            "imageFilename": image_name,
-            "imageWidth": str(width),
-            "imageHeight": str(height),
-        },
-    )
-    region = ET.SubElement(page, "TextRegion", {"id": "region_000"})
-    ET.SubElement(region, "Coords", {"points": _bbox_to_points((0, 0, width, height))})
-
-    line_boxes = _line_bboxes(segmentation)
-    if not line_boxes:
-        line_boxes = [(0, 0, width, height)] * max(1, len(line_texts))
-    if line_boxes and len(line_boxes) < len(line_texts):
-        line_boxes.extend([line_boxes[-1]] * (len(line_texts) - len(line_boxes)))
-
-    for idx, text in enumerate(line_texts):
-        box = line_boxes[idx] if idx < len(line_boxes) else (0, 0, width, height)
-        text_line = ET.SubElement(region, "TextLine", {"id": f"line_{idx:03d}"})
-        ET.SubElement(text_line, "Coords", {"points": _bbox_to_points(box)})
-        text_equiv = ET.SubElement(text_line, "TextEquiv")
-        unicode_text = ET.SubElement(text_equiv, "Unicode")
-        unicode_text.text = text
-
-    tree = ET.ElementTree(root)
-    xml_path.parent.mkdir(parents=True, exist_ok=True)
-    tree.write(xml_path, encoding="utf-8", xml_declaration=True)
-
-
-def _line_bboxes(segmentation: Any) -> list[tuple[int, int, int, int]]:
-    lines: Iterable[Any] = ()
-    if isinstance(segmentation, dict):
-        candidate = segmentation.get("lines") or segmentation.get("boxes") or []
-        lines = candidate
-    elif hasattr(segmentation, "lines"):
-        lines = segmentation.lines
-
-    out: list[tuple[int, int, int, int]] = []
-    for line in lines:
-        bbox = _extract_line_bbox(line)
-        if bbox:
-            out.append(bbox)
-    return out
-
-
-def _extract_line_bbox(line: Any) -> tuple[int, int, int, int] | None:
-    if isinstance(line, dict):
-        if "bbox" in line:
-            return _normalize_bbox(line["bbox"])
-        if "boundary" in line:
-            return _boundary_to_bbox(line["boundary"])
-    if hasattr(line, "bbox"):
-        return _normalize_bbox(line.bbox)
-    if hasattr(line, "boundary"):
-        return _boundary_to_bbox(line.boundary)
-    return None
-
-
-def _normalize_bbox(raw_bbox: Any) -> tuple[int, int, int, int] | None:
-    if raw_bbox is None:
-        return None
-    if isinstance(raw_bbox, (list, tuple)) and len(raw_bbox) >= 4:
-        x1, y1, x2, y2 = raw_bbox[:4]
-        return int(x1), int(y1), int(x2), int(y2)
-    return None
-
-
-def _boundary_to_bbox(boundary: Any) -> tuple[int, int, int, int] | None:
-    if not boundary:
-        return None
-    points: list[tuple[int, int]] = []
-    for point in boundary:
-        if isinstance(point, dict):
-            x = int(point.get("x", 0))
-            y = int(point.get("y", 0))
-            points.append((x, y))
-        elif isinstance(point, (list, tuple)) and len(point) >= 2:
-            points.append((int(point[0]), int(point[1])))
-    if not points:
-        return None
-    xs = [p[0] for p in points]
-    ys = [p[1] for p in points]
-    return min(xs), min(ys), max(xs), max(ys)
-
-
-def _bbox_to_points(bbox: tuple[int, int, int, int]) -> str:
-    x1, y1, x2, y2 = bbox
-    return f"{x1},{y1} {x2},{y1} {x2},{y2} {x1},{y2}"

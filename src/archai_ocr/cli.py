@@ -4,6 +4,7 @@ import argparse
 import logging
 from collections.abc import Sequence
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from archai_ocr import __version__
 from archai_ocr.config import (
@@ -16,6 +17,12 @@ from archai_ocr.config import (
 from archai_ocr.logging_utils import log_stage, setup_logging
 from archai_ocr.utils.image_io import SUPPORTED_EXTENSIONS, validate_image_path
 
+if TYPE_CHECKING:
+    from archai_ocr.pipeline.crop_regions import RegionCrop
+    from archai_ocr.pipeline.layout_yolo import PageLayout, RegionDetection
+    from archai_ocr.pipeline.page import PageTranscription, RecognizedLine
+    from archai_ocr.pipeline.zones import Lane
+
 EXIT_OK = 0
 EXIT_USER_ERROR = 1
 EXIT_PARTIAL_FAILURE = 2
@@ -24,7 +31,10 @@ EXIT_PARTIAL_FAILURE = 2
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="archai",
-        description="ArchAI OCR pipeline producing a .txt output per manuscript page image.",
+        description=(
+            "ArchAI OCR pipeline: body text, text outside the body, and optionally PAGE XML "
+            "for each manuscript page image."
+        ),
     )
     parser.add_argument(
         "--image",
@@ -51,6 +61,16 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument("--device", default=None, help="Override Kraken device (cpu, cuda, cuda:0, mps)")
+    parser.add_argument(
+        "--no-secondary-text",
+        action="store_true",
+        help="Transcribe body text only, skipping marginalia, running titles, foliation and quire marks.",
+    )
+    parser.add_argument(
+        "--page-xml",
+        action="store_true",
+        help="Also write <stem>.page.xml: every zone, line, baseline and confidence, as PAGE XML.",
+    )
     parser.add_argument(
         "--recursive",
         action="store_true",
@@ -114,15 +134,25 @@ def _build_overrides(args: argparse.Namespace) -> dict[str, object]:
         overrides["layout.reading_order"] = args.reading_order
     if args.device:
         overrides["runtime.kraken_device"] = args.device
+    if args.no_secondary_text:
+        overrides["layout.secondary_text_class"] = []
+    if args.page_xml:
+        overrides["runtime.write_page_xml"] = True
     return overrides
 
 
 def process_image(image_path: Path, config: AppConfig, logger: logging.Logger) -> Path:
-    """Run the full pipeline for one page and return the written .txt path."""
-    from archai_ocr.pipeline.assemble_text import assemble_text
-    from archai_ocr.pipeline.crop_regions import crop_regions
-    from archai_ocr.pipeline.htr_kraken import recognize_crops
-    from archai_ocr.pipeline.layout_yolo import detect_layout_regions
+    """Run the full pipeline for one page and return the written .txt path.
+
+    The ``.txt`` holds the body text, exactly as before. Text found outside the
+    body goes to ``<stem>.secondary.txt``, and ``runtime.write_page_xml`` adds
+    ``<stem>.page.xml`` with every zone, line, baseline and confidence.
+    """
+    from archai_ocr.pipeline.assemble_text import assemble_secondary_text, assemble_text
+    from archai_ocr.pipeline.crop_regions import crop_region_images
+    from archai_ocr.pipeline.htr_kraken import recognize_crop_lines
+    from archai_ocr.pipeline.layout_yolo import detect_page_layout
+    from archai_ocr.pipeline.page_xml import write_page_xml
 
     run_dir = config.runtime.output_dir / image_path.stem
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -131,39 +161,111 @@ def process_image(image_path: Path, config: AppConfig, logger: logging.Logger) -
     logger.info("pipeline.start", extra={"image": str(image_path), "output": str(run_dir)})
 
     with log_stage(logger, "layout", image=str(image_path)):
-        regions = detect_layout_regions(image_path=image_path, run_dir=run_dir, config=config, logger=logger)
+        layout = detect_page_layout(image_path=image_path, run_dir=run_dir, config=config, logger=logger)
 
-    if not regions:
+    if not layout.main:
         logger.warning(
             "layout.no_regions",
             extra={"stage": "layout", "image": str(image_path)},
         )
-        assemble_text([], txt_path)
-        return txt_path
 
-    with log_stage(logger, "crop", count=len(regions)):
-        crop_paths = crop_regions(
-            image_path=image_path,
-            regions=regions,
-            crops_dir=run_dir / "crops",
-            padding=config.layout.crop_padding,
-            min_size=config.layout.min_region_size,
+    crops_dir = run_dir / "crops"
+    padding, min_size = config.layout.crop_padding, config.layout.min_region_size
+    with log_stage(logger, "crop", count=len(layout.main) + len(layout.secondary)):
+        main_crops = crop_region_images(
+            image_path, layout.main, crops_dir, padding=padding, min_size=min_size, logger=logger
+        )
+        secondary_crops = crop_region_images(
+            image_path,
+            layout.secondary,
+            crops_dir,
+            padding=padding,
+            min_size=min_size,
             logger=logger,
+            name_prefix="secondary",
         )
 
-    if not crop_paths:
+    if layout.main and not main_crops:
         logger.warning("crop.no_usable_crops", extra={"stage": "crop", "image": str(image_path)})
-        assemble_text([], txt_path)
-        return txt_path
 
-    with log_stage(logger, "htr", count=len(crop_paths)):
-        region_texts = recognize_crops(crop_paths=crop_paths, config=config, logger=logger)
+    crops = main_crops + secondary_crops
+    lines: list[list[RecognizedLine]] = []
+    if crops:
+        with log_stage(logger, "htr", count=len(crops)):
+            lines = recognize_crop_lines(
+                crop_paths=[crop.path for crop in main_crops], config=config, logger=logger
+            )
+            # Secondary zones are too small for Kraken's page segmenter to find
+            # lines in; they are cut into lines by their ink profile instead.
+            lines += recognize_crop_lines(
+                crop_paths=[crop.path for crop in secondary_crops],
+                config=config,
+                logger=logger,
+                segmenter="zone",
+            )
 
+    page = _page_transcription(image_path, layout, main_crops, secondary_crops, lines)
     with log_stage(logger, "assemble"):
-        assemble_text(region_texts, txt_path)
+        assemble_text([region.text for region in page.lane("main")], txt_path)
+        secondary_path = assemble_secondary_text(
+            page.lane("secondary"), run_dir / f"{image_path.stem}.secondary.txt"
+        )
+        page_xml_path = None
+        if config.runtime.write_page_xml:
+            page_xml_path = write_page_xml(page, run_dir / f"{image_path.stem}.page.xml")
 
-    logger.info("pipeline.done", extra={"image": str(image_path), "output": str(txt_path)})
+    logger.info(
+        "pipeline.done",
+        extra={
+            "image": str(image_path),
+            "output": str(txt_path),
+            "secondary_output": str(secondary_path) if secondary_path else None,
+            "page_xml": str(page_xml_path) if page_xml_path else None,
+        },
+    )
     return txt_path
+
+
+def _page_transcription(
+    image_path: Path,
+    layout: PageLayout,
+    main_crops: Sequence[RegionCrop],
+    secondary_crops: Sequence[RegionCrop],
+    lines: Sequence[Sequence[RecognizedLine]],
+) -> PageTranscription:
+    """Attach recognised lines to their regions, moved into page coordinates."""
+    from archai_ocr.pipeline.crop_regions import oriented_image_size
+    from archai_ocr.pipeline.page import PageTranscription, TranscribedRegion
+
+    crop_lines = dict(zip((crop.path for crop in (*main_crops, *secondary_crops)), lines, strict=True))
+    regions: list[TranscribedRegion] = []
+    # Region ids match the crop file names, so a PAGE region can be traced to
+    # the pixels it was recognised from.
+    text_lanes: tuple[tuple[str, Lane, Sequence[RegionDetection], Sequence[RegionCrop]], ...] = (
+        ("region", "main", layout.main, main_crops),
+        ("secondary", "secondary", layout.secondary, secondary_crops),
+    )
+    for prefix, lane, detections, crops in text_lanes:
+        by_index = {crop.index: crop for crop in crops}
+        for index, detection in enumerate(detections):
+            crop = by_index.get(index)
+            found = crop_lines.get(crop.path, ()) if crop is not None else ()
+            offset_x, offset_y = (crop.box[0], crop.box[1]) if crop is not None else (0, 0)
+            regions.append(
+                TranscribedRegion(
+                    region_id=f"{prefix}_{index:03d}",
+                    detection=detection,
+                    lane=lane,
+                    lines=tuple(line.translated(offset_x, offset_y) for line in found),
+                )
+            )
+    for index, detection in enumerate(layout.layout):
+        regions.append(TranscribedRegion(region_id=f"layout_{index:03d}", detection=detection, lane="layout"))
+    return PageTranscription(
+        image_name=image_path.name,
+        image_size=oriented_image_size(image_path),
+        regions=tuple(regions),
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -188,6 +290,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     "count": len(images),
                     "output": str(config.runtime.output_dir),
                     "reading_order": config.layout.reading_order,
+                    "secondary_text_classes": list(config.layout.secondary_text_classes),
+                    "page_xml": config.runtime.write_page_xml,
                 },
             )
             return EXIT_OK
