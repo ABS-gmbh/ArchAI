@@ -3563,7 +3563,12 @@ async def _run_segmented_trace_pipeline(
             reason=f"token_search_allowed=False quality={hardened_quality_label}",
         )
     else:
-        linking_result = _run_authority_linking_stage(run_id)
+        # Authority linking is synchronous: urllib with 10-15s timeouts per request
+        # plus a 0.25s time.sleep rate limiter between them. Called directly from an
+        # async function it blocks the one event loop for the whole stage, freezing
+        # every other request on the process - the trace endpoint, the SSE stream,
+        # /health - not just this run. The GLM path already does this via to_thread.
+        linking_result = await asyncio.to_thread(_run_authority_linking_stage, run_id)
 
     consolidated_report = _build_consolidated_report(run_id, asset_ref, mentions, salvage_debug, linking_result) if mentions or linking_result else None
 
@@ -4627,7 +4632,12 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                 reason=f"token_search_allowed=False quality={hardened_quality_label}",
             )
         else:
-            linking_result = _run_authority_linking_stage(run_id)
+            # Authority linking is synchronous: urllib with 10-15s timeouts per request
+            # plus a 0.25s time.sleep rate limiter between them. Called directly from an
+            # async function it blocks the one event loop for the whole stage, freezing
+            # every other request on the process - the trace endpoint, the SSE stream,
+            # /health - not just this run. The GLM path already does this via to_thread.
+            linking_result = await asyncio.to_thread(_run_authority_linking_stage, run_id)
 
         # Build consolidated report
         consolidated_report = _build_consolidated_report(
