@@ -66,6 +66,15 @@ jobs:
         # pytest suite locally: see archai/vendor/layout/backend/README.md.
         run: python -m compileall -q archai/vendor/layout/backend/app
 
+      - name: Dependency-light unit tests
+        # These modules need nothing beyond numpy, so the metrics that every
+        # accuracy claim rests on are checked on each push, not only locally.
+        working-directory: archai/vendor/layout/backend
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "numpy<2.0" pytest
+          python -m pytest -q tests/test_evaluation.py tests/test_chunking.py tests/test_medieval_text.py
+
   secret-scan:
     name: no committed secrets
     runs-on: ubuntu-latest
