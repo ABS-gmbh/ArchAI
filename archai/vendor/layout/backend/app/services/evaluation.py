@@ -218,6 +218,40 @@ def align(ref: Sequence[Hashable], hyp: Sequence[Hashable]) -> ErrorCounts:
     return ErrorCounts(int(matrix[n, m]), n, m, subs, dels, ins)
 
 
+def alignment_offsets(ref: Sequence[Hashable], hyp: Sequence[Hashable]) -> np.ndarray:
+    """Map every offset of *ref*, 0 through len(ref), to its aligned offset in *hyp*.
+
+    Follows the same minimum-edit alignment as :func:`align`, so a span [s, e)
+    marked on one transcription can be found in another as [out[s], out[e]):
+    how a passage is located in a second OCR reading of the same page. Offsets
+    never decrease; where *hyp* inserts text between two offsets, the later
+    offset maps past the insertion.
+    """
+    n, m = len(ref), len(hyp)
+    if (n + 1) * (m + 1) > _MAX_ALIGNMENT_CELLS:
+        raise ValueError(f"sequences of length {n} and {m} are too long to align in memory")
+    ref_ids, hyp_ids = _encode(ref, hyp)
+    idx = np.arange(m + 1, dtype=np.int64)
+    matrix = np.empty((n + 1, m + 1), dtype=np.int32)
+    matrix[0] = idx
+    for i in range(1, n + 1):
+        matrix[i] = _next_row(matrix[i - 1], int(ref_ids[i - 1]), hyp_ids, i, idx)
+
+    offsets = np.zeros(n + 1, dtype=np.int64)
+    offsets[n] = m
+    i, j = n, m
+    while i > 0 or j > 0:
+        if i > 0 and j > 0 and matrix[i, j] == matrix[i - 1, j - 1] + (0 if ref_ids[i - 1] == hyp_ids[j - 1] else 1):
+            i, j = i - 1, j - 1
+        elif i > 0 and matrix[i, j] == matrix[i - 1, j] + 1:
+            i -= 1
+        else:
+            j -= 1
+            continue
+        offsets[i] = j
+    return offsets
+
+
 def _characters(text: str, policy: NormalizationPolicy) -> list[str]:
     return list(normalize_for_eval(text, policy))
 

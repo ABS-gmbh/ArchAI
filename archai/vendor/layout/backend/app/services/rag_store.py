@@ -26,6 +26,7 @@ from chromadb.config import Settings as ChromaSettings
 
 from app.config import settings
 from app.db import pipeline_db
+from app.services.lexical_retrieval import LexicalIndex, reciprocal_rank_fusion
 from app.services.rag_debug import log_index_done, log_index_status, log_retrieve_debug
 
 log = logging.getLogger(__name__)
@@ -609,6 +610,45 @@ def _ensure_entity_runs_indexed(run_ids: Sequence[str] | None, *, backend_key: s
 
 # ── Retrieval ───────────────────────────────────────────────────────────
 
+def _scope_filter(run_ids: Sequence[str] | None, asset_ref: str | None) -> dict[str, Any] | None:
+    """Chroma ``where`` clause restricting a query to runs and/or one asset."""
+    clauses: list[dict[str, Any]] = []
+    if run_ids:
+        id_list = list(run_ids)
+        if len(id_list) == 1:
+            clauses.append({"run_id": id_list[0]})
+        else:
+            clauses.append({"run_id": {"$in": id_list}})
+    if asset_ref:
+        clauses.append({"asset_ref": asset_ref})
+    if not clauses:
+        return None
+    if len(clauses) == 1:
+        return clauses[0]
+    return {"$and": clauses}
+
+
+def _dense_query(
+    col: chromadb.Collection,
+    query: str,
+    query_embeddings: list[list[float]] | None,
+    where_filter: dict[str, Any] | None,
+    *,
+    n_results: int,
+    ids: list[str] | None = None,
+) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "n_results": n_results,
+        "where": where_filter,
+        "include": ["documents", "metadatas", "distances"],
+    }
+    if ids is not None:
+        kwargs["ids"] = ids
+    if query_embeddings is not None:
+        return col.query(query_embeddings=query_embeddings, **kwargs)
+    return col.query(query_texts=[query], **kwargs)
+
+
 def retrieve_chunks(
     query: str,
     *,
@@ -617,6 +657,12 @@ def retrieve_chunks(
     asset_ref: str | None = None,
 ) -> list[dict[str, Any]]:
     """Retrieve the *top_k* most relevant chunks for *query*.
+
+    The dense ranking is fused with character n-gram BM25 over the same scope
+    (see :mod:`app.services.lexical_retrieval`) by Reciprocal Rank Fusion, unless
+    ``settings.rag_lexical_fusion`` is off. Dense embeddings alone found the
+    passage a user quoted among the top five chunks for 78.0% of lookups on real
+    OCR; fused, 92.2% (``scripts/benchmark_retrieval.py``).
 
     Parameters
     ----------
@@ -633,45 +679,124 @@ def retrieve_chunks(
     -------
     List of dicts with keys ``chunk_id``, ``run_id``, ``asset_ref``,
     ``chunk_idx``, ``start_offset``, ``end_offset``, ``text``,
-    ``distance``.
+    ``distance``. With fusion on, each hit also carries ``dense_rank`` and
+    ``lexical_rank`` (None where that retriever did not return the chunk),
+    ``lexical_score`` and ``fusion_score``. ``distance`` is always the dense
+    cosine distance, or None in the rare case it could not be computed.
     """
     k = top_k or settings.rag_top_k
     query_embeddings, backend_key = _provider_embed([query])
     _ensure_chunk_runs_indexed(run_ids, backend_key=backend_key)
     col = _collection(backend_key=backend_key)
+    where_filter = _scope_filter(run_ids, asset_ref)
 
-    where_clauses: list[dict[str, Any]] = []
-    if run_ids:
-        id_list = list(run_ids)
-        if len(id_list) == 1:
-            where_clauses.append({"run_id": id_list[0]})
-        else:
-            where_clauses.append({"run_id": {"$in": id_list}})
-    if asset_ref:
-        where_clauses.append({"asset_ref": asset_ref})
+    if not settings.rag_lexical_fusion:
+        return _flatten_results(_dense_query(col, query, query_embeddings, where_filter, n_results=k))
 
-    where_filter: dict[str, Any] | None = None
-    if len(where_clauses) == 1:
-        where_filter = where_clauses[0]
-    elif len(where_clauses) > 1:
-        where_filter = {"$and": where_clauses}
+    # Both rankers contribute a pool deeper than top_k: a chunk ranked 12th by
+    # one and 2nd by the other must be visible to the fusion to win.
+    pool = max(k, settings.rag_fusion_pool)
+    dense = _flatten_results(_dense_query(col, query, query_embeddings, where_filter, n_results=pool))
+    try:
+        lexical, records = _lexical_ranking(col, query, where_filter, limit=pool)
+    except Exception as exc:  # noqa: BLE001 - fusion must never cost the dense result
+        log.warning("Lexical retrieval failed; using the dense ranking alone: %s", exc)
+        return dense[:k]
+    return _fuse(col, query, query_embeddings, dense, lexical, records, top_k=k)
 
-    if query_embeddings is not None:
-        results = col.query(
-            query_embeddings=query_embeddings,
-            n_results=k,
-            where=where_filter,
-            include=["documents", "metadatas", "distances"],
+
+def _lexical_ranking(
+    col: chromadb.Collection,
+    query: str,
+    where_filter: dict[str, Any] | None,
+    *,
+    limit: int,
+) -> tuple[list[tuple[str, float]], dict[str, tuple[str, dict[str, Any]]]]:
+    """BM25 ranking of every chunk in scope, plus the records behind it.
+
+    The records let a chunk the dense pool never reached still be returned. The
+    index is rebuilt per query, which costs about a millisecond for the one-page
+    scope chat uses; above ``settings.rag_lexical_max_chunks`` chunks in scope the
+    lexical side is skipped rather than slowing every query down.
+    """
+    cap = settings.rag_lexical_max_chunks
+    got = col.get(where=where_filter, limit=cap + 1, include=["documents", "metadatas"])
+    ids = [str(chunk_id) for chunk_id in (got.get("ids") or [])]
+    if not ids:
+        return [], {}
+    if len(ids) > cap:
+        log.info(
+            "Lexical retrieval skipped: more than rag_lexical_max_chunks=%d chunks in scope",
+            cap,
         )
-    else:
-        results = col.query(
-            query_texts=[query],
-            n_results=k,
-            where=where_filter,
-            include=["documents", "metadatas", "distances"],
-        )
+        return [], {}
+    documents = got.get("documents") or [""] * len(ids)
+    metadatas = got.get("metadatas") or [{}] * len(ids)
+    records = {
+        chunk_id: (str(text or ""), dict(meta or {}))
+        for chunk_id, text, meta in zip(ids, documents, metadatas, strict=True)
+    }
+    index = LexicalIndex((chunk_id, text) for chunk_id, (text, _meta) in records.items())
+    return index.search(query, limit=limit), records
 
-    return _flatten_results(results)
+
+def _fuse(
+    col: chromadb.Collection,
+    query: str,
+    query_embeddings: list[list[float]] | None,
+    dense: list[dict[str, Any]],
+    lexical: list[tuple[str, float]],
+    records: dict[str, tuple[str, dict[str, Any]]],
+    *,
+    top_k: int,
+) -> list[dict[str, Any]]:
+    dense_ids = [hit["chunk_id"] for hit in dense]
+    lexical_ids = [chunk_id for chunk_id, _score in lexical]
+    fused = reciprocal_rank_fusion([dense_ids, lexical_ids], k=settings.rag_rrf_k)[:top_k]
+
+    by_id = {hit["chunk_id"]: hit for hit in dense}
+    missing = [chunk_id for chunk_id, _score in fused if chunk_id not in by_id]
+    distances = _dense_distances(col, query, query_embeddings, missing) if missing else {}
+    dense_rank = {chunk_id: rank for rank, chunk_id in enumerate(dense_ids, start=1)}
+    lexical_rank = {chunk_id: rank for rank, chunk_id in enumerate(lexical_ids, start=1)}
+    lexical_score = dict(lexical)
+
+    hits: list[dict[str, Any]] = []
+    for chunk_id, score in fused:
+        hit = by_id.get(chunk_id)
+        if hit is None:
+            text, meta = records[chunk_id]
+            hit = _chunk_hit(chunk_id, text, meta, distances.get(chunk_id))
+        hits.append(
+            {
+                **hit,
+                "dense_rank": dense_rank.get(chunk_id),
+                "lexical_rank": lexical_rank.get(chunk_id),
+                "lexical_score": round(lexical_score[chunk_id], 4) if chunk_id in lexical_score else None,
+                "fusion_score": round(score, 6),
+            }
+        )
+    return hits
+
+
+def _dense_distances(
+    col: chromadb.Collection,
+    query: str,
+    query_embeddings: list[list[float]] | None,
+    ids: list[str],
+) -> dict[str, float]:
+    """Dense distances for chunks only the lexical side returned.
+
+    Only happens when the scope holds more chunks than the dense pool. Without
+    it those hits would carry no ``distance``, and the evidence blocks shown to
+    the model would mix scored and unscored chunks.
+    """
+    try:
+        results = _dense_query(col, query, query_embeddings, None, n_results=len(ids), ids=ids)
+    except Exception as exc:  # noqa: BLE001 - Chroma before 1.0 cannot restrict a query to ids
+        log.debug("Dense distances unavailable for lexical-only hits: %s", exc)
+        return {}
+    return {hit["chunk_id"]: hit["distance"] for hit in _flatten_results(results)}
 
 
 def retrieve_entities(
@@ -686,22 +811,7 @@ def retrieve_entities(
     query_embeddings, backend_key = _provider_embed([query])
     _ensure_entity_runs_indexed(run_ids, backend_key=backend_key)
     col = _entity_collection(backend_key=backend_key)
-
-    where_clauses: list[dict[str, Any]] = []
-    if run_ids:
-        id_list = list(run_ids)
-        if len(id_list) == 1:
-            where_clauses.append({"run_id": id_list[0]})
-        else:
-            where_clauses.append({"run_id": {"$in": id_list}})
-    if asset_ref:
-        where_clauses.append({"asset_ref": asset_ref})
-
-    where_filter: dict[str, Any] | None = None
-    if len(where_clauses) == 1:
-        where_filter = where_clauses[0]
-    elif len(where_clauses) > 1:
-        where_filter = {"$and": where_clauses}
+    where_filter = _scope_filter(run_ids, asset_ref)
 
     if query_embeddings is not None:
         results = col.query(
@@ -720,6 +830,25 @@ def retrieve_entities(
     return _flatten_entity_results(results)
 
 
+def _chunk_hit(
+    chunk_id: str,
+    text: str | None,
+    meta: dict[str, Any] | None,
+    distance: float | None,
+) -> dict[str, Any]:
+    meta = meta or {}
+    return {
+        "chunk_id": chunk_id,
+        "run_id": meta.get("run_id", ""),
+        "asset_ref": meta.get("asset_ref", ""),
+        "chunk_idx": meta.get("chunk_idx", 0),
+        "start_offset": meta.get("start_offset", 0),
+        "end_offset": meta.get("end_offset", 0),
+        "text": text or "",
+        "distance": distance,
+    }
+
+
 def _flatten_results(results: dict[str, Any]) -> list[dict[str, Any]]:
     """Convert Chroma's nested result format into a flat list."""
     out: list[dict[str, Any]] = []
@@ -730,16 +859,7 @@ def _flatten_results(results: dict[str, Any]) -> list[dict[str, Any]]:
 
     for ids, docs, metas, dists in zip(ids_outer, docs_outer, metas_outer, dists_outer):
         for chunk_id, text, meta, distance in zip(ids, docs, metas, dists):
-            out.append({
-                "chunk_id": chunk_id,
-                "run_id": (meta or {}).get("run_id", ""),
-                "asset_ref": (meta or {}).get("asset_ref", ""),
-                "chunk_idx": (meta or {}).get("chunk_idx", 0),
-                "start_offset": (meta or {}).get("start_offset", 0),
-                "end_offset": (meta or {}).get("end_offset", 0),
-                "text": text or "",
-                "distance": distance,
-            })
+            out.append(_chunk_hit(chunk_id, text, meta, distance))
     return out
 
 
@@ -802,7 +922,9 @@ def retrieve_debug(
             "asset_ref": h["asset_ref"],
             "chunk_idx": h["chunk_idx"],
             "offsets": f"{h['start_offset']}-{h['end_offset']}",
-            "score": round(1.0 - float(h.get("distance", 0)), 4),
+            "score": _similarity(h.get("distance", 0)),
+            "dense_rank": h.get("dense_rank"),
+            "lexical_rank": h.get("lexical_rank"),
             "text_preview": (h.get("text") or "")[:120],
         })
     entity_results = []
@@ -833,6 +955,13 @@ def retrieve_debug(
     return payload
 
 
+def _similarity(distance: float | None, *, missing: Any = None) -> Any:
+    """Cosine similarity for display; *missing* when no distance was computed."""
+    if distance is None:
+        return missing
+    return round(1.0 - float(distance), 4)
+
+
 def format_evidence_blocks(chunks: list[dict[str, Any]]) -> str:
     """Format retrieved chunks as ``[OCR_CHUNK_EVIDENCE]…[/OCR_CHUNK_EVIDENCE]`` blocks.
 
@@ -850,7 +979,7 @@ def format_evidence_blocks(chunks: list[dict[str, Any]]) -> str:
             f"asset_ref: {ch.get('asset_ref', '')}\n"
             f"chunk_id: {ch.get('chunk_id', '')}\n"
             f"offsets: {ch.get('start_offset', 0)}-{ch.get('end_offset', 0)}\n"
-            f"retrieval_score: {round(1.0 - float(ch.get('distance', 1.0)), 4)}\n"
+            f"retrieval_score: {_similarity(ch.get('distance', 1.0), missing='n/a')}\n"
             f"text: {ch.get('text', '')}\n"
             "[/OCR_CHUNK_EVIDENCE]"
         )
