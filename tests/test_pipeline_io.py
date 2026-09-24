@@ -171,3 +171,95 @@ def test_ultralytics_runtime_autoinstall_is_disabled() -> None:
     import archai_ocr.pipeline.layout_yolo  # noqa: F401
 
     assert os.environ["YOLO_AUTOINSTALL"] == "false"
+
+
+# ------------------------------------------------------ crops with rectangles --
+
+
+def test_crop_images_report_their_page_rectangle(page_image: Path, tmp_path: Path) -> None:
+    from archai_ocr.pipeline.crop_regions import crop_region_images
+
+    crops = crop_region_images(page_image, [region(0, 100, 200, 300)], tmp_path / "c", padding=10)
+    assert [(crop.index, crop.box) for crop in crops] == [(0, (0, 90, 210, 310))]
+
+
+def test_crop_images_can_be_named_per_lane(page_image: Path, tmp_path: Path) -> None:
+    from archai_ocr.pipeline.crop_regions import crop_region_images
+
+    crops = crop_region_images(
+        page_image, [region(10, 10, 200, 100)], tmp_path / "c", name_prefix="secondary"
+    )
+    assert crops[0].path.name == "secondary_000.png"
+
+
+def test_oriented_size_follows_the_exif_rotation(tmp_path: Path) -> None:
+    from archai_ocr.pipeline.crop_regions import oriented_image_size
+
+    rotated = tmp_path / "rotated.jpg"
+    exif = Image.Exif()
+    exif[0x0112] = 6  # rotate 90 degrees clockwise on display
+    Image.new("RGB", (400, 300), "white").save(rotated, exif=exif)
+    assert oriented_image_size(rotated) == (300, 400)
+
+
+def test_oriented_size_of_an_unrotated_page(page_image: Path) -> None:
+    from archai_ocr.pipeline.crop_regions import oriented_image_size
+
+    assert oriented_image_size(page_image) == (1000, 1400)
+
+
+# ------------------------------------------------------------ secondary text --
+
+
+def _secondary(name: str, *lines: str) -> object:
+    from archai_ocr.pipeline.page import RecognizedLine, TranscribedRegion
+
+    return TranscribedRegion(
+        region_id="secondary_000",
+        detection=RegionDetection(bbox=(0, 0, 10, 10), score=0.5, class_id=0, class_name=name),
+        lane="secondary",
+        lines=tuple(RecognizedLine(text) for text in lines),
+    )
+
+
+def test_secondary_text_is_grouped_under_a_heading_per_zone(tmp_path: Path) -> None:
+    from archai_ocr.pipeline.assemble_text import assemble_secondary_text
+
+    out = assemble_secondary_text(
+        [
+            _secondary("NumberingZone", "28"),
+            _secondary("MarginTextZone", "necesse"),
+            _secondary("MarginTextZone", "apoc.", "21.9"),
+        ],  # type: ignore[list-item]
+        tmp_path / "p.secondary.txt",
+    )
+    assert out is not None
+    assert out.read_text(encoding="utf-8") == "[Numbering]\n28\n\n[Marginalia]\nnecesse\n\napoc.\n21.9\n"
+
+
+def test_no_secondary_text_writes_nothing_and_clears_a_stale_file(tmp_path: Path) -> None:
+    from archai_ocr.pipeline.assemble_text import assemble_secondary_text
+
+    stale = tmp_path / "p.secondary.txt"
+    stale.write_text("from an earlier run", encoding="utf-8")
+    assert assemble_secondary_text([_secondary("MarginTextZone", "")], stale) is None  # type: ignore[list-item]
+    assert not stale.exists()
+
+
+# ------------------------------------------------------------ coco, all zones --
+
+
+def test_coco_gives_each_zone_class_its_own_category(tmp_path: Path, page_image: Path) -> None:
+    regions = [
+        RegionDetection(bbox=(0, 0, 10, 10), score=0.9, class_id=3, class_name="MainZone").to_dict(),
+        RegionDetection(bbox=(20, 0, 30, 10), score=0.4, class_id=4, class_name="MarginTextZone").to_dict(),
+        RegionDetection(bbox=(40, 0, 50, 10), score=0.8, class_id=9, class_name="StampZone").to_dict(),
+    ]
+    out = write_layout_coco(page_image, (100, 100), regions, tmp_path / "c.json", "MainZone")
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    assert [(c["id"], c["name"], c["supercategory"]) for c in payload["categories"]] == [
+        (1, "MainZone", "text"),
+        (2, "MarginTextZone", "text"),
+        (3, "StampZone", "layout"),
+    ]
+    assert [a["category_id"] for a in payload["annotations"]] == [1, 2, 3]

@@ -14,6 +14,13 @@ layout:
   # Matching is case-insensitive. A list is accepted, e.g. [MainZone, MarginTextZone].
   main_text_class: MainZone
   confidence_threshold: 0.25
+  # Text outside the body - marginalia, running titles, foliation, quire marks -
+  # is transcribed into <stem>.secondary.txt and never spliced into the body's
+  # reading order. An empty list, or --no-secondary-text, disables it.
+  secondary_text_class: [MarginTextZone, RunningTitleZone, NumberingZone, QuireMarksZone]
+  # Secondary zones score lower than the body; on ten real pages the 0.10-0.25
+  # band was as often real text as the detections above 0.25.
+  secondary_confidence_threshold: 0.10
   iou_threshold: 0.5
   max_regions: 50
   crop_padding: 5
@@ -26,4 +33,7 @@ layout:
 runtime:
   output_dir: outputs
   kraken_device: cpu
+  # Also write <stem>.page.xml (PAGE 2019): every zone, line polygon, baseline
+  # and confidence, ready to correct in eScriptorium or Transkribus.
+  # The --page-xml flag turns it on for one run.
   write_page_xml: false
