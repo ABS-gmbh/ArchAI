@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import ast
 import asyncio
+import gc
 import time
 from pathlib import Path
 
@@ -94,7 +95,13 @@ def blocking_work(iterations: int = 4, per_call: float = 0.05) -> str:
 
 
 async def worst_loop_lag(run_stage, *, interval: float = 0.01) -> float:
-    """Largest gap between heartbeat ticks while the stage runs."""
+    """Largest gap between heartbeat ticks while the stage runs.
+
+    The cyclic garbage collector runs on the loop's own thread, and in a full
+    test session it holds enough objects that one pass stalled the heartbeat
+    for 80 ms - a failure that had nothing to do with blocking calls. It is
+    collected up front and paused for the measurement.
+    """
     gaps: list[float] = []
     stop = asyncio.Event()
 
@@ -106,11 +113,18 @@ async def worst_loop_lag(run_stage, *, interval: float = 0.01) -> float:
             gaps.append(now - last - interval)
             last = now
 
-    task = asyncio.create_task(heartbeat())
-    await asyncio.sleep(interval * 3)
-    await run_stage()
-    stop.set()
-    await task
+    gc.collect()
+    gc_was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        task = asyncio.create_task(heartbeat())
+        await asyncio.sleep(interval * 3)
+        await run_stage()
+        stop.set()
+        await task
+    finally:
+        if gc_was_enabled:
+            gc.enable()
     return max(gaps)
 
 
