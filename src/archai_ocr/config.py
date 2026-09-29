@@ -10,6 +10,8 @@ from typing import Any
 import yaml
 from dotenv import load_dotenv
 
+from archai_ocr.pipeline.zones import DEFAULT_SECONDARY_TEXT_CLASSES
+
 VALID_READING_ORDERS = ("column", "simple")
 VALID_DEVICES = ("cpu", "cuda", "mps")
 
@@ -25,6 +27,14 @@ DEFAULT_CONFIG: dict[str, Any] = {
         # Accepts a single name or a list (e.g. to include MarginTextZone).
         "main_text_class": "MainZone",
         "confidence_threshold": 0.25,
+        # Zones transcribed outside the body's reading order: marginalia,
+        # running titles, foliation, quire marks. An empty list disables it.
+        "secondary_text_class": list(DEFAULT_SECONDARY_TEXT_CLASSES),
+        # Lower than the main threshold on evidence: on ten real pages, 7 of
+        # the 9 secondary detections scoring 0.10-0.25 were real text (folio
+        # numbers, a marginal Bible reference), about the precision of those
+        # above 0.25 (10 of 12). Below 0.10 they were mostly duplicates.
+        "secondary_confidence_threshold": 0.10,
         "iou_threshold": 0.5,
         "max_regions": 50,
         "crop_padding": 5,
@@ -64,6 +74,8 @@ class LayoutConfig:
     reading_order: str
     column_overlap_ratio: float
     min_region_size: int
+    secondary_text_classes: tuple[str, ...] = DEFAULT_SECONDARY_TEXT_CLASSES
+    secondary_confidence_threshold: float = 0.10
 
 
 @dataclass(frozen=True)
@@ -164,6 +176,7 @@ def _build_app_config(raw: dict[str, Any], base_dir: Path) -> AppConfig:
         )
 
     confidence = _bounded_float(layout, "confidence_threshold", 0.0, 1.0)
+    secondary_confidence = _bounded_float(layout, "secondary_confidence_threshold", 0.0, 1.0)
     iou = _bounded_float(layout, "iou_threshold", 0.0, 1.0)
     overlap = _bounded_float(layout, "column_overlap_ratio", 0.0, 1.0)
     max_regions = _positive_int(layout, "max_regions")
@@ -195,6 +208,12 @@ def _build_app_config(raw: dict[str, Any], base_dir: Path) -> AppConfig:
             reading_order=reading_order,
             column_overlap_ratio=overlap,
             min_region_size=min_region_size,
+            secondary_text_classes=_normalize_classes(
+                layout.get("secondary_text_class", layout_default("secondary_text_class")),
+                key="layout.secondary_text_class",
+                allow_empty=True,
+            ),
+            secondary_confidence_threshold=secondary_confidence,
         ),
         runtime=RuntimeConfig(
             output_dir=_resolve_path(
@@ -208,17 +227,24 @@ def _build_app_config(raw: dict[str, Any], base_dir: Path) -> AppConfig:
     )
 
 
-def _normalize_classes(value: Any) -> tuple[str, ...]:
+def _normalize_classes(
+    value: Any,
+    *,
+    key: str = "layout.main_text_class",
+    allow_empty: bool = False,
+) -> tuple[str, ...]:
     """Accept either a single class name or a list of them."""
+    if value is None and allow_empty:
+        return ()
     if isinstance(value, str):
         names = [value]
     elif isinstance(value, (list, tuple)):
         names = [str(item) for item in value]
     else:
-        raise ConfigError(f"layout.main_text_class must be a string or a list of strings, got {value!r}.")
+        raise ConfigError(f"{key} must be a string or a list of strings, got {value!r}.")
     cleaned = tuple(name.strip() for name in names if str(name).strip())
-    if not cleaned:
-        raise ConfigError("layout.main_text_class must name at least one layout class.")
+    if not cleaned and not allow_empty:
+        raise ConfigError(f"{key} must name at least one layout class.")
     return cleaned
 
 
@@ -285,6 +311,11 @@ def _parse_bool(value: str) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _parse_class_list(value: str) -> list[str]:
+    """Comma-separated class names; an empty string disables the lane."""
+    return [name.strip() for name in value.split(",") if name.strip()]
+
+
 # Canonical env var name -> (section, key, caster). Aliases below keep the names
 # that shipped in .env.example working; previously they were silently ignored.
 _ENV_MAP: dict[str, tuple[str, str, Callable[[str], Any]]] = {
@@ -293,6 +324,8 @@ _ENV_MAP: dict[str, tuple[str, str, Callable[[str], Any]]] = {
     "ARCHAI_OCR_KRAKEN_RECOGNITION": ("weights", "kraken_recognition", str),
     "ARCHAI_OCR_MAIN_TEXT_CLASS": ("layout", "main_text_class", str),
     "ARCHAI_OCR_CONFIDENCE_THRESHOLD": ("layout", "confidence_threshold", float),
+    "ARCHAI_OCR_SECONDARY_TEXT_CLASS": ("layout", "secondary_text_class", _parse_class_list),
+    "ARCHAI_OCR_SECONDARY_CONFIDENCE_THRESHOLD": ("layout", "secondary_confidence_threshold", float),
     "ARCHAI_OCR_IOU_THRESHOLD": ("layout", "iou_threshold", float),
     "ARCHAI_OCR_MAX_REGIONS": ("layout", "max_regions", int),
     "ARCHAI_OCR_CROP_PADDING": ("layout", "crop_padding", int),

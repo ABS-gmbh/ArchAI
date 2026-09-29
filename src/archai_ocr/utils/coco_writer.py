@@ -25,9 +25,19 @@ def write_layout_coco(
     """Write layout detections as a single-image COCO detection file.
 
     Input boxes are xyxy (as produced by the detector); COCO stores xywh.
+
+    Each distinct class gets its own category. *category_name* - the main text
+    class - is always category 1, so a file of main-text regions only is
+    exactly what it was when every annotation was written as category 1.
     """
+    from archai_ocr.pipeline.zones import zone_kind
+
     width, height = image_size
     annotations: list[dict[str, Any]] = []
+    regions = list(regions)
+    category_ids: dict[str, int] = {category_name: 1}
+    for region in regions:
+        category_ids.setdefault(region["class_name"], len(category_ids) + 1)
 
     for idx, region in enumerate(regions, start=1):
         x1, y1, x2, y2 = _as_xyxy(region["bbox"])
@@ -37,7 +47,7 @@ def write_layout_coco(
             {
                 "id": idx,
                 "image_id": 1,
-                "category_id": 1,
+                "category_id": category_ids[region["class_name"]],
                 "bbox": [x1, y1, bbox_w, bbox_h],
                 "area": float(bbox_w * bbox_h),
                 "iscrowd": 0,
@@ -60,10 +70,11 @@ def write_layout_coco(
         "annotations": annotations,
         "categories": [
             {
-                "id": 1,
-                "name": category_name,
-                "supercategory": "text",
+                "id": category_id,
+                "name": name,
+                "supercategory": "text" if zone_kind(name).element == "TextRegion" else "layout",
             }
+            for name, category_id in category_ids.items()
         ],
     }
 

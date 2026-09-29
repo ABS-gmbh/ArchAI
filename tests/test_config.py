@@ -154,3 +154,36 @@ def test_main_text_class_rejects_a_non_string(tmp_path: Path) -> None:
     path.write_text(yaml.safe_dump({"layout": {"main_text_class": 5}}), encoding="utf-8")
     with pytest.raises(ConfigError, match="string or a list of strings"):
         load_config(path)
+
+
+def test_secondary_lane_defaults(config_file: Path) -> None:
+    layout = load_config(config_file).layout
+    assert layout.secondary_text_classes == (
+        "MarginTextZone",
+        "RunningTitleZone",
+        "NumberingZone",
+        "QuireMarksZone",
+    )
+    assert layout.secondary_confidence_threshold == pytest.approx(0.10)
+
+
+def test_the_secondary_lane_can_be_disabled_with_an_empty_list(config_file: Path) -> None:
+    config = load_config(config_file, overrides={"layout.secondary_text_class": []})
+    assert config.layout.secondary_text_classes == ()
+
+
+def test_secondary_classes_accept_a_single_name(config_file: Path) -> None:
+    config = load_config(config_file, overrides={"layout.secondary_text_class": "MarginTextZone"})
+    assert config.layout.secondary_text_classes == ("MarginTextZone",)
+
+
+def test_secondary_threshold_is_range_checked(config_file: Path) -> None:
+    with pytest.raises(ConfigError, match="secondary_confidence_threshold"):
+        load_config(config_file, overrides={"layout.secondary_confidence_threshold": 1.5})
+
+
+def test_secondary_classes_from_the_environment(config_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ARCHAI_OCR_SECONDARY_TEXT_CLASS", "MarginTextZone, NumberingZone")
+    assert load_config(config_file).layout.secondary_text_classes == ("MarginTextZone", "NumberingZone")
+    monkeypatch.setenv("ARCHAI_OCR_SECONDARY_TEXT_CLASS", "")
+    assert load_config(config_file).layout.secondary_text_classes == ()
