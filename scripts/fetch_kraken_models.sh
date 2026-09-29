@@ -142,6 +142,10 @@ fi
 
 cat <<EOF
 
+Recognition model for the CLI (CATMuS Medieval for medieval manuscripts;
+McCATMuS covers the late 16th century onwards):
+  ln -sfn "${TARGET_DIR}/catmus_medieval.mlmodel" "${REPO_ROOT}/weights/kraken_recognition.mlmodel"
+
 Backward-compatible defaults:
   ARCHAI_KRAKEN_REC_WEIGHTS=weights/kraken_recognition.mlmodel
   ARCHAI_KRAKEN_MODELS_DIR=weights/kraken_models

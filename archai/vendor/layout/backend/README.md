@@ -54,6 +54,32 @@ python -m pytest tests -q
 CI runs the dependency-light subset (evaluation, chunking, medieval text) on
 every push; the rest of the suite needs the inference stack.
 
+## Full-page OCR
+
+`POST /ocr/extract_full_page` - what the workspace calls - segments the page
+with the layout models, then reads it line by line with Kraken, CATMuS Medieval
+first. Text outside every text column (marginalia, folio numbers, a library
+stamp) comes back in `secondary_lines`, apart from the body in `text`. GLM-OCR
+reads the whole page instead when the request asks for `glmocr`, when
+`FULL_PAGE_OCR_ENGINE=glmocr`, or as a fallback when a page yields no text
+regions or no text; `ocr_engine` in the response says which engine read it, and
+an `OCR_ENGINE_FALLBACK:<reason>` warning says why a fallback happened.
+
+Character error rate on the two reference pages in `eval/recognizers/`:
+
+| Engine | Old French | Latin |
+|---|---|---|
+| segmented, CATMuS Medieval (default) | 7.0% | 11.7% |
+| segmented, CREMMA Medieval | 10.0% | 20.6% |
+| segmented, McCATMuS | 33.2% | 43.2% |
+| GLM-OCR, whole page | 25.6% | 27.6% |
+
+Reproduce with the page images (matched by SHA-256, any file names):
+
+```bash
+python scripts/benchmark_recognizers.py --images /path/to/pages
+```
+
 ## Measure accuracy
 
 `scripts/evaluate_ocr.py` scores OCR output against reference transcriptions

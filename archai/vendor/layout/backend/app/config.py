@@ -111,6 +111,21 @@ class Settings(BaseSettings):
 
     # OCR backend routing
     ocr_backend_default: str = "auto"
+    # Engine behind /ocr/extract_full_page when the request leaves the backend on
+    # "auto". "segmented": layout segmentation, then line-by-line Kraken
+    # recognition (CATMuS Medieval first), with GLM-OCR as the fallback when a
+    # page yields no text regions or no text. "glmocr": GLM-OCR on the whole
+    # page, as before. On the two reference pages the segmented engine reads at
+    # 7.0% / 11.7% CER, GLM-OCR at 25.6% / 27.6%
+    # (scripts/benchmark_recognizers.py, eval/recognizers/).
+    full_page_ocr_engine: str = "segmented"
+    # Let a text-quality score reorder the backends of an "auto" plan and replace
+    # a backend's non-empty text with another's. The score favours fluent-looking
+    # text over faithful diplomatic transcription: on the Latin reference page it
+    # elects McCATMuS, which reads the page at 40.5% CER where CATMuS Medieval
+    # reads 11.7%. Off, the plan order decides, and a later backend reads a line
+    # only when every earlier one fails or reads nothing.
+    ocr_backend_election: bool = False
 
     # Kraken recognition
     kraken_device: str = "cpu"

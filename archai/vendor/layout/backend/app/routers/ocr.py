@@ -2271,14 +2271,111 @@ def _annotation_polygon(annotation: dict[str, Any]) -> list[list[float]] | None:
     return points or None
 
 
-def _extract_segmented_regions(coco: dict[str, Any] | None) -> list[OCRRegionInput]:
-    if not isinstance(coco, dict):
+_TextRow = tuple[float, float, str, tuple[float, float, float, float], OCRRegionInput]
+
+
+def _is_column_like_label(label: str) -> bool:
+    key = str(label or "").strip().lower()
+    return any(token in key for token in ("column", "mainzone", "main zone", "text zone", "main text area"))
+
+
+def _bbox_overlap_ratio(left: tuple[float, float, float, float], right: tuple[float, float, float, float]) -> float:
+    inter_x1 = max(left[0], right[0])
+    inter_y1 = max(left[1], right[1])
+    inter_x2 = min(left[2], right[2])
+    inter_y2 = min(left[3], right[3])
+    inter_area = max(0.0, inter_x2 - inter_x1) * max(0.0, inter_y2 - inter_y1)
+    left_area = max(1.0, (left[2] - left[0]) * (left[3] - left[1]))
+    return inter_area / left_area
+
+
+def _cluster_rows_by_columns(
+    text_rows: list[_TextRow],
+    column_boxes: list[tuple[float, float, float, float]],
+) -> list[_TextRow]:
+    if not text_rows:
         return []
+
+    assigned: dict[int, list[_TextRow]] = {index: [] for index in range(len(column_boxes))}
+    overflow: list[_TextRow] = []
+
+    for row in text_rows:
+        bbox = row[3]
+        center_x = (bbox[0] + bbox[2]) / 2.0
+        best_index = -1
+        best_score = -1.0
+        for index, column_bbox in enumerate(column_boxes):
+            contains_center = column_bbox[0] <= center_x <= column_bbox[2]
+            overlap = _bbox_overlap_ratio(bbox, column_bbox)
+            score = overlap + (0.25 if contains_center else 0.0)
+            if score > best_score:
+                best_score = score
+                best_index = index
+        if best_index >= 0 and best_score > 0.05:
+            assigned[best_index].append(row)
+        else:
+            overflow.append(row)
+
+    ordered_rows: list[_TextRow] = []
+    for index, column_bbox in enumerate(column_boxes):
+        column_rows = sorted(assigned[index], key=lambda item: (item[3][1], item[3][0]))
+        ordered_rows.extend(column_rows)
+    ordered_rows.extend(sorted(overflow, key=lambda item: (item[3][1], item[3][0])))
+    return ordered_rows
+
+
+def _cluster_rows_without_columns(text_rows: list[_TextRow]) -> list[_TextRow]:
+    if not text_rows:
+        return []
+    sorted_rows = sorted(text_rows, key=lambda item: ((item[3][0] + item[3][2]) / 2.0, item[3][1]))
+    page_width = max((row[3][2] for row in sorted_rows), default=0.0) - min((row[3][0] for row in sorted_rows), default=0.0)
+    merge_gap = max(80.0, page_width * 0.08)
+    columns: list[dict[str, Any]] = []
+    for row in sorted_rows:
+        bbox = row[3]
+        center_x = (bbox[0] + bbox[2]) / 2.0
+        matched = None
+        matched_distance = None
+        for column in columns:
+            overlap = min(bbox[2], column["x2"]) - max(bbox[0], column["x1"])
+            if overlap > 0:
+                distance = abs(center_x - column["center_x"])
+            else:
+                distance = max(bbox[0] - column["x2"], column["x1"] - bbox[2], 0.0)
+            if distance <= merge_gap and (matched_distance is None or distance < matched_distance):
+                matched = column
+                matched_distance = distance
+        if matched is None:
+            columns.append({
+                "x1": bbox[0],
+                "x2": bbox[2],
+                "center_x": center_x,
+                "rows": [row],
+            })
+            continue
+        matched["rows"].append(row)
+        matched["x1"] = min(matched["x1"], bbox[0])
+        matched["x2"] = max(matched["x2"], bbox[2])
+        matched["center_x"] = sum((item[3][0] + item[3][2]) / 2.0 for item in matched["rows"]) / len(matched["rows"])
+
+    columns.sort(key=lambda column: column["x1"])
+    ordered_rows: list[_TextRow] = []
+    for column in columns:
+        ordered_rows.extend(sorted(column["rows"], key=lambda item: (item[3][1], item[3][0])))
+    return ordered_rows
+
+
+def _collect_text_rows(
+    coco: dict[str, Any] | None,
+) -> tuple[list[_TextRow], list[tuple[float, float, float, float]]]:
+    """Text-bearing detections and the column (main zone) boxes of a COCO page."""
+    if not isinstance(coco, dict):
+        return [], []
 
     categories = coco.get("categories")
     annotations = coco.get("annotations")
     if not isinstance(categories, list) or not isinstance(annotations, list):
-        return []
+        return [], []
 
     category_by_id: dict[int, str] = {}
     for category in categories:
@@ -2292,98 +2389,7 @@ def _extract_segmented_regions(coco: dict[str, Any] | None) -> list[OCRRegionInp
         if category_name:
             category_by_id[category_id] = category_name
 
-    def _is_column_like_label(label: str) -> bool:
-        key = str(label or "").strip().lower()
-        return any(token in key for token in ("column", "mainzone", "main zone", "text zone", "main text area"))
-
-    def _bbox_overlap_ratio(left: tuple[float, float, float, float], right: tuple[float, float, float, float]) -> float:
-        inter_x1 = max(left[0], right[0])
-        inter_y1 = max(left[1], right[1])
-        inter_x2 = min(left[2], right[2])
-        inter_y2 = min(left[3], right[3])
-        inter_area = max(0.0, inter_x2 - inter_x1) * max(0.0, inter_y2 - inter_y1)
-        left_area = max(1.0, (left[2] - left[0]) * (left[3] - left[1]))
-        return inter_area / left_area
-
-    def _cluster_rows_by_columns(
-        text_rows: list[tuple[float, float, str, tuple[float, float, float, float], OCRRegionInput]],
-        column_boxes: list[tuple[float, float, float, float]],
-    ) -> list[tuple[float, float, str, tuple[float, float, float, float], OCRRegionInput]]:
-        if not text_rows:
-            return []
-
-        assigned: dict[int, list[tuple[float, float, str, tuple[float, float, float, float], OCRRegionInput]]] = {
-            index: [] for index in range(len(column_boxes))
-        }
-        overflow: list[tuple[float, float, str, tuple[float, float, float, float], OCRRegionInput]] = []
-
-        for row in text_rows:
-            bbox = row[3]
-            center_x = (bbox[0] + bbox[2]) / 2.0
-            best_index = -1
-            best_score = -1.0
-            for index, column_bbox in enumerate(column_boxes):
-                contains_center = column_bbox[0] <= center_x <= column_bbox[2]
-                overlap = _bbox_overlap_ratio(bbox, column_bbox)
-                score = overlap + (0.25 if contains_center else 0.0)
-                if score > best_score:
-                    best_score = score
-                    best_index = index
-            if best_index >= 0 and best_score > 0.05:
-                assigned[best_index].append(row)
-            else:
-                overflow.append(row)
-
-        ordered_rows: list[tuple[float, float, str, tuple[float, float, float, float], OCRRegionInput]] = []
-        for index, column_bbox in enumerate(column_boxes):
-            column_rows = sorted(assigned[index], key=lambda item: (item[3][1], item[3][0]))
-            ordered_rows.extend(column_rows)
-        ordered_rows.extend(sorted(overflow, key=lambda item: (item[3][1], item[3][0])))
-        return ordered_rows
-
-    def _cluster_rows_without_columns(
-        text_rows: list[tuple[float, float, str, tuple[float, float, float, float], OCRRegionInput]]
-    ) -> list[tuple[float, float, str, tuple[float, float, float, float], OCRRegionInput]]:
-        if not text_rows:
-            return []
-        sorted_rows = sorted(text_rows, key=lambda item: ((item[3][0] + item[3][2]) / 2.0, item[3][1]))
-        page_width = max((row[3][2] for row in sorted_rows), default=0.0) - min((row[3][0] for row in sorted_rows), default=0.0)
-        merge_gap = max(80.0, page_width * 0.08)
-        columns: list[dict[str, Any]] = []
-        for row in sorted_rows:
-            bbox = row[3]
-            center_x = (bbox[0] + bbox[2]) / 2.0
-            matched = None
-            matched_distance = None
-            for column in columns:
-                overlap = min(bbox[2], column["x2"]) - max(bbox[0], column["x1"])
-                if overlap > 0:
-                    distance = abs(center_x - column["center_x"])
-                else:
-                    distance = max(bbox[0] - column["x2"], column["x1"] - bbox[2], 0.0)
-                if distance <= merge_gap and (matched_distance is None or distance < matched_distance):
-                    matched = column
-                    matched_distance = distance
-            if matched is None:
-                columns.append({
-                    "x1": bbox[0],
-                    "x2": bbox[2],
-                    "center_x": center_x,
-                    "rows": [row],
-                })
-                continue
-            matched["rows"].append(row)
-            matched["x1"] = min(matched["x1"], bbox[0])
-            matched["x2"] = max(matched["x2"], bbox[2])
-            matched["center_x"] = sum((item[3][0] + item[3][2]) / 2.0 for item in matched["rows"]) / len(matched["rows"])
-
-        columns.sort(key=lambda column: column["x1"])
-        ordered_rows: list[tuple[float, float, str, tuple[float, float, float, float], OCRRegionInput]] = []
-        for column in columns:
-            ordered_rows.extend(sorted(column["rows"], key=lambda item: (item[3][1], item[3][0])))
-        return ordered_rows
-
-    rows: list[tuple[float, float, str, tuple[float, float, float, float], OCRRegionInput]] = []
+    rows: list[_TextRow] = []
     column_boxes: list[tuple[float, float, float, float]] = []
     for annotation in annotations:
         if not isinstance(annotation, dict):
@@ -2420,16 +2426,72 @@ def _extract_segmented_regions(coco: dict[str, Any] | None) -> list[OCRRegionInp
         item for item in rows
         if any(token in item[2].lower() for token in ("line", "main script", "variant script"))
     ]
-    working_rows = preferred_rows or rows
-    if column_boxes:
-        column_boxes.sort(key=lambda item: (item[0], item[1]))
-        working_rows = _cluster_rows_by_columns(working_rows, column_boxes)
-    else:
-        working_rows = _cluster_rows_without_columns(working_rows)
+    column_boxes.sort(key=lambda item: (item[0], item[1]))
+    return preferred_rows or rows, column_boxes
+
+
+def _ordered_regions(
+    rows: list[_TextRow],
+    column_boxes: list[tuple[float, float, float, float]],
+) -> list[OCRRegionInput]:
+    ordered = _cluster_rows_by_columns(rows, column_boxes) if column_boxes else _cluster_rows_without_columns(rows)
     return [
         region.model_copy(update={"reading_order": idx})
-        for idx, (_y, _x, _label, _bbox, region) in enumerate(working_rows)
+        for idx, (_y, _x, _label, _bbox, region) in enumerate(ordered)
     ]
+
+
+def _extract_segmented_regions(coco: dict[str, Any] | None) -> list[OCRRegionInput]:
+    rows, column_boxes = _collect_text_rows(coco)
+    return _ordered_regions(rows, column_boxes)
+
+
+# Text detected outside every column box - a library watermark, marginal line
+# numbers, a folio number, a pencil note, the edge of the facing page - is kept
+# out of the body only while it is a minority of the page's rows. On nine of ten
+# real pages it was 0-30% of the rows, none of it the page's own text. On the
+# tenth a strip of the facing page shows, its column undetected: 60%. That looks
+# the same as a two-page spread with one column missed, whose rows ARE body text,
+# so above this share the columns are taken to be incomplete and the old order
+# is kept.
+_MAX_OUTSIDE_SHARE = 1 / 3
+# A row belongs to a column when its centre lies inside the column box grown by
+# this share of the box's size. The ordering heuristic above is laxer on purpose -
+# any row under a column's x-span joins it - which is how the library watermark at
+# the foot of a page used to become that column's last line.
+_COLUMN_MARGIN = 0.02
+
+
+def _row_in_columns(row: _TextRow, column_boxes: list[tuple[float, float, float, float]]) -> bool:
+    x1, y1, x2, y2 = row[3]
+    center_x, center_y = (x1 + x2) / 2.0, (y1 + y2) / 2.0
+    for cx1, cy1, cx2, cy2 in column_boxes:
+        margin_x, margin_y = _COLUMN_MARGIN * (cx2 - cx1), _COLUMN_MARGIN * (cy2 - cy1)
+        if cx1 - margin_x <= center_x <= cx2 + margin_x and cy1 - margin_y <= center_y <= cy2 + margin_y:
+            return True
+    return False
+
+
+def _segmented_region_lanes(
+    coco: dict[str, Any] | None,
+) -> tuple[list[OCRRegionInput], list[OCRRegionInput]]:
+    """Body regions in reading order, and text regions outside every column.
+
+    Without column boxes, or when the rows outside them are too many to be page
+    furniture, everything stays in the body in the legacy order.
+    """
+    rows, column_boxes = _collect_text_rows(coco)
+    if not column_boxes:
+        return _ordered_regions(rows, column_boxes), []
+    inside = [row for row in rows if _row_in_columns(row, column_boxes)]
+    outside = [row for row in rows if not _row_in_columns(row, column_boxes)]
+    if not outside or len(outside) > _MAX_OUTSIDE_SHARE * len(rows):
+        return _ordered_regions(rows, column_boxes), []
+    by_position = sorted(outside, key=lambda item: (item[3][1], item[3][0]))
+    return (
+        _ordered_regions(inside, column_boxes),
+        [row[4].model_copy(update={"reading_order": idx}) for idx, row in enumerate(by_position)],
+    )
 
 
 def _regions_from_location_suggestions(suggestions: list[SaiaOCRLocationSuggestion]) -> list[OCRRegionInput]:
@@ -2450,62 +2512,56 @@ def _regions_from_location_suggestions(suggestions: list[SaiaOCRLocationSuggesti
     return regions
 
 
-def _run_segmentation_for_suggestions(image_bytes: bytes) -> list[SaiaOCRLocationSuggestion]:
+# Ultralytics picks an image loader by file extension. The upload used to be
+# written as "ocr_full_page_input", with none, and _prepare_image_for_segmentation
+# passes an RGB image within its size limits through untouched - so the detector
+# raised "No images or videos found" on every such page and the route fell back to
+# OCR without layout. Measured: 9 of 10 real manuscript pages, every RGB upload.
+_SEGMENTATION_SUFFIXES = {"JPEG": ".jpg", "MPO": ".jpg", "PNG": ".png", "TIFF": ".tif", "BMP": ".bmp", "WEBP": ".webp"}
+
+
+def _write_segmentation_input(directory: Path, image_bytes: bytes) -> Path:
+    """Write an upload where the layout detector can read it: with a matching suffix."""
+    from PIL import Image
+
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as image:
+            suffix = _SEGMENTATION_SUFFIXES.get(str(image.format or "").upper())
+            path = directory / f"ocr_full_page_input{suffix or '.png'}"
+            if suffix is None:
+                # A format the detector cannot load by extension is re-encoded.
+                image.convert("RGB").save(path, format="PNG")
+                return path
+    except (OSError, ValueError):
+        # Not an image: _prepare_image_for_segmentation rejects it with a 422.
+        path = directory / "ocr_full_page_input"
+    path.write_bytes(image_bytes)
+    return path
+
+
+def _segment_page(image_bytes: bytes) -> dict[str, Any]:
+    """Run the layout models on an uploaded page; the COCO is in original pixels."""
     with tempfile.TemporaryDirectory() as tmp_dir:
-        source_path = Path(tmp_dir) / "ocr_full_page_input"
-        source_path.write_bytes(image_bytes)
-
+        source_path = _write_segmentation_input(Path(tmp_dir), image_bytes)
         prepared = _prepare_image_for_segmentation(str(source_path))
-        prepared_path, prepared_changed = prepared.path, prepared.changed
-        try:
-            annotated_path = str(Path(tmp_dir) / "annotated.jpg")
-            coco, _stats = run_single_segmentation(
-                prepared_path,
-                confidence=0.25,
-                iou=0.3,
-                selected_classes=FINAL_CLASSES,
-                annotated_output_path=annotated_path,
-            )
-        finally:
-            if prepared_changed and prepared_path.endswith(".seg.jpg"):
-                try:
-                    Path(prepared_path).unlink(missing_ok=True)
-                except Exception:
-                    pass
-
+        coco, _stats = run_single_segmentation(
+            prepared.path,
+            confidence=0.25,
+            iou=0.3,
+            selected_classes=FINAL_CLASSES,
+            annotated_output_path=str(Path(tmp_dir) / "annotated.jpg"),
+        )
     # Crops downstream are taken from the original bytes, so bring the geometry
     # back out of the downscaled segmentation space.
-    coco = rescale_coco_to_original(coco, prepared.scale)
-    return _extract_location_suggestions(coco)
+    return rescale_coco_to_original(coco, prepared.scale)
+
+
+def _run_segmentation_for_suggestions(image_bytes: bytes) -> list[SaiaOCRLocationSuggestion]:
+    return _extract_location_suggestions(_segment_page(image_bytes))
 
 
 def _run_segmentation_for_regions(image_bytes: bytes) -> list[OCRRegionInput]:
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        source_path = Path(tmp_dir) / "ocr_full_page_input"
-        source_path.write_bytes(image_bytes)
-
-        prepared = _prepare_image_for_segmentation(str(source_path))
-        prepared_path, prepared_changed = prepared.path, prepared.changed
-        try:
-            annotated_path = str(Path(tmp_dir) / "annotated.jpg")
-            coco, _stats = run_single_segmentation(
-                prepared_path,
-                confidence=0.25,
-                iou=0.3,
-                selected_classes=FINAL_CLASSES,
-                annotated_output_path=annotated_path,
-            )
-        finally:
-            if prepared_changed and prepared_path.endswith(".seg.jpg"):
-                try:
-                    Path(prepared_path).unlink(missing_ok=True)
-                except Exception:
-                    pass
-
-    # Crops downstream are taken from the original bytes, so bring the geometry
-    # back out of the downscaled segmentation space.
-    coco = rescale_coco_to_original(coco, prepared.scale)
-    return _extract_segmented_regions(coco)
+    return _extract_segmented_regions(_segment_page(image_bytes))
 
 
 def _detect_language_metadata(text: str) -> tuple[str, float | None]:
@@ -2974,10 +3030,12 @@ def _full_page_response_from_glm_ollama_result(
     )
 
 
-def _run_post_ocr_pipeline_for_glm(
+def _run_full_page_post_ocr_pipeline(
     payload: SaiaFullPageExtractRequest,
     response: SaiaFullPageExtractResponse,
     image_bytes: bytes,
+    *,
+    ocr_backend: str,
 ) -> dict[str, Any]:
     text_value = str(response.text or "").strip()
     if not text_value:
@@ -2991,8 +3049,8 @@ def _run_post_ocr_pipeline_for_glm(
     )
     asset_sha256 = hashlib.sha256(image_bytes).hexdigest()
     run_id = create_run(asset_ref=asset_ref, asset_sha256=asset_sha256)
-    log_event(run_id, "RECEIVED", "START", "GLM full-page OCR run received.")
-    log_event(run_id, "OCR_RUNNING", "START", "Running GLM full-page OCR post-processing pipeline.")
+    log_event(run_id, "RECEIVED", "START", f"Full-page OCR run received ({ocr_backend}).")
+    log_event(run_id, "OCR_RUNNING", "START", "Running the full-page post-OCR pipeline.")
     update_run_fields(run_id, status="RUNNING", current_stage="OCR_RUNNING")
 
     confidence_value = float(response.confidence or 0.0)
@@ -3020,7 +3078,7 @@ def _run_post_ocr_pipeline_for_glm(
                 "warnings": list(response.warnings),
                 "quality_label": quality_label,
                 "quality_label_v2": quality_label,
-                "ocr_backend": "glmocr",
+                "ocr_backend": ocr_backend,
             },
             ensure_ascii=False,
         ),
@@ -3028,7 +3086,7 @@ def _run_post_ocr_pipeline_for_glm(
         ocr_text=text_value,
         proofread_text=text_value,
     )
-    log_event(run_id, "OCR_DONE", "END", "GLM full-page OCR text stored.")
+    log_event(run_id, "OCR_DONE", "END", "Full-page OCR text stored.")
 
     if not gate_decisions.get("ner_allowed", True):
         log_event(
@@ -3147,7 +3205,7 @@ def _run_post_ocr_pipeline_for_glm(
     else:
         _auto_index_run(run_id)
 
-    log_event(run_id, "DONE", "END", "GLM full-page pipeline completed successfully.")
+    log_event(run_id, "DONE", "END", "Full-page pipeline completed successfully.")
     update_run_fields(run_id, status="COMPLETED", current_stage="DONE", error=None)
 
     return {
@@ -3673,16 +3731,105 @@ async def ocr_saia(payload: SaiaOCRRequest) -> SaiaOCRResponse:
         raise HTTPException(status_code=500, detail=f"GLM OCR failed: {exc}") from exc
 
 
-@router.post("/ocr/extract_full_page", response_model=SaiaFullPageExtractResponse)
-async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFullPageExtractResponse:
-    try:
-        image_bytes = decode_image_bytes(payload.image_b64 or "")
-    except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Invalid image_b64 payload: {exc}") from exc
-    fixture = get_test_ocr_fixture(image_bytes)
-    if fixture is not None and fixture.wait_seconds > 0:
-        await asyncio.sleep(float(fixture.wait_seconds))
+class _SegmentedPageUnread(Exception):
+    """The segmented engine read no text on a page; GLM-OCR reads it instead."""
 
+
+def _full_page_engine(payload: SaiaFullPageExtractRequest) -> str:
+    """"segmented" (layout, then line recognition) or "glmocr" (whole-page VLM)."""
+    backend = str(payload.ocr_backend or "auto").strip().lower()
+    if backend == "glmocr":
+        return "glmocr"
+    if backend == "auto" and str(_app_settings.full_page_ocr_engine or "").strip().lower() == "glmocr":
+        return "glmocr"
+    return "segmented"
+
+
+def _upright_page_bytes(image_bytes: bytes) -> bytes:
+    """Apply an EXIF orientation, so layout boxes and line crops share one frame.
+
+    OpenCV, which loads the page for the layout models, honours the tag; PIL,
+    which cuts the crops, does not. A rotated phone photo would otherwise be
+    segmented upright and cropped sideways.
+    """
+    from PIL import Image, ImageOps
+
+    try:
+        with Image.open(io.BytesIO(image_bytes)) as image:
+            if image.getexif().get(0x0112, 1) in (0, 1):
+                return image_bytes
+            upright = ImageOps.exif_transpose(image)
+            buffer = io.BytesIO()
+            upright.save(buffer, format="PNG")
+            return buffer.getvalue()
+    except (OSError, ValueError):
+        return image_bytes
+
+
+def _secondary_lines(result: OCRExtractAnyResponse) -> list[str]:
+    if not isinstance(result, OCRExtractResponse):
+        return []
+    return _strip_uncertainty_lines(str(result.final_text or result.text or "").splitlines())
+
+
+def _run_segmented_full_page(
+    payload: SaiaFullPageExtractRequest,
+    image_bytes: bytes,
+) -> tuple[SaiaFullPageExtractResponse, str]:
+    """Read a page line by line: layout segmentation, then the OCR agent's plan.
+
+    Returns the response and the backend that read the body. Text detected
+    outside every column is read separately into ``secondary_lines``, so a
+    library stamp or a folio number never lands in the middle of the text.
+    """
+    page_bytes = _upright_page_bytes(image_bytes)
+    if page_bytes is not image_bytes:
+        payload = payload.model_copy(update={"image_b64": base64.b64encode(page_bytes).decode("ascii")})
+    body, outside = _segmented_region_lanes(_segment_page(page_bytes))
+    if not body:
+        raise _SegmentedPageUnread("no_text_regions")
+
+    agent = _get_ocr_agent()
+    result = agent.run(_build_segmented_extract_request(payload, body))
+    if not isinstance(result, OCRExtractResponse) or not str(result.final_text or result.text or "").strip():
+        raise _SegmentedPageUnread("no_text")
+    backend = str(result.ocr_backend or payload.ocr_backend or "auto")
+
+    warnings: list[str] = []
+    secondary: list[str] = []
+    if outside:
+        # Pinned to the body's backend, so both lanes are read by one model.
+        pinned = payload.model_copy(update={"ocr_backend": backend, "compare_backends": []})
+        try:
+            secondary = _secondary_lines(agent.run(_build_segmented_extract_request(pinned, outside)))
+        except Exception as exc:
+            warnings.append(f"SECONDARY_TEXT_FAILED:{exc}")
+
+    from PIL import Image
+
+    with Image.open(io.BytesIO(page_bytes)) as image:
+        width, height = image.size
+    response = _full_page_response_from_extract(result)
+    return (
+        response.model_copy(
+            update={
+                "ocr_engine": "segmented",
+                "warnings": list(dict.fromkeys([*response.warnings, *warnings])),
+                "secondary_lines": secondary,
+                "comparison_runs": _build_comparison_runs(result, str(payload.ocr_backend or "auto")),
+                "original_image_size_bytes": len(image_bytes),
+                "original_image_width": width,
+                "original_image_height": height,
+            }
+        ),
+        backend,
+    )
+
+
+async def _run_glm_full_page(
+    payload: SaiaFullPageExtractRequest,
+    image_bytes: bytes,
+) -> SaiaFullPageExtractResponse:
     try:
         result = get_test_ocr_override(image_bytes)
         if result is None:
@@ -3708,14 +3855,44 @@ async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFull
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"Full-page OCR failed: {exc}") from exc
-
     response = _full_page_response_from_glm_ollama_result(result, payload)
+    return response.model_copy(update={"ocr_engine": "glmocr"})
+
+
+@router.post("/ocr/extract_full_page", response_model=SaiaFullPageExtractResponse)
+async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFullPageExtractResponse:
+    try:
+        image_bytes = decode_image_bytes(payload.image_b64 or "")
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Invalid image_b64 payload: {exc}") from exc
+    fixture = get_test_ocr_fixture(image_bytes)
+    if fixture is not None and fixture.wait_seconds > 0:
+        await asyncio.sleep(float(fixture.wait_seconds))
+
+    response: SaiaFullPageExtractResponse | None = None
+    ocr_backend = "glmocr"
+    fallback_warnings: list[str] = []
+    # A canned fixture is a GLM-OCR result; it never goes through segmentation.
+    if fixture is None and _full_page_engine(payload) == "segmented":
+        try:
+            response, ocr_backend = await asyncio.to_thread(_run_segmented_full_page, payload, image_bytes)
+        except _SegmentedPageUnread as exc:
+            fallback_warnings.append(f"OCR_ENGINE_FALLBACK:{exc}")
+        except Exception as exc:
+            fallback_warnings.append(f"OCR_ENGINE_FALLBACK:segmented_failed:{str(exc)[:200]}")
+    if response is None:
+        response = await _run_glm_full_page(payload, image_bytes)
+        ocr_backend = "glmocr"
+        if fallback_warnings:
+            response = response.model_copy(update={"warnings": [*response.warnings, *fallback_warnings]})
+
     try:
         pipeline_fields = await asyncio.to_thread(
-            _run_post_ocr_pipeline_for_glm,
+            _run_full_page_post_ocr_pipeline,
             payload,
             response,
             image_bytes,
+            ocr_backend=ocr_backend,
         )
     except Exception as exc:  # pragma: no cover
         pipeline_fields = {"warnings": [f"POST_OCR_PIPELINE_FAILED:{exc}"]}
@@ -3776,10 +3953,11 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
         response = _full_page_response_from_glm_ollama_result(test_override, payload)
         try:
             pipeline_fields = await asyncio.to_thread(
-                _run_post_ocr_pipeline_for_glm,
+                _run_full_page_post_ocr_pipeline,
                 payload,
                 response,
                 image_bytes,
+                ocr_backend="glmocr",
             )
         except Exception as exc:  # pragma: no cover
             pipeline_fields = {"warnings": [f"POST_OCR_PIPELINE_FAILED:{exc}"]}

@@ -1707,7 +1707,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     setSending(true);
     setAssistantLoadingLabel("Extracting text");
     try {
-      setExtractionStatus("Extraction status: running GLM OCR...");
+      setExtractionStatus("Extraction status: transcribing the page...");
 
       const ocrHints = resolveOcrPromptHints(userPrompt, currentMetadata);
       const response = await extractPageText({
@@ -1717,7 +1717,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         image_b64: toBase64(currentPage.dataUrl),
         script_hint_seed: ocrHints.scriptHintSeed,
         language_hint: ocrHints.languageHint,
-        ocr_backend: "glmocr",
+        ocr_backend: "auto",
         apply_proofread: false,
         metadata: currentMetadata ? {
           language: currentMetadata.language,
@@ -1732,6 +1732,12 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       const rawExtractedText = mergeOCRResultText(response);
       const finalText = removeTextUncertainties(rawExtractedText);
       const storedText = finalText || "";
+      // Marginalia, folio numbers and stamps are shown, but kept out of the text
+      // that chat, search and entity extraction work from.
+      const secondaryText = removeTextUncertainties((response.secondary_lines ?? []).join("\n"));
+      const displayText = secondaryText
+        ? `${finalText}\n\nOutside the text columns:\n${secondaryText}`
+        : finalText;
       const runId = String(response.run_id || "").trim();
       const authorityReport = String(
         response.consolidated_report
@@ -1765,7 +1771,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           ...prev,
           [currentDocumentId]: (prev[currentDocumentId] ?? []).map((msg) =>
             msg.id === assistantMessageId
-              ? { ...msg, content: finalText }
+              ? { ...msg, content: displayText }
               : msg,
           ),
         }));
@@ -1775,10 +1781,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         typeof response.chunks_count === "number" ? `${response.chunks_count} chunks` : "",
         typeof response.mentions_count === "number" ? `${response.mentions_count} mentions` : "",
       ].filter(Boolean);
+      const readBy = response.model_used ? ` Read by ${response.model_used}.` : "";
       setExtractionStatus(
         pipelineBits.length
-          ? `Extraction complete (${status}). Knowledge pipeline: ${pipelineBits.join(", ")}.`
-          : `Extraction complete (${status}).`,
+          ? `Extraction complete (${status}).${readBy} Knowledge pipeline: ${pipelineBits.join(", ")}.`
+          : `Extraction complete (${status}).${readBy}`,
       );
       return { text: storedText, runId, authorityReport };
     } catch (err: unknown) {

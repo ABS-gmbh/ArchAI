@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 import re
 from typing import Any, Sequence
+import unicodedata
 
 from PIL import Image, ImageFilter, ImageOps
 
@@ -151,17 +152,27 @@ def select_backend_plan(
             comparison_backends=deduped_compare,
         )
 
+    # CATMuS Medieval leads every plan. Character error rate on the two reference
+    # pages in eval/recognizers/, Old French and Latin, through the full-page
+    # route (scripts/benchmark_recognizers.py):
+    #
+    #     CATMuS Medieval    7.0%   11.7%
+    #     CREMMA Medieval   10.0%   20.6%
+    #     McCATMuS          33.2%   43.2%
+    #
+    # McCATMuS is trained on documents from the late 16th century onwards and was
+    # worst even on French, its own majority language, so script and period
+    # outweigh language: it leads no medieval plan, including the German, Dutch
+    # and English ones, which are not measured. CREMMA-Medieval-LAT is not
+    # published as a model file and is tried only once CATMuS has failed. A later
+    # backend reads a line only when every earlier one fails or reads nothing.
     hint = _normalize_language_hint(language_hint)
     if hint in _LATIN_LANGUAGE_HINTS:
-        attempt_backends = ("kraken_cremma_lat", "kraken_catmus", "kraken_mccatmus")
-    elif hint in _FRENCH_LANGUAGE_HINTS:
-        attempt_backends = ("kraken_cremma_medieval", "kraken_catmus", "kraken_mccatmus")
+        attempt_backends = ("kraken_catmus", "kraken_cremma_lat", "kraken_cremma_medieval", "kraken_mccatmus")
     elif hint in _GERMAN_LANGUAGE_HINTS or hint in _DUTCH_LANGUAGE_HINTS or hint in _ENGLISH_LANGUAGE_HINTS:
-        attempt_backends = ("kraken_mccatmus", "kraken_catmus")
-    elif hint in _IBERIAN_LANGUAGE_HINTS or hint in _ITALIAN_LANGUAGE_HINTS or hint in _ROMANCE_LANGUAGE_HINTS:
         attempt_backends = ("kraken_catmus", "kraken_mccatmus")
     else:
-        attempt_backends = ("kraken_catmus", "kraken_mccatmus")
+        attempt_backends = ("kraken_catmus", "kraken_cremma_medieval", "kraken_mccatmus")
 
     primary = attempt_backends[0]
     deduped_compare = tuple(item for item in dict.fromkeys(compare) if item not in attempt_backends)
@@ -699,7 +710,13 @@ class KrakenBackend(OCRBackend):
         except Exception as exc:
             raise OCRBackendError(f"Kraken recognition failed for {self.backend_name}: {exc}") from exc
 
-        lines = [str(getattr(record, "prediction", "") or str(record) or "").strip() for record in records]
+        # CATMuS and McCATMuS are trained on NFD text and emit it: "ẽ" arrives as
+        # "e" plus a combining tilde, which word tokenisers split in two. NFC is
+        # what the rest of the pipeline, and the CLI's output, expects.
+        lines = [
+            unicodedata.normalize("NFC", str(getattr(record, "prediction", "") or str(record) or "")).strip()
+            for record in records
+        ]
         lines = [line for line in lines if line]
         confidences = [
             float(score)
@@ -742,7 +759,7 @@ class KrakenMcCatmusBackend(KrakenBackend):
     def __init__(self) -> None:
         super().__init__(
             backend_name="kraken_mccatmus",
-            model_name="McCATMuS Medieval",
+            model_name="McCATMuS",
             configured_path=settings.kraken_mccatmus_model_path,
             fallback_paths=(settings.kraken_catmus_model_path, settings.kraken_default_recognition_model_path),
         )

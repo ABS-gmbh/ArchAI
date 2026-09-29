@@ -1089,7 +1089,7 @@ def _reorder_attempt_backends_from_samples(
     source_b64: str,
     upscale_factor: int,
 ) -> tuple[OCRBackendPlan, dict[int, tuple[str, str, OCRRecognitionMetadata]], dict[int, dict[str, Any]], dict[int, dict[str, str]]]:
-    if len(plan.attempt_backends) < 2:
+    if len(plan.attempt_backends) < 2 or not settings.ocr_backend_election:
         return plan, {}, defaultdict(dict), defaultdict(dict)
 
     explicit_backend = str(payload.options.backend or settings.ocr_backend_default or "auto").strip().lower()
@@ -1276,7 +1276,11 @@ def _run_segmented_ocr_extraction(
                 selected_backend_id = backend_id
                 selected_quality = current_quality
 
-            if backend_result.text.strip() and current_quality >= payload.options.quality_floor:
+            # The quality score is not comparable across models, so by default it
+            # only reports: the first backend to read the line keeps it.
+            if backend_result.text.strip() and (
+                not settings.ocr_backend_election or current_quality >= payload.options.quality_floor
+            ):
                 break
 
             if backend_id != plan.attempt_backends[-1]:
