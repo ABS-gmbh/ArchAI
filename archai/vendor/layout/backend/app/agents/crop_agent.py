@@ -80,33 +80,40 @@ class CropResult(NamedTuple):
     upscale_factor: int
 
 
-def crop_region(
-    image_b64: str, region: OCRRegionInput, upscale_factor: int = 2
-) -> CropResult:
+def decode_page(image_b64: str) -> Image.Image:
+    """The page as RGB, decoded once for every crop taken from it."""
     image_bytes = decode_image_bytes(image_b64)
     try:
         with Image.open(io.BytesIO(image_bytes)) as image:
-            source = image.convert("RGB")
+            return image.convert("RGB")
     except Exception as exc:
         raise CropAgentError("Could not decode source image.") from exc
 
+
+def crop_region(
+    image_b64: str, region: OCRRegionInput, upscale_factor: int = 2
+) -> CropResult:
+    return crop_page_region(decode_page(image_b64), region, upscale_factor)
+
+
+def crop_page_region(
+    source: Image.Image, region: OCRRegionInput, upscale_factor: int = 2
+) -> CropResult:
+    """Crop *region* from a decoded page.
+
+    Pass the same decoded page for every region of it. Decoding per region, as
+    ``crop_region`` must, costs a full-page JPEG decode each time - on a
+    6132x8176 e-codices scan, most of the time a 70-line page spent in
+    recognition.
+    """
     width, height = source.size
 
     line_like = _looks_line_like(getattr(region, "label", None))
 
     if region.polygon is not None:
-        # Apply polygon mask first, then crop to polygon bounding box.
         x1, y1, x2, y2 = _bbox_from_polygon(region.polygon)
-        mask = Image.new("L", source.size, 0)
-        draw = ImageDraw.Draw(mask)
-        points = [(int(round(px)), int(round(py))) for px, py in region.polygon]
-        draw.polygon(points, fill=255)
-        masked = Image.new("RGB", source.size, (255, 255, 255))
-        masked.paste(source, mask=mask)
-        crop_source = masked
     elif region.bbox_xyxy is not None:
         x1, y1, x2, y2 = [int(round(v)) for v in region.bbox_xyxy]
-        crop_source = source
     else:
         raise CropAgentError("Region must include bbox_xyxy or polygon.")
 
@@ -116,7 +123,17 @@ def crop_region(
     y2 = max(y1 + 1, min(y2, height))
     x1, y1, x2, y2 = _expand_bbox((x1, y1, x2, y2), width=width, height=height, line_like=line_like)
 
-    crop = crop_source.crop((x1, y1, x2, y2))
+    crop = source.crop((x1, y1, x2, y2))
+    if region.polygon is not None:
+        # Whiten everything outside the polygon. Masking only the crop window
+        # yields the same pixels as masking the whole page first, without a
+        # page-sized mask and canvas for every line.
+        mask = Image.new("L", crop.size, 0)
+        points = [(int(round(px)) - x1, int(round(py)) - y1) for px, py in region.polygon]
+        ImageDraw.Draw(mask).polygon(points, fill=255)
+        masked = Image.new("RGB", crop.size, (255, 255, 255))
+        masked.paste(crop, mask=mask)
+        crop = masked
     if upscale_factor > 1:
         crop = crop.resize((crop.width * upscale_factor, crop.height * upscale_factor), Image.Resampling.LANCZOS)
     region_id = region.region_id or f"region-{x1}-{y1}-{x2}-{y2}"

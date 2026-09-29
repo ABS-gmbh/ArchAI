@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import base64
+import contextlib
 import hashlib
 import json
 import os
@@ -160,12 +161,13 @@ def render(readings: list[Reading]) -> str:
             f"{item.cer:7.1%} {item.wer:7.1%} {item.key_cer:8.1%} {item.seconds:8.1f}"
         )
     rows.append("")
-    rows.append("CER over all pages (micro-averaged):")
+    rows.append("Over all pages: CER micro-averaged, and seconds in total:")
     for engine in dict.fromkeys(item.engine for item in readings):
         own = [item for item in readings if item.engine == engine and not item.error]
         characters = sum(item.characters for item in own)
         if characters and len(own) == len({item.page_id for item in readings}):
-            rows.append(f"  {engine:32s} {sum(item.char_errors for item in own) / characters:7.1%}")
+            rate = sum(item.char_errors for item in own) / characters
+            rows.append(f"  {engine:32s} {rate:7.1%} {sum(item.seconds for item in own):8.1f}")
         else:
             rows.append(f"  {engine:32s} {'incomplete':>7s}")
     return "\n".join(rows)
@@ -188,7 +190,9 @@ def main(argv: list[str] | None = None) -> int:
     # A benchmark run is not evidence about a document.
     ocr_agent.write_ocr_evidence_jsonl = lambda _record: None  # type: ignore[assignment]
 
-    readings = [score(engine, page) for engine in args.engines for page in pages]
+    # The layout models print progress to stdout; keep it for the report alone.
+    with contextlib.redirect_stdout(sys.stderr):
+        readings = [score(engine, page) for engine in args.engines for page in pages]
     if args.json:
         print(json.dumps([asdict(item) for item in readings], ensure_ascii=False, indent=2))
     else:

@@ -65,14 +65,19 @@ reads the whole page instead when the request asks for `glmocr`, when
 regions or no text; `ocr_engine` in the response says which engine read it, and
 an `OCR_ENGINE_FALLBACK:<reason>` warning says why a fallback happened.
 
-Character error rate on the two reference pages in `eval/recognizers/`:
+Character error rate on the five reference pages in `eval/recognizers/`, and
+over all of them (micro-averaged):
 
-| Engine | Old French | Latin |
-|---|---|---|
-| segmented, CATMuS Medieval (default) | 7.0% | 11.7% |
-| segmented, CREMMA Medieval | 10.0% | 20.6% |
-| segmented, McCATMuS | 33.2% | 43.2% |
-| GLM-OCR, whole page | 25.6% | 27.6% |
+| Engine | Old French | Latin | Latin, Romanesque | Middle French | Old French verse | All |
+|---|---|---|---|---|---|---|
+| segmented, CATMuS Medieval (default) | 6.5% | 6.6% | 18.0% | 4.1% | 7.2% | 7.6% |
+| segmented, CREMMA Medieval | 9.9% | 14.6% | 46.9% | 19.6% | 11.8% | 15.1% |
+| segmented, McCATMuS | 34.3% | 38.8% | 41.0% | 40.0% | 35.4% | 36.5% |
+| GLM-OCR, whole page | 25.6% | 27.6% | 29.9% | 24.5% | 29.2% | 27.7% |
+
+Kraken reads each line crop in plain grayscale, as its models are trained; see
+`_preprocess_kraken_crop_with_metadata` for what an earlier contrast stretch,
+denoise and deskew cost.
 
 Reproduce with the page images (matched by SHA-256, any file names):
 
