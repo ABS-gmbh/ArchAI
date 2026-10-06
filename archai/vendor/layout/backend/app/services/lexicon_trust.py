@@ -23,9 +23,13 @@ only requires appending to ``_TRIGRAM_PROFILES``.
 
 from __future__ import annotations
 
+import random
 import re
 from collections import Counter
+from dataclasses import dataclass
 from typing import Sequence
+
+from app.services.medieval_text import build_search_key, fold_orthography, rejoin_line_breaks
 
 # ── Trigram frequency profiles ───────────────────────────────────────
 # Each profile is a set of the ~120 most frequent character trigrams for
@@ -98,6 +102,13 @@ _TRIGRAM_PROFILES["spanish"] = _TRIGRAM_PROFILES["latin"]
 _TRIGRAM_PROFILES["portuguese"] = _TRIGRAM_PROFILES["latin"]
 _TRIGRAM_PROFILES["catalan"] = _TRIGRAM_PROFILES["middle_french"]
 
+# Text is scored through its search key (abbreviations expanded, u/v and i/j
+# merged), so the profiles are folded the same way: "ver" is matched as "uer".
+_TRIGRAM_PROFILES = {
+    language: frozenset(folded for folded in map(fold_orthography, profile) if len(folded) == 3)
+    for language, profile in _TRIGRAM_PROFILES.items()
+}
+
 
 def lexical_plausibility(text: str, detected_language: str) -> float:
     """Score the lexical plausibility of *text* for *detected_language*.
@@ -121,6 +132,116 @@ def lexical_plausibility(text: str, detected_language: str) -> float:
     ratio = hits / len(trigrams)
     # Scale to 0-1 range (a perfect hit-rate is unlikely ~0.6 for real text)
     return min(1.0, ratio / 0.55)
+
+
+@dataclass(frozen=True)
+class LexicalContrast:
+    """How language-like the order of a text's letters is.
+
+    ``ratio`` is the share of the text's trigrams found in a language profile,
+    divided by the same share for the text with the letters of each word
+    shuffled. Shuffling keeps each word's letters, and so their frequencies,
+    and removes only their order: real words are made of common letter
+    sequences, and reversed or scrambled words are not. The hit rate
+    (:func:`lexical_plausibility`) falls with wrong letters and much less with
+    misordered ones; the contrast is the other way round. At thresholds that
+    passed faithful page windows and light noise alike, the hit rate caught
+    80% of windows at 37% CER and 57% of reversed ones, the contrast 30% and
+    95%, so the quality gate uses both. The reference pages long enough to
+    measure read 3.1 to 4.7, the same pages with each word reversed 1.3 to 1.9,
+    in random letters 0.9 to 1.2.
+    """
+
+    ratio: float
+    language: str
+    trigrams: int
+
+
+# Languages the contrast is measured in when the hint is absent or unusable.
+CONTRAST_LANGUAGES: tuple[str, ...] = ("latin", "old_french", "middle_french", "french")
+# Below this many trigrams - eight to fifteen manuscript lines, depending on the
+# hand - the contrast is not measured and the hit rate alone judges the text.
+# Windows of the faithful reference pages fell under the UNRELIABLE threshold 3%
+# of the time at 50-100 trigrams, and never from 125 on.
+CONTRAST_MIN_TRIGRAMS = 150
+_CONTRAST_SHUFFLES = 8
+# Added to both hit counts. Random letters rarely contain a profile's trigrams,
+# and a few lucky hits against one or two expected make a large ratio: with none
+# added, 29% of random-letter texts of 150 trigrams or more reached 2.0 in their
+# best-fitting profile, and one reached 10. With four, 0.7% reached 2.0 and none
+# 2.2; of reversed-word texts, 2.7% reached 2.2 against 17%.
+_CONTRAST_PSEUDO_HITS = 4.0
+
+
+def lexical_contrasts(text: str, languages: Sequence[str] = CONTRAST_LANGUAGES) -> dict[str, LexicalContrast] | None:
+    """The :class:`LexicalContrast` of *text* in each of *languages* that has a profile.
+
+    None when *text* has fewer than ``CONTRAST_MIN_TRIGRAMS`` trigrams. The
+    shuffles are seeded, so the result is a function of the text.
+    """
+    tokens = _key_tokens(text)
+    real = _token_trigrams(tokens)
+    if len(real) < CONTRAST_MIN_TRIGRAMS:
+        return None
+    shuffled = [_token_trigrams(_shuffle_letters(tokens, seed)) for seed in range(_CONTRAST_SHUFFLES)]
+    shuffled_total = sum(len(trigrams) for trigrams in shuffled)
+
+    contrasts: dict[str, LexicalContrast] = {}
+    for language in dict.fromkeys(languages):
+        profile = _TRIGRAM_PROFILES.get(language)
+        if not profile:
+            continue
+        hits = sum(1 for trigram in real if trigram in profile)
+        # Hits expected of the same number of trigrams at the shuffled rate.
+        expected = len(real) * sum(1 for trigrams in shuffled for trigram in trigrams if trigram in profile) / shuffled_total
+        ratio = (hits + _CONTRAST_PSEUDO_HITS) / (expected + _CONTRAST_PSEUDO_HITS)
+        contrasts[language] = LexicalContrast(round(ratio, 4), language, len(real))
+    return contrasts
+
+
+def lexical_contrast(text: str, language: str | None = None) -> LexicalContrast | None:
+    """The best :class:`LexicalContrast` of *text* over the profiled languages.
+
+    *language*, when it has a profile, is measured too, so a correct hint can
+    only raise the result - a mistaken one cannot lower it. None when *text* is
+    too short to measure.
+    """
+    languages = [*CONTRAST_LANGUAGES, *([language] if language else [])]
+    contrasts = lexical_contrasts(text, languages)
+    if not contrasts:
+        return None
+    return max(contrasts.values(), key=lambda contrast: contrast.ratio)
+
+
+# Latin is chosen over a guessed Romance language only when its contrast is
+# this many times the best French one. On the reference pages and their CATMuS
+# and CREMMA readings it was 1.28-1.88 times for the Latin pages and 0.43-0.64
+# for the French ones; no reading of a French page reached 0.96.
+LATIN_OVER_FRENCH_MARGIN = 1.25
+
+
+def reads_as_latin(text: str) -> bool:
+    """True when *text* is clearly more Latin than French, by lexical contrast.
+
+    langdetect has no Latin model: it reported the Latin reference pages and
+    their readings as Catalan or French.
+    """
+    contrasts = lexical_contrasts(text)
+    if not contrasts or "latin" not in contrasts:
+        return False
+    french = max(contrast.ratio for language, contrast in contrasts.items() if language != "latin")
+    return contrasts["latin"].ratio >= LATIN_OVER_FRENCH_MARGIN * french
+
+
+def best_fit_plausibility(text: str, language: str) -> float:
+    """:func:`lexical_plausibility` in *language* or in a better-fitting profile.
+
+    Neutral 0.50 for a language with no profile, as before: no profile here
+    can judge German or Greek text.
+    """
+    if not _TRIGRAM_PROFILES.get(language):
+        return 0.50
+    return max(lexical_plausibility(text, candidate) for candidate in dict.fromkeys((language, *CONTRAST_LANGUAGES)))
 
 
 def lexical_trust_adjustment(
@@ -195,15 +316,40 @@ def line_length_mismatch_ratio(
 # ── Internals ────────────────────────────────────────────────────────
 
 
-def _extract_trigrams(text: str) -> list[str]:
-    """Extract lowercase alphabetic trigrams from text."""
-    # Keep only alphabetic chars + spaces, lowercase
-    cleaned = re.sub(r"[^a-zA-ZÀ-ÿ\s]", "", text.lower())
-    tokens = cleaned.split()
-    trigrams: list[str] = []
+_LATIN_ALPHABET_TOKEN = re.compile(r"[a-z]+")
+
+
+def _key_tokens(text: str) -> list[str]:
+    """The Latin-alphabet words of *text*'s search key, three letters or longer.
+
+    Diplomatic transcriptions write ẽ, ũ, ꝑ and ⁊. The earlier filter
+    kept only a-z and Latin-1 letters, so it deleted those from the middle of
+    their words - "cõciẽce" was scored as "ccice" - and a faithful transcription
+    looked less like its language than a normalised one. The search key expands
+    the abbreviations instead. Words in other scripts are left out, as before:
+    no profile describes them.
+    """
+    return [
+        token
+        for token in build_search_key(rejoin_line_breaks(text or "")).split()
+        if len(token) >= 3 and _LATIN_ALPHABET_TOKEN.fullmatch(token)
+    ]
+
+
+def _token_trigrams(tokens: Sequence[str]) -> list[str]:
+    return [token[i : i + 3] for token in tokens for i in range(len(token) - 2)]
+
+
+def _shuffle_letters(tokens: Sequence[str], seed: int) -> list[str]:
+    rng = random.Random(seed)
+    shuffled: list[str] = []
     for token in tokens:
-        if len(token) < 3:
-            continue
-        for i in range(len(token) - 2):
-            trigrams.append(token[i:i+3])
-    return trigrams
+        letters = list(token)
+        rng.shuffle(letters)
+        shuffled.append("".join(letters))
+    return shuffled
+
+
+def _extract_trigrams(text: str) -> list[str]:
+    """Trigrams of *text*'s search key, as the folded profiles expect them."""
+    return _token_trigrams(_key_tokens(text))
