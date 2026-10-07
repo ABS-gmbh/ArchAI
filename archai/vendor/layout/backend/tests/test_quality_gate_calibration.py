@@ -89,7 +89,7 @@ def test_a_reference_transcription_reaches_entities_and_search(page_id: str) -> 
 
 @pytest.mark.parametrize("page_id", PAGE_IDS)
 def test_the_catmus_reading_of_every_page_passes(page_id: str) -> None:
-    """4-18% CER: the readings of the segmented full-page route (ABS-gmbh/ArchAI#12)."""
+    """4-18% CER: the readings of the segmented full-page route (ABS-gmbh/ArchAI#15)."""
     _language, label, allowed = gate(page(page_id)["readings"]["kraken_catmus"])
     assert allowed, f"{page_id} CATMuS reading graded {label}"
 

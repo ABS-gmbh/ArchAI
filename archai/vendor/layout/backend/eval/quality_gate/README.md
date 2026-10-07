@@ -38,7 +38,7 @@ somewhat better than they are. No palaeographer has checked the references.
 
 - `kraken_catmus`, `kraken_cremma_medieval`, `kraken_mccatmus`: the segmented
   full-page route with each Kraken model, read with
-  `scripts/benchmark_recognizers.py` from ABS-gmbh/ArchAI#13 (577cabf).
+  `scripts/benchmark_recognizers.py` from ABS-gmbh/ArchAI#16 (577cabf).
 - `glmocr`: GLM-OCR through Ollama 0.35.0, which loops or aborts on these
   pages. Three readings repeat a block of lines, or the model's own
   instructions, until the token limit, at 3 to 15 times the page's length;
