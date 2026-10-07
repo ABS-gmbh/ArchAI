@@ -10,7 +10,7 @@ Measured with a 50ms heartbeat over a stage of 8 mentions at an optimistic 0.4s
 per response: worst event-loop lag 5.233s before, 0.004s after. Real timeouts are
 10-15s, so an unreachable Wikidata is far worse than this.
 
-One call site is legitimately synchronous: _run_post_ocr_pipeline_for_glm is a
+One call site is legitimately synchronous: _run_full_page_post_ocr_pipeline is a
 plain def already dispatched through asyncio.to_thread by its callers.
 """
 
@@ -76,8 +76,17 @@ def test_async_callers_dispatch_the_blocking_stage_to_a_thread(line: int) -> Non
 
 
 def test_the_synchronous_call_site_is_reached_only_through_a_thread() -> None:
-    """_run_post_ocr_pipeline_for_glm is dispatched via to_thread by its callers."""
-    assert "await asyncio.to_thread(\n            _run_post_ocr_pipeline_for_glm," in SOURCE
+    """_run_full_page_post_ocr_pipeline is dispatched via to_thread by every caller."""
+    uses = [
+        node for node in ast.walk(TREE) if isinstance(node, ast.Name) and node.id == "_run_full_page_post_ocr_pipeline"
+    ]
+    threaded = {
+        id(node.args[0])
+        for node in ast.walk(TREE)
+        if isinstance(node, ast.Call) and ast.unparse(node.func) == "asyncio.to_thread" and node.args
+    }
+    assert len(uses) == 2
+    assert all(id(use) in threaded for use in uses)
 
 
 def test_asyncio_is_imported() -> None:

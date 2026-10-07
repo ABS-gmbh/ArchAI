@@ -61,6 +61,8 @@ export interface OCRFallback {
 export interface OCRExtractResponse {
   status: "FULL" | "PARTIAL" | "EMPTY";
   model_used: string;
+  /** "segmented": layout, then line recognition. "glmocr": GLM-OCR on the whole page. */
+  ocr_engine?: "segmented" | "glmocr" | null;
   run_id?: string | null;
   fallbacks_used: string[];
   detected_language: string;
@@ -70,6 +72,8 @@ export interface OCRExtractResponse {
   warnings: string[];
   lines: string[];
   text: string;
+  /** Text found outside every text column: marginalia, folio numbers, stamps. */
+  secondary_lines?: string[];
   original_image_size_bytes?: number | null;
   original_image_width?: number | null;
   original_image_height?: number | null;
@@ -210,7 +214,7 @@ export async function extractPageText(
 }
 
 export const extractWithDefaultOcr = extractPageText;
-// Legacy export retained for compatibility; the extraction route is GLM-backed.
+// Legacy export retained for compatibility with older callers.
 export const extractWithSaiaOcr = extractPageText;
 
 export function normalizeTraceStartResponse(payload: OCRTraceStartResponse): OCRExtractResponse {

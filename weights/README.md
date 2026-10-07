@@ -22,6 +22,20 @@ Note that a symlink into a per-user directory (for example
 `~/Library/Application Support/htrmopo/...`) is not portable across machines. For
 a reproducible run, copy the model file in or point the config at an explicit path.
 
+## Which recognition model
+
+For medieval manuscripts, point `kraken_recognition.mlmodel` at CATMuS Medieval
+(`scripts/fetch_kraken_models.sh` downloads it):
+
+```bash
+ln -sfn "$PWD/weights/kraken_models/catmus_medieval.mlmodel" weights/kraken_recognition.mlmodel
+```
+
+McCATMuS is trained on documents from the late 16th century onwards. On the two
+medieval reference pages in `archai/vendor/layout/backend/eval/recognizers/`,
+the CLI read them at 34.7% and 36.3% character error rate with McCATMuS, and at
+6.1% and 9.6% with CATMuS Medieval.
+
 ## Layout classes must match your detector
 
 The pipeline filters detections by class name, so `layout.main_text_class` in your

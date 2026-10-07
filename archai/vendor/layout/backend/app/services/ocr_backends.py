@@ -8,6 +8,7 @@ import math
 from pathlib import Path
 import re
 from typing import Any, Sequence
+import unicodedata
 
 from PIL import Image, ImageFilter, ImageOps
 
@@ -151,17 +152,29 @@ def select_backend_plan(
             comparison_backends=deduped_compare,
         )
 
+    # CATMuS Medieval leads every plan. Character error rate over the five
+    # reference pages in eval/recognizers/ - Old and Middle French, Latin, in
+    # textualis, bastarda and a Romanesque hand - through the full-page route
+    # (scripts/benchmark_recognizers.py):
+    #
+    #     CATMuS Medieval    7.6%
+    #     CREMMA Medieval   15.1%
+    #     McCATMuS          36.5%
+    #
+    # McCATMuS is trained on documents from the late 16th century onwards. It was
+    # worst on all three French pages, French being its majority language, so
+    # script and period outweigh language: it leads no medieval plan, including
+    # the German, Dutch and English ones, which are not measured.
+    # CREMMA-Medieval-LAT is not published as a model file and is tried only
+    # once CATMuS has failed. A later backend reads a line only when every
+    # earlier one fails or reads nothing.
     hint = _normalize_language_hint(language_hint)
     if hint in _LATIN_LANGUAGE_HINTS:
-        attempt_backends = ("kraken_cremma_lat", "kraken_catmus", "kraken_mccatmus")
-    elif hint in _FRENCH_LANGUAGE_HINTS:
-        attempt_backends = ("kraken_cremma_medieval", "kraken_catmus", "kraken_mccatmus")
+        attempt_backends = ("kraken_catmus", "kraken_cremma_lat", "kraken_cremma_medieval", "kraken_mccatmus")
     elif hint in _GERMAN_LANGUAGE_HINTS or hint in _DUTCH_LANGUAGE_HINTS or hint in _ENGLISH_LANGUAGE_HINTS:
-        attempt_backends = ("kraken_mccatmus", "kraken_catmus")
-    elif hint in _IBERIAN_LANGUAGE_HINTS or hint in _ITALIAN_LANGUAGE_HINTS or hint in _ROMANCE_LANGUAGE_HINTS:
         attempt_backends = ("kraken_catmus", "kraken_mccatmus")
     else:
-        attempt_backends = ("kraken_catmus", "kraken_mccatmus")
+        attempt_backends = ("kraken_catmus", "kraken_cremma_medieval", "kraken_mccatmus")
 
     primary = attempt_backends[0]
     deduped_compare = tuple(item for item in dict.fromkeys(compare) if item not in attempt_backends)
@@ -266,12 +279,29 @@ def _preprocess_kraken_crop_with_metadata(
 ) -> tuple[Image.Image, dict[str, Any]]:
     """Prepare a crop for recognition.
 
-    Kraken's models are trained on grayscale and do their own normalisation, so
-    binarise defaults to False: thresholding here discards information the
-    recogniser wants. Calamari expects binary input and opts in.
+    Kraken gets the crop in grayscale and nothing more: its models are trained
+    on unprocessed grayscale lines and normalise them themselves. With CATMuS
+    Medieval, dropping what this used to do first lowered CER on all five
+    reference pages (scripts/benchmark_recognizers.py):
+
+    - Deskew rotated lines by an angle it could not measure: it passed numpy's
+      (row, column) pairs to cv2.minAreaRect, which takes (x, y), and folded the
+      angle for OpenCV's pre-4.5 convention. On the Latin page it turned 13 of 28
+      lines by up to 3.4 degrees; without it the page reads at 6.6% CER instead
+      of 11.7%. An estimate with the axes corrected was worse still (13.3%).
+    - Autocontrast cost 0.3-0.4 points on the two pages it was tried on alone.
+    - Non-local-means denoising made no measurable difference to accuracy and,
+      with the deskew, took three quarters of the time a 70-line e-codices page
+      spent in recognition (96 s, against 25 s without).
+
+    Calamari expects binarised input and opts in. That path is unchanged, as
+    Calamari is not installed where this was measured, but its deskew makes the
+    same axis mistake.
     """
     grayscale = ImageOps.grayscale(image)
     source_width, source_height = grayscale.size
+    if not binarise:
+        return _enlarge_short_crop(grayscale, (source_width, source_height), deskew_angle=0.0)
     deskew_angle = 0.0
     try:
         import cv2  # type: ignore[import-not-found]
@@ -294,23 +324,27 @@ def _preprocess_kraken_crop_with_metadata(
                     fillcolor=255,
                 )
                 arr = np.array(pil_work, dtype=np.uint8)
-        if binarise:
-            arr = cv2.adaptiveThreshold(
-                arr,
-                255,
-                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY,
-                _adaptive_block_size(arr),
-                15,
-            )
+        arr = cv2.adaptiveThreshold(
+            arr,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            _adaptive_block_size(arr),
+            15,
+        )
         processed = Image.fromarray(arr).convert("L")
     except Exception:
         processed = ImageOps.autocontrast(grayscale).filter(ImageFilter.MedianFilter(size=3))
-        if binarise:
-            processed = processed.point(lambda px: 255 if px > 180 else 0).convert("L")
-        else:
-            processed = processed.convert("L")
+        processed = processed.point(lambda px: 255 if px > 180 else 0).convert("L")
+    return _enlarge_short_crop(processed, (source_width, source_height), deskew_angle=deskew_angle)
 
+
+def _enlarge_short_crop(
+    processed: Image.Image, source_size: tuple[int, int], *, deskew_angle: float
+) -> tuple[Image.Image, dict[str, Any]]:
+    """Enlarge a crop shorter than 96 px by a whole factor of at least 2, and
+    describe the transform applied."""
+    source_width, source_height = source_size
     if processed.height < 96:
         scale = max(2, int(round(96 / max(1, processed.height))))
         processed = processed.resize(
@@ -699,7 +733,13 @@ class KrakenBackend(OCRBackend):
         except Exception as exc:
             raise OCRBackendError(f"Kraken recognition failed for {self.backend_name}: {exc}") from exc
 
-        lines = [str(getattr(record, "prediction", "") or str(record) or "").strip() for record in records]
+        # CATMuS and McCATMuS are trained on NFD text and emit it: "ẽ" arrives as
+        # "e" plus a combining tilde, which word tokenisers split in two. NFC is
+        # what the rest of the pipeline, and the CLI's output, expects.
+        lines = [
+            unicodedata.normalize("NFC", str(getattr(record, "prediction", "") or str(record) or "")).strip()
+            for record in records
+        ]
         lines = [line for line in lines if line]
         confidences = [
             float(score)
@@ -715,7 +755,7 @@ class KrakenBackend(OCRBackend):
             raw_metadata={
                 "engine": "kraken",
                 "model_path": str(self.model_path),
-                "preprocess": "grayscale+denoise+deskew+binarize",
+                "preprocess": "grayscale",
                 "deskew_angle": float(transform.get("deskew_angle") or 0.0),
                 "segmentation_type": getattr(bounds, "type", "unknown"),
                 "record_count": len(records),
@@ -742,7 +782,7 @@ class KrakenMcCatmusBackend(KrakenBackend):
     def __init__(self) -> None:
         super().__init__(
             backend_name="kraken_mccatmus",
-            model_name="McCATMuS Medieval",
+            model_name="McCATMuS",
             configured_path=settings.kraken_mccatmus_model_path,
             fallback_paths=(settings.kraken_catmus_model_path, settings.kraken_default_recognition_model_path),
         )

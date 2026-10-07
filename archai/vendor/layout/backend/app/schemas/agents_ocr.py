@@ -263,6 +263,9 @@ class SaiaFullPageExtractRequest(BaseModel):
 class SaiaFullPageExtractResponse(BaseModel):
     status: Literal["FULL", "PARTIAL", "EMPTY"]
     model_used: str
+    # "segmented": layout segmentation, then line-by-line recognition.
+    # "glmocr": the GLM-OCR vision model on the whole page.
+    ocr_engine: Literal["segmented", "glmocr"] | None = None
     run_id: str | None = None
     fallbacks_used: list[str] = Field(default_factory=list)
     detected_language: MANUSCRIPT_DETECTED_LANGUAGE = "unknown"
@@ -272,6 +275,9 @@ class SaiaFullPageExtractResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     lines: list[str] = Field(default_factory=list)
     text: str = ""
+    # Text the segmented engine found outside every text column - marginalia,
+    # folio numbers, shelfmarks, stamps - kept out of ``text`` and in page order.
+    secondary_lines: list[str] = Field(default_factory=list)
     original_image_size_bytes: int | None = None
     original_image_width: int | None = None
     original_image_height: int | None = None

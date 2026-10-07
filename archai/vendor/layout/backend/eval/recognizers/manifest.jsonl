@@ -1,0 +1,5 @@
+{"page_id": "old-french", "image_sha256": "f248cb4a92d1e1785ea1dd4e3c288b6ee8484303d3c8bd54d8c6de5728ee79f4", "reference": "old-french.gt.txt", "language_hint": "old_french"}
+{"page_id": "latin-abaton", "image_sha256": "625b69d4299b2a2e1685648709cbf3b7c8a7d8541a4ca535d5d168ed8e7340f5", "reference": "latin-abaton.gt.txt", "language_hint": "latin"}
+{"page_id": "latin-apocalypse", "image_sha256": "f7d64e928afee1e925f056cbf086d4fb84b77d8ab7335371203ca3a8b4c5be25", "reference": "latin-apocalypse.gt.txt", "language_hint": "latin"}
+{"page_id": "middle-french-antitus", "image_sha256": "16c494d5146b376d919ecab799d5724ae0bd75aff50a21321c34f47093783b33", "reference": "middle-french-antitus.gt.txt", "language_hint": "middle_french"}
+{"page_id": "old-french-verse", "image_sha256": "b12fefac128ccd36a3e673564f895cacf87f698bcdcb590037d3f8241db0036b", "reference": "old-french-verse.gt.txt", "language_hint": "old_french"}

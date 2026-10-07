@@ -95,15 +95,29 @@ def test_backend_plan_routes_by_language_hint() -> None:
     french = select_backend_plan(explicit_backend="auto", language_hint="middle_french", compare_backends=[])
     unknown = select_backend_plan(explicit_backend="auto", language_hint="unknown", compare_backends=[])
 
-    assert latin.attempt_backends == ("kraken_cremma_lat", "kraken_catmus", "kraken_mccatmus")
-    assert french.attempt_backends == ("kraken_cremma_medieval", "kraken_catmus", "kraken_mccatmus")
-    assert unknown.attempt_backends == ("kraken_catmus", "kraken_mccatmus")
+    assert latin.attempt_backends == (
+        "kraken_catmus",
+        "kraken_cremma_lat",
+        "kraken_cremma_medieval",
+        "kraken_mccatmus",
+    )
+    assert french.attempt_backends == ("kraken_catmus", "kraken_cremma_medieval", "kraken_mccatmus")
+    assert unknown.attempt_backends == ("kraken_catmus", "kraken_cremma_medieval", "kraken_mccatmus")
 
 
-def test_backend_plan_routes_german_family_to_mccatmus_first() -> None:
+def test_catmus_medieval_leads_every_auto_plan() -> None:
+    """McCATMuS is a model for the late 16th century onwards; it leads no plan."""
+    hints = ["latin", "old_french", "spanish", "italian", "middle_high_german", "middle_dutch", "middle_english", "unknown"]
+    for hint in hints:
+        plan = select_backend_plan(explicit_backend="auto", language_hint=hint, compare_backends=[])
+        assert plan.primary_backend == "kraken_catmus", hint
+        assert plan.attempt_backends[-1] == "kraken_mccatmus", hint
+
+
+def test_backend_plan_keeps_mccatmus_as_the_german_family_fallback() -> None:
     german = select_backend_plan(explicit_backend="auto", language_hint="middle_high_german", compare_backends=[])
 
-    assert german.attempt_backends == ("kraken_mccatmus", "kraken_catmus")
+    assert german.attempt_backends == ("kraken_catmus", "kraken_mccatmus")
 
 
 def test_explicit_calamari_and_glm_backends_win() -> None:
@@ -136,21 +150,71 @@ def test_explicit_saia_backend_preserves_region_geometry(monkeypatch: Any) -> No
     assert result.text == "Linea una"
 
 
-def test_latin_auto_route_falls_back_to_catmus_when_primary_is_weak(monkeypatch: Any) -> None:
+def test_auto_route_falls_back_when_the_primary_reads_nothing(monkeypatch: Any) -> None:
     fake_runtime = {
-        "kraken_cremma_lat": _FakeBackend("kraken_cremma_lat", "CREMMA-Medieval-LAT", {"line-1": ("", 0.05, None)}),
-        "kraken_catmus": _FakeBackend("kraken_catmus", "CATMuS Medieval", {"line-1": ("Linea catmus", 0.88, None)}),
+        "kraken_catmus": _FakeBackend("kraken_catmus", "CATMuS Medieval", {"line-1": ("", 0.05, None)}),
+        "kraken_cremma_lat": _FakeBackend("kraken_cremma_lat", "CREMMA-Medieval-LAT", {"line-1": ("Linea lat", 0.88, None)}),
     }
     monkeypatch.setattr(ocr_agent, "build_backend_runtime", lambda *args, **kwargs: fake_runtime)
 
     result = ocr_agent.run_ocr_extraction(
-        _request(OCRExtractOptions(language_hint="latin", quality_floor=0.5, apply_proofread=False)),
+        _request(OCRExtractOptions(language_hint="latin", apply_proofread=False)),
         client=_DummyClient(),
     )
 
-    assert result.ocr_backend == "kraken_catmus"
-    assert result.text == "Linea catmus"
-    assert "kraken_cremma_lat" in result.fallbacksUsed
+    assert result.ocr_backend == "kraken_cremma_lat"
+    assert result.text == "Linea lat"
+    assert "kraken_catmus" in result.fallbacksUsed
+
+
+# One line of the Latin "Abaton" demo page as each model read it. CATMuS is off by
+# 5% of the characters, McCATMuS by 67% - yet the quality score ranks McCATMuS
+# higher (0.649 against 0.571), and CATMuS falls under the 0.60 floor.
+_CATMUS_LINE = "Sopniũ ĩ cͣpula fuit. ⁊ erit uisiõ uana"
+_MCCATMUS_LINE = "Gopnuigutaaut reux rtiousis"
+
+
+def _abaton_runtime() -> dict[str, Any]:
+    return {
+        "kraken_catmus": _FakeBackend("kraken_catmus", "CATMuS Medieval", {"line-1": (_CATMUS_LINE, 0.85, None)}),
+        "kraken_cremma_lat": _FailingBackend("kraken_cremma_lat", "missing CREMMA lat model"),
+        "kraken_cremma_medieval": _FakeBackend("kraken_cremma_medieval", "CREMMA Medieval", {}),
+        "kraken_mccatmus": _FakeBackend("kraken_mccatmus", "McCATMuS", {"line-1": (_MCCATMUS_LINE, 0.85, None)}),
+    }
+
+
+def test_the_quality_score_prefers_the_worse_reading() -> None:
+    """Why the score may not elect a model: it is not comparable across models."""
+    catmus = ocr_agent._region_quality_value(_CATMUS_LINE, 0.85, "latin")
+    mccatmus = ocr_agent._region_quality_value(_MCCATMUS_LINE, 0.85, "latin")
+    assert catmus < OCRExtractOptions().quality_floor < mccatmus
+
+
+def test_auto_route_keeps_the_primary_reading_whatever_it_scores(monkeypatch: Any) -> None:
+    runtime = _abaton_runtime()
+    monkeypatch.setattr(ocr_agent, "build_backend_runtime", lambda *args, **kwargs: runtime)
+
+    result = ocr_agent.run_ocr_extraction(
+        _request(OCRExtractOptions(language_hint="latin", apply_proofread=False)),
+        client=_DummyClient(),
+    )
+
+    assert (result.ocr_backend, result.text) == ("kraken_catmus", _CATMUS_LINE)
+    assert runtime["kraken_mccatmus"].calls == []
+    assert not any(record.reason.startswith("LOW_QUALITY") for record in result.fallbacks)
+
+
+def test_backend_election_can_be_switched_back_on(monkeypatch: Any) -> None:
+    runtime = _abaton_runtime()
+    monkeypatch.setattr(ocr_agent, "build_backend_runtime", lambda *args, **kwargs: runtime)
+    monkeypatch.setattr(ocr_agent.settings, "ocr_backend_election", True)
+
+    result = ocr_agent.run_ocr_extraction(
+        _request(OCRExtractOptions(language_hint="latin", apply_proofread=False)),
+        client=_DummyClient(),
+    )
+
+    assert (result.ocr_backend, result.text) == ("kraken_mccatmus", _MCCATMUS_LINE)
 
 
 def test_comparison_mode_returns_multiple_backend_outputs(monkeypatch: Any) -> None:
@@ -239,6 +303,7 @@ def test_failed_backends_still_produce_comparison_rows(monkeypatch: Any) -> None
     fake_runtime = {
         "kraken_cremma_lat": _FailingBackend("kraken_cremma_lat", "missing CREMMA lat model"),
         "kraken_catmus": _FailingBackend("kraken_catmus", "missing CATMuS model"),
+        "kraken_cremma_medieval": _FailingBackend("kraken_cremma_medieval", "missing CREMMA model"),
         "kraken_mccatmus": _FailingBackend("kraken_mccatmus", "missing McCATMuS model"),
         "saia": _FailingBackend("saia", "SAIA unavailable"),
     }
@@ -257,10 +322,11 @@ def test_failed_backends_still_produce_comparison_rows(monkeypatch: Any) -> None
 
     assert result.status == "FAILED"
     assert result.text == ""
-    assert len(result.comparison_results) == 4
+    assert len(result.comparison_results) == 5
     assert {item.backend_name for item in result.comparison_results} == {
         "kraken_cremma_lat",
         "kraken_catmus",
+        "kraken_cremma_medieval",
         "kraken_mccatmus",
         "saia",
     }
@@ -270,9 +336,9 @@ def test_failed_backends_still_produce_comparison_rows(monkeypatch: Any) -> None
 
 def test_degenerate_repeat_output_falls_through_to_fallback_backend(monkeypatch: Any) -> None:
     fake_runtime = {
-        "kraken_cremma_lat": _FakeBackend(
-            "kraken_cremma_lat",
-            "CREMMA-Medieval-LAT",
+        "kraken_catmus": _FakeBackend(
+            "kraken_catmus",
+            "CATMuS Medieval",
             {
                 "line-1": ("In primis autem", 0.91, None),
                 "line-2": ("In primis autem", 0.91, None),
@@ -280,9 +346,9 @@ def test_degenerate_repeat_output_falls_through_to_fallback_backend(monkeypatch:
                 "line-4": ("In primis autem", 0.91, None),
             },
         ),
-        "kraken_catmus": _FakeBackend(
-            "kraken_catmus",
-            "CATMuS Medieval",
+        "kraken_cremma_lat": _FakeBackend(
+            "kraken_cremma_lat",
+            "CREMMA-Medieval-LAT",
             {
                 "line-1": ("Prima linea", 0.82, None),
                 "line-2": ("Secunda linea", 0.84, None),
@@ -290,21 +356,20 @@ def test_degenerate_repeat_output_falls_through_to_fallback_backend(monkeypatch:
                 "line-4": ("Quarta linea", 0.81, None),
             },
         ),
+        "kraken_cremma_medieval": _FailingBackend("kraken_cremma_medieval", "missing CREMMA model"),
         "kraken_mccatmus": _FailingBackend("kraken_mccatmus", "missing McCATMuS model"),
     }
     monkeypatch.setattr(ocr_agent, "build_backend_runtime", lambda *args, **kwargs: fake_runtime)
 
     result = ocr_agent.run_ocr_extraction(
-        _multi_region_request(
-            OCRExtractOptions(language_hint="latin", quality_floor=0.5, apply_proofread=False)
-        ),
+        _multi_region_request(OCRExtractOptions(language_hint="latin", apply_proofread=False)),
         client=_DummyClient(),
     )
 
-    assert result.ocr_backend in {"kraken_cremma_lat", "kraken_catmus"}
+    assert result.ocr_backend in {"kraken_catmus", "kraken_cremma_lat"}
     assert result.text.count("In primis autem") <= 1
     assert "Secunda linea" in result.text
-    assert "kraken_cremma_lat" in result.fallbacksUsed
+    assert "kraken_catmus" in result.fallbacksUsed
     assert any(
         "DEGENERATE_REPEAT" in flag
         for region in result.regions

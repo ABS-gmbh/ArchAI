@@ -172,3 +172,71 @@ def test_run_glm_ollama_ocr_reports_variant_fallback_and_retry_metadata(monkeypa
     assert result.attempts_used == 2
     assert "OCR_VARIANT_FALLBACK:rgb_autocontrast_jpeg_1280" in result.warnings
     assert "OCR_RETRY_ATTEMPTS_USED:2" in result.warnings
+
+
+# On the Latin "Abaton" demo page, with a language hint in the prompt, GLM-OCR
+# recited its instructions before transcribing - on every run.
+_RECITED = """- Preserve reading order exactly.
+- Preserve line breaks exactly.
+- Output one manuscript line per output line.
+- Do not normalize spelling.
+- Do not modernize language.
+- Do not translate.
+- Do not explain.
+- Do not summarize.
+- Do not invent missing text.
+- Do not repeat lines.
+- Preserve punctuation, abbreviations, unusual glyphs, and capitalization exactly.
+
+Manuscript text:
+entit qui compedes duum ported solut
+ac hae uxore non erit fermo pudient"""
+
+
+def test_a_recited_prompt_is_removed_from_the_transcription() -> None:
+    prompt = glm_ollama_ocr.build_glm_ocr_prompt(language_hint="latin")
+
+    text, removed = glm_ollama_ocr.strip_prompt_echo(_RECITED, prompt)
+
+    assert text == "entit qui compedes duum ported solut\nac hae uxore non erit fermo pudient"
+    assert removed == 11  # the last one shortened: "... exactly." for "... exactly as written."
+
+
+def test_transcription_lines_are_never_taken_for_the_prompt() -> None:
+    reference = Path(__file__).resolve().parents[1] / "eval" / "recognizers"
+    prompt = glm_ollama_ocr.build_glm_ocr_prompt(
+        language_hint="latin",
+        script_hint_seed="latin",
+        metadata=OCRDocumentMetadata(language="Old French", notes="Transcribe the rubric too."),
+    )
+    for name in ("old-french.gt.txt", "latin-abaton.gt.txt"):
+        text = (reference / name).read_text(encoding="utf-8")
+        assert glm_ollama_ocr.strip_prompt_echo(text, prompt) == (text.strip(), 0)
+
+
+def test_a_label_is_only_dropped_after_a_recital() -> None:
+    prompt = glm_ollama_ocr.build_glm_ocr_prompt()
+    assert glm_ollama_ocr.strip_prompt_echo("Result:\nLinea una", prompt) == ("Result:\nLinea una", 0)
+
+
+def test_the_runner_reports_a_removed_recital(monkeypatch: Any) -> None:
+    def _fake_post(url: str, json: dict[str, Any], timeout: int) -> _FakeResponse:
+        _ = (json, timeout)
+        return _FakeResponse(200, {"message": {"content": _RECITED}}, url)
+
+    monkeypatch.setattr(glm_ollama_ocr.requests, "post", _fake_post)
+
+    result = glm_ollama_ocr.run_glm_ollama_ocr(
+        _png_bytes(mode="RGB", size=(1200, 900)),
+        image_ref="page-1",
+        prompt=glm_ollama_ocr.build_glm_ocr_prompt(language_hint="latin"),
+        model="glm-ocr:latest",
+        host="http://localhost:11434",
+        timeout=30,
+        temperature=0.0,
+        retries=1,
+        max_payload_bytes=2_000_000,
+    )
+
+    assert result.lines == ["entit qui compedes duum ported solut", "ac hae uxore non erit fermo pudient"]
+    assert "OCR_PROMPT_ECHO_REMOVED:11" in result.warnings

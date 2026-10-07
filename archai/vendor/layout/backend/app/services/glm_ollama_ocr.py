@@ -433,6 +433,44 @@ def clean_model_output(text: str) -> str:
     return "\n".join(lines).strip()
 
 
+_ECHO_BULLET_RE = re.compile(r"^[\s\-*\u2022\u00b7]+")
+_ECHO_LABEL_RE = re.compile(r"^(manuscript text|transcription|extracted text|output|result)\s*:?$", re.IGNORECASE)
+# The model shortens some of the lines it copies, so a copy may be a prefix of a
+# prompt line - but only a long one: no line of a transcription is 20 characters
+# of an English instruction.
+_ECHO_MIN_PREFIX = 20
+
+
+def _echo_key(line: str) -> str:
+    return re.sub(r"\s+", " ", _ECHO_BULLET_RE.sub("", line)).strip().rstrip(".:;").casefold()
+
+
+def strip_prompt_echo(text: str, prompt: str) -> tuple[str, int]:
+    """Remove the lines the model copied from its own prompt; return the count.
+
+    With manuscript-context hints appended to the prompt, GLM-OCR can recite the
+    instruction list before it transcribes. On the Latin "Abaton" demo page it did
+    so on every run - eleven instruction lines, then a "Manuscript text:" label -
+    and the recital went into the transcript, the search index and the entity
+    extraction: 62.9% CER with it, 27.6% once it is removed.
+    """
+    candidates = [key for key in (_echo_key(line) for line in prompt.splitlines()) if key]
+
+    def copied(line: str) -> bool:
+        key = _echo_key(line)
+        return bool(key) and any(
+            key == candidate or (len(key) >= _ECHO_MIN_PREFIX and candidate.startswith(key)) for candidate in candidates
+        )
+
+    lines = text.splitlines()
+    kept = [line for line in lines if not copied(line)]
+    removed = len(lines) - len(kept)
+    if removed:
+        while kept and (not kept[0].strip() or _ECHO_LABEL_RE.match(kept[0].strip())):
+            kept.pop(0)
+    return "\n".join(kept).strip(), removed
+
+
 def run_glm_ollama_ocr(
     image_bytes: bytes,
     *,
@@ -495,7 +533,7 @@ def run_glm_ollama_ocr(
                     timeout=selected_timeout,
                     temperature=selected_temperature,
                 )
-                cleaned_text = clean_model_output(raw_text)
+                cleaned_text, echoed_lines = strip_prompt_echo(clean_model_output(raw_text), selected_prompt)
                 if not cleaned_text:
                     if first_empty_variant is None:
                         first_empty_variant = variant
@@ -515,6 +553,8 @@ def run_glm_ollama_ocr(
                     warnings.append(f"OCR_VARIANT_FALLBACK:{variant.name}")
                 if attempt > 1:
                     warnings.append(f"OCR_RETRY_ATTEMPTS_USED:{attempt}")
+                if echoed_lines:
+                    warnings.append(f"OCR_PROMPT_ECHO_REMOVED:{echoed_lines}")
 
                 logger.info(
                     "OCR completed ref=%s variant=%s model=%s duration_seconds=%.3f text_chars=%s",

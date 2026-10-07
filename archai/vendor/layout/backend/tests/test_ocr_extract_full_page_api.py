@@ -290,13 +290,14 @@ class _FakeStructuredCompareAgent:
 
 def test_extract_full_page_returns_required_keys(monkeypatch: Any) -> None:
     monkeypatch.setattr(ocr_router, "run_glm_ollama_ocr", lambda *args, **kwargs: _fake_glm_result())
-    monkeypatch.setattr(ocr_router, "_run_post_ocr_pipeline_for_glm", lambda *args, **kwargs: {})
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", lambda *args, **kwargs: {})
 
     payload = SaiaFullPageExtractRequest(
         document_id="doc-1",
         page_id="page-1",
         image_b64=SAMPLE_B64,
         apply_proofread=True,
+        ocr_backend="glmocr",
     )
     result = asyncio.run(ocr_router.ocr_extract_full_page(payload))
 
@@ -304,6 +305,7 @@ def test_extract_full_page_returns_required_keys(monkeypatch: Any) -> None:
     for key in (
         "status",
         "model_used",
+        "ocr_engine",
         "fallbacks_used",
         "detected_language",
         "language_confidence",
@@ -312,6 +314,7 @@ def test_extract_full_page_returns_required_keys(monkeypatch: Any) -> None:
         "warnings",
         "lines",
         "text",
+        "secondary_lines",
         "original_image_size_bytes",
         "processed_image_size_bytes",
         "processed_image_width",
@@ -352,7 +355,7 @@ def test_runtime_ocr_router_imports_without_extra_ocr_dependencies() -> None:
 
 def test_extract_full_page_ignores_compare_backends_and_returns_glm_run(monkeypatch: Any) -> None:
     monkeypatch.setattr(ocr_router, "run_glm_ollama_ocr", lambda *args, **kwargs: _fake_glm_result("glm page text"))
-    monkeypatch.setattr(ocr_router, "_run_post_ocr_pipeline_for_glm", lambda *args, **kwargs: {})
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", lambda *args, **kwargs: {})
 
     payload = SaiaFullPageExtractRequest(
         document_id="doc-1",
@@ -376,7 +379,7 @@ def test_extract_full_page_surfaces_run_and_knowledge_pipeline_fields(monkeypatc
     monkeypatch.setattr(ocr_router, "run_glm_ollama_ocr", lambda *args, **kwargs: _fake_glm_result("glm page text"))
     monkeypatch.setattr(
         ocr_router,
-        "_run_post_ocr_pipeline_for_glm",
+        "_run_full_page_post_ocr_pipeline",
         lambda *args, **kwargs: {
             "run_id": "run-123",
             "quality_label": "OK",
@@ -418,7 +421,7 @@ def test_extract_full_page_builds_glm_prompt_from_metadata(monkeypatch: Any) -> 
         return _fake_glm_result("glm page text")
 
     monkeypatch.setattr(ocr_router, "run_glm_ollama_ocr", _fake_run_glm_ollama_ocr)
-    monkeypatch.setattr(ocr_router, "_run_post_ocr_pipeline_for_glm", lambda *args, **kwargs: {})
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", lambda *args, **kwargs: {})
 
     payload = SaiaFullPageExtractRequest(
         document_id="doc-1",
@@ -460,7 +463,7 @@ def test_extract_full_page_surfaces_variant_retry_details(monkeypatch: Any) -> N
             attempts_used=2,
         ),
     )
-    monkeypatch.setattr(ocr_router, "_run_post_ocr_pipeline_for_glm", lambda *args, **kwargs: {})
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", lambda *args, **kwargs: {})
 
     payload = SaiaFullPageExtractRequest(
         document_id="doc-1",
@@ -516,7 +519,7 @@ def test_page_with_trace_segmented_path_persists_backend_comparisons(tmp_path: P
     assert {item["backend_name"] for item in stored} == {"kraken_catmus", "saia"}
 
 
-def test_workspace_extract_copy_uses_single_glm_flow() -> None:
+def test_workspace_extract_copy_uses_single_extraction_flow() -> None:
     workspace = (
         Path(__file__).resolve().parents[2]
         / "frontend"
@@ -526,7 +529,8 @@ def test_workspace_extract_copy_uses_single_glm_flow() -> None:
         / "DocumentChatWorkspace.tsx"
     )
     source = workspace.read_text(encoding="utf-8")
-    assert 'Extraction status: running GLM OCR...' in source
+    assert "Extraction status: transcribing the page..." in source
+    assert 'ocr_backend: "auto",' in source  # the server's configured engine reads the page
     assert 'await handleExtractTextInChat({ userPrompt: text });' in source
     assert "Select OCR Engine" not in source
     assert "Compare all three" not in source
@@ -635,7 +639,7 @@ def test_glm_post_pipeline_persists_unresolved_mentions_when_linking_is_deferred
         apply_proofread=False,
     )
 
-    result = ocr_router._run_post_ocr_pipeline_for_glm(payload, response, b"image-bytes")
+    result = ocr_router._run_full_page_post_ocr_pipeline(payload, response, b"image-bytes", ocr_backend="glmocr")
 
     assert result["mentions_count"] == 1
     assert result["quality_label"] is not None

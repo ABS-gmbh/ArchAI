@@ -14,7 +14,7 @@ from typing import Any, Sequence
 from PIL import Image
 
 from app.agents.base import BaseAgent
-from app.agents.crop_agent import crop_region, decode_image_bytes, encode_png_base64
+from app.agents.crop_agent import crop_page_region, decode_image_bytes, decode_page, encode_png_base64
 from app.agents.ocr_proofreader_agent import OcrProofreaderAgent
 from app.config import settings
 from app.schemas.agents_ocr import (
@@ -1080,16 +1080,36 @@ def _region_quality_value(text: str, confidence: float | None, language_hint: st
     return round(max(0.0, min(1.0, combined)), 4)
 
 
+# Every Kraken model here resizes a line to 120 px high before reading it, so a
+# taller line gains nothing from being doubled first. On e-codices scans (median
+# line 218-404 px high) encoding the doubled crops took longer than recognising
+# them, and skipping it left CER where it was (7.60% against 7.73% over the
+# reference pages of scripts/benchmark_recognizers.py).
+_UPSCALE_BELOW_LINE_HEIGHT = 120.0
+
+
+def _region_upscale(region: Any, upscale_factor: int) -> int:
+    """The configured crop upscale for a region shorter than a recogniser line, else 1."""
+    if region.bbox_xyxy is not None:
+        height = float(region.bbox_xyxy[3]) - float(region.bbox_xyxy[1])
+    elif region.polygon:
+        ys = [float(point[1]) for point in region.polygon]
+        height = max(ys) - min(ys)
+    else:
+        return upscale_factor
+    return upscale_factor if height < _UPSCALE_BELOW_LINE_HEIGHT else 1
+
+
 def _reorder_attempt_backends_from_samples(
     *,
     plan: OCRBackendPlan,
     payload: OCRExtractRequest,
     runtime: dict[str, Any],
     regions_input: list,
-    source_b64: str,
+    page: Image.Image,
     upscale_factor: int,
 ) -> tuple[OCRBackendPlan, dict[int, tuple[str, str, OCRRecognitionMetadata]], dict[int, dict[str, Any]], dict[int, dict[str, str]]]:
-    if len(plan.attempt_backends) < 2:
+    if len(plan.attempt_backends) < 2 or not settings.ocr_backend_election:
         return plan, {}, defaultdict(dict), defaultdict(dict)
 
     explicit_backend = str(payload.options.backend or settings.ocr_backend_default or "auto").strip().lower()
@@ -1107,7 +1127,7 @@ def _reorder_attempt_backends_from_samples(
 
     for index in range(sample_count):
         region = regions_input[index]
-        _crop = crop_region(source_b64, region, upscale_factor=upscale_factor)
+        _crop = crop_page_region(page, region, upscale_factor=_region_upscale(region, upscale_factor))
         region_id, crop_b64 = _crop.region_id, _crop.crop_b64
         metadata = OCRRecognitionMetadata(
             page_id=payload.page_id,
@@ -1166,6 +1186,8 @@ def _run_segmented_ocr_extraction(
         raise OCRAgentError("No OCR regions were provided for segmented extraction.")
 
     source_b64 = str(payload.image_b64 or payload.cropped_image_b64 or "").strip()
+    # Decoded once: every region is cropped from the same page.
+    page = decode_page(source_b64)
     plan = select_backend_plan(
         explicit_backend=payload.options.backend or settings.ocr_backend_default,
         language_hint=payload.options.language_hint,
@@ -1182,7 +1204,7 @@ def _run_segmented_ocr_extraction(
         payload=payload,
         runtime=runtime,
         regions_input=regions_input,
-        source_b64=source_b64,
+        page=page,
         upscale_factor=upscale_factor,
     )
 
@@ -1203,7 +1225,7 @@ def _run_segmented_ocr_extraction(
         if index in prefetched_regions:
             region_id, crop_b64, metadata = prefetched_regions[index]
         else:
-            _crop = crop_region(source_b64, region, upscale_factor=upscale_factor)
+            _crop = crop_page_region(page, region, upscale_factor=_region_upscale(region, upscale_factor))
             region_id, crop_b64 = _crop.region_id, _crop.crop_b64
             metadata = OCRRecognitionMetadata(
                 page_id=payload.page_id,
@@ -1276,7 +1298,11 @@ def _run_segmented_ocr_extraction(
                 selected_backend_id = backend_id
                 selected_quality = current_quality
 
-            if backend_result.text.strip() and current_quality >= payload.options.quality_floor:
+            # The quality score is not comparable across models, so by default it
+            # only reports: the first backend to read the line keeps it.
+            if backend_result.text.strip() and (
+                not settings.ocr_backend_election or current_quality >= payload.options.quality_floor
+            ):
                 break
 
             if backend_id != plan.attempt_backends[-1]:
