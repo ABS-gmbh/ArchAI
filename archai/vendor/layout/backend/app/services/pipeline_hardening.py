@@ -30,6 +30,7 @@ from app.services.ocr_quality_config import (
     GIBBERISH_HARD_LIMIT,
     GIBBERISH_SOFT_LIMIT,
     LEADING_FRAG_HARD_LIMIT,
+    LEXICAL_PLAUSIBILITY_FLOOR,
     NON_WORDLIKE_GATE_LIMIT,
     SEAM_FRAG_HARD_LIMIT,
     UNCERTAINTY_HARD_LIMIT,
@@ -133,6 +134,8 @@ def proofreading_quality_guard(
         proofread_text,
         run_id=original_report.run_id,
         pass_idx=original_report.pass_idx,
+        language=original_report.detected_language or None,
+        tiled=original_report.tiled,
     )
 
     label_rank = {"HIGH": 0, "OK": 1, "RISKY": 2, "UNRELIABLE": 3}
@@ -482,7 +485,8 @@ def enforce_quality_gates(
     # leading fragments, which can be caused by short function words.
     effective_frag = frag_gate_value(lead_frag, seam_frag)
     gates["LEADING_FRAGMENT"] = {
-        "passed": effective_frag < LEADING_FRAG_HARD_LIMIT,
+        # Text that was never cut into tiles has no seams to leave fragments.
+        "passed": not getattr(quality_report, "tiled", True) or effective_frag < LEADING_FRAG_HARD_LIMIT,
         "value": effective_frag,
         "threshold": LEADING_FRAG_HARD_LIMIT,
         "seam_fragment_ratio": seam_frag,
@@ -520,12 +524,11 @@ def enforce_quality_gates(
     }
 
     # Gate: lexical plausibility (optional — only when language detection ran)
-    _LEXICAL_HARD_LIMIT = 0.20
     if lexical_plausibility is not None:
         gates["LEXICAL_PLAUSIBILITY"] = {
-            "passed": lexical_plausibility >= _LEXICAL_HARD_LIMIT,
+            "passed": lexical_plausibility >= LEXICAL_PLAUSIBILITY_FLOOR,
             "value": lexical_plausibility,
-            "threshold": _LEXICAL_HARD_LIMIT,
+            "threshold": LEXICAL_PLAUSIBILITY_FLOOR,
         }
         if not gates["LEXICAL_PLAUSIBILITY"]["passed"]:
             blocked.extend(["token_search", "token_ner"])

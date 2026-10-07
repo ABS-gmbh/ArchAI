@@ -404,6 +404,15 @@ def _normalise_token(raw: str, *, expand: bool) -> str:
     return resolved
 
 
+def fold_orthography(text: str) -> str:
+    """Fold *text* the way search keys are folded, with no abbreviation expansion.
+
+    Lowercase, ae/oe and their ligatures to e, combining marks dropped, i/j and
+    u/v merged. Anything compared with a search key must be folded alike.
+    """
+    return _fold_latin(text)
+
+
 def _fold_latin(text: str) -> str:
     """Lowercase, collapse digraphs, drop combining marks, fold i/j and u/v."""
     working = text.lower()

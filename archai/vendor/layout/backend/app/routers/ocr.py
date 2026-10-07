@@ -74,7 +74,8 @@ from app.services.chunking import build_window_chunks
 from app.services.medieval_text import build_search_key, rejoin_line_breaks
 from app.services.test_ocr_overrides import get_test_ocr_fixture, get_test_ocr_override
 from app.services.saia_client import SaiaConfigError
-from app.services.lexicon_trust import lexical_plausibility as _lexical_plausibility
+from app.services.lexicon_trust import best_fit_plausibility as _lexical_plausibility
+from app.services.lexicon_trust import reads_as_latin
 from app.services.ocr_quality import (
     compute_quality_report,
     check_mention_recall,
@@ -2148,6 +2149,12 @@ def _langid_view(text: str) -> str:
     return _clean_text_for_langid(text, enforce_min_letters=True)
 
 
+# What langdetect calls Latin text: it has a model for each of these, none for Latin.
+_LATIN_LOOKALIKES = frozenset({
+    "french", "old_french", "middle_french", "anglo_norman", "italian", "spanish", "portuguese", "catalan", "occitan",
+})
+
+
 def _latin_anchor_hits(cleaned_text: str) -> int:
     tokens = {_normalize_language_token(token) for token in re.split(r"\s+", cleaned_text) if token}
     return sum(1 for anchor in _LATIN_STRONG_ANCHORS if anchor in tokens)
@@ -2564,6 +2571,10 @@ def _detect_language_metadata(text: str) -> tuple[str, float | None]:
 
     if best_language == "unknown":
         return "latin", 0.45
+    # langdetect has no Latin model and reports Latin as one of the Romance
+    # languages; the lexical contrast settles which it is.
+    if best_language in _LATIN_LOOKALIKES and reads_as_latin(value):
+        return "latin", max(0.55, best_confidence or 0.0)
     return best_language, best_confidence
 
 
@@ -2999,7 +3010,7 @@ def _run_post_ocr_pipeline_for_glm(
     raw_lines = list(response.lines or [line for line in text_value.splitlines() if line.strip()])
     lex_lang = response.detected_language if response.detected_language != "unknown" else ""
     quality_report = compute_quality_report(
-        text_value, run_id=run_id, pass_idx=0, language=_quality_language(lex_lang)
+        text_value, run_id=run_id, pass_idx=0, language=_quality_language(lex_lang), tiled=False
     )
     quality_label = quality_report.quality_label
     insert_ocr_quality_report(run_id, quality_report.to_dict())
@@ -3293,7 +3304,7 @@ async def _run_segmented_trace_pipeline(
 
     _lex_lang = ocr_payload.get("detected_language", "unknown")
     ocr_quality_report = compute_quality_report(
-        raw_text, run_id=run_id, pass_idx=0, language=_quality_language(_lex_lang)
+        raw_text, run_id=run_id, pass_idx=0, language=_quality_language(_lex_lang), tiled=False
     )
     hardened_quality_label = ocr_quality_report.quality_label
     insert_ocr_quality_report(run_id, ocr_quality_report.to_dict())
@@ -3444,6 +3455,7 @@ async def _run_segmented_trace_pipeline(
             pass_idx=10,
             previous_pass_tokens=[t for t in raw_text.split() if t],
             language=_quality_language(ocr_payload.get("detected_language")),
+            tiled=False,
         )
         hardened_quality_label = post_proof_report.quality_label
         insert_ocr_quality_report(run_id, post_proof_report.to_dict())

@@ -52,9 +52,10 @@ UNCERTAINTY_RISKY_LIMIT: float = 0.08  # above -> RISKY
 # ═══════════════════════════════════════════════════════════════════════
 
 REPETITION_HARD_LIMIT: float = 0.35
-"""Share of the page occupied by one repeated line/n-gram, above which the
-transcription is UNRELIABLE. A decoding loop that emits the same line dozens of
-times is otherwise indistinguishable from clean text to character-level signals."""
+"""Share of the page's lines that repeat an earlier line, or of its tokens taken
+up by its most repeated n-gram, above which the transcription is UNRELIABLE. A
+decoding loop that emits the same lines dozens of times is otherwise
+indistinguishable from clean text to character-level signals."""
 
 REPETITION_SOFT_LIMIT: float = 0.20
 """Above this repetition share the transcription is RISKY."""
@@ -67,23 +68,55 @@ REPETITION_NGRAM: int = 5
 # Lexical implausibility (language-aware garbage detection)
 # ═══════════════════════════════════════════════════════════════════════
 
-LEXICON_CLEAN_FLOOR: float = 0.45
-"""Implausibility that genuinely clean text is expected to reach anyway.
+LEXICAL_CONTRAST_UNRELIABLE: float = 2.0
+"""Contrast below which a transcription is UNRELIABLE.
 
-lexical_plausibility scores a trigram hit-rate against a hand-built profile, and
-profile coverage varies by language: clean Latin scores ~0.82 plausible but clean
-Old French only ~0.57, purely because the Old French profile is sparser. Feeding
-raw implausibility into the gibberish score therefore penalises clean text in
-under-profiled languages. Only implausibility *above* this floor is treated as
-evidence of garbage, and it is rescaled across the remaining range."""
+lexical_contrast is the share of a text's trigrams that are common trigrams of
+its best-fitting language, over the same share for the text with each word's
+letters shuffled. It replaced a hit rate against the profile of the detected
+language, with fixed thresholds, which blocked three of the five reference
+transcriptions, the CATMuS readings of four of their pages, and 71 of the 72
+held-out transcriptions below. Calibrated on two sets
+(scripts/calibrate_quality_gate.py):
 
+- the five reference transcriptions, every recogniser's reading of them, and
+  synthetic corruptions of each, with their CER;
+- 72 distinct transcriptions from a pipeline database, held out, with
+  corrupted versions of each.
 
-LEXICON_UNRELIABLE_LIMIT: float = 0.72
-"""Implausibility (1 - lexical_plausibility) above which text is UNRELIABLE.
-Only applied when a trigram profile exists for the detected language."""
+The references long enough to measure read 3.1-4.7 and their CATMuS readings
+2.9-4.5. The same pages with each word reversed read 1.3-1.9, in random
+letters 0.9-1.2; the held-out texts reversed 1.0-1.7 and in random letters
+0.8-1.8, every one of them below this threshold."""
 
-LEXICON_RISKY_LIMIT: float = 0.58
-"""Implausibility above which text is RISKY."""
+LEXICAL_CONTRAST_RISKY: float = 2.2
+"""Contrast below which a transcription is RISKY.
+
+Synthetic noise up to 23% CER stayed above 2.6 on every page long enough to
+measure. At 35-38% CER two of those four pages fell below 2.2, and the
+plausibility floor caught the other two. Shorter text varies more; see
+LEXICAL_PLAUSIBILITY_FLOOR for what the two together block by length."""
+
+LEXICAL_CONTRAST_CLEAN: float = 3.0
+"""Contrast at which a transcription counts as fully language-like: a HIGH label
+needs it, and lexical implausibility is 0 from here up."""
+
+LEXICAL_PLAUSIBILITY_FLOOR: float = 0.25
+"""Best-fit lexical plausibility below which a transcription is RISKY, and token
+search and NER are blocked.
+
+lexical_plausibility is the trigram hit rate, scaled: the floor is a hit rate
+of 14%, where faithful pages hit 20% (Latin) to 33% (French). It catches wrong
+letters, which the contrast is slow to notice, and it is all there is for text
+too short for the contrast. With the contrast thresholds, the gate blocked
+these shares of 360 windows of the references and their CATMuS readings, and
+of corrupted copies of the same windows:
+
+    trigrams  windows  faithful  7% CER  21% CER  37% CER  reversed  random
+    30-149      259      1.2%     5.4%     38%      89%      87%       99%
+    150-299      91      1.1%     5.5%     44%      93%      93%       99%
+    300+         10      0%       0%       50%     100%     100%      100%
+"""
 
 
 # ═══════════════════════════════════════════════════════════════════════

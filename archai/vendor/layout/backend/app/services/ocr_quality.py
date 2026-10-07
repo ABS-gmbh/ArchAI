@@ -28,14 +28,15 @@ import re
 import unicodedata
 from collections import Counter
 from dataclasses import asdict, dataclass, field
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 from app.services.ocr_quality_config import (
     GIBBERISH_WEIGHTS_NO_LANGUAGE,
     GIBBERISH_WEIGHTS_WITH_LANGUAGE,
-    LEXICON_CLEAN_FLOOR,
-    LEXICON_RISKY_LIMIT,
-    LEXICON_UNRELIABLE_LIMIT,
+    LEXICAL_CONTRAST_CLEAN,
+    LEXICAL_CONTRAST_RISKY,
+    LEXICAL_CONTRAST_UNRELIABLE,
+    LEXICAL_PLAUSIBILITY_FLOOR,
     REPETITION_HARD_LIMIT,
     REPETITION_NGRAM,
     REPETITION_SOFT_LIMIT,
@@ -54,6 +55,9 @@ from app.services.ocr_quality_config import (
     UNCERTAINTY_RISKY_LIMIT,
     frag_gate_value,
 )
+
+if TYPE_CHECKING:
+    from app.services.lexicon_trust import LexicalContrast
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -345,6 +349,20 @@ _FUNCTION_WORDS: dict[str, frozenset[str]] = {
 }
 
 
+def _is_set_apart_initial(tokens: Sequence[str]) -> bool:
+    """True when a line opens with an initial set apart from the rest of its word.
+
+    Verse and lists often put each line's capital in a column of its own, and a
+    line recogniser then reads "C aldꝰ li roys". A lone capital followed by a
+    lowercase word is that initial, not a word cut at a tile seam: counted as a
+    fragment, it marked 47% of the lines of a faithful Old French verse page.
+    """
+    if len(tokens) < 2 or len(tokens[0]) != 1:
+        return False
+    initial, following = tokens[0], tokens[1]
+    return initial.isalpha() and initial.isupper() and following[:1].isalpha() and following[:1].islower()
+
+
 def leading_fragment_ratio(lines: Sequence[str], script: str = "latin") -> float:
     """Fraction of lines starting with a partial-word fragment.
 
@@ -383,6 +401,8 @@ def leading_fragment_ratio(lines: Sequence[str], script: str = "latin") -> float
             lw = first_word.lower()
             # Skip known function words — they are NOT fragments
             if lw in func_words:
+                continue
+            if _is_set_apart_initial(tokens):
                 continue
             # Single non-vowel letter that isn't a function word
             if len(first_word) == 1 and first_word.isalpha():
@@ -456,7 +476,7 @@ def seam_fragment_ratio(
             has_leading = True
         elif first and script in ("latin", "greek", "cyrillic"):
             lw = first.lower()
-            if lw not in func_words:
+            if lw not in func_words and not _is_set_apart_initial(tokens):
                 if (len(first) == 1 and first.isalpha()
                         and first.lower() not in _VOWEL_SETS.get(script, set())):
                     has_leading = True
@@ -611,14 +631,14 @@ def repetition_score(text: str, ngram: int = REPETITION_NGRAM) -> float:
     if not text or not text.strip():
         return 0.0
 
-    # Line-level repetition: the dominant duplicated line, as a share of lines.
+    # Line-level repetition: the share of lines that repeat an earlier line.
+    # Measuring only the single most repeated line missed block loops: GLM-OCR
+    # re-emitted an 8-line page sixteen times (112 lines, each line 1/8 of them),
+    # and that scored 0.14 - under the RISKY limit - while 93% of it was repeats.
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
     line_share = 0.0
     if len(lines) >= 3:
-        counts = Counter(lines)
-        top_line, top_count = counts.most_common(1)[0]
-        if top_count > 1:
-            line_share = top_count / len(lines)
+        line_share = (len(lines) - len(set(lines))) / len(lines)
 
     # Token n-gram repetition: catches loops that are not line-aligned.
     #
@@ -644,33 +664,48 @@ def repetition_score(text: str, ngram: int = REPETITION_NGRAM) -> float:
     return round(min(1.0, max(line_share, ngram_share)), 4)
 
 
+def lexical_contrast(text: str, language: str | None) -> LexicalContrast | None:
+    """The lexical contrast of *text*, or None when it cannot be measured.
+
+    None when no language is supplied, when the language has no trigram profile
+    (so the scorer redistributes the weight rather than assume a neutral 0.5),
+    and when the text is too short. A profiled language is measured together
+    with the other profiled ones and the best fit kept: langdetect has no Latin
+    and calls it Catalan or French, and the faithful Latin reference pages scored
+    as Catalan were graded UNRELIABLE.
+    """
+    if not _has_profile(language) or not text or not text.strip():
+        return None
+    from app.services.lexicon_trust import lexical_contrast as measure
+
+    return measure(text, language)
+
+
+def _has_profile(language: str | None) -> bool:
+    if not language or language == "unknown":
+        return False
+    from app.services.lexicon_trust import _TRIGRAM_PROFILES
+
+    return bool(_TRIGRAM_PROFILES.get(language))
+
+
+def implausibility_from_contrast(ratio: float) -> float:
+    """Map a contrast ratio onto 0 (as language-like as clean text) to 1 (none).
+
+    1.0 - no more common trigrams than shuffled letters - maps to 1, and
+    LEXICAL_CONTRAST_CLEAN or above to 0.
+    """
+    span = LEXICAL_CONTRAST_CLEAN - 1.0
+    return round(min(1.0, max(0.0, (LEXICAL_CONTRAST_CLEAN - ratio) / span)), 4)
+
+
 def lexical_implausibility(text: str, language: str | None) -> float | None:
-    """1 - lexical_plausibility for *language*, or None when unavailable.
+    """How unlike real language *text* is, 0-1, or None when unmeasured.
 
-    Returns None when no language is supplied or no trigram profile exists, so
-    callers can redistribute the weight rather than assume a neutral 0.5.
+    See :func:`lexical_contrast` for when it is measured.
     """
-    if not language or not text or not text.strip():
-        return None
-    from app.services.lexicon_trust import _TRIGRAM_PROFILES, lexical_plausibility
-
-    if language not in _TRIGRAM_PROFILES or language == "unknown":
-        return None
-    return round(1.0 - lexical_plausibility(text, language), 4)
-
-
-def _rescale_lexical(implausibility: float) -> float:
-    """Map raw implausibility onto 0-1, ignoring the clean-text baseline.
-
-    Profile coverage differs per language, so clean text does not reach 0
-    implausibility. Anything at or below LEXICON_CLEAN_FLOOR counts as clean.
-    """
-    if implausibility <= LEXICON_CLEAN_FLOOR:
-        return 0.0
-    span = 1.0 - LEXICON_CLEAN_FLOOR
-    if span <= 0:
-        return 0.0
-    return round(min(1.0, (implausibility - LEXICON_CLEAN_FLOOR) / span), 4)
+    contrast = lexical_contrast(text, language)
+    return None if contrast is None else implausibility_from_contrast(contrast.ratio)
 
 
 def gibberish_score(text: str, script: str = "latin", language: str | None = None) -> float:
@@ -713,10 +748,9 @@ def gibberish_score(text: str, script: str = "latin", language: str | None = Non
     # 5. Repetition (decoding loops)
     rep = repetition_score(text)
 
-    # 6. Lexical implausibility for the detected language, when we have one,
-    #    rescaled so that plausibility typical of clean text contributes nothing.
-    lex_raw = lexical_implausibility(text, language)
-    lex = None if lex_raw is None else _rescale_lexical(lex_raw)
+    # 6. Lexical implausibility, when it can be measured. Clean text contributes
+    #    nothing: the contrast is scaled so that clean-text contrast maps to 0.
+    lex = lexical_implausibility(text, language)
 
     components = {
         "non_wordlike": nwl_frac,
@@ -792,10 +826,20 @@ class OCRQualityReport:
     uncertainty_density: float = 0.0
     rare_bigram_ratio: float = 0.0
     repetition_score: float = 0.0
-    # 1 - lexical_plausibility for the detected language; -1.0 when no trigram
-    # profile is available, so "not measured" is distinguishable from "plausible".
+    # How unlike real language the text is, 0-1, from lexical_contrast; -1.0
+    # when not measured, so "not measured" is distinguishable from "plausible".
     lexical_implausibility: float = -1.0
+    # Hit rate of the text's trigrams over that of its shuffled letters, in the
+    # best-fitting profiled language; -1.0 when not measured.
+    lexical_contrast: float = -1.0
+    lexical_language: str = ""
+    # lexicon_trust.best_fit_plausibility, the hit rate token search and NER are
+    # gated on; -1.0 when no profile can judge the language.
+    lexical_plausibility: float = -1.0
     detected_language: str = ""
+    # Whether the text was assembled from tiles. Only then can a line start or
+    # end with a word cut at a seam, so only then do the fragment ratios count.
+    tiled: bool = True
 
     # Token-level stats
     token_count: int = 0
@@ -844,6 +888,7 @@ def compute_quality_report(
     pass_idx: int = 0,
     previous_pass_tokens: Sequence[str] | None = None,
     language: str | None = None,
+    tiled: bool = True,
 ) -> OCRQualityReport:
     """Compute a full OCR quality report for a text.
 
@@ -857,11 +902,15 @@ def compute_quality_report(
         language: Normalized detected language (e.g. 'latin', 'old_french').
             When it names a language with a trigram profile, the lexical
             signal is computed and dominates the gibberish score.
+        tiled: Whether the text was assembled from tiles. A whole-page or
+            line-by-line transcription has no seams, and its line starts and
+            ends - separated initials, abbreviated words, words broken across
+            lines without a hyphen - are not fragments.
 
     Returns:
         OCRQualityReport with all signals computed and quality_label set.
     """
-    report = OCRQualityReport(run_id=run_id, pass_idx=pass_idx)
+    report = OCRQualityReport(run_id=run_id, pass_idx=pass_idx, tiled=tiled)
 
     if not text or not text.strip():
         report.quality_label = "UNRELIABLE"
@@ -905,8 +954,15 @@ def compute_quality_report(
 
     # ── Lexical implausibility for the detected language ───────────
     report.detected_language = str(language or "")
-    lex = lexical_implausibility(text, language)
-    report.lexical_implausibility = -1.0 if lex is None else lex
+    contrast = lexical_contrast(text, language)
+    if contrast is not None:
+        report.lexical_contrast = contrast.ratio
+        report.lexical_language = contrast.language
+        report.lexical_implausibility = implausibility_from_contrast(contrast.ratio)
+    if _has_profile(language):
+        from app.services.lexicon_trust import best_fit_plausibility
+
+        report.lexical_plausibility = round(best_fit_plausibility(text, str(language)), 4)
 
     # ── Gibberish score ────────────────────────────────────────────
     report.gibberish_score = gibberish_score(text, report.script_family, language)
@@ -962,7 +1018,7 @@ def compute_quality_report(
     report.ner_allowed = report.quality_label in ("HIGH", "OK")
     # Seam retry: prefer geometry-aware seam_fragment_ratio; fall back to
     # leading_fragment_ratio only when seam_fragment_ratio is unavailable.
-    report.seam_retry_required = (
+    report.seam_retry_required = report.tiled and (
         report.seam_fragment_ratio >= SEAM_FRAG_HARD_LIMIT
         or report.leading_fragment_ratio >= LEADING_FRAG_HARD_LIMIT
     )
@@ -991,8 +1047,8 @@ def _derive_quality_label(r: OCRQualityReport) -> str:
     # only the repetition share exposes it.
     if r.repetition_score >= REPETITION_HARD_LIMIT:
         return "UNRELIABLE"
-    # Only meaningful when a trigram profile existed (-1.0 = not measured).
-    if r.lexical_implausibility >= LEXICON_UNRELIABLE_LIMIT:
+    # Only meaningful when the contrast was measured (-1.0 = not measured).
+    if 0 <= r.lexical_contrast < LEXICAL_CONTRAST_UNRELIABLE:
         return "UNRELIABLE"
 
     # RISKY conditions
@@ -1002,10 +1058,11 @@ def _derive_quality_label(r: OCRQualityReport) -> str:
         return "RISKY"
     # Use seam_fragment_ratio (geometry-aware) for seam-related RISKY.
     # leading_fragment_ratio alone does NOT trigger RISKY — it may be
-    # caused by legitimate short function words in medieval verse.
-    if r.seam_fragment_ratio >= SEAM_FRAG_HARD_LIMIT:
+    # caused by legitimate short function words in medieval verse. Neither
+    # applies to text that was never cut into tiles.
+    if r.tiled and r.seam_fragment_ratio >= SEAM_FRAG_HARD_LIMIT:
         return "RISKY"
-    if r.leading_fragment_ratio >= LEADING_FRAG_HARD_LIMIT:
+    if r.tiled and r.leading_fragment_ratio >= LEADING_FRAG_HARD_LIMIT:
         return "RISKY"
     if r.char_entropy < ENTROPY_LOW_LIMIT or r.char_entropy > ENTROPY_HIGH_LIMIT:
         return "RISKY"
@@ -1013,18 +1070,22 @@ def _derive_quality_label(r: OCRQualityReport) -> str:
         return "RISKY"
     if r.repetition_score >= REPETITION_SOFT_LIMIT:
         return "RISKY"
-    if r.lexical_implausibility >= LEXICON_RISKY_LIMIT:
+    if 0 <= r.lexical_contrast < LEXICAL_CONTRAST_RISKY:
+        return "RISKY"
+    # The hit rate token search and NER are gated on. It catches wrong letters,
+    # which the contrast is slow to notice, and it is all there is for text too
+    # short for the contrast.
+    if 0 <= r.lexical_plausibility < LEXICAL_PLAUSIBILITY_FLOOR:
         return "RISKY"
 
     # HIGH conditions
     if (r.gibberish_score < 0.10
         and r.non_wordlike_frac < 0.15
-        and r.leading_fragment_ratio < 0.06
-        and r.seam_fragment_ratio < 0.05
+        and (not r.tiled or (r.leading_fragment_ratio < 0.06 and r.seam_fragment_ratio < 0.05))
         and r.uncertainty_density < 0.03
         and 2.5 <= r.char_entropy <= 5.0
         and r.repetition_score < 0.10
-        and (r.lexical_implausibility < 0 or r.lexical_implausibility < 0.45)):
+        and (r.lexical_contrast < 0 or r.lexical_contrast >= LEXICAL_CONTRAST_CLEAN)):
         return "HIGH"
 
     return "OK"

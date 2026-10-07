@@ -9,19 +9,22 @@ may feed entity linking and RAG indexing could therefore never reject anything.
 
 from __future__ import annotations
 
+import json
 import random
+from pathlib import Path
 
 import pytest
 
 from app.services.ocr_quality import (
     compute_quality_report,
     gibberish_score,
+    implausibility_from_contrast,
     lexical_implausibility,
     repetition_score,
 )
 from app.services.ocr_quality_config import (
     GIBBERISH_HARD_LIMIT,
-    LEXICON_CLEAN_FLOOR,
+    LEXICAL_CONTRAST_RISKY,
     REPETITION_HARD_LIMIT,
     REPETITION_SOFT_LIMIT,
 )
@@ -33,6 +36,16 @@ CLEAN_OLD_FRENCH = (
 CLEAN_LATIN = (
     "Igitur in nomine domini nostri Iesu Christi incipit liber "
     "de vita et moribus sanctorum patrum"
+)
+
+# The lexical signal needs a page of text; the sentences above are too short.
+# These are reference transcriptions of a Latin page and an Old French prose page.
+_READINGS = Path(__file__).resolve().parents[1] / "eval" / "quality_gate" / "readings.json"
+_PAGES = {page["page_id"]: page for page in json.loads(_READINGS.read_text(encoding="utf-8"))["pages"]}
+LATIN_PAGE = _PAGES["latin-abaton"]["reference"]
+OLD_FRENCH_PAGE = _PAGES["old-french"]["reference"]
+PAGES = pytest.mark.parametrize(
+    ("text", "language"), [(LATIN_PAGE, "latin"), (OLD_FRENCH_PAGE, "old_french")], ids=["latin", "old_french"]
 )
 
 
@@ -77,14 +90,14 @@ def test_a_few_duplicate_lines_do_not_trip_the_hard_limit() -> None:
 # ──────────────────────────────────────────────── lexical signal ──
 
 
-@pytest.mark.parametrize(("text", "language"), [(CLEAN_LATIN, "latin"), (CLEAN_OLD_FRENCH, "old_french")])
-def test_clean_text_sits_at_or_below_the_clean_floor(text: str, language: str) -> None:
+@PAGES
+def test_clean_text_is_not_implausible(text: str, language: str) -> None:
     value = lexical_implausibility(text, language)
     assert value is not None
-    assert value <= LEXICON_CLEAN_FLOOR + 0.01
+    assert value < implausibility_from_contrast(LEXICAL_CONTRAST_RISKY)
 
 
-@pytest.mark.parametrize(("text", "language"), [(CLEAN_LATIN, "latin"), (CLEAN_OLD_FRENCH, "old_french")])
+@PAGES
 def test_reversed_text_is_far_more_implausible_than_clean(text: str, language: str) -> None:
     clean = lexical_implausibility(text, language)
     corrupt = lexical_implausibility(reverse_words(text), language)
@@ -93,7 +106,12 @@ def test_reversed_text_is_far_more_implausible_than_clean(text: str, language: s
 
 
 def test_lexical_implausibility_is_none_without_a_language() -> None:
-    assert lexical_implausibility(CLEAN_LATIN, None) is None
+    assert lexical_implausibility(LATIN_PAGE, None) is None
+
+
+def test_lexical_implausibility_is_none_for_a_sentence() -> None:
+    """Too few trigrams for the contrast to tell language from chance."""
+    assert lexical_implausibility(CLEAN_LATIN, "latin") is None
 
 
 def test_lexical_implausibility_is_none_for_a_language_with_no_profile() -> None:
@@ -109,7 +127,7 @@ def test_clean_text_scores_near_zero() -> None:
     assert gibberish_score(CLEAN_OLD_FRENCH, "latin", "old_french") < 0.10
 
 
-@pytest.mark.parametrize(("text", "language"), [(CLEAN_LATIN, "latin"), (CLEAN_OLD_FRENCH, "old_french")])
+@PAGES
 def test_reversed_text_no_longer_scores_the_same_as_clean(text: str, language: str) -> None:
     """The original defect: these two were bit-identical at 0.0."""
     clean = gibberish_score(text, "latin", language)
@@ -162,7 +180,7 @@ def test_clean_text_is_still_graded_high(text: str, language: str) -> None:
 
 def test_corrupt_text_loses_downstream_permissions() -> None:
     """The point of the gate: garbage must not reach entity linking or RAG."""
-    report = compute_quality_report(reverse_words(CLEAN_LATIN), language="latin")
+    report = compute_quality_report(reverse_words(LATIN_PAGE), language="latin")
     assert report.quality_label == "UNRELIABLE"
     assert report.ner_allowed is False
     assert report.token_search_allowed is False
