@@ -136,6 +136,17 @@ def _get_saia_ocr_agent() -> SaiaOCRAgent:
     return _saia_ocr_agent_instance
 
 
+def _record_search_decision(run_id: str, allowed: bool) -> None:
+    """Persist whether the run's text may be searched.
+
+    The vector store reads this back: it is the gate's decision for every path
+    into the index, not only for the pipeline's own auto-index call. Quality
+    reports alone cannot say which decision held - the tiled path writes one per
+    attempt and keeps the best, not the last.
+    """
+    update_run_fields(run_id, search_allowed=1 if allowed else 0)
+
+
 def _auto_index_run(run_id: str) -> None:
     """Best-effort auto-index into ChromaDB after pipeline success."""
     if not _app_settings.rag_auto_index:
@@ -3209,6 +3220,10 @@ def _run_full_page_post_ocr_pipeline(
         linking_result,
     ) if mentions_count or linking_result or authority_report else None
 
+    _record_search_decision(
+        run_id,
+        not (fixture is not None and fixture.semantic_mentions) and bool(gate_decisions.get("token_search_allowed", True)),
+    )
     if fixture is not None and fixture.semantic_mentions:
         log_event(run_id, "INDEX_SKIPPED", "INFO", "RAG auto-index skipped for curated semantic fixture mentions.")
     elif not gate_decisions.get("token_search_allowed", True):
@@ -3642,6 +3657,7 @@ async def _run_segmented_trace_pipeline(
 
     consolidated_report = _build_consolidated_report(run_id, asset_ref, mentions, salvage_debug, linking_result) if mentions or linking_result else None
 
+    _record_search_decision(run_id, bool(gate_decisions.get("token_search_allowed", True)))
     if not gate_decisions.get("token_search_allowed", True):
         log_event(run_id, "INDEX_SKIPPED", "INFO", f"RAG auto-index SKIPPED: token_search_allowed=False (quality={hardened_quality_label})")
     else:
@@ -4837,6 +4853,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
         # ══════════════════════════════════════════════════════════════
         # DOWNSTREAM: AUTO-INDEX (check token_search_allowed)
         # ══════════════════════════════════════════════════════════════
+        _record_search_decision(run_id, bool(gate_decisions.get("token_search_allowed", True)))
         if not gate_decisions.get("token_search_allowed", True):
             log_event(run_id, "INDEX_SKIPPED", "INFO",
                       f"RAG auto-index SKIPPED: token_search_allowed=False "

@@ -8,6 +8,7 @@ _backend_src = Path(__file__).resolve().parent.parent / "app"
 if str(_backend_src.parent) not in sys.path:
     sys.path.insert(0, str(_backend_src.parent))
 
+from app.config import settings  # type: ignore[import-untyped]
 from app.db import pipeline_db  # type: ignore[import-untyped]
 from app.services import rag_store  # type: ignore[import-untyped]
 
@@ -92,7 +93,7 @@ def _backend_collection_factory() -> tuple[dict[str, _FakeCollection], Any]:
 def test_index_run_builds_entity_native_index(tmp_path: Path, monkeypatch: Any) -> None:
     monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
     monkeypatch.setattr(pipeline_db, "_DB_READY", False)
-    monkeypatch.setattr(rag_store, "_provider_embed", lambda texts: (None, rag_store._LOCAL_EMBED_BACKEND))
+    monkeypatch.setattr(rag_store, "_embed", lambda texts: None)
 
     chunk_collection = _FakeCollection()
     entity_collection = _FakeCollection()
@@ -100,6 +101,7 @@ def test_index_run_builds_entity_native_index(tmp_path: Path, monkeypatch: Any) 
     monkeypatch.setattr(rag_store, "_entity_collection", lambda client=None, *, backend_key=None: entity_collection)
 
     run_id = pipeline_db.create_run(asset_ref="page-1", asset_sha256="sha")
+    pipeline_db.update_run_fields(run_id, search_allowed=1)
     pipeline_db.insert_chunks(
         run_id,
         [
@@ -195,11 +197,8 @@ def test_index_run_builds_entity_native_index(tmp_path: Path, monkeypatch: Any) 
 def test_retrieve_chunks_auto_indexes_run_into_provider_specific_collection(tmp_path: Path, monkeypatch: Any) -> None:
     monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
     monkeypatch.setattr(pipeline_db, "_DB_READY", False)
-    monkeypatch.setattr(
-        rag_store,
-        "_provider_embed",
-        lambda texts: ([[0.1, 0.2, 0.3, 0.4] for _ in texts], "provider_1024"),
-    )
+    monkeypatch.setattr(settings, "rag_embedding_model", "provider-1024")
+    monkeypatch.setattr(rag_store, "_embed", lambda texts: [[0.1, 0.2, 0.3, 0.4] for _ in texts])
 
     chunk_collections, chunk_factory = _backend_collection_factory()
     entity_collections, entity_factory = _backend_collection_factory()
@@ -207,6 +206,7 @@ def test_retrieve_chunks_auto_indexes_run_into_provider_specific_collection(tmp_
     monkeypatch.setattr(rag_store, "_entity_collection", entity_factory)
 
     run_id = pipeline_db.create_run(asset_ref="page-2", asset_sha256="sha-2")
+    pipeline_db.update_run_fields(run_id, search_allowed=1)
     pipeline_db.insert_chunks(
         run_id,
         [

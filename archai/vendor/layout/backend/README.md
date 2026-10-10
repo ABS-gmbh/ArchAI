@@ -130,6 +130,36 @@ alignment.
 python scripts/benchmark_retrieval.py --db app/archai.sqlite
 ```
 
+### What is searched
+
+Only searchable runs (`pipeline_db.searchable_runs`):
+
+- **The quality gate allowed search on the run.** The pipeline records the
+  decision on the run (`search_allowed`) before it indexes, and every path into
+  the vector store reads it back, including the auto-indexing a chat query
+  triggers. Runs from before the column fall back to their latest quality
+  report; a run with neither is never searched.
+- **Without a run filter, only the newest such run of each page.** A page is
+  its image hash, or its `asset_ref` when none was recorded. Indexing a re-run
+  deletes the earlier runs' vectors. A chat scoped to an older run still
+  searches that run.
+
+One embedding space: the configured `RAG_EMBEDDING_MODEL`, or ChromaDB's
+default when it is empty. When the provider cannot embed, nothing is indexed
+into another space, and queries are answered from BM25 alone, which reads the
+chunks from the pipeline database. Results carry `mode` (`hybrid`, `dense`,
+`lexical`, `none`) and `notes` saying why a ranker was left out.
+
+Two maintenance scripts bring an existing store in line. Both only report
+unless given `--apply`:
+
+```bash
+# Grade runs from before the decision was recorded with the current gate.
+python scripts/regrade_runs.py --apply
+# Delete vectors retrieval can no longer use; optionally drop other spaces.
+python scripts/prune_rag_index.py --apply --drop-other-spaces
+```
+
 ## Environment
 
 Copy `.env.example` to `.env` (or `.env.local`) and set API keys before running

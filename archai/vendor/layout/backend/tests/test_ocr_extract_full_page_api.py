@@ -650,3 +650,45 @@ def test_glm_post_pipeline_persists_unresolved_mentions_when_linking_is_deferred
     assert links[0]["link_status"] == "unresolved_low_quality"
     assert links[0]["surface"] == "Arthur"
     assert links[0]["evidence_raw_text"] == "Arthur"
+    # The gate's refusal is recorded on the run, so the vector store refuses it too.
+    assert pipeline_db.get_run(str(result["run_id"]))["search_allowed"] == 0
+    assert pipeline_db.searchable_runs([str(result["run_id"])]) == []
+
+
+def test_the_search_decision_is_recorded_before_the_run_is_indexed(tmp_path: Path, monkeypatch: Any) -> None:
+    """The store reads the decision back when indexing; it must already be there."""
+    monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
+    monkeypatch.setattr(pipeline_db, "_DB_READY", False)
+    monkeypatch.setattr(
+        ocr_router,
+        "enforce_quality_gates",
+        lambda *args, **kwargs: {
+            "ner_allowed": True,
+            "token_search_allowed": True,
+            "downstream_mode": "token_based",
+            "blocked_stages": [],
+        },
+    )
+    monkeypatch.setattr(ocr_router, "_run_trace_analysis", lambda run_id, text: ([], [], [], {"skipped": True}))
+    monkeypatch.setattr(ocr_router, "_run_authority_linking_stage", lambda run_id: None)
+    seen: dict[str, Any] = {}
+    monkeypatch.setattr(
+        ocr_router, "_auto_index_run", lambda run_id: seen.update(decision=pipeline_db.get_run(run_id)["search_allowed"])
+    )
+    response = SaiaFullPageExtractResponse(
+        status="FULL",
+        model_used="kraken_catmus",
+        detected_language="latin",
+        script_hint="latin",
+        confidence=0.9,
+        warnings=[],
+        lines=["In principio erat uerbum"],
+        text="In principio erat uerbum",
+        fallbacks=[],
+        comparison_runs=[],
+    )
+    payload = SaiaFullPageExtractRequest(document_id="doc-1", page_id="page-1", image_b64=SAMPLE_B64, apply_proofread=False)
+
+    ocr_router._run_full_page_post_ocr_pipeline(payload, response, b"image-bytes", ocr_backend="segmented")
+
+    assert seen == {"decision": 1}

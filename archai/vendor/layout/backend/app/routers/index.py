@@ -63,8 +63,10 @@ async def search_index(
         return {
             "query": query,
             "top_k": top_k or 5,
-            "results": hits,
-            "entity_results": entity_hits,
+            "mode": hits.mode,
+            "notes": [*hits.notes, *entity_hits.notes],
+            "results": list(hits),
+            "entity_results": list(entity_hits),
         }
     except Exception as exc:  # pragma: no cover
         raise HTTPException(status_code=500, detail=f"Search failed: {exc}") from exc

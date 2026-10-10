@@ -189,9 +189,12 @@ def _embedder(kind: str) -> Callable[[list[str]], list[list[float]]]:
     from app.services import rag_store
 
     def provider(batch: list[str]) -> list[list[float]]:
-        vectors, _backend = rag_store._provider_embed(batch)
+        try:
+            vectors = rag_store._embed(batch)
+        except rag_store.EmbeddingUnavailable as exc:
+            raise SystemExit(f"error: the configured embedding provider is unavailable: {exc}") from exc
         if vectors is None:
-            raise SystemExit("error: the configured embedding provider is unavailable")
+            raise SystemExit("error: no embedding provider is configured (RAG_EMBEDDING_MODEL is empty)")
         return vectors
 
     return provider
