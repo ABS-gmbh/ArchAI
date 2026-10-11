@@ -2,13 +2,17 @@
 
 Responsibilities
 ----------------
-* Manage a persistent ChromaDB collection of OCR text chunks.
-* Embed texts via the GWDG provider endpoint (OpenAI-compatible
-  ``/v1/embeddings``) or fall back to ChromaDB's built-in default
-  embedding function.
-* Index a completed pipeline run (read chunks from SQLite → upsert
-  into Chroma with full provenance metadata).
-* Retrieve top-k chunks for a user query and format them as citation
+* Manage persistent ChromaDB collections of OCR text chunks and entity records.
+* Embed texts in one space: the configured provider model (GWDG,
+  OpenAI-compatible ``/v1/embeddings``), or ChromaDB's built-in default when
+  none is configured. A provider failure is reported, never answered from a
+  different space.
+* Index a completed pipeline run (read chunks from SQLite → upsert into Chroma
+  with full provenance metadata), only when the quality gate allowed search on
+  it, retiring the vectors of the runs of the same page it supersedes.
+* Retrieve top-k chunks for a user query - dense ranking fused with character
+  n-gram BM25, over the searchable runs in scope (see
+  :func:`app.db.pipeline_db.searchable_runs`) - and format them as citation
   evidence blocks for the chat LLM.
 """
 
@@ -26,6 +30,7 @@ from chromadb.config import Settings as ChromaSettings
 
 from app.config import settings
 from app.db import pipeline_db
+from app.services.lexical_retrieval import LexicalIndex, reciprocal_rank_fusion
 from app.services.rag_debug import log_index_done, log_index_status, log_retrieve_debug
 
 log = logging.getLogger(__name__)
@@ -118,22 +123,38 @@ def _entity_collection(client: chromadb.ClientAPI | None = None, *, backend_key:
     )
 
 
-# ── Provider embeddings (optional) ─────────────────────────────────────
+# ── Embeddings ──────────────────────────────────────────────────────────
 
-def _provider_embed(texts: list[str]) -> tuple[list[list[float]] | None, str]:
-    """Try to compute embeddings via the GWDG OpenAI-compatible endpoint.
+class EmbeddingUnavailable(RuntimeError):
+    """The configured embedding model could not embed the text."""
 
-    Returns ``None`` if the provider is unavailable or the call fails,
-    so the caller can fall back to ChromaDB's built-in embeddings.
+
+def _space_key() -> str:
+    """The one embedding space every read and write uses.
+
+    It follows from configuration alone. It used to follow from whether the
+    provider answered: a failed provider call indexed or queried the local space
+    instead, a separate collection, so a query after a provider error searched
+    different documents. In the live store 20 of the 24 runs in the provider
+    space were missing from the local one, and 6 of its 10 runs from the provider
+    space.
+    """
+    return _embedding_backend_slug()
+
+
+def _embed(texts: list[str]) -> list[list[float]] | None:
+    """Embed *texts* in the configured space.
+
+    None in the local space, where ChromaDB embeds with its default function.
+    With a provider model configured, a failure raises EmbeddingUnavailable.
     """
     model = (settings.rag_embedding_model or "").strip()
     if not model:
-        return None, _LOCAL_EMBED_BACKEND  # no provider model configured → use local default
-
+        return None
     try:
         from openai import OpenAI  # type: ignore[import-not-found]
-    except ImportError:
-        return None, _LOCAL_EMBED_BACKEND
+    except ImportError as exc:
+        raise EmbeddingUnavailable("the openai package is not installed") from exc
 
     # Reuse the same key/base-url resolution as chat_ai
     from app.services.chat_ai import _require_api_key, _base_url
@@ -141,10 +162,9 @@ def _provider_embed(texts: list[str]) -> tuple[list[list[float]] | None, str]:
     try:
         client = OpenAI(api_key=_require_api_key(), base_url=_base_url())
         response = client.embeddings.create(model=model, input=texts)
-        return [list(d.embedding) for d in response.data], _embedding_backend_slug()
-    except Exception as exc:  # noqa: BLE001
-        log.warning("Provider embedding failed (%s), falling back to local: %s", model, exc)
-        return None, _LOCAL_EMBED_BACKEND
+    except Exception as exc:  # noqa: BLE001 - any provider failure means no embeddings
+        raise EmbeddingUnavailable(f"{model}: {exc}") from exc
+    return [list(d.embedding) for d in response.data]
 
 
 # ── Indexing ────────────────────────────────────────────────────────────
@@ -372,19 +392,67 @@ def _build_entity_index_payload(run_id: str, run: dict[str, Any]) -> tuple[list[
     return ids, documents, metadatas, skipped
 
 
-def _index_chunks_for_run(run_id: str, run: dict[str, Any], *, backend_key: str | None = None) -> dict[str, Any]:
+def _retire_superseded_runs(collection: chromadb.Collection, run_id: str) -> list[str]:
+    """Delete the vectors of the earlier runs of *run_id*'s page from *collection*.
+
+    Every analysis of a page is a new run with new chunk ids, so upserts never
+    replaced the previous copy: one page analysed eight times had eight copies
+    of each line indexed, and 87.9% of the live chunk index was exact duplicates.
+    Retrieval already searches only the newest searchable run of a page; this
+    keeps the store from growing by a page's worth of vectors on every re-run.
+    """
+    runs = pipeline_db.page_runs(run_id)
+    current = next((run for run in runs if run["run_id"] == run_id), None)
+    if current is None:
+        return []
+    position = (current["created_at"], current["run_id"])
+    older = [run["run_id"] for run in runs if (run["created_at"], run["run_id"]) < position]
+    ids: list[str] = []
+    retired: set[str] = set()
+    for start in range(0, len(older), 500):
+        existing = collection.get(where=_scope_filter(older[start : start + 500]), include=["metadatas"])
+        ids.extend(str(item) for item in existing.get("ids") or [])
+        retired.update(str((meta or {}).get("run_id") or "") for meta in existing.get("metadatas") or [])
+    if not ids:
+        return []
+    collection.delete(ids=ids)
+    retired.discard("")
+    log.info("Retired %d vectors of %d superseded runs of the page of run %s", len(ids), len(retired), run_id)
+    return sorted(retired)
+
+
+def _is_searchable(run_id: str) -> bool:
+    return bool(pipeline_db.searchable_runs([run_id]))
+
+
+def _index_chunks_for_run(run_id: str, run: dict[str, Any]) -> dict[str, Any]:
     chunks = pipeline_db.list_chunks(run_id)
     chunks_total = len(chunks)
     asset_ref = str(run.get("asset_ref") or "")
+    space = _space_key()
+    col = _collection(backend_key=space)
+    result: dict[str, Any] = {
+        "run_id": run_id,
+        "asset_ref": asset_ref,
+        "chunks_total": chunks_total,
+        "chunks_indexed": 0,
+        "chunks_skipped": chunks_total,
+        "collection_name": _active_chunk_collection_name(space),
+        "superseded_runs_retired": [],
+    }
+    if chunks and not _is_searchable(run_id):
+        # The pipeline skips indexing these runs itself; every other path into the
+        # index used not to. Vectors such a path left behind go too.
+        purged = _purge_run_chunk_vectors(col, run_id)
+        log.info("Not indexing run %s: the quality gate did not allow search on it (%d vectors removed)", run_id, purged)
+        return {**result, "collection_count_after": col.count(), "status": "blocked_by_quality_gate"}
+
     ids: list[str] = []
     documents: list[str] = []
     metadatas: list[dict[str, Any]] = []
-    skipped = 0
-
     for ch in chunks:
         text = str(ch["text"] or "").strip()
         if not text:
-            skipped += 1
             continue
         ids.append(str(ch["chunk_id"]))
         documents.append(text)
@@ -398,94 +466,71 @@ def _index_chunks_for_run(run_id: str, run: dict[str, Any], *, backend_key: str 
                 "detected_language": str(run.get("detected_language") or ""),
             }
         )
+    if not ids:
+        return {**result, "collection_count_after": col.count(), "status": "empty"}
 
-    effective_backend_key = backend_key or _LOCAL_EMBED_BACKEND
-    embeddings: list[list[float]] | None = None
-    if ids:
-        if backend_key is None:
-            embeddings, effective_backend_key = _provider_embed(documents)
-        elif backend_key != _LOCAL_EMBED_BACKEND:
-            embeddings, resolved_backend_key = _provider_embed(documents)
-            if embeddings is None or resolved_backend_key != backend_key:
-                log.warning(
-                    "Skipping chunk indexing for run %s in backend %s because provider embeddings are unavailable",
-                    run_id,
-                    backend_key,
-                )
-                return {
-                    "run_id": run_id,
-                    "asset_ref": asset_ref,
-                    "chunks_total": chunks_total,
-                    "chunks_indexed": 0,
-                    "chunks_skipped": chunks_total,
-                    "collection_name": _active_chunk_collection_name(backend_key),
-                    "collection_count_after": 0,
-                    "status": "embedding_unavailable",
-                }
-            effective_backend_key = backend_key
-    col = _collection(backend_key=effective_backend_key)
+    try:
+        embeddings = _embed(documents)
+    except EmbeddingUnavailable as exc:
+        log.warning("Not indexing run %s: embeddings unavailable (%s)", run_id, exc)
+        return {**result, "collection_count_after": col.count(), "status": "embedding_unavailable"}
     # Superseded vectors for this run must go, or a chunk-geometry change
     # leaves the old granularity in the collection competing for top_k.
     _purge_run_chunk_vectors(col, run_id)
     _upsert_collection(col, ids=ids, documents=documents, metadatas=metadatas, embeddings=embeddings)
+    retired = _retire_superseded_runs(col, run_id)
     return {
-        "run_id": run_id,
-        "asset_ref": asset_ref,
-        "chunks_total": chunks_total,
+        **result,
         "chunks_indexed": len(ids),
-        "chunks_skipped": skipped,
-        "collection_name": _active_chunk_collection_name(effective_backend_key),
+        "chunks_skipped": chunks_total - len(ids),
+        "superseded_runs_retired": retired,
         "collection_count_after": col.count(),
-        "status": "ok" if ids else "empty",
+        "status": "ok",
     }
 
 
-def index_entity_run(run_id: str, *, backend_key: str | None = None) -> dict[str, Any]:
+def index_entity_run(run_id: str) -> dict[str, Any]:
     t0 = time.perf_counter()
     run = pipeline_db.get_run(run_id)
     if run is None:
         raise ValueError(f"Pipeline run {run_id!r} not found.")
 
+    space = _space_key()
+    col = _entity_collection(backend_key=space)
     ids, documents, metadatas, skipped = _build_entity_index_payload(run_id, run)
-    effective_backend_key = backend_key or _LOCAL_EMBED_BACKEND
-    embeddings: list[list[float]] | None = None
-    if ids:
-        if backend_key is None:
-            embeddings, effective_backend_key = _provider_embed(documents)
-        elif backend_key != _LOCAL_EMBED_BACKEND:
-            embeddings, resolved_backend_key = _provider_embed(documents)
-            if embeddings is None or resolved_backend_key != backend_key:
-                log.warning(
-                    "Skipping entity indexing for run %s in backend %s because provider embeddings are unavailable",
-                    run_id,
-                    backend_key,
-                )
-                return {
-                    "run_id": run_id,
-                    "asset_ref": str(run.get("asset_ref") or ""),
-                    "entities_total": len(ids) + skipped,
-                    "entities_indexed": 0,
-                    "entities_skipped": len(ids) + skipped,
-                    "collection_name": _active_entity_collection_name(backend_key),
-                    "collection_count_after": 0,
-                    "took_ms": round((time.perf_counter() - t0) * 1000, 1),
-                    "status": "embedding_unavailable",
-                }
-            effective_backend_key = backend_key
-    col = _entity_collection(backend_key=effective_backend_key)
-    _upsert_collection(col, ids=ids, documents=documents, metadatas=metadatas, embeddings=embeddings)
-    result = {
+    result: dict[str, Any] = {
         "run_id": run_id,
         "asset_ref": str(run.get("asset_ref") or ""),
         "entities_total": len(ids) + skipped,
-        "entities_indexed": len(ids),
-        "entities_skipped": skipped,
-        "collection_name": _active_entity_collection_name(effective_backend_key),
-        "collection_count_after": col.count(),
-        "took_ms": round((time.perf_counter() - t0) * 1000, 1),
-        "status": "ok" if ids else "empty",
+        "entities_indexed": 0,
+        "entities_skipped": len(ids) + skipped,
+        "collection_name": _active_entity_collection_name(space),
     }
-    return result
+
+    def done(status: str, **extra: Any) -> dict[str, Any]:
+        return {
+            **result,
+            **extra,
+            "collection_count_after": col.count(),
+            "took_ms": round((time.perf_counter() - t0) * 1000, 1),
+            "status": status,
+        }
+
+    if ids and not _is_searchable(run_id):
+        stale = col.get(where={"run_id": run_id}, include=[])
+        if stale.get("ids"):
+            col.delete(ids=list(stale["ids"]))
+        return done("blocked_by_quality_gate")
+    if not ids:
+        return done("empty")
+    try:
+        embeddings = _embed(documents)
+    except EmbeddingUnavailable as exc:
+        log.warning("Not indexing the entities of run %s: embeddings unavailable (%s)", run_id, exc)
+        return done("embedding_unavailable")
+    _upsert_collection(col, ids=ids, documents=documents, metadatas=metadatas, embeddings=embeddings)
+    retired = _retire_superseded_runs(col, run_id)
+    return done("ok", entities_indexed=len(ids), entities_skipped=skipped, superseded_runs_retired=retired)
 
 
 def index_run(run_id: str) -> dict[str, Any]:
@@ -497,8 +542,17 @@ def index_run(run_id: str) -> dict[str, Any]:
 
     chunk_result = _index_chunks_for_run(run_id, run)
     entity_result = index_entity_run(run_id)
+    if chunk_result["chunks_indexed"] or entity_result["entities_indexed"]:
+        status = "ok"
+    elif "blocked_by_quality_gate" in (chunk_result["status"], entity_result["status"]):
+        status = "blocked_by_quality_gate"
+    elif "embedding_unavailable" in (chunk_result["status"], entity_result["status"]):
+        status = "embedding_unavailable"
+    else:
+        status = "empty"
     result = {
         **chunk_result,
+        "chunk_index_status": chunk_result["status"],
         "entity_collection_name": entity_result["collection_name"],
         "entities_total": entity_result["entities_total"],
         "entities_indexed": entity_result["entities_indexed"],
@@ -506,13 +560,14 @@ def index_run(run_id: str) -> dict[str, Any]:
         "entity_collection_count_after": entity_result["collection_count_after"],
         "entity_index_status": entity_result["status"],
         "took_ms": round((time.perf_counter() - t0) * 1000, 1),
-        "status": "ok" if chunk_result["chunks_indexed"] or entity_result["entities_indexed"] else "empty",
+        "status": status,
     }
     log.info(
-        "Indexed run %s with %d chunks and %d entity docs",
+        "Indexed run %s with %d chunks and %d entity docs (%s)",
         run_id,
         chunk_result["chunks_indexed"],
         entity_result["entities_indexed"],
+        status,
     )
     log_index_done(result)
     return result
@@ -580,10 +635,11 @@ def is_run_indexed(run_id: str) -> dict[str, Any]:
     return result
 
 
-def _ensure_chunk_runs_indexed(run_ids: Sequence[str] | None, *, backend_key: str) -> None:
+def _ensure_chunk_runs_indexed(run_ids: Sequence[str]) -> None:
+    """Index any of *run_ids* - already known to be searchable - whose vectors are missing or stale."""
     if not run_ids or not settings.rag_auto_index:
         return
-    collection = _collection(backend_key=backend_key)
+    collection = _collection(backend_key=_space_key())
     for run_id in run_ids:
         # Presence is not freshness. Re-analysing a page mints new chunk ids, so a
         # run whose vectors exist may hold an ENTIRELY different set of chunks -
@@ -594,20 +650,69 @@ def _ensure_chunk_runs_indexed(run_ids: Sequence[str] | None, *, backend_key: st
         run = pipeline_db.get_run(str(run_id))
         if run is None:
             continue
-        _index_chunks_for_run(str(run_id), run, backend_key=backend_key)
+        _index_chunks_for_run(str(run_id), run)
 
 
-def _ensure_entity_runs_indexed(run_ids: Sequence[str] | None, *, backend_key: str) -> None:
+def _ensure_entity_runs_indexed(run_ids: Sequence[str]) -> None:
     if not run_ids or not settings.rag_auto_index:
         return
-    collection = _entity_collection(backend_key=backend_key)
+    collection = _entity_collection(backend_key=_space_key())
     for run_id in run_ids:
         if _collection_has_run(collection, str(run_id)):
             continue
-        index_entity_run(str(run_id), backend_key=backend_key)
+        index_entity_run(str(run_id))
 
 
 # ── Retrieval ───────────────────────────────────────────────────────────
+
+class RetrievalResult(list):
+    """Retrieved hits, plus how they were found.
+
+    ``mode`` is ``"hybrid"`` (dense and lexical rankings fused), ``"dense"``,
+    ``"lexical"`` or ``"none"``. ``notes`` says why a ranker was left out or why
+    nothing could be searched, so a caller can tell "no evidence on this page"
+    from "the embedding provider is down" - an empty list alone could not.
+    """
+
+    def __init__(self, hits: Sequence[dict[str, Any]] = (), *, mode: str, notes: Sequence[str] = ()) -> None:
+        super().__init__(hits)
+        self.mode = mode
+        self.notes = list(notes)
+
+
+def _search_scope(run_ids: Sequence[str] | None, asset_ref: str | None) -> list[str]:
+    """The searchable runs a query may reach: see :func:`pipeline_db.searchable_runs`."""
+    return [row["run_id"] for row in pipeline_db.searchable_runs(run_ids, asset_ref=asset_ref)]
+
+
+def _scope_filter(run_ids: Sequence[str]) -> dict[str, Any]:
+    """Chroma ``where`` clause restricting a query to *run_ids*."""
+    id_list = list(run_ids)
+    if len(id_list) == 1:
+        return {"run_id": id_list[0]}
+    return {"run_id": {"$in": id_list}}
+
+
+def _dense_query(
+    col: chromadb.Collection,
+    query: str,
+    query_embeddings: list[list[float]] | None,
+    where_filter: dict[str, Any] | None,
+    *,
+    n_results: int,
+    ids: list[str] | None = None,
+) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "n_results": n_results,
+        "where": where_filter,
+        "include": ["documents", "metadatas", "distances"],
+    }
+    if ids is not None:
+        kwargs["ids"] = ids
+    if query_embeddings is not None:
+        return col.query(query_embeddings=query_embeddings, **kwargs)
+    return col.query(query_texts=[query], **kwargs)
+
 
 def retrieve_chunks(
     query: str,
@@ -615,8 +720,21 @@ def retrieve_chunks(
     top_k: int | None = None,
     run_ids: Sequence[str] | None = None,
     asset_ref: str | None = None,
-) -> list[dict[str, Any]]:
+) -> RetrievalResult:
     """Retrieve the *top_k* most relevant chunks for *query*.
+
+    Only searchable runs are searched (:func:`pipeline_db.searchable_runs`): runs
+    the quality gate allowed search on, and without *run_ids* only the newest of
+    them for each page. The vector store may still hold vectors of other runs,
+    left by older code; they are never returned.
+
+    The dense ranking is fused with character n-gram BM25 over the same chunks
+    (see :mod:`app.services.lexical_retrieval`) by Reciprocal Rank Fusion, unless
+    ``settings.rag_lexical_fusion`` is off. Dense embeddings alone found the
+    passage a user quoted among the top five chunks for 78.0% of lookups on real
+    OCR; fused, 92.2% (``scripts/benchmark_retrieval.py``). The lexical side
+    reads the chunks from the pipeline database, so it still answers when the
+    embedding provider does not, or a run was never embedded.
 
     Parameters
     ----------
@@ -631,47 +749,172 @@ def retrieve_chunks(
 
     Returns
     -------
-    List of dicts with keys ``chunk_id``, ``run_id``, ``asset_ref``,
-    ``chunk_idx``, ``start_offset``, ``end_offset``, ``text``,
-    ``distance``.
+    A :class:`RetrievalResult` of dicts with keys ``chunk_id``, ``run_id``,
+    ``asset_ref``, ``chunk_idx``, ``start_offset``, ``end_offset``, ``text``,
+    ``distance``. With fusion on, each hit also carries ``dense_rank`` and
+    ``lexical_rank`` (None where that retriever did not return the chunk),
+    ``lexical_score`` and ``fusion_score``. ``distance`` is the dense cosine
+    distance, or None where it could not be computed.
     """
     k = top_k or settings.rag_top_k
-    query_embeddings, backend_key = _provider_embed([query])
-    _ensure_chunk_runs_indexed(run_ids, backend_key=backend_key)
-    col = _collection(backend_key=backend_key)
+    scope = _search_scope(run_ids, asset_ref)
+    if not scope:
+        return RetrievalResult(mode="none", notes=["no searchable run in scope"])
+    fusion = settings.rag_lexical_fusion
+    # Both rankers contribute a pool deeper than top_k: a chunk ranked 12th by
+    # one and 2nd by the other must be visible to the fusion to win.
+    pool = max(k, settings.rag_fusion_pool) if fusion else k
+    notes: list[str] = []
 
-    where_clauses: list[dict[str, Any]] = []
-    if run_ids:
-        id_list = list(run_ids)
-        if len(id_list) == 1:
-            where_clauses.append({"run_id": id_list[0]})
-        else:
-            where_clauses.append({"run_id": {"$in": id_list}})
-    if asset_ref:
-        where_clauses.append({"asset_ref": asset_ref})
-
-    where_filter: dict[str, Any] | None = None
-    if len(where_clauses) == 1:
-        where_filter = where_clauses[0]
-    elif len(where_clauses) > 1:
-        where_filter = {"$and": where_clauses}
-
-    if query_embeddings is not None:
-        results = col.query(
-            query_embeddings=query_embeddings,
-            n_results=k,
-            where=where_filter,
-            include=["documents", "metadatas", "distances"],
-        )
+    col: chromadb.Collection | None = None
+    query_embeddings: list[list[float]] | None = None
+    dense: list[dict[str, Any]] | None = None
+    try:
+        query_embeddings = _embed([query])
+    except EmbeddingUnavailable as exc:
+        log.warning("Dense retrieval unavailable: %s", exc)
+        notes.append(f"dense ranking unavailable: {exc}")
     else:
-        results = col.query(
-            query_texts=[query],
-            n_results=k,
-            where=where_filter,
-            include=["documents", "metadatas", "distances"],
-        )
+        if run_ids is not None:
+            _ensure_chunk_runs_indexed(scope)
+        col = _collection(backend_key=_space_key())
+        dense = _flatten_results(_dense_query(col, query, query_embeddings, _scope_filter(scope), n_results=pool))
 
-    return _flatten_results(results)
+    lexical: list[tuple[str, float]] | None = None
+    records: dict[str, tuple[str, dict[str, Any]]] = {}
+    if fusion:
+        try:
+            ranked = _lexical_ranking(query, scope, limit=pool)
+        except Exception as exc:  # noqa: BLE001 - fusion must never cost the dense result
+            log.warning("Lexical retrieval failed; using the dense ranking alone: %s", exc)
+            notes.append(f"lexical ranking failed: {exc}")
+        else:
+            if ranked is None:
+                notes.append(f"lexical ranking skipped: more than rag_lexical_max_chunks={settings.rag_lexical_max_chunks} chunks in scope")
+            else:
+                lexical, records = ranked
+
+    if dense is not None and lexical is not None:
+        # A vector whose chunk is gone from the database - the run was re-chunked
+        # or cleared - is an orphan; the database is the record of what exists.
+        dense = [hit for hit in dense if hit["chunk_id"] in records]
+        hits = _fuse(col, query, query_embeddings, dense, lexical, records, top_k=k)
+        return RetrievalResult(hits, mode="hybrid", notes=notes)
+    if dense is not None:
+        return RetrievalResult(dense[:k], mode="dense", notes=notes)
+    if lexical:
+        hits = [
+            {
+                **_chunk_hit(chunk_id, *records[chunk_id], None),
+                "dense_rank": None,
+                "lexical_rank": rank,
+                "lexical_score": round(score, 4),
+                "fusion_score": None,
+            }
+            for rank, (chunk_id, score) in enumerate(lexical[:k], start=1)
+        ]
+        return RetrievalResult(hits, mode="lexical", notes=notes)
+    return RetrievalResult(mode="none" if lexical is None else "lexical", notes=notes)
+
+
+def _lexical_ranking(
+    query: str,
+    scope: Sequence[str],
+    *,
+    limit: int,
+) -> tuple[list[tuple[str, float]], dict[str, tuple[str, dict[str, Any]]]] | None:
+    """BM25 ranking of every chunk of the runs in *scope*, plus the records behind it.
+
+    The chunks come from the pipeline database, not the vector store, so the
+    ranking needs no embeddings. The records let a chunk the dense pool never
+    reached still be returned. The index is rebuilt per query, which costs about
+    a millisecond for the one-page scope chat uses; above
+    ``settings.rag_lexical_max_chunks`` chunks in scope the lexical side is
+    skipped (None) rather than slowing every query down.
+    """
+    cap = settings.rag_lexical_max_chunks
+    rows = pipeline_db.list_chunks_for_runs(scope, limit=cap + 1)
+    if len(rows) > cap:
+        log.info("Lexical retrieval skipped: more than rag_lexical_max_chunks=%d chunks in scope", cap)
+        return None
+    records = {
+        str(row["chunk_id"]): (
+            str(row["text"] or ""),
+            {
+                "run_id": str(row["run_id"]),
+                "asset_ref": str(row["asset_ref"] or ""),
+                "chunk_idx": int(row["idx"]),
+                "start_offset": int(row["start_offset"]),
+                "end_offset": int(row["end_offset"]),
+            },
+        )
+        for row in rows
+        if str(row["text"] or "").strip()
+    }
+    if not records:
+        return [], {}
+    index = LexicalIndex((chunk_id, text) for chunk_id, (text, _meta) in records.items())
+    return index.search(query, limit=limit), records
+
+
+def _fuse(
+    col: chromadb.Collection | None,
+    query: str,
+    query_embeddings: list[list[float]] | None,
+    dense: list[dict[str, Any]],
+    lexical: list[tuple[str, float]],
+    records: dict[str, tuple[str, dict[str, Any]]],
+    *,
+    top_k: int,
+) -> list[dict[str, Any]]:
+    dense_ids = [hit["chunk_id"] for hit in dense]
+    lexical_ids = [chunk_id for chunk_id, _score in lexical]
+    fused = reciprocal_rank_fusion([dense_ids, lexical_ids], k=settings.rag_rrf_k)[:top_k]
+
+    by_id = {hit["chunk_id"]: hit for hit in dense}
+    missing = [chunk_id for chunk_id, _score in fused if chunk_id not in by_id]
+    distances = _dense_distances(col, query, query_embeddings, missing) if missing and col is not None else {}
+    dense_rank = {chunk_id: rank for rank, chunk_id in enumerate(dense_ids, start=1)}
+    lexical_rank = {chunk_id: rank for rank, chunk_id in enumerate(lexical_ids, start=1)}
+    lexical_score = dict(lexical)
+
+    hits: list[dict[str, Any]] = []
+    for chunk_id, score in fused:
+        hit = by_id.get(chunk_id)
+        if hit is None:
+            text, meta = records[chunk_id]
+            hit = _chunk_hit(chunk_id, text, meta, distances.get(chunk_id))
+        hits.append(
+            {
+                **hit,
+                "dense_rank": dense_rank.get(chunk_id),
+                "lexical_rank": lexical_rank.get(chunk_id),
+                "lexical_score": round(lexical_score[chunk_id], 4) if chunk_id in lexical_score else None,
+                "fusion_score": round(score, 6),
+            }
+        )
+    return hits
+
+
+def _dense_distances(
+    col: chromadb.Collection,
+    query: str,
+    query_embeddings: list[list[float]] | None,
+    ids: list[str],
+) -> dict[str, float]:
+    """Dense distances for chunks only the lexical side returned.
+
+    Happens when the scope holds more chunks than the dense pool, or a run's
+    chunks were never embedded. Without it those hits would carry no
+    ``distance``, and the evidence blocks shown to the model would mix scored
+    and unscored chunks.
+    """
+    try:
+        results = _dense_query(col, query, query_embeddings, None, n_results=len(ids), ids=ids)
+    except Exception as exc:  # noqa: BLE001 - Chroma before 1.0 cannot restrict a query to ids
+        log.debug("Dense distances unavailable for lexical-only hits: %s", exc)
+        return {}
+    return {hit["chunk_id"]: hit["distance"] for hit in _flatten_results(results)}
 
 
 def retrieve_entities(
@@ -680,44 +923,44 @@ def retrieve_entities(
     top_k: int | None = None,
     run_ids: Sequence[str] | None = None,
     asset_ref: str | None = None,
-) -> list[dict[str, Any]]:
-    """Retrieve the *top_k* most relevant entity-native records for *query*."""
+) -> RetrievalResult:
+    """Retrieve the *top_k* most relevant entity-native records for *query*.
+
+    Over the same searchable runs as :func:`retrieve_chunks`, dense only.
+    """
     k = top_k or settings.rag_entity_top_k
-    query_embeddings, backend_key = _provider_embed([query])
-    _ensure_entity_runs_indexed(run_ids, backend_key=backend_key)
-    col = _entity_collection(backend_key=backend_key)
+    scope = _search_scope(run_ids, asset_ref)
+    if not scope:
+        return RetrievalResult(mode="none", notes=["no searchable run in scope"])
+    try:
+        query_embeddings = _embed([query])
+    except EmbeddingUnavailable as exc:
+        log.warning("Entity retrieval unavailable: %s", exc)
+        return RetrievalResult(mode="none", notes=[f"dense ranking unavailable: {exc}"])
+    if run_ids is not None:
+        _ensure_entity_runs_indexed(scope)
+    col = _entity_collection(backend_key=_space_key())
+    results = _dense_query(col, query, query_embeddings, _scope_filter(scope), n_results=k)
+    return RetrievalResult(_flatten_entity_results(results), mode="dense")
 
-    where_clauses: list[dict[str, Any]] = []
-    if run_ids:
-        id_list = list(run_ids)
-        if len(id_list) == 1:
-            where_clauses.append({"run_id": id_list[0]})
-        else:
-            where_clauses.append({"run_id": {"$in": id_list}})
-    if asset_ref:
-        where_clauses.append({"asset_ref": asset_ref})
 
-    where_filter: dict[str, Any] | None = None
-    if len(where_clauses) == 1:
-        where_filter = where_clauses[0]
-    elif len(where_clauses) > 1:
-        where_filter = {"$and": where_clauses}
-
-    if query_embeddings is not None:
-        results = col.query(
-            query_embeddings=query_embeddings,
-            n_results=k,
-            where=where_filter,
-            include=["documents", "metadatas", "distances"],
-        )
-    else:
-        results = col.query(
-            query_texts=[query],
-            n_results=k,
-            where=where_filter,
-            include=["documents", "metadatas", "distances"],
-        )
-    return _flatten_entity_results(results)
+def _chunk_hit(
+    chunk_id: str,
+    text: str | None,
+    meta: dict[str, Any] | None,
+    distance: float | None,
+) -> dict[str, Any]:
+    meta = meta or {}
+    return {
+        "chunk_id": chunk_id,
+        "run_id": meta.get("run_id", ""),
+        "asset_ref": meta.get("asset_ref", ""),
+        "chunk_idx": meta.get("chunk_idx", 0),
+        "start_offset": meta.get("start_offset", 0),
+        "end_offset": meta.get("end_offset", 0),
+        "text": text or "",
+        "distance": distance,
+    }
 
 
 def _flatten_results(results: dict[str, Any]) -> list[dict[str, Any]]:
@@ -730,16 +973,7 @@ def _flatten_results(results: dict[str, Any]) -> list[dict[str, Any]]:
 
     for ids, docs, metas, dists in zip(ids_outer, docs_outer, metas_outer, dists_outer):
         for chunk_id, text, meta, distance in zip(ids, docs, metas, dists):
-            out.append({
-                "chunk_id": chunk_id,
-                "run_id": (meta or {}).get("run_id", ""),
-                "asset_ref": (meta or {}).get("asset_ref", ""),
-                "chunk_idx": (meta or {}).get("chunk_idx", 0),
-                "start_offset": (meta or {}).get("start_offset", 0),
-                "end_offset": (meta or {}).get("end_offset", 0),
-                "text": text or "",
-                "distance": distance,
-            })
+            out.append(_chunk_hit(chunk_id, text, meta, distance))
     return out
 
 
@@ -802,7 +1036,9 @@ def retrieve_debug(
             "asset_ref": h["asset_ref"],
             "chunk_idx": h["chunk_idx"],
             "offsets": f"{h['start_offset']}-{h['end_offset']}",
-            "score": round(1.0 - float(h.get("distance", 0)), 4),
+            "score": _similarity(h.get("distance", 0)),
+            "dense_rank": h.get("dense_rank"),
+            "lexical_rank": h.get("lexical_rank"),
             "text_preview": (h.get("text") or "")[:120],
         })
     entity_results = []
@@ -818,7 +1054,7 @@ def retrieve_debug(
                 "authority_source": hit["authority_source"],
                 "authority_id": hit["authority_id"],
                 "entity_type": hit["entity_type"],
-                "score": round(1.0 - float(hit.get("distance", 0)), 4),
+                "score": _similarity(hit.get("distance", 0)),
                 "text_preview": (hit.get("text") or "")[:160],
             }
         )
@@ -826,11 +1062,20 @@ def retrieve_debug(
         "query": query,
         "k": k,
         "filter": {"run_id": run_id, "asset_ref": asset_ref},
+        "mode": getattr(hits, "mode", None),
+        "notes": [*getattr(hits, "notes", []), *getattr(entity_hits, "notes", [])],
         "results": results,
         "entity_results": entity_results,
     }
     log_retrieve_debug(payload)
     return payload
+
+
+def _similarity(distance: float | None, *, missing: Any = None) -> Any:
+    """Cosine similarity for display; *missing* when no distance was computed."""
+    if distance is None:
+        return missing
+    return round(1.0 - float(distance), 4)
 
 
 def format_evidence_blocks(chunks: list[dict[str, Any]]) -> str:
@@ -850,7 +1095,7 @@ def format_evidence_blocks(chunks: list[dict[str, Any]]) -> str:
             f"asset_ref: {ch.get('asset_ref', '')}\n"
             f"chunk_id: {ch.get('chunk_id', '')}\n"
             f"offsets: {ch.get('start_offset', 0)}-{ch.get('end_offset', 0)}\n"
-            f"retrieval_score: {round(1.0 - float(ch.get('distance', 1.0)), 4)}\n"
+            f"retrieval_score: {_similarity(ch.get('distance', 1.0), missing='n/a')}\n"
             f"text: {ch.get('text', '')}\n"
             "[/OCR_CHUNK_EVIDENCE]"
         )

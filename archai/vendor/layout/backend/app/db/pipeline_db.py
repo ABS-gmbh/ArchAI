@@ -8,7 +8,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
 
 @dataclass(frozen=True)
@@ -410,6 +410,9 @@ def _ensure_run_columns(conn: sqlite3.Connection) -> None:
         "base_text_source TEXT NULL",
         "chunks_count INTEGER NULL",
         "mentions_count INTEGER NULL",
+        # The quality gate's decision on whether the run's text may be searched:
+        # 1 or 0 once the pipeline has made it, NULL for runs from before.
+        "search_allowed INTEGER NULL",
     ):
         name = column_def.split(" ", 1)[0]
         if name in columns:
@@ -542,6 +545,7 @@ def update_run_fields(run_id: str, **fields: Any) -> None:
         "base_text_source",
         "chunks_count",
         "mentions_count",
+        "search_allowed",
         "error",
     }
 
@@ -762,6 +766,123 @@ def list_chunks(run_id: str, *, limit: int | None = None) -> list[dict[str, Any]
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
     return [{key: row[key] for key in row.keys()} for row in rows]
+
+
+# SQLite's default cap on bound parameters was 999 before 3.32.
+_IN_BATCH = 500
+
+
+def searchable_runs(run_ids: Sequence[str] | None = None, *, asset_ref: str | None = None) -> list[dict[str, Any]]:
+    """The runs whose chunks may be searched, newest first.
+
+    A run qualifies when it has chunks and the quality gate allowed token search
+    on it: the decision the pipeline recorded in ``search_allowed``, or, for runs
+    from before that column, the run's latest quality report. A run with neither
+    is never searchable - an ungraded transcription cannot pass a gate.
+
+    With *run_ids*, the qualifying runs among them are returned as asked for.
+    Without, re-runs of a page supersede each other and only the newest
+    qualifying run of each page is returned: a page is its image hash, or its
+    ``asset_ref`` when no hash was recorded. One page analysed eight times had
+    put eight copies of every line in the search index.
+
+    Each row holds ``run_id``, ``asset_ref``, ``page_key`` and ``created_at``.
+    """
+    _init_db_if_needed()
+    explicit = run_ids is not None
+    wanted = list(dict.fromkeys(str(run_id) for run_id in run_ids or ()))
+    if explicit and not wanted:
+        return []
+    sql = (
+        "SELECT r.run_id, r.asset_ref, r.asset_sha256, r.created_at, r.search_allowed, "
+        "(SELECT q.token_search_allowed FROM ocr_quality_reports q WHERE q.run_id = r.run_id "
+        "ORDER BY q.pass_idx DESC, q.created_at DESC LIMIT 1) AS report_allowed "
+        "FROM pipeline_runs r "
+        "WHERE EXISTS (SELECT 1 FROM chunks c WHERE c.run_id = r.run_id)"
+    )
+    params: list[Any] = []
+    if asset_ref:
+        sql += " AND r.asset_ref = ?"
+        params.append(str(asset_ref))
+    rows: list[sqlite3.Row] = []
+    with _connect() as conn:
+        if explicit:
+            for start in range(0, len(wanted), _IN_BATCH):
+                batch = wanted[start : start + _IN_BATCH]
+                placeholders = ",".join("?" for _ in batch)
+                rows.extend(conn.execute(f"{sql} AND r.run_id IN ({placeholders})", [*params, *batch]).fetchall())
+        else:
+            rows = conn.execute(sql, params).fetchall()
+
+    out: list[dict[str, Any]] = []
+    seen_pages: set[str] = set()
+    for row in sorted(rows, key=lambda row: (str(row["created_at"] or ""), str(row["run_id"])), reverse=True):
+        allowed = row["search_allowed"] if row["search_allowed"] is not None else row["report_allowed"]
+        if not allowed:
+            continue
+        page_key = str(row["asset_sha256"] or "").strip() or f"asset_ref:{row['asset_ref']}"
+        if not explicit:
+            if page_key in seen_pages:
+                continue
+            seen_pages.add(page_key)
+        out.append(
+            {
+                "run_id": str(row["run_id"]),
+                "asset_ref": str(row["asset_ref"] or ""),
+                "page_key": page_key,
+                "created_at": str(row["created_at"] or ""),
+            }
+        )
+    return out
+
+
+def page_runs(run_id: str) -> list[dict[str, Any]]:
+    """Every run of the same page as *run_id* (itself included), oldest first."""
+    _init_db_if_needed()
+    with _connect() as conn:
+        run = conn.execute("SELECT asset_ref, asset_sha256 FROM pipeline_runs WHERE run_id=?", (run_id,)).fetchone()
+        if run is None:
+            return []
+        if str(run["asset_sha256"] or "").strip():
+            rows = conn.execute(
+                "SELECT run_id, created_at FROM pipeline_runs WHERE asset_sha256=? ORDER BY created_at, run_id",
+                (run["asset_sha256"],),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT run_id, created_at FROM pipeline_runs "
+                "WHERE asset_ref=? AND (asset_sha256 IS NULL OR asset_sha256='') ORDER BY created_at, run_id",
+                (run["asset_ref"],),
+            ).fetchall()
+    return [{"run_id": str(row["run_id"]), "created_at": str(row["created_at"] or "")} for row in rows]
+
+
+def list_chunks_for_runs(run_ids: Sequence[str], *, limit: int | None = None) -> list[dict[str, Any]]:
+    """Chunks of several runs with each run's ``asset_ref``, in run order then chunk order.
+
+    *limit* caps the rows read, so a caller can tell an over-large scope from
+    reading one row more than it will accept.
+    """
+    _init_db_if_needed()
+    wanted = list(dict.fromkeys(str(run_id) for run_id in run_ids))
+    out: list[dict[str, Any]] = []
+    with _connect() as conn:
+        for start in range(0, len(wanted), _IN_BATCH):
+            batch = wanted[start : start + _IN_BATCH]
+            placeholders = ",".join("?" for _ in batch)
+            sql = (
+                "SELECT c.chunk_id, c.run_id, c.idx, c.start_offset, c.end_offset, c.text, r.asset_ref "
+                f"FROM chunks c JOIN pipeline_runs r ON r.run_id = c.run_id WHERE c.run_id IN ({placeholders}) "
+                "ORDER BY c.run_id, c.idx"
+            )
+            params: list[Any] = list(batch)
+            if limit is not None:
+                sql += " LIMIT ?"
+                params.append(int(limit) - len(out))
+            out.extend({key: row[key] for key in row.keys()} for row in conn.execute(sql, params).fetchall())
+            if limit is not None and len(out) >= limit:
+                break
+    return out
 
 
 def list_entity_mentions(run_id: str, *, limit: int | None = None) -> list[dict[str, Any]]:

@@ -51,8 +51,9 @@ pip install -e ".[dev]"
 python -m pytest tests -q
 ```
 
-CI runs the dependency-light subset (evaluation, chunking, medieval text) on
-every push; the rest of the suite needs the inference stack.
+CI runs the dependency-light subset (evaluation, chunking, medieval text,
+lexical retrieval, retrieval benchmark) on every push; the rest of the suite
+needs the inference stack.
 
 ## Full-page OCR
 
@@ -110,6 +111,54 @@ runs against each other measures their agreement, not their accuracy.
 
 Retrieval metrics (recall@k, precision@k, MRR, nDCG@k) live in
 `app/services/evaluation.py` alongside the OCR metrics.
+
+## Retrieval
+
+Chunk retrieval is hybrid. The dense ranking from the embedding model is fused
+by Reciprocal Rank Fusion with BM25 over character 4-grams of the
+abbreviation-expanded search key (`app/services/lexical_retrieval.py`), so a
+query meets OCR text that spells the same words differently. Each hit reports
+`dense_rank`, `lexical_rank` and `fusion_score` next to the usual fields; set
+`RAG_LEXICAL_FUSION=false` to fall back to dense retrieval only.
+
+`scripts/benchmark_retrieval.py` measures this on the pipeline DB. No relevance
+judgments are needed: it looks up passages from one OCR reading of a page in a
+different reading of the same page, locating the right chunk by character
+alignment.
+
+```bash
+python scripts/benchmark_retrieval.py --db app/archai.sqlite
+```
+
+### What is searched
+
+Only searchable runs (`pipeline_db.searchable_runs`):
+
+- **The quality gate allowed search on the run.** The pipeline records the
+  decision on the run (`search_allowed`) before it indexes, and every path into
+  the vector store reads it back, including the auto-indexing a chat query
+  triggers. Runs from before the column fall back to their latest quality
+  report; a run with neither is never searched.
+- **Without a run filter, only the newest such run of each page.** A page is
+  its image hash, or its `asset_ref` when none was recorded. Indexing a re-run
+  deletes the earlier runs' vectors. A chat scoped to an older run still
+  searches that run.
+
+One embedding space: the configured `RAG_EMBEDDING_MODEL`, or ChromaDB's
+default when it is empty. When the provider cannot embed, nothing is indexed
+into another space, and queries are answered from BM25 alone, which reads the
+chunks from the pipeline database. Results carry `mode` (`hybrid`, `dense`,
+`lexical`, `none`) and `notes` saying why a ranker was left out.
+
+Two maintenance scripts bring an existing store in line. Both only report
+unless given `--apply`:
+
+```bash
+# Grade runs from before the decision was recorded with the current gate.
+python scripts/regrade_runs.py --apply
+# Delete vectors retrieval can no longer use; optionally drop other spaces.
+python scripts/prune_rag_index.py --apply --drop-other-spaces
+```
 
 ## Environment
 

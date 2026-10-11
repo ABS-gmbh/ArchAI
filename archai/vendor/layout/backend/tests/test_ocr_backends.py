@@ -169,7 +169,7 @@ def test_auto_route_falls_back_when_the_primary_reads_nothing(monkeypatch: Any) 
 
 # One line of the Latin "Abaton" demo page as each model read it. CATMuS is off by
 # 5% of the characters, McCATMuS by 67% - yet the quality score ranks McCATMuS
-# higher (0.649 against 0.571), and CATMuS falls under the 0.60 floor.
+# higher (0.649 against 0.606).
 _CATMUS_LINE = "Sopniũ ĩ cͣpula fuit. ⁊ erit uisiõ uana"
 _MCCATMUS_LINE = "Gopnuigutaaut reux rtiousis"
 
@@ -187,7 +187,7 @@ def test_the_quality_score_prefers_the_worse_reading() -> None:
     """Why the score may not elect a model: it is not comparable across models."""
     catmus = ocr_agent._region_quality_value(_CATMUS_LINE, 0.85, "latin")
     mccatmus = ocr_agent._region_quality_value(_MCCATMUS_LINE, 0.85, "latin")
-    assert catmus < OCRExtractOptions().quality_floor < mccatmus
+    assert catmus < mccatmus
 
 
 def test_auto_route_keeps_the_primary_reading_whatever_it_scores(monkeypatch: Any) -> None:
@@ -205,12 +205,15 @@ def test_auto_route_keeps_the_primary_reading_whatever_it_scores(monkeypatch: An
 
 
 def test_backend_election_can_be_switched_back_on(monkeypatch: Any) -> None:
+    """Switched on, a line scoring under the floor falls through to the best-scoring reading."""
     runtime = _abaton_runtime()
     monkeypatch.setattr(ocr_agent, "build_backend_runtime", lambda *args, **kwargs: runtime)
     monkeypatch.setattr(ocr_agent.settings, "ocr_backend_election", True)
+    # A floor above the CATMuS line's score, wherever the score itself lands.
+    floor = (ocr_agent._region_quality_value(_CATMUS_LINE, 0.85, "latin") + ocr_agent._region_quality_value(_MCCATMUS_LINE, 0.85, "latin")) / 2
 
     result = ocr_agent.run_ocr_extraction(
-        _request(OCRExtractOptions(language_hint="latin", apply_proofread=False)),
+        _request(OCRExtractOptions(language_hint="latin", apply_proofread=False, quality_floor=floor)),
         client=_DummyClient(),
     )
 

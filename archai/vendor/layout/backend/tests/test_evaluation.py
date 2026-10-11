@@ -22,6 +22,7 @@ from app.services.evaluation import (
     NormalizationPolicy,
     RetrievalQuery,
     align,
+    alignment_offsets,
     bootstrap_ci,
     cer,
     edit_distance,
@@ -110,6 +111,46 @@ def test_oversized_alignment_keeps_exact_distance(monkeypatch: pytest.MonkeyPatc
     counts = align("kitten", "sitting")
     assert counts.distance == 3
     assert not counts.has_breakdown
+
+
+# ── offset alignment ────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("ref", "hyp", "expected"),
+    [
+        ("abc", "abc", [0, 1, 2, 3]),
+        ("abc", "aXbc", [0, 2, 3, 4]),  # the offset after an insertion maps past it
+        ("abc", "ac", [0, 1, 1, 2]),
+        ("", "xy", [2]),
+        ("ab", "", [0, 0, 0]),
+    ],
+)
+def test_alignment_offsets_known_cases(ref: str, hyp: str, expected: list[int]) -> None:
+    assert alignment_offsets(ref, hyp).tolist() == expected
+
+
+def test_a_span_projects_onto_another_reading() -> None:
+    ref, hyp = "the kyng of fraunce", "the king of france"
+    offsets = alignment_offsets(ref, hyp)
+    start = ref.index("kyng")
+    assert hyp[offsets[start] : offsets[start + 4]] == "king"
+    start = ref.index("fraunce")
+    assert hyp[offsets[start] : offsets[len(ref)]] == "france"
+
+
+def test_alignment_offsets_are_monotone_and_bounded() -> None:
+    for a, b in _random_pairs(300, seed=13):
+        offsets = alignment_offsets(a, b).tolist()
+        assert offsets == sorted(offsets)
+        assert offsets[-1] == len(b)
+        assert all(0 <= value <= len(b) for value in offsets)
+
+
+def test_alignment_offsets_refuse_oversized_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(evaluation, "_MAX_ALIGNMENT_CELLS", 10)
+    with pytest.raises(ValueError):
+        alignment_offsets("kitten", "sitting")
 
 
 # ── rates ───────────────────────────────────────────────────────────────
