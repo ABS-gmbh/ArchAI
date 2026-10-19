@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
-from collections import defaultdict
+from collections import Counter, defaultdict
 import hashlib
 import io
 import json
@@ -324,7 +324,26 @@ _LATIN_STRONG_ANCHORS = {
     "confirmamus",
     "perpetuo",
 }
-_MENTION_TOKEN_RE = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ][A-Za-zÀ-ÖØ-öø-ÿ'’\-]*")
+# Letters, the combining marks diplomatic transcriptions write over them (ẽ, the
+# superscript a of "mͣrcadigas") and the MUFI abbreviation letters (ꝑ, ꝯ, ꝰ).
+# Without the last two, a word was cut at its first abbreviation: "mͣrcadigas"
+# was read as "m" and "rcadigas", "Caldꝰ" as "Cald".
+_WORD_CHARS = "A-Za-z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u00ff\u0100-\u024f\u1e00-\u1eff\ua720-\ua7ff\uab30-\uab6f"
+_MARK_CHARS = "\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f"
+_MENTION_TOKEN_RE = re.compile(rf"[{_WORD_CHARS}][{_WORD_CHARS}{_MARK_CHARS}'’\-]*")
+
+
+def _word_key(token: str) -> str:
+    """A word as the search key spells it: abbreviations expanded, u/v and i/j merged.
+
+    Every lexicon the mention rules consult is compared on these keys, so the
+    diplomatic "uilanie" meets the listed "vilanie" and "Caldꝰ" is "caldus".
+    """
+    return build_search_key(token)
+
+
+def _keyed(words: Any) -> frozenset[str]:
+    return frozenset(_word_key(word) for word in words)
 _PERSON_PARTICLES = {"de", "d'", "d’", "du", "des"}
 _PLACE_ANCHORS = {"lausanne", "paris", "lyon", "rome", "avignon", "geneve", "genève"}
 _WEAK_PLACE_LEXICAL_BLACKLIST = {
@@ -350,6 +369,8 @@ _WEAK_PLACE_LEXICAL_BLACKLIST = {
     "chevalerie",
 }
 _TITLE_ANCHORS = {"euesque", "évesque", "evesque", "prince", "chapellain", "pere"}
+_PLACE_ANCHOR_KEYS = _keyed(_PLACE_ANCHORS)
+_WEAK_PLACE_LEXICAL_KEYS = _keyed(_WEAK_PLACE_LEXICAL_BLACKLIST)
 _DATE_PATTERNS = (
     re.compile(r"\b(?:l['’]an|lan|an de grace)\b(?:\s+[A-Za-z0-9IVXLCDM]+){0,4}", re.IGNORECASE),
     re.compile(r"\b(?:mil|mille)\b(?:\s+[A-Za-z0-9IVXLCDM]+){0,4}", re.IGNORECASE),
@@ -713,6 +734,13 @@ def _dedupe_mentions(base_text: str, mentions: list[dict[str, Any]]) -> list[dic
 # ── Salvage extractor constants ─────────────────────────────────────────
 _SALVAGE_TRIGGERS: dict[str, str] = {
     "roi": "PERSON_OR_ROLE", "roy": "PERSON_OR_ROLE", "roya": "PERSON_OR_ROLE",
+    # Old French nominative singular: "li rois Artus", "Caldus li roys".
+    "rois": "PERSON_OR_ROLE", "roys": "PERSON_OR_ROLE",
+    # Latin: "euangelistae iohannis", "sancti benedicti", "rex karolus".
+    "sanctus": "PERSON", "sancti": "PERSON", "sancta": "PERSON", "sancte": "PERSON",
+    "beatus": "PERSON", "beati": "PERSON", "beata": "PERSON", "beate": "PERSON",
+    "apostolus": "PERSON", "apostoli": "PERSON", "euangelista": "PERSON", "euangelistae": "PERSON",
+    "rex": "PERSON_OR_ROLE", "regis": "PERSON_OR_ROLE", "episcopus": "PERSON_OR_ROLE", "episcopi": "PERSON_OR_ROLE",
     "evesque": "PERSON_OR_ROLE", "évesque": "PERSON_OR_ROLE", "euesque": "PERSON_OR_ROLE",
     "saint": "PERSON", "sainz": "PERSON",
     "pape": "PERSON_OR_ROLE", "duc": "PERSON_OR_ROLE",
@@ -749,7 +777,10 @@ _SALVAGE_STOPWORDS = {
     "estoit", "avoit", "ala", "alerent", "vont", "font", "firent",
     "puis", "lors", "tant", "moult", "aussi", "donc", "dont",
 }
-_SALVAGE_TOKEN_RE = re.compile(r"[A-Za-z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u00ff\u0100-\u017e\u017f\u0180-\u024f]+")
+_SALVAGE_TRIGGER_KEYS: dict[str, str] = {_word_key(word): label for word, label in _SALVAGE_TRIGGERS.items()}
+_SALVAGE_STOPWORD_KEYS = _keyed(_SALVAGE_STOPWORDS)
+_APPOSITION_ARTICLE_KEYS = _keyed({"li", "le", "lo"})
+_SALVAGE_TOKEN_RE = re.compile(rf"[{_WORD_CHARS}][{_WORD_CHARS}{_MARK_CHARS}]*")
 # Only prepositions that reliably signal a place name in medieval French.
 # Deliberately excludes "a" (too common as a verb/article) to avoid noise.
 _PLACE_PREP_RE = re.compile(
@@ -792,7 +823,9 @@ def _looks_like_medieval_name(token: str) -> bool:
       2. Length 3–18 characters.
       3. Vowel ratio between 0.20 and 0.80.
       4. No run of ≥ 4 consecutive consonants (unusual in French names).
-      5. Proximity gate for non-canonical tokens ≥ 5 chars.
+
+    Callers pass the search key (:func:`_word_key`), so abbreviation marks do
+    not count as consonants.
 
     Returns ``True`` if the token passes all applicable checks.
     """
@@ -810,11 +843,8 @@ def _looks_like_medieval_name(token: str) -> bool:
         return False
 
     # Gate 1: canonical match using normalized distance + bigram overlap
-    best_norm_dist = 1.0
     for canon in _CANONICAL_PERSON_NAMES:
         nd = normalized_edit_distance(low, canon)
-        if nd < best_norm_dist:
-            best_norm_dist = nd
         # Short tokens (< 5 chars): require exact or 1-char-off match
         if len(low) < 5:
             if nd == 0.0:  # exact match only for very short tokens
@@ -841,13 +871,41 @@ def _looks_like_medieval_name(token: str) -> bool:
             if consonant_run >= 4:
                 return False
 
-    # Proximity gate: non-canonical tokens ≥ 5 chars must be within
-    # a reasonable normalized distance of at least one canonical name.
-    if len(low) >= 5:
-        if best_norm_dist > 0.35:
-            return False
-
+    # No closeness to the canonical names is required: they are the
+    # Arthurian cast, and requiring it made every other name - Marcadigas,
+    # Iohannes - a role. The trigger before the token is the evidence.
     return True
+
+
+def _is_canonical_person_name(key: str) -> bool:
+    from app.services.text_normalization import bigram_overlap, normalized_edit_distance
+
+    for canon in _CANONICAL_PERSON_NAMES:
+        if len(key) < 5:
+            if key == canon:
+                return True
+        elif normalized_edit_distance(key, canon) <= 0.25 and bigram_overlap(key, canon) >= 0.40:
+            return True
+    return False
+
+
+def _is_trigger_name(token: str, key_counts: Counter[str], *, saint: bool = False) -> bool:
+    """Is the word beside a title ("li rois", "beati") the name of a person?
+
+    A name from the canonical list is. Any other must look like a word and
+    carry a second sign of being a name: a capital, or a second occurrence on
+    the page. Misread words rarely recur exactly, and on 72 transcriptions held
+    out from the pipeline database the title rule otherwise took "qu'uncz",
+    "enguit" and "nirendignal" for kings. After a saint's or an apostle's title
+    (*saint*, *beatus*, *euangelista*) the word that looks like one is a name:
+    "euangelistae iohannis".
+    """
+    key = _word_key(token)
+    if _is_canonical_person_name(key):
+        return True
+    if not _looks_like_medieval_name(key):
+        return False
+    return saint or token[:1].isupper() or key_counts[key] >= 2
 
 
 def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -867,6 +925,8 @@ def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dic
 
     tokens_matches = list(_SALVAGE_TOKEN_RE.finditer(value))
     tokens_lower = [(m.group(0).lower(), m.start(), m.end()) for m in tokens_matches]
+    keys = [_word_key(m.group(0)) for m in tokens_matches]
+    key_counts = Counter(keys)
 
     mentions: list[dict[str, Any]] = []
     debug: dict[str, Any] = {
@@ -879,9 +939,37 @@ def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dic
 
     # ── Rule 1: Trigger words ─────────────────────────────────────────
     for idx, (tok_low, tok_start, tok_end) in enumerate(tokens_lower):
-        label = _SALVAGE_TRIGGERS.get(tok_low)
+        label = _SALVAGE_TRIGGER_KEYS.get(keys[idx])
         if label is None:
             continue
+        # Old French also puts the name first: "Caldus li roys".
+        if idx >= 2 and keys[idx - 1] in _APPOSITION_ARTICLE_KEYS:
+            name_start, name_end_back = tokens_lower[idx - 2][1], tokens_lower[idx - 2][2]
+            name_token = value[name_start:name_end_back]
+            gap = value[name_end_back:tokens_lower[idx - 1][1]]
+            if (
+                not any(ch in gap for ch in ".;:!?")
+                and keys[idx - 2] not in _SALVAGE_STOPWORD_KEYS
+                and keys[idx - 2] not in _SALVAGE_TRIGGER_KEYS
+                and not is_blacklisted_token(name_token)
+                and _is_trigger_name(name_token, key_counts)
+                and (name_start, tok_end) not in seen_spans
+            ):
+                seen_spans.add((name_start, tok_end))
+                surface = value[name_start:tok_end]
+                mentions.append({
+                    "start_offset": name_start,
+                    "end_offset": tok_end,
+                    "surface": surface,
+                    "norm": _norm_surface(surface),
+                    "label": label,
+                    "ent_type": "person",
+                    "confidence": 0.55,
+                    "method": "rule:salvage_apposition",
+                    "notes": f"name before article+trigger ({tok_low})",
+                    "name_keys": [keys[idx - 2]],
+                })
+                debug["trigger"] += 1
         # Capture next 1–4 non-stopword tokens as the candidate name
         name_parts: list[str] = []
         name_end = tok_end
@@ -892,11 +980,14 @@ def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dic
             nxt_tok, nxt_start, nxt_end = tokens_lower[nxt]
             # Stop on another trigger or punctuation gap > 3 chars
             gap = value[name_end:nxt_start]
-            if len(gap) > 3 or any(ch in gap for ch in '.;:!?'):
+            # The Tironian et (⁊) and & are "et", which ends a name as the word
+            # does; so does a line end - in verse the next line opens with a
+            # capital whether or not it is a name.
+            if len(gap) > 3 or any(ch in gap for ch in '.;:!?⁊&\n'):
                 break
-            if nxt_tok in _SALVAGE_STOPWORDS or len(nxt_tok) < 2:
+            if keys[nxt] in _SALVAGE_STOPWORD_KEYS or len(nxt_tok) < 2:
                 break
-            if nxt_tok in _SALVAGE_TRIGGERS:
+            if keys[nxt] in _SALVAGE_TRIGGER_KEYS:
                 break
             name_parts.append(value[nxt_start:nxt_end])
             name_end = nxt_end
@@ -925,7 +1016,7 @@ def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dic
         # ── Name-quality heuristic: decide person vs role ─────────
         # If *any* non-blacklisted name_part looks like a real medieval
         # name → person.  Otherwise → role (not sent for person linking).
-        any_name_like = any(_looks_like_medieval_name(p) for p in non_blacklisted)
+        any_name_like = _is_trigger_name(non_blacklisted[0], key_counts, saint=label == "PERSON")
         ent_type = "person" if any_name_like else "role"
         confidence = 0.55 if any_name_like else 0.25
 
@@ -950,6 +1041,7 @@ def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dic
             "confidence": confidence,
             "method": "rule:salvage_trigger",
             "notes": f"trigger={tok_low} name_quality={'name' if any_name_like else 'role'}",
+            "name_keys": [_word_key(non_blacklisted[0])] if any_name_like else [],
         })
         debug["trigger"] += 1
 
@@ -1017,6 +1109,7 @@ def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dic
             continue
         tok_text = next_tok_m.group(0)
         tok_low_val = tok_text.lower()
+        tok_key = _word_key(tok_text)
         # ── Req 2: editorial/philology blacklist ─────────────────
         if tok_low_val in _EDITORIAL_BLACKLIST:
             debug["rejected"].append({
@@ -1029,7 +1122,7 @@ def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dic
                 "reason": f"editorial_blacklist: '{tok_low_val}' is not an entity",
             })
             continue
-        if tok_low_val in _WEAK_PLACE_LEXICAL_BLACKLIST:
+        if tok_key in _WEAK_PLACE_LEXICAL_KEYS:
             debug["rejected"].append({
                 "surface": tok_text,
                 "start_offset": next_tok_m.start(),
@@ -1042,7 +1135,7 @@ def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dic
             continue
         # Require length >= 5, alpha-only after norm, and not a stopword
         norm_tok = _norm_surface(tok_text)
-        if len(tok_text) < 5 or tok_low_val in _SALVAGE_STOPWORDS:
+        if len(tok_text) < 5 or tok_key in _SALVAGE_STOPWORD_KEYS:
             debug["rejected"].append({
                 "surface": tok_text,
                 "start_offset": next_tok_m.start(),
@@ -1071,23 +1164,25 @@ def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dic
         # (c) token length >= 6 AND good phonotactic quality
         # This prevents short lowercase OCR garbage ("ament") from
         # slipping through.
-        is_known_place = tok_low_val in _PLACE_ANCHORS
+        is_known_place = tok_key in _PLACE_ANCHOR_KEYS
         is_capitalized = tok_text[:1].isupper()
-        place_quality = _tqs(tok_low_val)
+        place_quality = _tqs(tok_key)
 
         if not is_known_place and not is_capitalized:
-            # Lowercase non-anchor: needs stricter gate
-            if len(tok_text) < 6 or place_quality < 0.50:
-                debug["rejected"].append({
-                    "surface": tok_text,
-                    "start_offset": next_tok_m.start(),
-                    "end_offset": next_tok_m.end(),
-                    "canonical": "(place)",
-                    "dist": 0,
-                    "max_dist": 0,
-                    "reason": f"place_likeness: lowercase, len={len(tok_text)}, quality={place_quality:.3f} (need len>=6 and quality>=0.50 for non-anchor lowercase)",
-                })
-                continue
+            # A lowercase word after "de" or "en" is nearly always a common
+            # noun: on the five reference pages this branch produced five
+            # places - oeures, lordena, uilanie, lignage, vilain - and no
+            # real one. Lowercase places are found through the gazetteer.
+            debug["rejected"].append({
+                "surface": tok_text,
+                "start_offset": next_tok_m.start(),
+                "end_offset": next_tok_m.end(),
+                "canonical": "(place)",
+                "dist": 0,
+                "max_dist": 0,
+                "reason": "place_likeness: lowercase and not a known place",
+            })
+            continue
         elif not is_known_place:
             # Capitalized but not a known place: basic quality check
             if place_quality < 0.40:
@@ -1504,6 +1599,53 @@ def _build_mention_audit_gates(run_id: str) -> str:
     return "\n".join(L)
 
 
+def _propagate_names(base_text: str, mentions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Every other occurrence of a name a rule found, as a person mention.
+
+    The rules need context - a title before the name, "li rois" after it -
+    that most occurrences lack: one verse page names Marcadigas four times, once
+    after "Roys". Only names a rule accepted as a person's are propagated, to
+    tokens with the same search key, so "Marcadigas", "marcadigas" and
+    "mͣrcadigas" are one name.
+    """
+    names = {
+        key
+        for mention in mentions
+        if mention.get("ent_type") == "person"
+        for key in mention.get("name_keys") or []
+        if len(key) >= 4
+    }
+    if not names:
+        return []
+    covered = [
+        (int(mention["start_offset"]), int(mention["end_offset"]))
+        for mention in mentions
+        if mention.get("ent_type") == "person"
+    ]
+    out: list[dict[str, Any]] = []
+    for match in _SALVAGE_TOKEN_RE.finditer(base_text):
+        start, end = match.start(), match.end()
+        if _word_key(match.group(0)) not in names:
+            continue
+        if any(c_start <= start and end <= c_end for c_start, c_end in covered):
+            continue
+        surface = match.group(0)
+        out.append(
+            {
+                "start_offset": start,
+                "end_offset": end,
+                "surface": surface,
+                "norm": _norm_surface(surface),
+                "label": "PERSON",
+                "ent_type": "person",
+                "confidence": 0.5,
+                "method": "rule:name_propagation",
+                "notes": "same name as a person mention elsewhere on the page",
+            }
+        )
+    return out
+
+
 def _extract_mentions_from_text(
     base_text: str,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
@@ -1534,6 +1676,9 @@ def _extract_mentions_from_text(
     # that the capitalization-dependent _extract_person_mentions misses.
     ngram_mentions = _extract_ngram_canonical_mentions(value)
     candidates.extend(ngram_mentions)
+    candidates.extend(_propagate_names(value, candidates))
+    for candidate in candidates:
+        candidate.pop("name_keys", None)
 
     mentions = _dedupe_mentions(value, candidates)
 

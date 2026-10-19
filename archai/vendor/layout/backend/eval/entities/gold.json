@@ -1,0 +1,97 @@
+{
+  "description": "Named entities in the five reference transcriptions of eval/quality_gate/readings.json, for scripts/benchmark_entities.py.",
+  "types": [
+    "person",
+    "place",
+    "work",
+    "date"
+  ],
+  "pages": [
+    {
+      "page_id": "old-french",
+      "entities": []
+    },
+    {
+      "page_id": "latin-abaton",
+      "entities": []
+    },
+    {
+      "page_id": "latin-apocalypse",
+      "entities": [
+        {
+          "surface": "iohannis",
+          "type": "person",
+          "note": "John the Evangelist"
+        },
+        {
+          "surface": "hyerusalem",
+          "type": "place",
+          "note": "Jerusalem"
+        }
+      ]
+    },
+    {
+      "page_id": "middle-french-antitus",
+      "entities": [
+        {
+          "surface": "La satyre megere",
+          "type": "work"
+        },
+        {
+          "surface": "Ame\nde monfalcon",
+          "type": "person",
+          "note": "Aymon de Montfalcon, bishop of Lausanne"
+        },
+        {
+          "surface": "lausanne",
+          "type": "place"
+        },
+        {
+          "surface": "Antitus",
+          "type": "person",
+          "note": "the author"
+        },
+        {
+          "surface": "lan de grace Mille cinq cens",
+          "type": "date"
+        }
+      ]
+    },
+    {
+      "page_id": "old-french-verse",
+      "entities": [
+        {
+          "surface": "Caldꝰ",
+          "type": "person"
+        },
+        {
+          "surface": "Marcadigas",
+          "type": "person"
+        },
+        {
+          "surface": "marcadigas",
+          "type": "person"
+        },
+        {
+          "surface": "mͣrcadigas",
+          "type": "person",
+          "occurrence": 1
+        },
+        {
+          "surface": "mͣrcadigas",
+          "type": "person",
+          "occurrence": 2
+        },
+        {
+          "surface": "Ynabele",
+          "type": "person"
+        },
+        {
+          "surface": "despaigne",
+          "type": "place",
+          "note": "d'Espaigne, Spain"
+        }
+      ]
+    }
+  ]
+}

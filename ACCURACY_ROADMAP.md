@@ -1150,6 +1150,7 @@ crop_regions.py:38-42 clamps the crop to `min(x1,x2) - padding` .. `max(x1,x2) +
 
 - **What it costs today:** A decorated initial that the recognizer read as K, B, D or P is silently replaced by R in the stored diplomatic transcription. It is a small number of characters, but it is an outright fabrication in the one artefact that must be defensible letter by letter, and it is hard-coded from a single document, so it will fire on unrelated manuscripts whose second line happens to start 'euer'.
 
+- **Status:** fixed. The merge joins the initial that was read to its line and changes no character; `K\neuerendi` gives `Keuerendi`.
 - **Recommendation:** Prepend the initial that was actually read (`f"{first}{lines[1].lstrip()}"`, as the sibling branch at line 153 already does) instead of emitting the literal 'Reuerendi', and drop the document-specific whitelist. If the merge is only meant to fix a segmentation artefact, it should never change any character — only remove the line break.
 
 ### LATIN_SAFE_CORRECTIONS rewrites attested medieval orthography as if it were an OCR error
@@ -1165,6 +1166,7 @@ crop_regions.py:38-42 clamps the crop to `min(x1,x2) - padding` .. `max(x1,x2) +
 
 - **What it costs today:** A correct medieval spelling is normalised into its classical form in the stored diplomatic transcription, which is precisely the class of change a paleographic edition must not make silently. The blast radius is small today (2 rules) but the mechanism invites growth, and every rule added on this pattern converts an orthographic variant into a fabricated reading.
 
+- **Status:** fixed. The corrections table and the prompt line advertising them are gone; the deterministic layer only merges a set-apart initial.
 - **Recommendation:** Remove 'clemencia' (and audit any future entry against a medieval-Latin orthography reference rather than a classical one). Handle ci/ti, y/i, e/ae and ch/h as *matching* equivalences in the search key, never as edits to the transcription. Keep the deterministic rule table and the prompt's advertised examples in sync, or drop the examples from the prompt.
 
 ### ocr_confusion_fixes applies unguarded whole-text str.replace, silently rewriting real names in the search key
@@ -1195,6 +1197,7 @@ _OCR_CONFUSION_MAP is applied as `for src, tgt in _OCR_CONFUSION_MAP: text = tex
 
 - **What it costs today:** None today — the function is never called, so this is cosmetic. It matters only as a trap: the c/e collapse is far too aggressive for entity matching (it would let 'Eluny' link to Cluny with perfect confidence) while the i/y alternation that actually blocks medieval matching is absent, so wiring it in as-is would trade recall gains for confident false links.
 
+- **Status:** fixed. Deleted, with its equivalence classes, and the no-op `ii`→`ii` regex.
 - **Recommendation:** Either delete it, or before using it drop the c/e class, make rn->m position-aware, and add the alternations that actually matter for medieval orthography (i/y, ci/ti, single/double consonant). Note in the docstring that it is matching-only.
 
 ### The paleography verification agent never touches the transcription, but its assessment parser fails open to 'partially_supported'
