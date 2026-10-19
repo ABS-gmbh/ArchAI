@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import Any
 
 
 # ── Common-noun / function-word blacklist ──────────────────────────────
@@ -111,10 +110,7 @@ _OCR_CONFUSION_MAP: list[tuple[str, str]] = [
 
 # Regex-based replacements for common OCR patterns
 _OCR_REGEX_FIXES: list[tuple[re.Pattern[str], str]] = [
-    # Double-i → ii (not "u" misread)
-    (re.compile(r"(?<=[a-z])ii(?=[a-z])"), "ii"),
-    # Terminal -ct → -ct (common misread of -et)
-    # Only remove truly garbage non-alpha chars within words
+    # Remove stray bars inside words
     (re.compile(r"(?<=\w)[|¦](?=\w)"), ""),
 ]
 
@@ -262,54 +258,6 @@ def normalize_for_search(text: str) -> str:
     return text
 
 
-# ── OCR-confusion-aware matching ─────────────────────────────────
-
-# Character equivalence classes for medieval OCR confusion.
-# Used ONLY for matching, never to mutate stored text.
-_OCR_CONFUSION_CLASSES: dict[str, str] = {
-    "i": "I", "l": "I", "1": "I",  # i/l/1 confusion
-    "u": "U", "v": "U",             # u/v interchange
-    "c": "C", "e": "C",             # c/e confusion
-}
-
-
-def _ocr_confuse_normalize(text: str) -> str:
-    """Normalize a string by collapsing OCR-confusion equivalence classes.
-
-    - i/l/1 → I
-    - u/v → U
-    - rn → m  (applied as substring)
-    - c/e → C
-
-    Used only for *matching purposes*, not for storing text.
-    """
-    text = text.lower()
-    # rn → m (must happen before single-char replacements)
-    text = text.replace("rn", "m")
-    result: list[str] = []
-    for ch in text:
-        result.append(_OCR_CONFUSION_CLASSES.get(ch, ch))
-    return "".join(result)
-
-
-def ocr_aware_similarity(a: str, b: str) -> float:
-    """Similarity (0..1) accounting for common OCR confusions.
-
-    Normalizes both strings with OCR-confusion classes, then computes
-    Dice coefficient of character bigrams.  This is more tolerant of
-    medieval OCR errors (i/l/1, u/v, rn/m, c/e) than raw edit distance.
-    """
-    na = _ocr_confuse_normalize(normalize_for_search(a))
-    nb = _ocr_confuse_normalize(normalize_for_search(b))
-    if na == nb:
-        return 1.0
-    ba = _char_bigrams(na)
-    bb = _char_bigrams(nb)
-    if not ba or not bb:
-        return 0.0
-    return 2 * len(ba & bb) / (len(ba) + len(bb))
-
-
 # ── Character bigram utilities ─────────────────────────────────────────
 
 def _char_bigrams(s: str) -> set[str]:
@@ -353,5 +301,26 @@ def normalized_edit_distance(a: str, b: str) -> float:
 
 
 def is_blacklisted_token(token: str) -> bool:
-    """Return True if *token* is in the common-word blacklist."""
-    return token.lower().strip() in COMMON_WORD_BLACKLIST
+    """Return True if *token* is in the common-word blacklist.
+
+    The word is also compared by its search key, so a diplomatic spelling of a
+    listed word - "uoie", "ꝑt" - is caught as well.
+    """
+    low = token.lower().strip()
+    if low in COMMON_WORD_BLACKLIST:
+        return True
+    from app.services.medieval_text import build_search_key
+
+    return build_search_key(low) in _blacklist_keys()
+
+
+_BLACKLIST_KEYS: frozenset[str] | None = None
+
+
+def _blacklist_keys() -> frozenset[str]:
+    global _BLACKLIST_KEYS
+    if _BLACKLIST_KEYS is None:
+        from app.services.medieval_text import build_search_key
+
+        _BLACKLIST_KEYS = frozenset(build_search_key(word) for word in COMMON_WORD_BLACKLIST) - {""}
+    return _BLACKLIST_KEYS
