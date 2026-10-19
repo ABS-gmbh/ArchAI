@@ -37,7 +37,6 @@ PALEO_PROOFREAD_SYSTEM_PROMPT = (
     "ALLOWED FIXES (ONLY WHEN CLEAR AND LOCAL)\n"
     "\n"
     "Common OCR confusions for the script: u/v, i/j, rn→m, cl/ct, e/c, long-s(ſ) misread, spacing/punctuation artifacts.\n"
-    "Very common formula spellings when one small edit away and strongly supported by context (examples: patru→patri, clemencia/clemena→clementia, faunente→fauente).\n"
     "DECORATED INITIAL MERGE (CRITICAL)\n"
     "\n"
     "If the OCR begins with a standalone line that is a single letter (e.g., \"R\") and the next line begins a word that plausibly continues it (e.g., starts with \"euer...\" / \"euerend...\" / similar),\n"
@@ -62,12 +61,6 @@ DECORATED_INITIAL_WHITELIST = {
     "euerendu i",
 }
 
-LATIN_SAFE_CORRECTIONS = {
-    "patru": "patri",
-    "clemencia": "clementia",
-}
-
-TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z'’\\-]*")
 SINGLE_INITIAL_RE = re.compile(r"^[A-Z]$")
 
 
@@ -109,24 +102,6 @@ def _normalize_space_lower(text: str) -> str:
     return re.sub(r"\s+", " ", str(text or "").strip().lower())
 
 
-def _looks_name_like_token(token: str) -> bool:
-    if not token:
-        return False
-    if len(token) >= 18:
-        return True
-    if any(ch.isupper() for ch in token[1:]):
-        return True
-    return False
-
-
-def _apply_case(template: str, replacement: str) -> str:
-    if template.isupper():
-        return replacement.upper()
-    if template[:1].isupper() and template[1:].islower():
-        return replacement.capitalize()
-    return replacement
-
-
 def _iter_lines(text: str) -> list[str]:
     return text.splitlines()
 
@@ -145,46 +120,29 @@ def apply_decorated_initial_fix(text: str, script_hint: str | None) -> str:
         return text
 
     second_norm = _normalize_space_lower(second)
-    if len(second) <= 12 and second_norm in DECORATED_INITIAL_WHITELIST:
-        merged_lines = ["Reuerendi", *lines[2:]]
-        return "\n".join(merged_lines)
-
-    if second_norm.startswith("euerend") or second_norm.startswith("euer"):
-        merged = f"{first}{lines[1].lstrip()}"
-        merged_lines = [merged, *lines[2:]]
+    whitelisted = len(second) <= 12 and second_norm in DECORATED_INITIAL_WHITELIST
+    if whitelisted or second_norm.startswith("euer"):
+        # Only the line break goes. The merge used to emit the literal
+        # "Reuerendi" for the whitelisted lines, whatever initial was read: a K,
+        # B or P became an R in the stored transcription.
+        merged_lines = [f"{first}{lines[1].lstrip()}", *lines[2:]]
         return "\n".join(merged_lines)
 
     return text
 
 
-def _apply_latin_micro_corrections_to_line(line: str) -> str:
-    def _replace_token(match: re.Match[str]) -> str:
-        token = match.group(0)
-        lower = token.lower()
-        replacement = LATIN_SAFE_CORRECTIONS.get(lower)
-        if replacement is None:
-            return token
-        if _looks_name_like_token(token):
-            return token
-        return _apply_case(token, replacement)
-
-    return TOKEN_RE.sub(_replace_token, line)
-
-
-def apply_latin_micro_corrections(text: str, script_hint: str | None) -> str:
-    if _normalize_script_hint(script_hint) != "latin":
-        return text
-    lines = _iter_lines(text)
-    corrected = [_apply_latin_micro_corrections_to_line(line) for line in lines]
-    return "\n".join(corrected)
-
-
 def apply_archai_safe_normalizer(text: str, script_hint: str | None) -> str:
+    """The deterministic edits made before and after the language model reads the text.
+
+    Only a decorated initial set apart from its word is joined to it. There
+    used to be spelling "corrections" too - clemencia to clementia, patru to
+    patri - applied to every occurrence, with or without the model. ti/ci is
+    one of the best-attested medieval Latin spellings, not a recognition
+    error, and a diplomatic transcription keeps it.
+    """
     if not text:
         return ""
-    normalized = apply_decorated_initial_fix(text, script_hint)
-    normalized = apply_latin_micro_corrections(normalized, script_hint)
-    return normalized
+    return apply_decorated_initial_fix(text, script_hint)
 
 
 # ── Proofreader guard ─────────────────────────────────────────────────

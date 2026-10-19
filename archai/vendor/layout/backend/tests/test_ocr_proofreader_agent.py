@@ -12,7 +12,6 @@ from app.agents.ocr_proofreader_agent import (  # type: ignore[import-untyped]
     OcrProofreaderAgent,
     apply_archai_safe_normalizer,
     apply_decorated_initial_fix,
-    apply_latin_micro_corrections,
 )
 
 
@@ -42,8 +41,15 @@ def test_decorated_initial_whitelist_merge_variants() -> None:
     for variant in variants:
         text = f"R\n{variant}\npatru clemencia"
         merged = apply_decorated_initial_fix(text, "latin_medieval")
-        assert merged.splitlines()[0] == "Reuerendi"
+        # Only the line break goes: the letters are the ones that were read.
+        assert merged.splitlines()[0] == f"R{variant}"
         assert merged.splitlines()[1] == "patru clemencia"
+
+
+def test_decorated_initial_merge_keeps_the_initial_that_was_read() -> None:
+    """Regression: every whitelisted line became the literal "Reuerendi", so a K read as K became R."""
+    for initial in "KBDP":
+        assert apply_decorated_initial_fix(f"{initial}\neuerendi\nlinea", "latin").splitlines()[0] == f"{initial}euerendi"
 
 
 def test_decorated_initial_generic_merge_when_euer_prefix() -> None:
@@ -61,21 +67,16 @@ def test_decorated_initial_no_merge_when_not_whitelisted_or_prefix() -> None:
     assert merged == text
 
 
-def test_latin_micro_corrections_safe_tokens_only() -> None:
-    text = "patru clemencia\npaTru clemencia\npatru? [... ]"
-    text = text.replace("[... ]", "[…]")
-    corrected = apply_latin_micro_corrections(text, "latin_medieval")
-
-    lines = corrected.splitlines()
-    assert lines[0] == "patri clementia"
-    assert lines[1] == "paTru clementia"
-    assert lines[2] == "patri? […]"
+def test_attested_spellings_are_not_corrected() -> None:
+    """Regression: clemencia was rewritten clementia; ti/ci is medieval Latin spelling, not an error."""
+    text = "de clemencia et misericordia dei\npatru clemencia"
+    assert apply_archai_safe_normalizer(text, "latin_medieval") == text
 
 
-def test_archai_safe_normalizer_combines_merge_and_micro_corrections() -> None:
+def test_archai_safe_normalizer_only_merges_the_initial() -> None:
     text = "R\ncuero di\npatru clemencia"
     normalized = apply_archai_safe_normalizer(text, "latin_medieval")
-    assert normalized == "Reuerendi\npatri clementia"
+    assert normalized == "Rcuero di\npatru clemencia"
 
 
 def test_archai_safe_normalizer_non_latin_no_changes() -> None:
