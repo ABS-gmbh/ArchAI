@@ -124,6 +124,7 @@ Four call sites of `OcrProofreaderAgent.proofread` (which itself applies no delt
 
 - **What it costs today:** The worst failure mode of an LLM proofreader on a recognisable pericope — recognising the passage and writing it out from memory — is not merely undetected on the router path, it is *preferred*, because invented fluent text scores HIGH while true garbled OCR scores RISKY. On ocr_agent.py:1730 (reached by the live /ocr/extract, /agents/ocr and /agents/ocr/extract endpoints whenever no regions are supplied, with apply_proofread defaulting to True per schemas/agents_ocr.py:78) there is no check whatsoever. This can turn a mediocre transcription into a confidently wrong one, which is worse for retrieval than no transcription.
 
+- **Status:** fixed. `OcrProofreaderAgent.proofread` itself returns guarded text (`app/services/proofread_guard.py`), so all four call sites get it; the page-level checks stay as backstops.
 - **Recommendation:** Call `check_proofread_delta` at all four sites (it is already imported in saia_ocr_agent). Then either delete `proofreading_quality_guard` or invert its logic: a *large* label improvement combined with high char_edit/token_churn is evidence of invention, not of correction, and must be rejected. Keep the label check only as a secondary tiebreak after the delta check passes.
 
 ### OCR-002 confirmed: best-attempt selection ignores whether quality gates passed, so a gate-passing attempt is discarded for a gate-failing one
@@ -815,6 +816,7 @@ Thresholds are `_MAX_CHAR_EDIT_RATIO = 0.40`, `_MAX_LINE_COUNT_DRIFT = 0.30`, `_
 
 - **What it costs today:** The guard is calibrated at or below the recognizer's own variance, so it cannot distinguish an LLM hallucination from ordinary OCR disagreement. Half a page of fluent invention survives into the stored transcription and into the RAG index, where it reads as high-quality text and will be retrieved and cited in preference to the correct-but-noisy original — the worst possible failure mode for a thesis that must be able to defend every reading.
 
+- **Status:** fixed. The guard judges each aligned line: a line more than half rewritten, a word unlike the one it replaces, or a filled gap reverts to the OCR; added lines are dropped and deleted ones restored. With 10% or 25% of a page's lines invented, an invented line survived `check_proofread_delta` on 6/15 and 5/15 pages, and the line guard on 0/15 (`scripts/calibrate_proofread_guard.py`).
 - **Recommendation:** Tighten the thresholds well below the measured OCR variance (char_edit ~0.08-0.10, token_churn ~0.15) and enforce them per line rather than per page, so one rewritten line cannot hide inside an otherwise-unchanged page. Add an alignment check that every accepted edit is within small edit distance of the token it replaces, and reject any edit that introduces a token absent from both the raw OCR and the language's lexicon.
 
 ### COMMON_WORD_BLACKLIST rejects the head words of common French toponyms, so multi-word place names lose their identifying token

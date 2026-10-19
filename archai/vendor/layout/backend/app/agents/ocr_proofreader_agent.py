@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass
 
 from app.config import settings
+from app.services.proofread_guard import guard_proofread
 from app.services.saia_client import SaiaClient
+
+log = logging.getLogger(__name__)
 
 PALEO_PROOFREAD_SYSTEM_PROMPT = (
     "Role: Professional paleographer. Task: constrained OCR proofreading for archival (Archai) transcription.\n"
@@ -325,4 +329,16 @@ class OcrProofreaderAgent:
         cleaned = _clean_plain_text(str(response.get("text") or ""))
         if not cleaned:
             return source
-        return apply_archai_safe_normalizer(cleaned, script_hint)
+        proposed = apply_archai_safe_normalizer(cleaned, script_hint)
+        # Every caller gets the guarded text: two of the four call sites used to
+        # take the model's output unchecked.
+        guarded = guard_proofread(source, proposed)
+        if guarded.changed:
+            log.info(
+                "Proofread guard reverted %d lines, dropped %d, restored %d: %s",
+                guarded.lines_reverted,
+                guarded.lines_dropped,
+                guarded.lines_restored,
+                "; ".join(guarded.reasons[:5]),
+            )
+        return guarded.text
