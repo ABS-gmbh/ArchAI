@@ -86,7 +86,7 @@ These are pydantic-settings *defaults*, so they apply whenever the env vars are 
 - **Impact:** A routine `git add -A && git commit` — the natural gesture in a repo with 904 untracked entries and no pre-commit hook — permanently writes ~121 MB of duplicate compiled PDFs and zips into git history. On a repo whose entire tracked payload today is 318 files with no file over 1 MB, that is a ~100x irreversible bloat.
 - **Fix:** Add `fixes/`, `tmp/`, `output/` and `.last-presentation-workspace` to the root .gitignore. Note `output/` and `outputs/` are two different directories and only `outputs/` (.gitignore:11) is currently covered.
 
-### [HYG-07] archai/backend is 41 stub files of `# TODO: implement` plus a fake pipeline, exposed as a Makefile target and documented as Active — **FIXED**
+### [HYG-07] archai/backend is 41 stub files of `# TODO: implement` plus a fake pipeline, exposed as a Makefile target and documented as Active — **FIXED** (deleted)
 
 - **Where:** `archai/backend/src/archai_backend/api/main.py:34`  
 - **Category:** architecture  

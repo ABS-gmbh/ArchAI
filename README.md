@@ -16,13 +16,10 @@ before picking an entry point.
 | `archai/vendor/layout/backend/` | FastAPI service: OCR backends, agent verification, authority linking, RAG chat (~28k LOC) | **Working**, partial test coverage |
 | `archai/vendor/layout/frontend/` | Next.js UI for the above | Working |
 | `archai/frontend/` | Vue/Vite prototype UI | Prototype |
-| `archai/backend/` | Scaffolding: 41 of 47 modules are `# TODO: implement` | **Mock — fabricates output** |
 | `artifacts/thesis_showcase/` | Reproducible figure payloads and manifests cited by the thesis | Reference data |
 
-> `archai/backend` is a mock. Its `/ingest/image` endpoint does not run OCR — it
-> sleeps through fake stage names and inserts hardcoded English sentences as
-> document spans. It refuses to start unless `ARCHAI_ALLOW_MOCK_BACKEND=1` is set.
-> Use `archai/vendor/layout/backend` for the real service.
+> The real service is `archai/vendor/layout/backend`. An earlier mock backend,
+> `archai/backend`, that fabricated pipeline stages has been removed.
 
 ## Quick start — OCR command line
 
