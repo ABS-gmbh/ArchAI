@@ -1,0 +1,39 @@
+"""The OCR router's pipeline helpers give what they gave before they were moved.
+
+The fixture was recorded from ``app/routers/ocr.py`` before its mention
+extraction, language detection, trace pipeline and reports moved into
+``app/services``; see ``tests/characterise_ocr_router.py``.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+_TESTS = Path(__file__).resolve().parent
+_spec = importlib.util.spec_from_file_location("characterise_ocr_router", _TESTS / "characterise_ocr_router.py")
+characterise = importlib.util.module_from_spec(_spec)
+sys.modules[_spec.name] = characterise
+_spec.loader.exec_module(characterise)
+
+EXPECTED = json.loads(characterise.FIXTURE.read_text(encoding="utf-8"))
+
+
+@pytest.fixture(scope="module")
+def recorded() -> dict:
+    return json.loads(json.dumps(characterise.record(), ensure_ascii=False, sort_keys=True))
+
+
+def test_every_reference_text_is_recorded(recorded: dict) -> None:
+    assert sorted(recorded) == sorted(EXPECTED)
+
+
+@pytest.mark.parametrize("name", sorted(EXPECTED))
+def test_helpers_match_the_recording(recorded: dict, name: str) -> None:
+    got, want = recorded[name], EXPECTED[name]
+    for key in sorted(set(got) | set(want)):
+        assert got.get(key) == want.get(key), f"{name}: {key} changed"
