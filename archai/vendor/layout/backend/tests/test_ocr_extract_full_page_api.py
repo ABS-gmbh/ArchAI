@@ -10,6 +10,7 @@ if str(_backend_src.parent) not in sys.path:
     sys.path.insert(0, str(_backend_src.parent))
 
 from app.routers import ocr as ocr_router  # type: ignore[import-untyped]
+from app.services import mention_extraction, trace_pipeline  # type: ignore[import-untyped]
 from app.schemas.agents_ocr import (  # type: ignore[import-untyped]
     OCRComparisonResult,
     OCRDocumentMetadata,
@@ -56,7 +57,7 @@ def _fake_glm_result(
 
 
 def test_extract_salvage_mentions_rejects_weak_lexical_place_candidates() -> None:
-    mentions, debug = ocr_router._extract_salvage_mentions("Li parol furent dites de vilanie et en enfant.")
+    mentions, debug = mention_extraction._extract_salvage_mentions("Li parol furent dites de vilanie et en enfant.")
 
     surfaces = {str(item.get("surface") or "").lower() for item in mentions}
     assert "vilanie" not in surfaces
@@ -483,17 +484,17 @@ def test_extract_full_page_surfaces_variant_retry_details(monkeypatch: Any) -> N
 def test_page_with_trace_segmented_path_persists_backend_comparisons(tmp_path: Path, monkeypatch: Any) -> None:
     monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
     monkeypatch.setattr(pipeline_db, "_DB_READY", False)
-    monkeypatch.setattr(ocr_router, "_get_ocr_agent", lambda: _FakeStructuredOcrAgent())
-    monkeypatch.setattr(ocr_router, "_run_trace_analysis", lambda run_id, text: ([], [], [], {"skipped": True}))
+    monkeypatch.setattr(trace_pipeline, "_get_ocr_agent", lambda: _FakeStructuredOcrAgent())
+    monkeypatch.setattr(trace_pipeline, "_run_trace_analysis", lambda run_id, text: ([], [], [], {"skipped": True}))
     monkeypatch.setattr(
-        ocr_router,
+        trace_pipeline,
         "check_mention_recall",
         lambda *args, **kwargs: {"mention_recall_ok": True, "reason": "ok", "trigger_high_recall": False},
     )
-    monkeypatch.setattr(ocr_router, "_run_authority_linking_stage", lambda run_id: None)
-    monkeypatch.setattr(ocr_router, "_auto_index_run", lambda run_id: None)
-    monkeypatch.setattr(ocr_router, "_build_mention_extraction_report", lambda *args, **kwargs: None)
-    monkeypatch.setattr(ocr_router, "_build_consolidated_report", lambda *args, **kwargs: None)
+    monkeypatch.setattr(trace_pipeline, "_run_authority_linking_stage", lambda run_id: None)
+    monkeypatch.setattr(trace_pipeline, "_auto_index_run", lambda run_id: None)
+    monkeypatch.setattr(trace_pipeline, "_build_mention_extraction_report", lambda *args, **kwargs: None)
+    monkeypatch.setattr(trace_pipeline, "_build_consolidated_report", lambda *args, **kwargs: None)
 
     payload = SaiaFullPageExtractRequest(
         document_id="doc-1",
@@ -539,7 +540,7 @@ def test_workspace_extract_copy_uses_single_extraction_flow() -> None:
 def test_page_with_trace_blocks_low_trust_segmented_ocr(tmp_path: Path, monkeypatch: Any) -> None:
     monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
     monkeypatch.setattr(pipeline_db, "_DB_READY", False)
-    monkeypatch.setattr(ocr_router, "_get_ocr_agent", lambda: _FakeStructuredEmptyOcrAgent())
+    monkeypatch.setattr(trace_pipeline, "_get_ocr_agent", lambda: _FakeStructuredEmptyOcrAgent())
 
     payload = SaiaFullPageExtractRequest(
         document_id="doc-1",
@@ -573,7 +574,7 @@ def test_glm_post_pipeline_persists_unresolved_mentions_when_linking_is_deferred
     monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
     monkeypatch.setattr(pipeline_db, "_DB_READY", False)
     monkeypatch.setattr(
-        ocr_router,
+        trace_pipeline,
         "enforce_quality_gates",
         lambda *args, **kwargs: {
             "ner_allowed": False,
@@ -582,8 +583,8 @@ def test_glm_post_pipeline_persists_unresolved_mentions_when_linking_is_deferred
             "blocked_stages": [],
         },
     )
-    monkeypatch.setattr(ocr_router, "_auto_index_run", lambda run_id: None)
-    monkeypatch.setattr(ocr_router, "_build_consolidated_report", lambda *args, **kwargs: "=== CONSOLIDATED REPORT ===")
+    monkeypatch.setattr(trace_pipeline, "_auto_index_run", lambda run_id: None)
+    monkeypatch.setattr(trace_pipeline, "_build_consolidated_report", lambda *args, **kwargs: "=== CONSOLIDATED REPORT ===")
 
     def _fake_trace_analysis(run_id: str, text: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], dict[str, Any]]:
         chunks = pipeline_db.insert_chunks(
@@ -618,7 +619,7 @@ def test_glm_post_pipeline_persists_unresolved_mentions_when_linking_is_deferred
         )
         return chunks, mentions, [], {"skipped": False, "test_mode": True}
 
-    monkeypatch.setattr(ocr_router, "_run_trace_analysis", _fake_trace_analysis)
+    monkeypatch.setattr(trace_pipeline, "_run_trace_analysis", _fake_trace_analysis)
 
     response = SaiaFullPageExtractResponse(
         status="FULL",
@@ -639,7 +640,7 @@ def test_glm_post_pipeline_persists_unresolved_mentions_when_linking_is_deferred
         apply_proofread=False,
     )
 
-    result = ocr_router._run_full_page_post_ocr_pipeline(payload, response, b"image-bytes", ocr_backend="glmocr")
+    result = trace_pipeline._run_full_page_post_ocr_pipeline(payload, response, b"image-bytes", ocr_backend="glmocr")
 
     assert result["mentions_count"] == 1
     assert result["quality_label"] is not None
@@ -660,7 +661,7 @@ def test_the_search_decision_is_recorded_before_the_run_is_indexed(tmp_path: Pat
     monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
     monkeypatch.setattr(pipeline_db, "_DB_READY", False)
     monkeypatch.setattr(
-        ocr_router,
+        trace_pipeline,
         "enforce_quality_gates",
         lambda *args, **kwargs: {
             "ner_allowed": True,
@@ -669,11 +670,11 @@ def test_the_search_decision_is_recorded_before_the_run_is_indexed(tmp_path: Pat
             "blocked_stages": [],
         },
     )
-    monkeypatch.setattr(ocr_router, "_run_trace_analysis", lambda run_id, text: ([], [], [], {"skipped": True}))
-    monkeypatch.setattr(ocr_router, "_run_authority_linking_stage", lambda run_id: None)
+    monkeypatch.setattr(trace_pipeline, "_run_trace_analysis", lambda run_id, text: ([], [], [], {"skipped": True}))
+    monkeypatch.setattr(trace_pipeline, "_run_authority_linking_stage", lambda run_id: None)
     seen: dict[str, Any] = {}
     monkeypatch.setattr(
-        ocr_router, "_auto_index_run", lambda run_id: seen.update(decision=pipeline_db.get_run(run_id)["search_allowed"])
+        trace_pipeline, "_auto_index_run", lambda run_id: seen.update(decision=pipeline_db.get_run(run_id)["search_allowed"])
     )
     response = SaiaFullPageExtractResponse(
         status="FULL",
@@ -689,6 +690,6 @@ def test_the_search_decision_is_recorded_before_the_run_is_indexed(tmp_path: Pat
     )
     payload = SaiaFullPageExtractRequest(document_id="doc-1", page_id="page-1", image_b64=SAMPLE_B64, apply_proofread=False)
 
-    ocr_router._run_full_page_post_ocr_pipeline(payload, response, b"image-bytes", ocr_backend="segmented")
+    trace_pipeline._run_full_page_post_ocr_pipeline(payload, response, b"image-bytes", ocr_backend="segmented")
 
     assert seen == {"decision": 1}

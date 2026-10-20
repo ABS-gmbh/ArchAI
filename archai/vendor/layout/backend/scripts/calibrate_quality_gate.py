@@ -38,7 +38,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.routers.ocr import _detect_language_metadata, _normalize_detected_language, _quality_language  # noqa: E402
+from app.services.language_detection import _detect_language_metadata, _normalize_detected_language, _quality_language  # noqa: E402
 from app.services.lexicon_trust import best_fit_plausibility  # noqa: E402
 from app.services.ocr_quality import compute_quality_report  # noqa: E402
 from app.services.pipeline_hardening import enforce_quality_gates  # noqa: E402
