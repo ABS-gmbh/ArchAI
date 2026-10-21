@@ -10,6 +10,7 @@ if str(_backend_src.parent) not in sys.path:
 
 from app.agents import ocr_agent  # type: ignore[import-untyped]
 from app.db import pipeline_db  # type: ignore[import-untyped]
+from app.services import ocr_backends  # type: ignore[import-untyped]
 from app.schemas.agents_ocr import (  # type: ignore[import-untyped]
     OCRExtractOptions,
     OCRExtractRequest,
@@ -380,7 +381,16 @@ def test_degenerate_repeat_output_falls_through_to_fallback_backend(monkeypatch:
     )
 
 
-def test_resolve_model_path_finds_project_root_weights() -> None:
+def test_resolve_model_path_finds_project_root_weights(tmp_path: Path, monkeypatch: Any) -> None:
+    """A relative path is found under whichever root holds it, not only the first.
+
+    The weights are not in git, so the project tree is built here.
+    """
+    weights = tmp_path / "project" / "weights" / "kraken_models" / "catmus_medieval.mlmodel"
+    weights.parent.mkdir(parents=True)
+    weights.write_bytes(b"weights")
+    monkeypatch.setattr(ocr_backends, "_PATH_ROOTS", (tmp_path / "elsewhere", tmp_path / "project"))
+
     path = _resolve_model_path("weights/kraken_models/catmus_medieval.mlmodel")
-    assert "catmus" in path.name
-    assert path.exists()
+
+    assert path == weights.resolve()
