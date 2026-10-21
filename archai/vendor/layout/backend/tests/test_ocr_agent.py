@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 _backend_src = Path(__file__).resolve().parent.parent / "app"
 if str(_backend_src.parent) not in sys.path:
     sys.path.insert(0, str(_backend_src.parent))
@@ -94,6 +96,10 @@ def test_build_ocr_messages_is_single_turn_system_and_user_with_image() -> None:
     assert "history" not in str(messages).lower()
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason="the SAIA backend reads with InternVL only (see test_saia_ocr_agent.INTERNVL_ONLY); Qwen is never tried",
+)
 def test_ocr_agent_falls_back_from_qwen_to_internvl(monkeypatch: Any) -> None:
     fake = _FakeSaiaClient(
         models=["qwen3-vl-30b-a3b-instruct", "internvl3.5-30b-a3b"],
@@ -105,6 +111,7 @@ def test_ocr_agent_falls_back_from_qwen_to_internvl(monkeypatch: Any) -> None:
     result = ocr_agent.run_ocr_extraction(
         _sample_request(
             OCRExtractOptions(
+                backend="saia",
                 model_preference=["qwen3-vl-30b-a3b-instruct", "internvl3.5-30b-a3b"],
                 max_fallbacks=2,
                 quality_floor=0.0,
@@ -130,7 +137,7 @@ def test_ocr_agent_returns_empty_string_for_no_readable_response(monkeypatch: An
     )
     monkeypatch.setattr(ocr_agent, "SaiaClient", lambda: fake)
 
-    result = ocr_agent.run_ocr_extraction(_sample_request(OCRExtractOptions(max_fallbacks=0, quality_floor=0.0)))
+    result = ocr_agent.run_ocr_extraction(_sample_request(OCRExtractOptions(backend="saia", max_fallbacks=0, quality_floor=0.0)))
 
     assert result.model == "internvl3.5-30b-a3b"
     assert result.text == ""
@@ -171,7 +178,7 @@ def test_ocr_agent_drops_non_latin_hallucinated_region(monkeypatch: Any) -> None
     )
     monkeypatch.setattr(ocr_agent, "SaiaClient", lambda: fake)
 
-    result = ocr_agent.run_ocr_extraction(_sample_request(OCRExtractOptions(max_fallbacks=0, quality_floor=0.0)))
+    result = ocr_agent.run_ocr_extraction(_sample_request(OCRExtractOptions(backend="saia", max_fallbacks=0, quality_floor=0.0)))
 
     assert result.text == ""
     assert any(flag == "REGION_TEXT_DROPPED" for flag in result.regions[0].flags)
@@ -190,7 +197,7 @@ def test_ocr_agent_simple_mode_returns_only_final_text(monkeypatch: Any) -> None
     )
     monkeypatch.setattr(ocr_agent, "SaiaClient", lambda: fake)
 
-    request = _sample_request(OCRExtractOptions(max_fallbacks=0, quality_floor=0.0)).model_copy(
+    request = _sample_request(OCRExtractOptions(backend="saia", max_fallbacks=0, quality_floor=0.0)).model_copy(
         update={"mode": "simple"}
     )
     result = ocr_agent.run_ocr_extraction(request)

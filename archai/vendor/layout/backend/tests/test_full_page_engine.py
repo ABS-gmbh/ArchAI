@@ -191,6 +191,7 @@ def test_a_page_without_orientation_is_passed_through() -> None:
 # ----------------------------------------------------------------- Kraken text --
 
 
+@pytest.mark.requires_models
 def test_kraken_output_is_nfc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("kraken")
     from kraken import rpred

@@ -28,6 +28,7 @@ from app.db.pipeline_db import (
     insert_ocr_quality_report,
     list_ocr_attempts,
     log_event,
+    merge_span_decisions,
     upsert_evidence_span,
     update_run_fields,
 )
@@ -461,6 +462,7 @@ def _run_trace_analysis(
                 "meta_json": None,
             })
 
+    decision_rows, attempt_rows = merge_span_decisions(decision_rows, attempt_rows)
     if decision_rows:
         insert_entity_decisions(run_id, decision_rows)
     if attempt_rows:

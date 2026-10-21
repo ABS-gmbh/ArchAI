@@ -490,6 +490,24 @@
   ]
  },
  "middle-french-antitus:catmus": {
+  "candidate_rows": [
+   {
+    "cand_id": "<uuid>",
+    "candidate": "La satyre megere.",
+    "mention_id": "<uuid>",
+    "meta_json": "{\"ent_type\": \"work\", \"method\": \"rule:first_line_title_heuristic\"}",
+    "score": 0.56,
+    "source": "heuristic"
+   },
+   {
+    "cand_id": "<uuid>",
+    "candidate": "lausanne",
+    "mention_id": "<uuid>",
+    "meta_json": "{\"ent_type\": \"place\", \"method\": \"rule:toponym_anchor\"}",
+    "score": 0.84,
+    "source": "heuristic"
+   }
+  ],
   "candidates": [
    {
     "candidate": "La satyre megere.",
@@ -518,6 +536,24 @@
     "source": "heuristic",
     "start_offset": 83,
     "surface": "lausanne"
+   }
+  ],
+  "chunks": [
+   {
+    "chunk_id": "<uuid>",
+    "end_offset": 197,
+    "idx": 0,
+    "run_id": "<uuid>",
+    "start_offset": 0,
+    "text": "La satyre megere.\nTresreucrend pere en dicu A me\nde monfalcon euesque et prince\nde lausanne. Antitus ur̃e tres\nhumble chappellai et scruiteur. Approchant\nlan de grace Mille anq cens. considerãt que"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "end_offset": 244,
+    "idx": 1,
+    "run_id": "<uuid>",
+    "start_offset": 111,
+    "text": "humble chappellai et scruiteur. Approchant\nlan de grace Mille anq cens. considerãt que\ndesirez ueoir gracicuses inuentions poethiq̃s."
    }
   ],
   "debug": {
@@ -599,6 +635,169 @@
    "trigger": 0,
    "work_fuzzy": 0
   },
+  "decisions": [
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.56,
+    "decision_id": "<uuid>",
+    "end_offset": 17,
+    "ent_type_guess": "work",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:first_line_title_heuristic",
+    "norm": "la satyre megere.",
+    "reason": "accepted_by_extraction_pipeline",
+    "run_id": "<uuid>",
+    "span_key": "0:17:La satyre megere.",
+    "start_offset": 0,
+    "status": "ACCEPT_LINKABLE",
+    "surface": "La satyre megere."
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "decision_id": "<uuid>",
+    "end_offset": 35,
+    "ent_type_guess": "title",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:title_anchor",
+    "norm": "pere",
+    "reason": "ent_type=title not in linkable types",
+    "run_id": "<uuid>",
+    "span_key": "31:35:pere",
+    "start_offset": 31,
+    "status": "SKIP_NON_LINKABLE",
+    "surface": "pere"
+   },
+   {
+    "chunk_id": null,
+    "confidence": 0.0,
+    "decision_id": "<uuid>",
+    "end_offset": 43,
+    "ent_type_guess": "unknown",
+    "label": null,
+    "meta_json": null,
+    "method": "filter:gate",
+    "norm": null,
+    "reason": "too short (4<5) or stopword",
+    "run_id": "<uuid>",
+    "span_key": "39:43:dicu",
+    "start_offset": 39,
+    "status": "FILTERED_OUT",
+    "surface": "dicu"
+   },
+   {
+    "chunk_id": null,
+    "confidence": 0.0,
+    "decision_id": "<uuid>",
+    "end_offset": 61,
+    "ent_type_guess": "unknown",
+    "label": null,
+    "meta_json": null,
+    "method": "filter:gate",
+    "norm": null,
+    "reason": "place_likeness: lowercase and not a known place",
+    "run_id": "<uuid>",
+    "span_key": "52:61:monfalcon",
+    "start_offset": 52,
+    "status": "FILTERED_OUT",
+    "surface": "monfalcon"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "decision_id": "<uuid>",
+    "end_offset": 69,
+    "ent_type_guess": "title",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:title_anchor",
+    "norm": "euesque",
+    "reason": "ent_type=title not in linkable types",
+    "run_id": "<uuid>",
+    "span_key": "62:69:euesque",
+    "start_offset": 62,
+    "status": "SKIP_NON_LINKABLE",
+    "surface": "euesque"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "decision_id": "<uuid>",
+    "end_offset": 79,
+    "ent_type_guess": "title",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:title_anchor",
+    "norm": "prince",
+    "reason": "ent_type=title not in linkable types",
+    "run_id": "<uuid>",
+    "span_key": "73:79:prince",
+    "start_offset": 73,
+    "status": "SKIP_NON_LINKABLE",
+    "surface": "prince"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.84,
+    "decision_id": "<uuid>",
+    "end_offset": 91,
+    "ent_type_guess": "place",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:toponym_anchor",
+    "norm": "lausanne",
+    "reason": "accepted_by_extraction_pipeline",
+    "run_id": "<uuid>",
+    "span_key": "83:91:lausanne",
+    "start_offset": 83,
+    "status": "ACCEPT_LINKABLE",
+    "surface": "lausanne"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.72,
+    "decision_id": "<uuid>",
+    "end_offset": 176,
+    "ent_type_guess": "date",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:date_pattern",
+    "norm": "lan de grace mille anq",
+    "reason": "accepted_by_extraction_pipeline",
+    "run_id": "<uuid>",
+    "span_key": "154:176:lan de grace Mille anq",
+    "start_offset": 154,
+    "status": "ACCEPT_LINKABLE",
+    "surface": "lan de grace Mille anq"
+   },
+   {
+    "chunk_id": null,
+    "confidence": 0.0,
+    "decision_id": "<uuid>",
+    "end_offset": 166,
+    "ent_type_guess": "unknown",
+    "label": null,
+    "meta_json": {
+     "merged": [
+      {
+       "method": "filter:gate",
+       "reason": "place_likeness: lowercase and not a known place",
+       "status": "FILTERED_OUT"
+      }
+     ]
+    },
+    "method": "rule:salvage_work_fuzzy",
+    "norm": null,
+    "reason": "nd=0.400>0.25 or bo=0.500<0.40",
+    "run_id": "<uuid>",
+    "span_key": "161:166:grace",
+    "start_offset": 161,
+    "status": "REJECT_LINKABLE",
+    "surface": "grace"
+   }
+  ],
   "language": [
    "middle_french",
    0.75,
@@ -673,9 +872,113 @@
     "surface": "lan de grace Mille anq"
    }
   ],
-  "trace_analysis_error": "IntegrityError"
+  "report": "=== MENTION EXTRACTION REPORT ===\nrun_id: <run>\nasset_ref: middle-french-antitus:catmus\nmentions_total: 6\nmentions_by_method:\n  rule:date_pattern: 1\n  rule:first_line_title_heuristic: 1\n  rule:title_anchor: 3\n  rule:toponym_anchor: 1\n\ntop_mentions_preview (N=3):\n  surface=\"lausanne\"  label=-  conf=0.84  method=rule:toponym_anchor  notes=\n  surface=\"lan de grace Mille anq\"  label=-  conf=0.72  method=rule:date_pattern  notes=\n  surface=\"La satyre megere.\"  label=-  conf=0.56  method=rule:first_line_title_heuristic  notes=\n\nskipped_preview (N=3):\n  surface=\"pere\"  type=title  reason=ent_type=title not in linkable types\n  surface=\"euesque\"  type=title  reason=ent_type=title not in linkable types\n  surface=\"prince\"  type=title  reason=ent_type=title not in linkable types\n\ntop_rejected_preview (N=1):\n  surface=\"grace\"  canonical=graal  reason=nd=0.400>0.25 or bo=0.500<0.40\n\nfiltered_out_preview (N=2):\n  surface=\"dicu\"  reason=too short (4<5) or stopword\n  surface=\"monfalcon\"  reason=place_likeness: lowercase and not a known place\n\n=== AUTHORITY SUMMARY ===\nrun_id: <run>\nasset_ref: middle-french-antitus:catmus\nsummary: linked=0, unresolved=6, ambiguous=0, mentions=6\nsources: \n\n=== LINKED ENTITIES (0) ===\n- none\n\n=== UNRESOLVED OR AMBIGUOUS (6) ===\n- La satyre megere. [work] | status=unresolved | reason=no candidate met the selection threshold\n  top_candidate: authority:La satyre megere. |  | score=0.56\n  evidence: chunk=<uuid> offsets=0-17 text=\"La satyre megere.\"\n- pere [title] | status=unresolved | reason=no reliable authority candidate found\n  evidence: chunk=<uuid> offsets=31-35 text=\"pere\"\n- euesque [title] | status=unresolved | reason=no reliable authority candidate found\n  evidence: chunk=<uuid> offsets=62-69 text=\"euesque\"\n- prince [title] | status=unresolved | reason=no reliable authority candidate found\n  evidence: chunk=<uuid> offsets=73-79 text=\"prince\"\n- lausanne [place] | status=unresolved | reason=no candidate met the selection threshold\n  top_candidate: authority:lausanne |  | score=0.84\n  evidence: chunk=<uuid> offsets=83-91 text=\"lausanne\"\n- lan de grace Mille anq [date] | status=unresolved | reason=no reliable authority candidate found\n  evidence: chunk=<uuid> offsets=154-176 text=\"lan de grace Mille anq\"\n\n=== MENTION EXTRACTION AUDIT ===\nAUDIT_1 (no phantom surfaces): PASS\nAUDIT_2 (attempt trace consistency): PASS\nAUDIT_3 (decision coverage & uniqueness): PASS (total=9, A=3+R=1+S=3+F=2=9, unique_keys=True)",
+  "stored_mentions": [
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.56,
+    "end_offset": 17,
+    "ent_type": "work",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:first_line_title_heuristic",
+    "norm": "la satyre megere.",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 0,
+    "surface": "La satyre megere."
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "end_offset": 35,
+    "ent_type": "title",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:title_anchor",
+    "norm": "pere",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 31,
+    "surface": "pere"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "end_offset": 69,
+    "ent_type": "title",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:title_anchor",
+    "norm": "euesque",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 62,
+    "surface": "euesque"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "end_offset": 79,
+    "ent_type": "title",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:title_anchor",
+    "norm": "prince",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 73,
+    "surface": "prince"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.84,
+    "end_offset": 91,
+    "ent_type": "place",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:toponym_anchor",
+    "norm": "lausanne",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 83,
+    "surface": "lausanne"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.72,
+    "end_offset": 176,
+    "ent_type": "date",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:date_pattern",
+    "norm": "lan de grace mille anq",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 154,
+    "surface": "lan de grace Mille anq"
+   }
+  ]
  },
  "middle-french-antitus:reference": {
+  "candidate_rows": [
+   {
+    "cand_id": "<uuid>",
+    "candidate": "La satyre megere.",
+    "mention_id": "<uuid>",
+    "meta_json": "{\"ent_type\": \"work\", \"method\": \"rule:first_line_title_heuristic\"}",
+    "score": 0.56,
+    "source": "heuristic"
+   },
+   {
+    "cand_id": "<uuid>",
+    "candidate": "lausanne",
+    "mention_id": "<uuid>",
+    "meta_json": "{\"ent_type\": \"place\", \"method\": \"rule:toponym_anchor\"}",
+    "score": 0.84,
+    "source": "heuristic"
+   }
+  ],
   "candidates": [
    {
     "candidate": "La satyre megere.",
@@ -704,6 +1007,24 @@
     "source": "heuristic",
     "start_offset": 82,
     "surface": "lausanne"
+   }
+  ],
+  "chunks": [
+   {
+    "chunk_id": "<uuid>",
+    "end_offset": 198,
+    "idx": 0,
+    "run_id": "<uuid>",
+    "start_offset": 0,
+    "text": "La satyre megere.\nTresreuerend pere en dieu Ame\nde monfalcon euesque et prince\nde lausanne. Antitus vr̃e tres\nhumble chappellain et seruiteur. Approchant\nlan de grace Mille cinq cens. considerãt que"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "end_offset": 245,
+    "idx": 1,
+    "run_id": "<uuid>",
+    "start_offset": 110,
+    "text": "humble chappellain et seruiteur. Approchant\nlan de grace Mille cinq cens. considerãt que\ndesirez veoir gracieuses inuentions poethiq̃s."
    }
   ],
   "debug": {
@@ -785,6 +1106,169 @@
    "trigger": 0,
    "work_fuzzy": 0
   },
+  "decisions": [
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.56,
+    "decision_id": "<uuid>",
+    "end_offset": 17,
+    "ent_type_guess": "work",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:first_line_title_heuristic",
+    "norm": "la satyre megere.",
+    "reason": "accepted_by_extraction_pipeline",
+    "run_id": "<uuid>",
+    "span_key": "0:17:La satyre megere.",
+    "start_offset": 0,
+    "status": "ACCEPT_LINKABLE",
+    "surface": "La satyre megere."
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "decision_id": "<uuid>",
+    "end_offset": 35,
+    "ent_type_guess": "title",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:title_anchor",
+    "norm": "pere",
+    "reason": "ent_type=title not in linkable types",
+    "run_id": "<uuid>",
+    "span_key": "31:35:pere",
+    "start_offset": 31,
+    "status": "SKIP_NON_LINKABLE",
+    "surface": "pere"
+   },
+   {
+    "chunk_id": null,
+    "confidence": 0.0,
+    "decision_id": "<uuid>",
+    "end_offset": 43,
+    "ent_type_guess": "unknown",
+    "label": null,
+    "meta_json": null,
+    "method": "filter:gate",
+    "norm": null,
+    "reason": "too short (4<5) or stopword",
+    "run_id": "<uuid>",
+    "span_key": "39:43:dieu",
+    "start_offset": 39,
+    "status": "FILTERED_OUT",
+    "surface": "dieu"
+   },
+   {
+    "chunk_id": null,
+    "confidence": 0.0,
+    "decision_id": "<uuid>",
+    "end_offset": 60,
+    "ent_type_guess": "unknown",
+    "label": null,
+    "meta_json": null,
+    "method": "filter:gate",
+    "norm": null,
+    "reason": "place_likeness: lowercase and not a known place",
+    "run_id": "<uuid>",
+    "span_key": "51:60:monfalcon",
+    "start_offset": 51,
+    "status": "FILTERED_OUT",
+    "surface": "monfalcon"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "decision_id": "<uuid>",
+    "end_offset": 68,
+    "ent_type_guess": "title",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:title_anchor",
+    "norm": "euesque",
+    "reason": "ent_type=title not in linkable types",
+    "run_id": "<uuid>",
+    "span_key": "61:68:euesque",
+    "start_offset": 61,
+    "status": "SKIP_NON_LINKABLE",
+    "surface": "euesque"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "decision_id": "<uuid>",
+    "end_offset": 78,
+    "ent_type_guess": "title",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:title_anchor",
+    "norm": "prince",
+    "reason": "ent_type=title not in linkable types",
+    "run_id": "<uuid>",
+    "span_key": "72:78:prince",
+    "start_offset": 72,
+    "status": "SKIP_NON_LINKABLE",
+    "surface": "prince"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.84,
+    "decision_id": "<uuid>",
+    "end_offset": 90,
+    "ent_type_guess": "place",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:toponym_anchor",
+    "norm": "lausanne",
+    "reason": "accepted_by_extraction_pipeline",
+    "run_id": "<uuid>",
+    "span_key": "82:90:lausanne",
+    "start_offset": 82,
+    "status": "ACCEPT_LINKABLE",
+    "surface": "lausanne"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.72,
+    "decision_id": "<uuid>",
+    "end_offset": 177,
+    "ent_type_guess": "date",
+    "label": null,
+    "meta_json": null,
+    "method": "rule:date_pattern",
+    "norm": "lan de grace mille cinq",
+    "reason": "accepted_by_extraction_pipeline",
+    "run_id": "<uuid>",
+    "span_key": "154:177:lan de grace Mille cinq",
+    "start_offset": 154,
+    "status": "ACCEPT_LINKABLE",
+    "surface": "lan de grace Mille cinq"
+   },
+   {
+    "chunk_id": null,
+    "confidence": 0.0,
+    "decision_id": "<uuid>",
+    "end_offset": 166,
+    "ent_type_guess": "unknown",
+    "label": null,
+    "meta_json": {
+     "merged": [
+      {
+       "method": "filter:gate",
+       "reason": "place_likeness: lowercase and not a known place",
+       "status": "FILTERED_OUT"
+      }
+     ]
+    },
+    "method": "rule:salvage_work_fuzzy",
+    "norm": null,
+    "reason": "nd=0.400>0.25 or bo=0.500<0.40",
+    "run_id": "<uuid>",
+    "span_key": "161:166:grace",
+    "start_offset": 161,
+    "status": "REJECT_LINKABLE",
+    "surface": "grace"
+   }
+  ],
   "language": [
    "middle_french",
    0.75,
@@ -859,7 +1343,93 @@
     "surface": "lan de grace Mille cinq"
    }
   ],
-  "trace_analysis_error": "IntegrityError"
+  "report": "=== MENTION EXTRACTION REPORT ===\nrun_id: <run>\nasset_ref: middle-french-antitus:reference\nmentions_total: 6\nmentions_by_method:\n  rule:date_pattern: 1\n  rule:first_line_title_heuristic: 1\n  rule:title_anchor: 3\n  rule:toponym_anchor: 1\n\ntop_mentions_preview (N=3):\n  surface=\"lausanne\"  label=-  conf=0.84  method=rule:toponym_anchor  notes=\n  surface=\"lan de grace Mille cinq\"  label=-  conf=0.72  method=rule:date_pattern  notes=\n  surface=\"La satyre megere.\"  label=-  conf=0.56  method=rule:first_line_title_heuristic  notes=\n\nskipped_preview (N=3):\n  surface=\"pere\"  type=title  reason=ent_type=title not in linkable types\n  surface=\"euesque\"  type=title  reason=ent_type=title not in linkable types\n  surface=\"prince\"  type=title  reason=ent_type=title not in linkable types\n\ntop_rejected_preview (N=1):\n  surface=\"grace\"  canonical=graal  reason=nd=0.400>0.25 or bo=0.500<0.40\n\nfiltered_out_preview (N=2):\n  surface=\"dieu\"  reason=too short (4<5) or stopword\n  surface=\"monfalcon\"  reason=place_likeness: lowercase and not a known place\n\n=== AUTHORITY SUMMARY ===\nrun_id: <run>\nasset_ref: middle-french-antitus:reference\nsummary: linked=0, unresolved=6, ambiguous=0, mentions=6\nsources: \n\n=== LINKED ENTITIES (0) ===\n- none\n\n=== UNRESOLVED OR AMBIGUOUS (6) ===\n- La satyre megere. [work] | status=unresolved | reason=no candidate met the selection threshold\n  top_candidate: authority:La satyre megere. |  | score=0.56\n  evidence: chunk=<uuid> offsets=0-17 text=\"La satyre megere.\"\n- pere [title] | status=unresolved | reason=no reliable authority candidate found\n  evidence: chunk=<uuid> offsets=31-35 text=\"pere\"\n- euesque [title] | status=unresolved | reason=no reliable authority candidate found\n  evidence: chunk=<uuid> offsets=61-68 text=\"euesque\"\n- prince [title] | status=unresolved | reason=no reliable authority candidate found\n  evidence: chunk=<uuid> offsets=72-78 text=\"prince\"\n- lausanne [place] | status=unresolved | reason=no candidate met the selection threshold\n  top_candidate: authority:lausanne |  | score=0.84\n  evidence: chunk=<uuid> offsets=82-90 text=\"lausanne\"\n- lan de grace Mille cinq [date] | status=unresolved | reason=no reliable authority candidate found\n  evidence: chunk=<uuid> offsets=154-177 text=\"lan de grace Mille cinq\"\n\n=== MENTION EXTRACTION AUDIT ===\nAUDIT_1 (no phantom surfaces): PASS\nAUDIT_2 (attempt trace consistency): PASS\nAUDIT_3 (decision coverage & uniqueness): PASS (total=9, A=3+R=1+S=3+F=2=9, unique_keys=True)",
+  "stored_mentions": [
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.56,
+    "end_offset": 17,
+    "ent_type": "work",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:first_line_title_heuristic",
+    "norm": "la satyre megere.",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 0,
+    "surface": "La satyre megere."
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "end_offset": 35,
+    "ent_type": "title",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:title_anchor",
+    "norm": "pere",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 31,
+    "surface": "pere"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "end_offset": 68,
+    "ent_type": "title",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:title_anchor",
+    "norm": "euesque",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 61,
+    "surface": "euesque"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.64,
+    "end_offset": 78,
+    "ent_type": "title",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:title_anchor",
+    "norm": "prince",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 72,
+    "surface": "prince"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.84,
+    "end_offset": 90,
+    "ent_type": "place",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:toponym_anchor",
+    "norm": "lausanne",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 82,
+    "surface": "lausanne"
+   },
+   {
+    "chunk_id": "<uuid>",
+    "confidence": 0.72,
+    "end_offset": 177,
+    "ent_type": "date",
+    "label": null,
+    "mention_id": "<uuid>",
+    "method": "rule:date_pattern",
+    "norm": "lan de grace mille cinq",
+    "notes": null,
+    "run_id": "<uuid>",
+    "start_offset": 154,
+    "surface": "lan de grace Mille cinq"
+   }
+  ]
  },
  "old-french-verse:catmus": {
   "candidate_rows": [
