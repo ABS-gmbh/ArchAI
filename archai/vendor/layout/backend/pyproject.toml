@@ -35,3 +35,11 @@ dev = [
     "pytest>=7.0.0",
     "httpx>=0.24.0",
 ]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+  "requires_models: test needs real YOLO/Kraken weights or the inference stack (deselected in CI)",
+]
