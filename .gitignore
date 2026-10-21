@@ -51,8 +51,6 @@ archai/frontend/node_modules/
 archai/frontend/dist/
 
 # ---- Local backend runtime data ----
-archai/backend/venv/
-archai/backend/.pytest_cache/
 archai/vendor/layout/.venv/
 archai/vendor/layout/backend/.data/
 archai/vendor/layout/backend/app/.data/
