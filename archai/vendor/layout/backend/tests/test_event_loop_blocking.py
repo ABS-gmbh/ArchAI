@@ -12,6 +12,9 @@ per response: worst event-loop lag 5.233s before, 0.004s after. Real timeouts ar
 
 One call site is legitimately synchronous: _run_full_page_post_ocr_pipeline is a
 plain def already dispatched through asyncio.to_thread by its callers.
+
+The call sites are in the OCR router and in app/services/trace_pipeline.py,
+where the pipeline the router's endpoints run was moved; both are checked.
 """
 
 from __future__ import annotations
@@ -24,14 +27,16 @@ from pathlib import Path
 
 import pytest
 
-ROUTER = Path(__file__).resolve().parents[1] / "app" / "routers" / "ocr.py"
-SOURCE = ROUTER.read_text()
-TREE = ast.parse(SOURCE)
+APP = Path(__file__).resolve().parents[1] / "app"
+ROUTER = APP / "routers" / "ocr.py"
+SOURCES = {path.name: path.read_text() for path in (ROUTER, APP / "services" / "trace_pipeline.py")}
+TREES = {name: ast.parse(source) for name, source in SOURCES.items()}
+TREE = TREES[ROUTER.name]
 
 
-def enclosing_function(line: int):
+def enclosing_function(name: str, line: int):
     best = None
-    for node in ast.walk(TREE):
+    for node in ast.walk(TREES[name]):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if node.lineno <= line <= node.end_lineno:
                 if best is None or node.lineno > best.lineno:
@@ -39,7 +44,7 @@ def enclosing_function(line: int):
     return best
 
 
-def linking_call_lines() -> list[int]:
+def linking_call_lines() -> list[tuple[str, int]]:
     """Every line that invokes the linking stage, direct or via to_thread.
 
     Matching only the direct form "_run_authority_linking_stage(run_id)" would
@@ -47,8 +52,9 @@ def linking_call_lines() -> list[int]:
     so the check below would silently skip exactly the sites it exists to guard.
     """
     return [
-        i + 1
-        for i, text in enumerate(SOURCE.splitlines())
+        (name, i + 1)
+        for name, source in SOURCES.items()
+        for i, text in enumerate(source.splitlines())
         if "_run_authority_linking_stage" in text
         and "linking_result =" in text
         and "def " not in text
@@ -59,15 +65,15 @@ def test_the_call_sites_are_still_where_we_think() -> None:
     assert len(linking_call_lines()) == 3
 
 
-@pytest.mark.parametrize("line", linking_call_lines())
-def test_async_callers_dispatch_the_blocking_stage_to_a_thread(line: int) -> None:
+@pytest.mark.parametrize(("name", "line"), linking_call_lines())
+def test_async_callers_dispatch_the_blocking_stage_to_a_thread(name: str, line: int) -> None:
     """The invariant: inside `async def`, this call must not be direct."""
-    function = enclosing_function(line)
-    statement = SOURCE.splitlines()[line - 1]
+    function = enclosing_function(name, line)
+    statement = SOURCES[name].splitlines()[line - 1]
     if isinstance(function, ast.AsyncFunctionDef):
         assert "asyncio.to_thread" in statement, (
             f"{function.name} is async but calls the blocking linking stage directly "
-            f"at line {line}; wrap it in await asyncio.to_thread(...)"
+            f"at {name}:{line}; wrap it in await asyncio.to_thread(...)"
         )
         assert statement.strip().startswith("linking_result = await")
     else:
@@ -91,7 +97,7 @@ def test_the_synchronous_call_site_is_reached_only_through_a_thread() -> None:
 
 
 def test_asyncio_is_imported() -> None:
-    assert "import asyncio" in SOURCE
+    assert all("import asyncio" in source for source in SOURCES.values())
 
 
 # ───────────────────────────────────────── the behaviour it protects ──

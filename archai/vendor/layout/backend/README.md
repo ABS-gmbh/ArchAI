@@ -21,6 +21,20 @@ FastAPI backend for the `archai/vendor/layout` workspace.
 | `tests/` | Backend tests |
 | `.env.example` | Runtime environment template |
 
+`app/routers/ocr.py` holds the OCR endpoints and the reading of a page
+(segmentation, recognisers, retries). What is done with the text afterwards
+lives in services the router calls:
+
+| Module | What it does |
+|---|---|
+| `app/services/language_detection.py` | The page's language: langdetect checked against Latin and Old/Middle French anchors |
+| `app/services/mention_extraction.py` | Entity mentions (people, places, works, dates) in diplomatic text |
+| `app/services/mention_report.py` | The mention-extraction and consolidated reports of a traced run |
+| `app/services/trace_pipeline.py` | Chunks, mentions, authority linking, the search decision and indexing of a run |
+
+`tests/test_ocr_router_characterisation.py` checks these against what the
+router produced before they were moved out of it.
+
 ## Setup
 
 ```bash

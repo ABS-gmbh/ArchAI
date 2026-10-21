@@ -42,7 +42,6 @@ which parts are active, experimental, or runtime-only.
 | `archai/data/` | Workspace raw/processed/index/export data dirs | Active |
 | `archai/docs/` | Workspace-specific docs | Partial |
 | `archai/docker/` | Dockerfiles and compose definitions | Active |
-| `archai/backend/` | Prototype FastAPI backend package (`archai_backend`) | Active (prototype) |
 | `archai/frontend/` | Vite + Vue frontend scaffold/prototype | Active (prototype) |
 | `archai/vendor/layout/` | Full-featured document + chat + OCR workspace | Active |
 
@@ -81,4 +80,4 @@ The following locations are expected to change locally and are not part of stabl
 - `archai/vendor/layout/backend/outputs/`
 - `archai/vendor/layout/backend/app/.data/`
 - `archai/vendor/layout/backend/archai.db`
-- local virtual environments (`venv/`, `.venv/`, `archai/backend/venv/`)
+- local virtual environments (`venv/`, `.venv/`)

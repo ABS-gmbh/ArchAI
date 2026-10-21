@@ -18,13 +18,11 @@ It contains three tracks:
 | `data/` | Workspace data folders (`raw`, `processed`, `derived`, `indexes`, `exports`) | Active |
 | `docs/` | Workspace architecture and schema docs | In progress |
 | `docker/` | Dockerfiles and compose setup | Active |
-| `backend/` | **MOCK** scaffolding: 41/47 modules are `# TODO: implement`; ingest returns fabricated text | Not functional |
 | `frontend/` | Prototype Vue/Vite UI | Prototype |
 | `vendor/layout/` | Main integrated document workspace (FastAPI + Next.js) | Active |
 
 ## Development Entry Points
 
-- Prototype backend: [`backend/README.md`](backend/README.md)
 - Prototype frontend: [`frontend/README.md`](frontend/README.md)
 - Vendor layout app: [`vendor/layout/README.md`](vendor/layout/README.md)
 

@@ -22,8 +22,6 @@ it. Two pages contain no named entity at all: there, every mention is wrong.
 from __future__ import annotations
 
 import argparse
-import contextlib
-import io
 import json
 import sys
 from pathlib import Path
@@ -38,9 +36,8 @@ TUNED_ON = "middle-french-antitus"
 
 
 def _extractor() -> Any:
-    # The OCR router prints its backend set-up while it loads.
-    with contextlib.redirect_stdout(io.StringIO()):
-        from app.routers.ocr import _extract_mentions_from_text
+    from app.services.mention_extraction import _extract_mentions_from_text
+
     return _extract_mentions_from_text
 
 

@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import contextlib
 import importlib.util
-import io
 import json
 import sys
 from pathlib import Path
@@ -16,8 +14,7 @@ _backend = Path(__file__).resolve().parents[1]
 if str(_backend) not in sys.path:
     sys.path.insert(0, str(_backend))
 
-with contextlib.redirect_stdout(io.StringIO()):
-    from app.routers import ocr as ocr_router  # type: ignore[import-untyped]  # noqa: E402
+from app.services import mention_extraction  # type: ignore[import-untyped]  # noqa: E402
 from app.services.text_normalization import is_blacklisted_token  # type: ignore[import-untyped]  # noqa: E402
 
 READINGS = _backend / "eval" / "quality_gate" / "readings.json"
@@ -25,7 +22,7 @@ VERSE = next(p for p in json.loads(READINGS.read_text(encoding="utf-8"))["pages"
 
 
 def _mentions(text: str, ent_type: str | None = None) -> list[dict[str, Any]]:
-    mentions, _candidates, _debug = ocr_router._extract_mentions_from_text(text)
+    mentions, _candidates, _debug = mention_extraction._extract_mentions_from_text(text)
     return [m for m in mentions if ent_type is None or m["ent_type"] == ent_type]
 
 
@@ -38,12 +35,12 @@ def _surfaces(text: str, ent_type: str) -> list[str]:
 
 def test_a_name_with_a_superscript_letter_is_one_word() -> None:
     """Regression: "mͣrcadigas" was read as "m" and "rcadigas"."""
-    assert [m.group(0) for m in ocr_router._SALVAGE_TOKEN_RE.finditer("Roys mͣrcadigas ⁊ amerent")] == ["Roys", "mͣrcadigas", "amerent"]
-    assert [m.group(0) for m in ocr_router._MENTION_TOKEN_RE.finditer("Caldꝰ li roys")] == ["Caldꝰ", "li", "roys"]
+    assert [m.group(0) for m in mention_extraction._SALVAGE_TOKEN_RE.finditer("Roys mͣrcadigas ⁊ amerent")] == ["Roys", "mͣrcadigas", "amerent"]
+    assert [m.group(0) for m in mention_extraction._MENTION_TOKEN_RE.finditer("Caldꝰ li roys")] == ["Caldꝰ", "li", "roys"]
 
 
 def test_lexicons_are_compared_by_search_key() -> None:
-    assert ocr_router._word_key("Caldꝰ") == "caldus"
+    assert mention_extraction._word_key("Caldꝰ") == "caldus"
     assert is_blacklisted_token("uoie")  # "voie" is listed
 
 
@@ -82,7 +79,7 @@ def test_an_unlisted_lowercase_word_once_after_a_title_is_no_name() -> None:
 
 def test_a_found_name_is_found_everywhere_on_the_page() -> None:
     persons = _surfaces(VERSE, "person")
-    assert sum("marcadigas" in ocr_router._word_key(s) for s in persons) == 4
+    assert sum("marcadigas" in mention_extraction._word_key(s) for s in persons) == 4
 
 
 # ── places ──────────────────────────────────────────────────────────────

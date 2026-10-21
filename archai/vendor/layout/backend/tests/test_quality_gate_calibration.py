@@ -33,7 +33,7 @@ _backend_src = Path(__file__).resolve().parent.parent / "app"
 if str(_backend_src.parent) not in sys.path:
     sys.path.insert(0, str(_backend_src.parent))
 
-from app.routers import ocr as ocr_router  # type: ignore[import-untyped]  # noqa: E402
+from app.services import language_detection  # type: ignore[import-untyped]  # noqa: E402
 from app.services.lexicon_trust import best_fit_plausibility  # type: ignore[import-untyped]  # noqa: E402
 from app.services.ocr_quality import compute_quality_report  # type: ignore[import-untyped]  # noqa: E402
 from app.services.pipeline_hardening import enforce_quality_gates  # type: ignore[import-untyped]  # noqa: E402
@@ -45,9 +45,9 @@ PAGE_IDS = [page["page_id"] for page in PAGES]
 
 def gate(text: str) -> tuple[str, str, bool]:
     """(detected language, label, NER and search allowed), as the full-page pipeline decides."""
-    detected, _confidence = ocr_router._detect_language_metadata(text)
-    language = ocr_router._normalize_detected_language(detected)
-    report = compute_quality_report(text, language=ocr_router._quality_language(language), tiled=False)
+    detected, _confidence = language_detection._detect_language_metadata(text)
+    language = language_detection._normalize_detected_language(detected)
+    report = compute_quality_report(text, language=language_detection._quality_language(language), tiled=False)
     plausibility = best_fit_plausibility(text, language) if language != "unknown" else None
     decisions = enforce_quality_gates(report, lexical_plausibility=plausibility)
     blocked = {"token_ner", "token_search"} & set(decisions["blocked_stages"])

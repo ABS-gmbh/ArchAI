@@ -63,7 +63,7 @@ def candidates(*, include_ungraded: bool, everything: bool) -> list[dict[str, An
 
 def grade(text: str, *, tiled: bool) -> dict[str, Any]:
     """The decision the pipeline takes on *text*: language, label, and whether it may be searched."""
-    from app.routers.ocr import _detect_language_metadata, _normalize_detected_language, _quality_language
+    from app.services.language_detection import _detect_language_metadata, _normalize_detected_language, _quality_language
     from app.services.ocr_quality import compute_quality_report
 
     detected, _confidence = _detect_language_metadata(text)

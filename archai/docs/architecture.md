@@ -4,10 +4,9 @@ The `archai/` workspace has two implementation layers and one vendor-integrated 
 
 ## 1) Prototype Layer
 
-- `archai/backend`: lightweight FastAPI prototype (`archai_backend`)
 - `archai/frontend`: lightweight Vue/Vite prototype
 
-This layer is used for fast iteration on core contracts (ingest/jobs/evidence/chat).
+It is a shell: an application frame and placeholder modules, with no backend of its own.
 
 ## 2) Vendor-Integrated Layer
 
