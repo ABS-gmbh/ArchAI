@@ -4,13 +4,25 @@ No test may reach the network: Wikidata, SAIA, GWDG and Ollama are stubbed in
 the tests that use them, and one that is not would pass or fail with the
 service rather than with the code. Outside connections raise
 ``NetworkAccessInTest``; loopback and Unix sockets are allowed.
+
+Nor may a test write the OCR evidence log: every OCR run appends to it, and the
+suite's fake pages went into the copy in the checkout. It goes to a file of the
+session's own.
 """
 
 from __future__ import annotations
 
 import socket
+import sys
+from pathlib import Path
 
 import pytest
+
+_BACKEND = Path(__file__).resolve().parents[1]
+if str(_BACKEND) not in sys.path:
+    sys.path.insert(0, str(_BACKEND))
+
+from app.config import settings  # noqa: E402
 
 _LOOPBACK = {"127.0.0.1", "::1", "localhost"}
 _real_connect = socket.socket.connect
@@ -47,3 +59,11 @@ def _no_network():
     socket.socket.connect = _real_connect  # type: ignore[method-assign]
     socket.socket.connect_ex = _real_connect_ex  # type: ignore[method-assign]
 
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _evidence_log_outside_the_checkout(tmp_path_factory: pytest.TempPathFactory):
+    real = settings.ocr_evidence_path
+    settings.ocr_evidence_path = str(tmp_path_factory.mktemp("evidence") / "ocr_evidence.jsonl")
+    yield
+    settings.ocr_evidence_path = real

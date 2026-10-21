@@ -6,6 +6,8 @@ import hashlib
 import json
 from pathlib import Path
 
+from app.config import settings
+
 
 def sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
@@ -34,9 +36,14 @@ class OcrEvidenceRecord:
 
 def write_ocr_evidence_jsonl(
     record: OcrEvidenceRecord,
-    out_path: str = "data/evidence/ocr_evidence.jsonl",
+    out_path: str | None = None,
 ) -> None:
-    target = Path(out_path)
+    """Append *record* to *out_path*, by default ``settings.ocr_evidence_path``.
+
+    The default is read at call time, so a test (or OCR_EVIDENCE_PATH) can send
+    the log elsewhere.
+    """
+    target = Path(out_path or settings.ocr_evidence_path)
     target.parent.mkdir(parents=True, exist_ok=True)
     payload = asdict(record)
     with target.open("a", encoding="utf-8") as fh:

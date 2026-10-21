@@ -80,4 +80,5 @@ The following locations are expected to change locally and are not part of stabl
 - `archai/vendor/layout/backend/outputs/`
 - `archai/vendor/layout/backend/app/.data/`
 - `archai/vendor/layout/backend/archai.db`
+- `archai/vendor/layout/backend/data/evidence/` (OCR evidence log; path set by `OCR_EVIDENCE_PATH`)
 - local virtual environments (`venv/`, `.venv/`)
