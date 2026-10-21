@@ -60,3 +60,4 @@ archai/vendor/layout/backend/weights/
 archai/vendor/layout/backend/models/
 archai/vendor/layout/backend/archai.db
 archai/vendor/layout/backend/analytics.db
+archai/vendor/layout/backend/data/evidence/

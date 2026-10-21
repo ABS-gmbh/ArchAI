@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     # Model paths
     model_dir: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
 
+    # Every OCR run appends its raw and final text here, with model and decoding
+    # (app/services/ocr_evidence.py). It used to be "data/evidence/..." relative
+    # to the working directory, so the test suite, run from the backend, appended
+    # its fake pages to a tracked file. Generated output: gitignored.
+    ocr_evidence_path: str = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)), "data", "evidence", "ocr_evidence.jsonl"
+    )
+
     # Analytics
     analytics_db_path: str = os.path.join(
         os.path.dirname(os.path.dirname(__file__)), "analytics.db"
