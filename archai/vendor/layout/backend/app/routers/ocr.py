@@ -41,6 +41,7 @@ from app.db.pipeline_db import (
     list_events,
     log_event,
     make_span_key,
+    merge_span_decisions,
     table_view_for_chunks,
     table_view_for_entity_attempts,
     table_view_for_entity_candidates,
@@ -2127,6 +2128,7 @@ def _run_trace_analysis(
                 "meta_json": None,
             })
 
+    decision_rows, attempt_rows = merge_span_decisions(decision_rows, attempt_rows)
     if decision_rows:
         insert_entity_decisions(run_id, decision_rows)
     if attempt_rows:

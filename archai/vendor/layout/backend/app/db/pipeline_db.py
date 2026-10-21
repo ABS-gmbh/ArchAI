@@ -1396,6 +1396,68 @@ def list_mention_links_for_run(run_id: str) -> list[dict[str, Any]]:
 # ── entity_decisions CRUD ─────────────────────────────────────────────
 
 
+# Which decision a span keeps when the extractor reached several for it.
+_DECISION_PRECEDENCE = ("ACCEPT_LINKABLE", "REJECT_LINKABLE", "SKIP_NON_LINKABLE", "FILTERED_OUT")
+
+
+def merge_span_decisions(
+    decisions: list[dict[str, Any]], attempts: list[dict[str, Any]]
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """One decision per span, and every attempt pointing at a decision that is kept.
+
+    ``entity_decisions`` holds one row per (run, span), and the extractor can
+    reach two decisions for the same word: on middle-french-antitus "grace" is
+    rejected once as a near miss of a work title, with the comparison kept as an
+    attempt, and once as a lowercase place candidate. Inserted as they came, the
+    second replaced the first, the first one's attempt pointed at nothing, and
+    the FOREIGN KEY error that followed lost the analysis of the whole page.
+
+    The decision kept is the first of the highest status in
+    ``_DECISION_PRECEDENCE``; the others are listed in its ``meta_json`` under
+    ``"merged"``, and their attempts move to it, numbered after its own.
+    """
+    kept: dict[str, dict[str, Any]] = {}
+    merged_into: dict[str, str] = {}
+    rank = {status: i for i, status in enumerate(_DECISION_PRECEDENCE)}
+    for row in decisions:
+        row = dict(row)
+        row["decision_id"] = str(row.get("decision_id") or uuid.uuid4())
+        key = make_span_key(int(row.get("start_offset", 0)), int(row.get("end_offset", 0)), str(row.get("surface") or ""))
+        held = kept.get(key)
+        if held is None:
+            kept[key] = row
+            continue
+        winner, loser = held, row
+        if rank.get(str(row.get("status")), len(rank)) < rank.get(str(held.get("status")), len(rank)):
+            winner, loser = row, held
+        meta = winner.get("meta_json")
+        if isinstance(meta, str):
+            try:
+                meta = json.loads(meta)
+            except Exception:
+                meta = {"meta_json": meta}
+        meta = dict(meta or {})
+        meta.setdefault("merged", []).append(
+            {"status": loser.get("status"), "method": loser.get("method"), "reason": loser.get("reason")}
+        )
+        winner["meta_json"] = meta
+        merged_into[loser["decision_id"]] = winner["decision_id"]
+        for old, new in merged_into.items():
+            if new == loser["decision_id"]:
+                merged_into[old] = winner["decision_id"]
+        kept[key] = winner
+    next_idx: dict[str, int] = {}
+    remapped: list[dict[str, Any]] = []
+    for attempt in attempts:
+        attempt = dict(attempt)
+        decision_id = merged_into.get(str(attempt.get("decision_id") or ""), attempt.get("decision_id"))
+        attempt["decision_id"] = decision_id
+        attempt["attempt_idx"] = next_idx.get(decision_id, 0)
+        next_idx[decision_id] = attempt["attempt_idx"] + 1
+        remapped.append(attempt)
+    return list(kept.values()), remapped
+
+
 def insert_entity_decisions(run_id: str, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Persist final extraction decisions.
 
