@@ -150,6 +150,18 @@ alignment.
 python scripts/benchmark_retrieval.py --db app/archai.sqlite
 ```
 
+The configured embedding model, `multilingual-e5-large-instruct`, expects every
+query to state its task: `Instruct: <task>\nQuery: <text>`. Documents are
+embedded as they are. `rag_store.embedding_input` adds the instruction to
+queries only, so stored vectors stay valid. The task is the model card's own
+retrieval sentence; `--embedder e5-local` runs the model on this machine
+(sentence-transformers) when the provider cannot be reached:
+
+```bash
+python scripts/benchmark_retrieval.py --embedder e5-local
+python scripts/benchmark_retrieval.py --embedder e5-local --no-query-instruction
+```
+
 ### What is searched
 
 Only searchable runs (`pipeline_db.searchable_runs`):

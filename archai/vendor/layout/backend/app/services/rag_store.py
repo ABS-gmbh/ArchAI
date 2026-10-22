@@ -142,8 +142,33 @@ def _space_key() -> str:
     return _embedding_backend_slug()
 
 
+# The task an e5-instruct query states: the model card's own retrieval task.
+# On scripts/benchmark_retrieval.py (--embedder e5-local) it raised dense MRR
+# from 0.510 to 0.628 over bare queries; two sentences written for this corpus
+# raised it less (0.561 for "a passage from a medieval manuscript", 0.578 for
+# "a noisy OCR transcription"). It also fits the questions users ask, which
+# the benchmark does not measure.
+E5_RETRIEVAL_TASK = "Given a web search query, retrieve relevant passages that answer the query"
+
+
+def embedding_input(text: str, *, query: bool, model: str | None = None) -> str:
+    """*text* as the embedding model expects it.
+
+    e5-instruct models are trained with an instruction on the query side only:
+    ``Instruct: <task>\nQuery: <text>``; documents are embedded as they are.
+    Without it a query lands where the model was never trained to put one.
+    Only the query changes, so stored embeddings stay valid. Other models -
+    plain e5 among them, whose "query: "/"passage: " prefixes would change the
+    documents too - get the text unchanged.
+    """
+    name = ((settings.rag_embedding_model if model is None else model) or "").strip().lower()
+    if query and "e5" in name and "instruct" in name:
+        return f"Instruct: {E5_RETRIEVAL_TASK}\nQuery: {text}"
+    return text
+
+
 def _embed(texts: list[str]) -> list[list[float]] | None:
-    """Embed *texts* in the configured space.
+    """Embed *texts* in the configured space; a query goes through embedding_input first.
 
     None in the local space, where ChromaDB embeds with its default function.
     With a provider model configured, a failure raises EmbeddingUnavailable.
@@ -770,7 +795,7 @@ def retrieve_chunks(
     query_embeddings: list[list[float]] | None = None
     dense: list[dict[str, Any]] | None = None
     try:
-        query_embeddings = _embed([query])
+        query_embeddings = _embed([embedding_input(query, query=True)])
     except EmbeddingUnavailable as exc:
         log.warning("Dense retrieval unavailable: %s", exc)
         notes.append(f"dense ranking unavailable: {exc}")
@@ -933,7 +958,7 @@ def retrieve_entities(
     if not scope:
         return RetrievalResult(mode="none", notes=["no searchable run in scope"])
     try:
-        query_embeddings = _embed([query])
+        query_embeddings = _embed([embedding_input(query, query=True)])
     except EmbeddingUnavailable as exc:
         log.warning("Entity retrieval unavailable: %s", exc)
         return RetrievalResult(mode="none", notes=[f"dense ranking unavailable: {exc}"])

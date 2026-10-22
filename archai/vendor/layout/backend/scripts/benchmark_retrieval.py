@@ -5,6 +5,8 @@ Usage::
     python scripts/benchmark_retrieval.py
     python scripts/benchmark_retrieval.py --db path/to/archai.sqlite --json
     python scripts/benchmark_retrieval.py --embedder provider
+    python scripts/benchmark_retrieval.py --embedder e5-local
+    python scripts/benchmark_retrieval.py --embedder e5-local --no-query-instruction
 
 Relevance judgments are the expensive part of a retrieval benchmark, and this
 project has none. They are derived from structure instead: the pipeline DB holds
@@ -26,6 +28,14 @@ should retrieve the chunk of another reading that holds the same text.
    MRR, Hit@1 and Hit@5 (top_k is 5) are reported with bootstrap intervals
    resampled over target readings, since queries against one reading are not
    independent.
+
+``--embedder e5-local`` runs the configured model family,
+multilingual-e5-large-instruct, on this machine (sentence-transformers, about
+1.1 GB of weights) when the provider cannot be reached. Queries are prepared
+by ``rag_store.embedding_input``, as retrieval prepares them, so the run
+measures the pipeline's query instruction; ``--no-query-instruction`` embeds
+them bare, as the pipeline did before, and ``--query-task`` tries another task
+sentence.
 
 This measures passage lookup under OCR noise: a user quoting or searching for
 words they have read. It does not measure questions that share no vocabulary
@@ -179,7 +189,17 @@ def _cid(target: str, chunk: dict) -> str:
 # ── retrievers ─────────────────────────────────────────────────────────
 
 
+E5_LOCAL_MODEL = "intfloat/multilingual-e5-large-instruct"
+
+
 def _embedder(kind: str) -> Callable[[list[str]], list[list[float]]]:
+    if kind == "e5-local":
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError as exc:
+            raise SystemExit("error: --embedder e5-local needs sentence-transformers installed") from exc
+        model = SentenceTransformer(E5_LOCAL_MODEL)
+        return lambda batch: [list(v) for v in model.encode(batch, batch_size=16, normalize_embeddings=True)]
     if kind == "local":
         from chromadb.utils import embedding_functions
 
@@ -200,19 +220,27 @@ def _embedder(kind: str) -> Callable[[list[str]], list[list[float]]]:
     return provider
 
 
-def dense_rankings(queries, chunks, embed) -> dict[str, list[str]]:
-    texts = list(dict.fromkeys([c["text"] for cs in chunks.values() for c in cs] + [q.text for q in queries]))
+def _vectors(texts: list[str], embed) -> dict[str, np.ndarray]:
     vectors: dict[str, np.ndarray] = {}
+    texts = list(dict.fromkeys(texts))
     for i in range(0, len(texts), 64):
         batch = texts[i : i + 64]
         for text, vector in zip(batch, embed(batch), strict=True):
             array = np.asarray(vector, dtype=np.float64)
             vectors[text] = array / (np.linalg.norm(array) or 1.0)
+    return vectors
+
+
+def dense_rankings(queries, chunks, embed, query_input: Callable[[str], str] = lambda text: text) -> dict[str, list[str]]:
+    """Rank each query's target chunks by cosine; *query_input* prepares the query text."""
+    documents = _vectors([c["text"] for cs in chunks.values() for c in cs], embed)
+    prepared = {q.qid: query_input(q.text) for q in queries}
+    query_vectors = _vectors(list(prepared.values()), embed)
     out = {}
     for q in queries:
         cands = chunks[q.target]
         # Exact cosine ranking: what Chroma's HNSW index approximates.
-        sims = np.stack([vectors[c["text"]] for c in cands]) @ vectors[q.text]
+        sims = np.stack([documents[c["text"]] for c in cands]) @ query_vectors[prepared[q.qid]]
         out[q.qid] = [_cid(q.target, cands[i]) for i in np.argsort(-sims, kind="stable")]
     return out
 
@@ -274,16 +302,35 @@ def summarise(queries, scores, baseline=None, *, seed: int) -> dict[str, dict[st
     return out
 
 
+def _query_input(args: argparse.Namespace) -> Callable[[str], str]:
+    """How the query is embedded: as retrieval prepares it, unless told otherwise."""
+    if args.no_query_instruction or args.embedder == "local":
+        return lambda text: text
+    from app.services import rag_store
+
+    if args.query_task:
+        rag_store.E5_RETRIEVAL_TASK = args.query_task
+    model = E5_LOCAL_MODEL if args.embedder == "e5-local" else None
+    return lambda text: rag_store.embedding_input(text, query=True, model=model)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     default_db = os.getenv("ARCHAI_DB_PATH") or str(Path(__file__).resolve().parents[1] / "app" / "archai.sqlite")
     parser.add_argument("--db", type=Path, default=Path(default_db))
     parser.add_argument(
         "--embedder",
-        choices=("local", "provider"),
+        choices=("local", "provider", "e5-local"),
         default="local",
-        help="local: Chroma's default model, the pipeline's fallback; provider: settings.rag_embedding_model",
+        help=(
+            "local: Chroma's default model, the pipeline's fallback; provider: settings.rag_embedding_model; "
+            f"e5-local: {E5_LOCAL_MODEL} on this machine"
+        ),
     )
+    parser.add_argument(
+        "--no-query-instruction", action="store_true", help="embed queries bare, as the pipeline did before"
+    )
+    parser.add_argument("--query-task", help="task sentence for the e5-instruct query instruction")
     parser.add_argument("--pairs", type=int, default=260, help="reading pairs to draw passages from")
     parser.add_argument("--seed", type=int, default=20260924)
     parser.add_argument("--json", action="store_true")
@@ -298,7 +345,8 @@ def main(argv: list[str] | None = None) -> int:
         print("error: no page has two alignable readings; nothing to benchmark", file=sys.stderr)
         return 2
 
-    dense = dense_rankings(queries, chunks, _embedder(args.embedder))
+    query_input = _query_input(args)
+    dense = dense_rankings(queries, chunks, _embedder(args.embedder), query_input)
     lexical = lexical_rankings(queries, chunks)
     runs = {
         "dense": dense,
@@ -318,6 +366,7 @@ def main(argv: list[str] | None = None) -> int:
         "median_pair_cer": float(np.median(pair_cers)),
         "pages": len(groups),
         "embedder": args.embedder,
+        "query_example": query_input("<passage>"),
     }
     if args.json:
         print(json.dumps({"meta": meta, "results": report}, indent=2))
@@ -328,6 +377,7 @@ def main(argv: list[str] | None = None) -> int:
         f"({meta['reading_pairs']} reading pairs, median CER between readings {meta['median_pair_cer']:.2f}, "
         f"{meta['pages']} pages), dense embedder: {args.embedder}"
     )
+    print(f"query as embedded: {meta['query_example']!r}")
     print(f"{'':<14}{'MRR':>22}{'Hit@1':>22}{'Hit@5':>22}")
     for name, metrics in report.items():
         cells = [
