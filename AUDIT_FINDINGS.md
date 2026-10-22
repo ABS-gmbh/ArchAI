@@ -374,7 +374,7 @@ rag_store is reached at app import time: app/main.py:11 imports routers.index an
 - **Impact:** The upstream commit this 27,933-LOC vendored tree was copied from is unrecoverable — the only surviving pointer is a URL for a *different* org (emanuskript/layout, versus the outer remote mohamedbasuony/ArchAI). There is no way to diff local modifications against upstream, pull upstream fixes, or tell a reviewer which lines are ours. The stray .git/config also confuses tooling that probes for nested repos.
 - **Fix:** Delete the orphaned archai/vendor/layout/.git directory and add archai/vendor/layout/UPSTREAM.md recording the upstream URL, the exact commit SHA the snapshot came from, and the date — or convert the directory to a real git submodule with .gitmodules.
 
-### [HYG-08] app.py and _app_.py at the vendor root are 118 KB of dead Gradio code pointing at model files that do not exist
+### [HYG-08] app.py and _app_.py at the vendor root are 118 KB of dead Gradio code pointing at model files that do not exist — **FIXED** (deleted)
 
 - **Where:** `archai/vendor/layout/app.py:40`  
 - **Category:** architecture  
@@ -898,7 +898,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** The root .gitignore entry protects nothing, so the only thing keeping a 32 MB SQLite database out of commits is a per-directory file that does not apply if anyone runs the app with ARCHAI_DB_PATH set elsewhere. And a published wheel would point users at github.com/ABS-gmbh/ArchAI, which is not where this code lives.
 - **Fix:** Replace .gitignore:28 with `*.sqlite` and `*.db` at the root level, and reconcile pyproject.toml:40-41 with the actual remote (or update the remote if ABS-gmbh is the intended home).
 
-### [HYG-17] Three docker files tracked at 0 bytes while README and repository map list docker as Active
+### [HYG-17] Three docker files tracked at 0 bytes while README and repository map list docker as Active — **FIXED** (deleted)
 
 - **Where:** `archai/docker/docker-compose.yml:1`  
 - **Category:** hygiene  

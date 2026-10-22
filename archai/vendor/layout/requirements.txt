@@ -1,8 +1,0 @@
-gradio
-supervision
-ultralytics
-opencv-python
-pillow
-numpy<2.0
-plotly
-kaleido
