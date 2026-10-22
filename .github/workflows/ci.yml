@@ -53,8 +53,8 @@ jobs:
       - name: Tests
         run: pytest tests -q --cov=archai_ocr --cov-report=term-missing
 
-  vendor-backend:
-    name: vendor layout backend (tests)
+  backend:
+    name: backend (tests)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -63,10 +63,10 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: archai/vendor/layout/backend/pyproject.toml
+          cache-dependency-path: archai/backend/pyproject.toml
 
       - name: Byte-compile the backend
-        run: python -m compileall -q archai/vendor/layout/backend/app
+        run: python -m compileall -q archai/backend/app
 
       - name: Install the backend's dependencies, without the inference stack
         # pyproject.toml's dependencies, less ultralytics (which brings torch);
@@ -74,7 +74,7 @@ jobs:
         # marked requires_models and deselected below. OpenCV is imported by
         # the app itself (binarisation, multi-view variants) but only arrives
         # through ultralytics, so the headless build is installed here.
-        working-directory: archai/vendor/layout/backend
+        working-directory: archai/backend
         run: |
           python -m pip install --upgrade pip
           python -m pip install \
@@ -88,7 +88,7 @@ jobs:
         # The whole suite, offline: tests/conftest.py refuses any connection
         # that is not loopback, so a test that reaches SAIA, GWDG, Ollama or
         # Wikidata fails here instead of passing with the service.
-        working-directory: archai/vendor/layout/backend
+        working-directory: archai/backend
         run: python -m pytest -q -m "not requires_models"
 
   secret-scan:

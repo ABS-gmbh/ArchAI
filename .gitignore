@@ -51,13 +51,14 @@ archai/frontend/node_modules/
 archai/frontend/dist/
 
 # ---- Local backend runtime data ----
-archai/vendor/layout/.venv/
-archai/vendor/layout/backend/.data/
-archai/vendor/layout/backend/app/.data/
-archai/vendor/layout/backend/outputs/
-archai/vendor/layout/backend/.tasks/
-archai/vendor/layout/backend/weights/
-archai/vendor/layout/backend/models/
-archai/vendor/layout/backend/archai.db
-archai/vendor/layout/backend/analytics.db
-archai/vendor/layout/backend/data/evidence/
+archai/backend/.venv/
+archai/backend/.data/
+archai/backend/app/.data/
+archai/backend/outputs/
+archai/backend/.tasks/
+archai/backend/weights/
+archai/backend/models/
+archai/backend/archai.db
+archai/backend/analytics.db
+archai/backend/data/evidence/
+/data/evidence/

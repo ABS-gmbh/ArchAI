@@ -1,12 +1,12 @@
-.PHONY: help vendor-backend vendor-frontend
+.PHONY: help backend frontend
 
 help:
-	@echo "ArchAI workspace commands"
-	@echo "  make vendor-backend    Run vendor layout backend on 127.0.0.1:8000"
-	@echo "  make vendor-frontend   Run vendor layout frontend (Next.js)"
+	@echo "ArchAI application commands"
+	@echo "  make backend    Run the FastAPI backend on 127.0.0.1:8000"
+	@echo "  make frontend   Run the Next.js frontend on 127.0.0.1:3001"
 
-vendor-backend:
-	cd vendor/layout/backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+backend:
+	cd backend && uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
-vendor-frontend:
-	cd vendor/layout/frontend && npm run dev
+frontend:
+	cd frontend && npm run dev -- --hostname 127.0.0.1 --port 3001

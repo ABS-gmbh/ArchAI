@@ -7,19 +7,17 @@ post-OCR verification, authority linking, and grounded document chat.
 
 ## What is actually in here
 
-The repository holds three tracks with very different maturity. Read this table
-before picking an entry point.
+The repository holds two products. Read this table before picking an entry point.
 
 | Path | What it is | Status |
 |---|---|---|
-| `src/archai_ocr/` | Command-line pipeline: YOLO layout → crop → Kraken HTR → `.txt` | **Working**, tested, type-checked |
-| `archai/vendor/layout/backend/` | FastAPI service: OCR backends, agent verification, authority linking, RAG chat (~28k LOC) | **Working**, partial test coverage |
-| `archai/vendor/layout/frontend/` | Next.js UI for the above | Working |
-| `archai/frontend/` | Vue/Vite prototype UI | Prototype |
+| `archai/` | The web application: FastAPI backend (`archai/backend`: OCR backends, quality gate, entity extraction and authority linking, hybrid retrieval, grounded chat) and Next.js frontend (`archai/frontend`) | **Working**; backend suite runs in CI |
+| `src/archai_ocr/` | Offline batch pipeline: YOLO layout → crop → Kraken HTR → TXT and PAGE XML | **Working**, tested, type-checked |
 | `artifacts/thesis_showcase/` | Reproducible figure payloads and manifests cited by the thesis | Reference data |
 
-> The real service is `archai/vendor/layout/backend`. An earlier mock backend,
-> `archai/backend`, that fabricated pipeline stages has been removed.
+> The application lived under `archai/vendor/layout/` until it was moved to
+> `archai/`. An earlier mock backend that fabricated pipeline stages, and a Vue
+> prototype of TODO stubs, have been removed. See `docs/repository_map.md`.
 
 ## Quick start — OCR command line
 
@@ -124,7 +122,7 @@ variables.
 Backend:
 
 ```bash
-cd archai/vendor/layout/backend
+cd archai/backend
 pip install -e .
 cp .env.example .env    # then fill in ANALYTICS_USERNAME / ANALYTICS_PASSWORD / JWT_SECRET
 uvicorn app.main:app --host 127.0.0.1 --port 8000
@@ -140,7 +138,7 @@ python -c 'import secrets; print(secrets.token_urlsafe(48))'
 Frontend:
 
 ```bash
-cd archai/vendor/layout/frontend && npm install && npm run dev
+cd archai/frontend && npm install && npm run dev
 ```
 
 ## Development
@@ -152,15 +150,15 @@ mypy                       # strict type check
 pytest tests -q            # 84 tests, no model weights required
 ```
 
-The `archai_ocr` test suite runs without model weights or Kraken installed, so it
-works in CI. The vendor backend suite needs weights and the full inference stack:
+The `archai_ocr` test suite runs without model weights or Kraken installed. So
+does the backend's, offline, apart from tests marked `requires_models`:
 
 ```bash
-cd archai/vendor/layout/backend && pytest tests -q
+cd archai/backend && pytest -q -m "not requires_models"
 ```
 
-CI runs lint, format, strict typing and tests on Python 3.11 and 3.12,
-byte-compiles the vendor backend, and scans tracked files for credential
+CI runs lint, format, strict typing and tests of `archai_ocr` on Python 3.11 and
+3.12, the backend test suite, and a scan of tracked files for credential
 literals. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Reproducibility notes
@@ -168,7 +166,7 @@ literals. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 - `YOLO_AUTOINSTALL=false` is set before ultralytics is imported. Ultralytics
   otherwise pip-installs optional packages at inference time, mutating the
   environment mid-run and requiring network access.
-- Canned OCR fixtures exist in the vendor backend for demos and regression tests
+- Canned OCR fixtures exist in the backend for demos and regression tests
   (`app/services/test_ocr_overrides.py`). They match three specific images by
   SHA-256 and return hand-written transcriptions. They are **off by default** and
   require `ENABLE_TEST_OCR_FIXTURES=true`; when active they log a warning naming

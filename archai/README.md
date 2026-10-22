@@ -1,36 +1,33 @@
-# ArchAI Workspace (`archai/`)
+# ArchAI application (`archai/`)
 
-This directory is the monorepo workspace inside the root ArchAI repository.
+The web application: upload manuscript pages, read them line by line, check and
+link the entities, and ask questions over the result with cited evidence.
 
-It contains three tracks:
+| Path | What it is |
+|---|---|
+| [`backend/`](backend/README.md) | FastAPI service: segmentation, OCR backends, proofreading guard, quality gate, entity extraction and authority linking, hybrid retrieval and grounded chat |
+| [`frontend/`](frontend/README.md) | Next.js workspace UI (`/workspace`) |
+| [`tools/layout_comparison/`](tools/layout_comparison/MODEL_COMBINATION_GUIDE.md) | Research scripts that compared the YOLO layout models on CVAT exports; not part of the running app |
+| [`docs/architecture.md`](docs/architecture.md) | How the pieces fit |
 
-1. `backend/` and `frontend/`: **non-functional** prototype scaffolding. `backend/` is a mock — its
-   ingest endpoint fabricates span text and is disabled unless `ARCHAI_ALLOW_MOCK_BACKEND=1`.
-2. `vendor/layout/`: active full-stack document + chat + OCR workspace.
-3. Shared workspace assets/config/data/docs/docker files.
+The offline batch pipeline (YOLO layout, Kraken, TXT and PAGE XML) is a
+separate package, `src/archai_ocr` at the repository root.
 
-## Directory Guide
-
-| Path | Purpose | Status |
-|---|---|---|
-| `assets/` | Prompt templates and model manifests | Active |
-| `config/` | Model configuration JSON | Active |
-| `data/` | Workspace data folders (`raw`, `processed`, `derived`, `indexes`, `exports`) | Active |
-| `docs/` | Workspace architecture and schema docs | In progress |
-| `docker/` | Dockerfiles and compose setup | Active |
-| `frontend/` | Prototype Vue/Vite UI | Prototype |
-| `vendor/layout/` | Main integrated document workspace (FastAPI + Next.js) | Active |
-
-## Development Entry Points
-
-- Prototype frontend: [`frontend/README.md`](frontend/README.md)
-- Vendor layout app: [`vendor/layout/README.md`](vendor/layout/README.md)
-
-## Make Targets
-
-Use the local workspace `Makefile` for common commands:
+## Run
 
 ```bash
 cd archai
-make help
+make backend     # FastAPI on 127.0.0.1:8000
+make frontend    # Next.js on 127.0.0.1:3001
 ```
+
+Setup, environment variables and tests: [`backend/README.md`](backend/README.md)
+and [`frontend/README.md`](frontend/README.md).
+
+## Origin
+
+The application began as a copy of
+[emanuskript/layout](https://github.com/emanuskript/layout) (the layout
+comparison scripts still carry its `/home/hasan/layout` paths) and lived under
+`archai/vendor/layout/` until it was moved here. The upstream commit it was
+copied from was not recorded; see AUDIT_FINDINGS.md HYG-13.

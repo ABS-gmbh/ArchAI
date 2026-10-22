@@ -1,6 +1,6 @@
-# ArchAI Vendor Layout Frontend
+# ArchAI Frontend
 
-This is the Next.js frontend for the `archai/vendor/layout` workspace.
+The Next.js frontend of the ArchAI application (`archai/`).
 
 It provides the document workspace UI:
 
@@ -19,7 +19,7 @@ It provides the document workspace UI:
 ## Local Development
 
 ```bash
-cd archai/vendor/layout/frontend
+cd archai/frontend
 npm install
 npm run dev
 ```
@@ -29,7 +29,7 @@ Default URL: `http://127.0.0.1:3000`
 ## Build
 
 ```bash
-cd archai/vendor/layout/frontend
+cd archai/frontend
 npm run build
 npm run start
 ```
@@ -38,6 +38,6 @@ npm run start
 
 Run the paired API service from:
 
-- `archai/vendor/layout/backend`
+- `archai/backend`
 
 See [`../README.md`](../README.md) for full workspace run instructions.
