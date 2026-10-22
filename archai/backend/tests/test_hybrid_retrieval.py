@@ -99,6 +99,25 @@ def test_a_lexical_match_the_dense_ranking_buries_reaches_the_top(runs: dict[str
     assert prayer["distance"] == pytest.approx(0.3)
 
 
+def test_the_fusion_reads_its_constant_and_weights_from_settings(runs: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, Any] = {}
+    real = rag_store.reciprocal_rank_fusion
+
+    def fuse(rankings, *, k, weights):
+        seen.update(k=k, weights=list(weights))
+        return real(rankings, k=k, weights=weights)
+
+    monkeypatch.setattr(rag_store, "reciprocal_rank_fusion", fuse)
+    monkeypatch.setattr(settings, "rag_rrf_k", 20)
+    monkeypatch.setattr(settings, "rag_lexical_weight", 2.0)
+    rag_store.retrieve_chunks("Dominus vobiscum", top_k=2, run_ids=[runs["run_1"]])
+    assert seen == {"k": 20, "weights": [1.0, 2.0]}
+
+
+def test_the_default_weights_are_equal() -> None:
+    assert type(settings).model_fields["rag_lexical_weight"].default == 1.0
+
+
 def test_scope_is_respected_by_the_lexical_side(runs: dict[str, Any]) -> None:
     """run-2 holds an exact match, but the query is scoped to run-1."""
     hits = rag_store.retrieve_chunks("Dominus vobiscum", top_k=5, run_ids=[runs["run_1"]])

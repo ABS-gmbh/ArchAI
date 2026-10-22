@@ -7,6 +7,7 @@ Usage::
     python scripts/benchmark_retrieval.py --embedder provider
     python scripts/benchmark_retrieval.py --embedder e5-local
     python scripts/benchmark_retrieval.py --embedder e5-local --no-query-instruction
+    python scripts/benchmark_retrieval.py --readings eval/quality_gate/readings.json
 
 Relevance judgments are the expensive part of a retrieval benchmark, and this
 project has none. They are derived from structure instead: the pipeline DB holds
@@ -28,6 +29,12 @@ should retrieve the chunk of another reading that holds the same text.
    MRR, Hit@1 and Hit@5 (top_k is 5) are reported with bootstrap intervals
    resampled over target readings, since queries against one reading are not
    independent.
+
+``--readings`` takes the readings from ``eval/quality_gate/readings.json``
+instead: a reference and every recogniser's reading of five pages, grouped by
+their page id. A pipeline DB holds what was run, which can be one page read
+many times: the live one gives 1,451 of its 1,457 lookups from one page. The
+report counts lookups per page.
 
 ``--embedder e5-local`` runs the configured model family,
 multilingual-e5-large-instruct, on this machine (sentence-transformers, about
@@ -128,9 +135,23 @@ def group_pages(texts: dict[str, str]) -> list[list[str]]:
     return [group for group in groups.values() if len(group) > 1]
 
 
-def build_benchmark(texts: dict[str, str], *, pairs: int, seed: int):
+def load_readings(path: Path) -> tuple[dict[str, str], list[list[str]]]:
+    """Every reading of every page in a readings file, keyed ``page_id:reading``, grouped by page."""
+    texts: dict[str, str] = {}
+    groups: list[list[str]] = []
+    for page in json.loads(path.read_text(encoding="utf-8"))["pages"]:
+        keys = []
+        for name, text in {"reference": page["reference"], **page["readings"]}.items():
+            if (text or "").strip():
+                texts[f"{page['page_id']}:{name}"] = text
+                keys.append(f"{page['page_id']}:{name}")
+        groups.append(keys)
+    return texts, groups
+
+
+def build_benchmark(texts: dict[str, str], *, pairs: int, seed: int, groups: list[list[str]] | None = None):
     rng = random.Random(seed)
-    groups = group_pages(texts)
+    groups = groups if groups is not None else group_pages(texts)
     page_of = {key: n for n, group in enumerate(groups) for key in group}
     chunks = {
         key: build_window_chunks(texts[key], window_lines=6, overlap_lines=2)
@@ -258,8 +279,11 @@ def lexical_rankings(queries, chunks, **index_options) -> dict[str, list[str]]:
     return {q.qid: [cid for cid, _ in indexes[q.target].search(q.text)] for q in queries}
 
 
-def fused_rankings(*runs: dict[str, list[str]]) -> dict[str, list[str]]:
-    return {qid: [cid for cid, _ in reciprocal_rank_fusion([run[qid] for run in runs])] for qid in runs[0]}
+def fused_rankings(*runs: dict[str, list[str]], k: int = 60, weights: Sequence[float] | None = None) -> dict[str, list[str]]:
+    return {
+        qid: [cid for cid, _ in reciprocal_rank_fusion([run[qid] for run in runs], k=k, weights=weights)]
+        for qid in runs[0]
+    }
 
 
 # ── scoring ────────────────────────────────────────────────────────────
@@ -318,6 +342,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     default_db = os.getenv("ARCHAI_DB_PATH") or str(Path(__file__).resolve().parents[1] / "app" / "archai.sqlite")
     parser.add_argument("--db", type=Path, default=Path(default_db))
+    parser.add_argument("--readings", type=Path, help="read pages from a readings file instead of the pipeline DB")
     parser.add_argument(
         "--embedder",
         choices=("local", "provider", "e5-local"),
@@ -331,16 +356,24 @@ def main(argv: list[str] | None = None) -> int:
         "--no-query-instruction", action="store_true", help="embed queries bare, as the pipeline did before"
     )
     parser.add_argument("--query-task", help="task sentence for the e5-instruct query instruction")
+    parser.add_argument("--rrf-k", type=int, default=60, help="RRF constant for the hybrid (settings.rag_rrf_k)")
+    parser.add_argument(
+        "--lexical-weight", type=float, default=1.0, help="BM25's weight in the hybrid (settings.rag_lexical_weight)"
+    )
     parser.add_argument("--pairs", type=int, default=260, help="reading pairs to draw passages from")
     parser.add_argument("--seed", type=int, default=20260924)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
-    if not args.db.is_file():
+    known_groups = None
+    if args.readings:
+        texts, known_groups = load_readings(args.readings)
+    elif not args.db.is_file():
         print(f"error: pipeline DB not found: {args.db}", file=sys.stderr)
         return 2
-    texts = load_transcriptions(args.db)
-    queries, chunks, groups, pair_cers = build_benchmark(texts, pairs=args.pairs, seed=args.seed)
+    else:
+        texts = load_transcriptions(args.db)
+    queries, chunks, groups, pair_cers = build_benchmark(texts, pairs=args.pairs, seed=args.seed, groups=known_groups)
     if not queries:
         print("error: no page has two alignable readings; nothing to benchmark", file=sys.stderr)
         return 2
@@ -352,21 +385,30 @@ def main(argv: list[str] | None = None) -> int:
         "dense": dense,
         "BM25 words": lexical_rankings(queries, chunks, terms=word_terms),
         "BM25 4-grams": lexical,
-        "hybrid (RRF)": fused_rankings(dense, lexical),
+        "hybrid (RRF)": fused_rankings(dense, lexical, k=args.rrf_k, weights=[1.0, args.lexical_weight]),
     }
     base = score(queries, dense)
     report = {
         name: summarise(queries, score(queries, run), None if name == "dense" else base, seed=args.seed)
         for name, run in runs.items()
     }
+    # A page counts if lookups were drawn from it: the live DB has three page
+    # groups, but one of them gives 1,451 of its 1,457 lookups.
+    page_name = {key: min(group).split(":")[0] for group in groups for key in group}
+    lookups_per_page: dict[str, int] = {}
+    for q in queries:
+        lookups_per_page[page_name[q.target]] = lookups_per_page.get(page_name[q.target], 0) + 1
     meta = {
         "queries": len(queries),
         "targets": len({q.target for q in queries}),
         "reading_pairs": len(pair_cers),
         "median_pair_cer": float(np.median(pair_cers)),
-        "pages": len(groups),
+        "pages": len(lookups_per_page),
+        "lookups_per_page": lookups_per_page,
         "embedder": args.embedder,
         "query_example": query_input("<passage>"),
+        "rrf_k": args.rrf_k,
+        "lexical_weight": args.lexical_weight,
     }
     if args.json:
         print(json.dumps({"meta": meta, "results": report}, indent=2))
@@ -378,6 +420,7 @@ def main(argv: list[str] | None = None) -> int:
         f"{meta['pages']} pages), dense embedder: {args.embedder}"
     )
     print(f"query as embedded: {meta['query_example']!r}")
+    print("lookups per page: " + ", ".join(f"{page} {n}" for page, n in sorted(lookups_per_page.items())))
     print(f"{'':<14}{'MRR':>22}{'Hit@1':>22}{'Hit@5':>22}")
     for name, metrics in report.items():
         cells = [

@@ -110,19 +110,25 @@ class LexicalIndex:
         return [(self.ids[position], score) for position, score in ranked]
 
 
-def reciprocal_rank_fusion(rankings: Sequence[Sequence[str]], *, k: int = 60) -> list[tuple[str, float]]:
-    """Fuse rankings with RRF: score(d) = sum over rankings of 1 / (k + rank of d).
+def reciprocal_rank_fusion(
+    rankings: Sequence[Sequence[str]], *, k: int = 60, weights: Sequence[float] | None = None
+) -> list[tuple[str, float]]:
+    """Fuse rankings with RRF: score(d) = sum over rankings of w / (k + rank of d).
 
-    Cormack, Clarke and Buettcher (SIGIR 2009); k = 60 is their constant. Only
-    ranks are used, so a cosine distance and a BM25 score never have to be put
-    on a common scale. Ties keep the order in which items were first ranked.
+    Cormack, Clarke and Buettcher (SIGIR 2009); k = 60 is their constant, and
+    every weight w is 1 unless *weights* gives one per ranking. Only ranks are
+    used, so a cosine distance and a BM25 score never have to be put on a
+    common scale. Ties keep the order in which items were first ranked.
     """
     if k < 0:
         raise ValueError(f"k must be non-negative, got {k}")
+    weights = [1.0] * len(rankings) if weights is None else list(weights)
+    if len(weights) != len(rankings) or any(w < 0 for w in weights):
+        raise ValueError(f"need one non-negative weight per ranking, got {weights} for {len(rankings)}")
     scores: dict[str, float] = {}
     first_seen: dict[str, int] = {}
-    for ranking in rankings:
+    for ranking, weight in zip(rankings, weights):
         for rank, item in enumerate(ranking, start=1):
-            scores[item] = scores.get(item, 0.0) + 1.0 / (k + rank)
+            scores[item] = scores.get(item, 0.0) + weight / (k + rank)
             first_seen.setdefault(item, len(first_seen))
     return sorted(scores.items(), key=lambda item: (-item[1], first_seen[item[0]]))

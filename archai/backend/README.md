@@ -141,25 +141,55 @@ query meets OCR text that spells the same words differently. Each hit reports
 `dense_rank`, `lexical_rank` and `fusion_score` next to the usual fields; set
 `RAG_LEXICAL_FUSION=false` to fall back to dense retrieval only.
 
-`scripts/benchmark_retrieval.py` measures this on the pipeline DB. No relevance
-judgments are needed: it looks up passages from one OCR reading of a page in a
-different reading of the same page, locating the right chunk by character
-alignment.
+`scripts/benchmark_retrieval.py` measures this. No relevance judgments are
+needed: it looks up passages from one OCR reading of a page in a different
+reading of the same page, locating the right chunk by character alignment. It
+reads either a pipeline DB or the reference pages of
+`eval/quality_gate/readings.json`, and reports how many lookups each page gave:
+a DB can hold one page read many times (the live one gives 1,451 of its 1,457
+lookups from one page), so use `--readings` for a spread of pages.
 
 ```bash
+python scripts/benchmark_retrieval.py --readings eval/quality_gate/readings.json
 python scripts/benchmark_retrieval.py --db app/archai.sqlite
+```
+
+On the four reference pages long enough to chunk (222 lookups), with
+ChromaDB's default model:
+
+| | MRR | Hit@1 | Hit@5 |
+|---|---|---|---|
+| dense | 0.707 | 0.572 | 0.896 |
+| BM25 over character 4-grams | 0.886 | 0.829 | 0.959 |
+| fused (RRF, k = 60, equal weights) | 0.863 | 0.770 | **0.968** |
+
+BM25 alone ranks the passage first more often, but the fusion puts it in the
+top 5, the chunks chat passes to the model, more often than either ranker.
+
+`RAG_LEXICAL_WEIGHT` sets BM25's weight in the fusion (the dense ranking's is
+1). At 2, Hit@5 rose to 0.982 and MRR to 0.903 here, and both rose on the live
+DB and with e5 as well. It stays 1 by default: passage lookup is the task BM25
+is built for, and no benchmark has the questions users ask, where the dense
+side earns its place. Try a weight on real chats with `--lexical-weight` and
+`--rrf-k` for the benchmark side:
+
+```bash
+python scripts/benchmark_retrieval.py --readings eval/quality_gate/readings.json --lexical-weight 2
 ```
 
 The configured embedding model, `multilingual-e5-large-instruct`, expects every
 query to state its task: `Instruct: <task>\nQuery: <text>`. Documents are
 embedded as they are. `rag_store.embedding_input` adds the instruction to
 queries only, so stored vectors stay valid. The task is the model card's own
-retrieval sentence; `--embedder e5-local` runs the model on this machine
-(sentence-transformers) when the provider cannot be reached:
+retrieval sentence. On passage lookup its effect depends on the page: it
+raised dense MRR from 0.510 to 0.628 on the live DB (one page), and left it
+unchanged on the reference pages (0.690 bare, 0.683 with it). `--embedder
+e5-local` runs the model on this machine (sentence-transformers) when the
+provider cannot be reached:
 
 ```bash
-python scripts/benchmark_retrieval.py --embedder e5-local
-python scripts/benchmark_retrieval.py --embedder e5-local --no-query-instruction
+python scripts/benchmark_retrieval.py --readings eval/quality_gate/readings.json --embedder e5-local
+python scripts/benchmark_retrieval.py --readings eval/quality_gate/readings.json --embedder e5-local --no-query-instruction
 ```
 
 ### What is searched

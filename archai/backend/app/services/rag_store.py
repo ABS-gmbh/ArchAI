@@ -142,12 +142,14 @@ def _space_key() -> str:
     return _embedding_backend_slug()
 
 
-# The task an e5-instruct query states: the model card's own retrieval task.
-# On scripts/benchmark_retrieval.py (--embedder e5-local) it raised dense MRR
-# from 0.510 to 0.628 over bare queries; two sentences written for this corpus
-# raised it less (0.561 for "a passage from a medieval manuscript", 0.578 for
-# "a noisy OCR transcription"). It also fits the questions users ask, which
-# the benchmark does not measure.
+# The task an e5-instruct query states: the model card's own retrieval task,
+# which is how the model is meant to be queried. Its effect on passage lookup
+# (scripts/benchmark_retrieval.py --embedder e5-local) depends on the page: on
+# the live DB, whose lookups nearly all come from one page, dense MRR rose from
+# 0.510 to 0.628; over the four reference pages (--readings) it was 0.690
+# bare and 0.683 with it, a paired difference of -0.007 [-0.045, +0.036].
+# Lookup quotes the page; the questions users ask, which the benchmark does not
+# measure, are the asymmetric case the instruction is for.
 E5_RETRIEVAL_TASK = "Given a web search query, retrieve relevant passages that answer the query"
 
 
@@ -894,7 +896,9 @@ def _fuse(
 ) -> list[dict[str, Any]]:
     dense_ids = [hit["chunk_id"] for hit in dense]
     lexical_ids = [chunk_id for chunk_id, _score in lexical]
-    fused = reciprocal_rank_fusion([dense_ids, lexical_ids], k=settings.rag_rrf_k)[:top_k]
+    fused = reciprocal_rank_fusion(
+        [dense_ids, lexical_ids], k=settings.rag_rrf_k, weights=[1.0, settings.rag_lexical_weight]
+    )[:top_k]
 
     by_id = {hit["chunk_id"]: hit for hit in dense}
     missing = [chunk_id for chunk_id, _score in fused if chunk_id not in by_id]
