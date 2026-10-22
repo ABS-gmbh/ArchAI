@@ -61,8 +61,8 @@ KRAKEN_BIN="${KRAKEN_BIN:-}"
 if [[ -z "${KRAKEN_BIN}" ]]; then
   if command -v kraken >/dev/null 2>&1; then
     KRAKEN_BIN="$(command -v kraken)"
-  elif [[ -x "${REPO_ROOT}/archai/vendor/layout/.venv/bin/kraken" ]]; then
-    KRAKEN_BIN="${REPO_ROOT}/archai/vendor/layout/.venv/bin/kraken"
+  elif [[ -x "${REPO_ROOT}/archai/backend/.venv/bin/kraken" ]]; then
+    KRAKEN_BIN="${REPO_ROOT}/archai/backend/.venv/bin/kraken"
   else
     echo "Error: kraken CLI not found. Install kraken or set KRAKEN_BIN." >&2
     exit 1

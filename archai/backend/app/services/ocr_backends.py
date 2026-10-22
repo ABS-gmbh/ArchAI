@@ -16,14 +16,16 @@ from app.agents.crop_agent import decode_image_bytes
 from app.config import settings
 
 
+# Relative model paths are tried against the repository root, the backend, the
+# archai/ workspace and the working directory, in that order. Named rather than
+# counted: when the backend moved from archai/vendor/layout/ to archai/, the
+# counted parents[6] and parents[5] would have pointed outside the repository.
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
+_WORKSPACE_ROOT = _BACKEND_ROOT.parent
+_REPO_ROOT = _WORKSPACE_ROOT.parent
 _PATH_ROOTS = tuple(
     root
-    for root in (
-        Path(__file__).resolve().parents[6],
-        Path(__file__).resolve().parents[2],
-        Path(__file__).resolve().parents[5],
-        Path.cwd(),
-    )
+    for root in (_REPO_ROOT, _BACKEND_ROOT, _WORKSPACE_ROOT, Path.cwd())
     if root.exists()
 )
 _FRENCH_LANGUAGE_HINTS = {"old_french", "middle_french", "anglo_norman", "french"}

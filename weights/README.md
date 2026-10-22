@@ -32,7 +32,7 @@ ln -sfn "$PWD/weights/kraken_models/catmus_medieval.mlmodel" weights/kraken_reco
 ```
 
 McCATMuS is trained on documents from the late 16th century onwards. On the two
-medieval reference pages in `archai/vendor/layout/backend/eval/recognizers/`,
+medieval reference pages in `archai/backend/eval/recognizers/`,
 the CLI read them at 34.7% and 36.3% character error rate with McCATMuS, and at
 6.1% and 9.6% with CATMuS Medieval.
 

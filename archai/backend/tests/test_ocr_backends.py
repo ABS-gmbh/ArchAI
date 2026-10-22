@@ -381,6 +381,13 @@ def test_degenerate_repeat_output_falls_through_to_fallback_backend(monkeypatch:
     )
 
 
+def test_model_paths_resolve_from_the_repository_root() -> None:
+    """The first root is the repository's own, wherever the backend sits in it."""
+    assert (ocr_backends._REPO_ROOT / "src" / "archai_ocr").is_dir()
+    assert (ocr_backends._BACKEND_ROOT / "app" / "services" / "ocr_backends.py").is_file()
+    assert ocr_backends._PATH_ROOTS[0] == ocr_backends._REPO_ROOT
+
+
 def test_resolve_model_path_finds_project_root_weights(tmp_path: Path, monkeypatch: Any) -> None:
     """A relative path is found under whichever root holds it, not only the first.
 

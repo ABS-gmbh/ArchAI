@@ -1,16 +1,44 @@
-# Data and weights
+# Workspace data
 data/**
-assets/models/**/weights/**
 
-# Environments and deps
-backend/.venv/**
-frontend/node_modules/**
+# Environments and dependencies
+venv/
+.venv/
+node_modules/
+.next/
 
 # Secrets
 .env
+.env.local
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # Model files
 *.mlmodel
 *.pt
 *.pth
 *.onnx
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+._*
+
+# Images and spreadsheets: page scans and exports. This also hides frontend
+# assets and image fixtures; see AUDIT_FINDINGS.md HYG-16.
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.tiff
+*.xlsx
+*.xls

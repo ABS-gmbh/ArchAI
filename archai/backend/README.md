@@ -1,6 +1,6 @@
-# ArchAI Vendor Layout Backend
+# ArchAI Backend
 
-FastAPI backend for the `archai/vendor/layout` workspace.
+FastAPI backend of the ArchAI application (`archai/`).
 
 ## Responsibilities
 
@@ -38,7 +38,7 @@ router produced before they were moved out of it.
 ## Setup
 
 ```bash
-cd archai/vendor/layout/backend
+cd archai/backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -47,7 +47,7 @@ pip install -e .
 ## Run
 
 ```bash
-cd archai/vendor/layout/backend
+cd archai/backend
 uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -60,7 +60,7 @@ curl http://127.0.0.1:8000/api/health
 ## Test
 
 ```bash
-cd archai/vendor/layout/backend
+cd archai/backend
 pip install -e ".[dev]"
 python -m pytest tests -q
 ```

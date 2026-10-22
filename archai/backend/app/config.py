@@ -157,15 +157,15 @@ class Settings(BaseSettings):
     kraken_cremma_lat_model_path: str = "weights/kraken_models/cremma_medieval_lat.mlmodel"
 
     # Calamari recognition
-    calamari_models_dir: str = "archai/vendor/layout/backend/weights/calamari_models"
-    calamari_default_model_dir: str = "archai/vendor/layout/backend/weights/calamari_models/calamari_models_v1/gt4histocr"
-    calamari_gt4histocr_model_dir: str = "archai/vendor/layout/backend/weights/calamari_models/calamari_models_v1/gt4histocr"
-    calamari_historical_french_model_dir: str = "archai/vendor/layout/backend/weights/calamari_models/calamari_models_v1/historical_french"
-    calamari_antiqua_historical_model_dir: str = "archai/vendor/layout/backend/weights/calamari_models/calamari_models_v1/antiqua_historical"
-    calamari_fraktur_historical_model_dir: str = "archai/vendor/layout/backend/weights/calamari_models/calamari_models_v1/fraktur_historical"
-    calamari_gothic_model_dir: str = "archai/vendor/layout/backend/weights/calamari_models/calamari_models_v1/gt4histocr"
-    calamari_bastard_model_dir: str = "archai/vendor/layout/backend/weights/calamari_models/gt4histocr_tmp/deep3_htr-bastard"
-    calamari_english_model_dir: str = "archai/vendor/layout/backend/weights/calamari_models/calamari_models_v1/uw3-modern-english"
+    calamari_models_dir: str = "archai/backend/weights/calamari_models"
+    calamari_default_model_dir: str = "archai/backend/weights/calamari_models/calamari_models_v1/gt4histocr"
+    calamari_gt4histocr_model_dir: str = "archai/backend/weights/calamari_models/calamari_models_v1/gt4histocr"
+    calamari_historical_french_model_dir: str = "archai/backend/weights/calamari_models/calamari_models_v1/historical_french"
+    calamari_antiqua_historical_model_dir: str = "archai/backend/weights/calamari_models/calamari_models_v1/antiqua_historical"
+    calamari_fraktur_historical_model_dir: str = "archai/backend/weights/calamari_models/calamari_models_v1/fraktur_historical"
+    calamari_gothic_model_dir: str = "archai/backend/weights/calamari_models/calamari_models_v1/gt4histocr"
+    calamari_bastard_model_dir: str = "archai/backend/weights/calamari_models/gt4histocr_tmp/deep3_htr-bastard"
+    calamari_english_model_dir: str = "archai/backend/weights/calamari_models/calamari_models_v1/uw3-modern-english"
 
     # GLM-OCR (self-hosted mode)
     glmocr_device: str = "0"

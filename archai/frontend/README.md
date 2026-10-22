@@ -1,34 +1,43 @@
-# ArchAI Prototype Frontend
+# ArchAI Frontend
 
-This is the prototype Vue 3 + Vite frontend in the `archai/` workspace.
+The Next.js frontend of the ArchAI application (`archai/`).
 
-## Current Scope
+It provides the document workspace UI:
 
-- Basic application shell (`src/App.vue`)
-- Placeholder modules for router/stores/components
-- Vite + TypeScript setup
+- document/page navigation
+- chat interaction panel
+- OCR extraction flows
+- evidence and provenance-oriented interactions
 
-This track is intentionally lightweight while the full integrated UI lives in:
+## Stack
 
-- `archai/vendor/layout/frontend` (Next.js workspace)
+- Next.js App Router
+- React 19
+- TypeScript
+- Tailwind CSS
 
-## Setup
+## Local Development
 
 ```bash
 cd archai/frontend
 npm install
-```
-
-## Run
-
-```bash
-cd archai/frontend
 npm run dev
 ```
+
+Default URL: `http://127.0.0.1:3000`
 
 ## Build
 
 ```bash
 cd archai/frontend
 npm run build
+npm run start
 ```
+
+## Related Backend
+
+Run the paired API service from:
+
+- `archai/backend`
+
+See [`../README.md`](../README.md) for full workspace run instructions.

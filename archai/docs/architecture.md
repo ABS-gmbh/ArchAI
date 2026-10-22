@@ -1,32 +1,18 @@
-# ArchAI Workspace Architecture
+# ArchAI Application Architecture
 
-The `archai/` workspace has two implementation layers and one vendor-integrated layer.
+- `archai/backend`: FastAPI service (routers, services, agents, pipeline database)
+- `archai/frontend`: Next.js document workspace UI
+- `archai/tools/layout_comparison`: offline research scripts for the layout models; the backend's
+  `app/core/model_runner.py` and `image_batch_classes.py` are ported from them
 
-## 1) Prototype Layer
+The offline batch pipeline, `src/archai_ocr`, is a separate package with its own tests; the
+backend does not import it.
 
-- `archai/frontend`: lightweight Vue/Vite prototype
+## Data Flow
 
-It is a shell: an application frame and placeholder modules, with no backend of its own.
-
-## 2) Vendor-Integrated Layer
-
-- `archai/vendor/layout/backend`: full backend stack (routers/services/agents)
-- `archai/vendor/layout/frontend`: Next.js document workspace UI
-
-This layer contains the full document + chat workflow used for integrated testing
-and thesis demonstrations.
-
-## 3) Shared Resources
-
-- `archai/assets`: prompts and model manifests
-- `archai/config`: model config metadata
-- `archai/data`: raw/processed/derived/index/export paths
-- `archai/docker`: containerized run definitions
-
-## Data Flow (Integrated Path)
-
-1. User uploads/selects a document page in the frontend.
-2. Frontend sends OCR/chat requests to backend APIs.
-3. Backend orchestrates OCR, evidence spans, retrieval, and model calls.
-4. Grounded answers and citations are returned to frontend panels.
-5. Evidence/provenance artifacts are persisted for inspection/export.
+1. The user uploads or selects a document page in the frontend.
+2. The frontend sends OCR and chat requests to the backend.
+3. The backend segments the page, reads it, gates the text on quality, extracts and links
+   entities, and records every stage of the run in the pipeline database.
+4. Retrieval fuses dense and lexical rankings over the runs the quality gate allowed.
+5. Grounded answers come back with citations to the evidence spans they rest on.
