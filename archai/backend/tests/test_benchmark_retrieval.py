@@ -108,3 +108,46 @@ def test_cli_needs_two_readings_of_a_page(bench, tmp_path: Path, capsys) -> None
     db = _write_db(tmp_path / "one.sqlite", {"only": _page(5)})
     assert bench.main(["--db", str(db)]) == 2
     assert "nothing to benchmark" in capsys.readouterr().err
+
+
+def _readings_file(path: Path, pages: dict[str, dict[str, str]]) -> Path:
+    import json
+
+    payload = {"pages": [{"page_id": pid, "reference": r.pop("reference"), "readings": r} for pid, r in pages.items()]}
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return path
+
+
+def test_a_readings_file_is_grouped_by_page_id(bench, tmp_path: Path) -> None:
+    page_a, page_b = _page(1), _page(2)
+    path = _readings_file(
+        tmp_path / "readings.json",
+        {
+            "a": {"reference": page_a, "kraken": _reread(page_a, 0.15, seed=4), "empty": ""},
+            "b": {"reference": page_b, "kraken": _reread(page_b, 0.15, seed=5)},
+        },
+    )
+    texts, groups = bench.load_readings(path)
+    assert sorted(texts) == ["a:kraken", "a:reference", "b:kraken", "b:reference"]
+    assert groups == [["a:reference", "a:kraken"], ["b:reference", "b:kraken"]]
+
+
+def test_the_report_counts_lookups_per_page(bench, tmp_path: Path, capsys, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A database can hold one page read many times; the report must say so."""
+    import json
+
+    page_a, page_b = _page(1), _page(2)
+    path = _readings_file(
+        tmp_path / "readings.json",
+        {
+            "a": {"reference": page_a, "k1": _reread(page_a, 0.15, seed=4), "k2": _reread(page_a, 0.15, seed=6)},
+            "b": {"reference": page_b, "k1": _reread(page_b, 0.15, seed=5)},
+        },
+    )
+    # No model: the offline suite cannot download one, and the counts do not depend on it.
+    monkeypatch.setattr(bench, "_embedder", lambda kind: lambda batch: [[float(len(t)), 1.0] for t in batch])
+    assert bench.main(["--readings", str(path), "--json"]) == 0
+    meta = json.loads(capsys.readouterr().out)["meta"]
+    assert set(meta["lookups_per_page"]) == {"a", "b"}
+    assert meta["pages"] == 2
+    assert sum(meta["lookups_per_page"].values()) == meta["queries"]

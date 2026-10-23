@@ -106,12 +106,21 @@ class Settings(BaseSettings):
     rag_entity_top_k: int = 4
     rag_auto_index: bool = True
     # Hybrid retrieval: the dense ranking is fused (Reciprocal Rank Fusion) with
-    # character 4-gram BM25 over the abbreviation-expanded search key. On 1,457
-    # passage lookups across different OCR readings of real pages, the right
-    # chunk reached the top 5 for 78.0% of lookups dense-only and 92.2% fused
-    # (scripts/benchmark_retrieval.py). Set rag_lexical_fusion=False for dense only.
+    # character 4-gram BM25 over the abbreviation-expanded search key. The right
+    # chunk reached the top 5 - what chat passes on - for 89.6% of 222 passage
+    # lookups over four reference pages dense-only, 95.9% with BM25 alone and
+    # 96.8% fused (scripts/benchmark_retrieval.py --readings, ChromaDB's default
+    # model; 91.0% / 95.9% / 97.7% with e5). Set rag_lexical_fusion=False for
+    # dense only.
     rag_lexical_fusion: bool = True
     rag_rrf_k: int = 60
+    # BM25's weight in the fusion; the dense ranking's is 1. At 2 the top 5 held
+    # the passage for 98.2% of those lookups (from 96.8%; with e5 from 97.7%)
+    # and MRR rose from 0.863 to 0.903 (0.817 to 0.883 with e5); the live DB,
+    # one page, moved the same way. Passage lookup is BM25's own task,
+    # though, and no benchmark has the questions users ask, where the dense side
+    # earns its place - so the default stays 1 until chats show which is right.
+    rag_lexical_weight: float = 1.0
     # Candidates each ranker contributes to the fusion.
     rag_fusion_pool: int = 50
     # The lexical index is built per query; scopes larger than this skip it.

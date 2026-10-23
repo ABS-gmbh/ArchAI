@@ -51,13 +51,15 @@ archai/frontend/node_modules/
 archai/frontend/dist/
 
 # ---- Local backend runtime data ----
-archai/backend/.venv/
-archai/backend/.data/
-archai/backend/app/.data/
-archai/backend/outputs/
-archai/backend/.tasks/
-archai/backend/weights/
-archai/backend/models/
+# No trailing slash: these are often symlinks to a shared copy, and "dir/" only
+# matches a real directory.
+archai/backend/.venv
+archai/backend/.data
+archai/backend/app/.data
+archai/backend/outputs
+archai/backend/.tasks
+archai/backend/weights
+archai/backend/models
 archai/backend/archai.db
 archai/backend/analytics.db
 archai/backend/data/evidence/

@@ -112,6 +112,24 @@ def test_rrf_ties_keep_first_seen_order() -> None:
     assert [item for item, _ in reciprocal_rank_fusion([["a", "b"], ["b", "a"]])] == ["a", "b"]
 
 
+def test_rrf_weights_scale_each_ranking() -> None:
+    fused = reciprocal_rank_fusion([["a", "b"], ["b", "a"]], k=60, weights=[1.0, 2.0])
+    assert [item for item, _ in fused] == ["b", "a"]
+    assert dict(fused)["b"] == pytest.approx(1 / 62 + 2 / 61)
+    assert dict(fused)["a"] == pytest.approx(1 / 61 + 2 / 62)
+
+
+def test_rrf_without_weights_weights_every_ranking_one() -> None:
+    rankings = [["a", "b", "c"], ["c", "a"]]
+    assert reciprocal_rank_fusion(rankings) == reciprocal_rank_fusion(rankings, weights=[1.0, 1.0])
+
+
+@pytest.mark.parametrize("weights", [[1.0], [1.0, -1.0], [1.0, 1.0, 1.0]])
+def test_rrf_needs_one_non_negative_weight_per_ranking(weights: list[float]) -> None:
+    with pytest.raises(ValueError):
+        reciprocal_rank_fusion([["a"], ["b"]], weights=weights)
+
+
 def test_rrf_rejects_negative_k() -> None:
     with pytest.raises(ValueError):
         reciprocal_rank_fusion([["a"]], k=-1)
