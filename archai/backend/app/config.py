@@ -114,12 +114,13 @@ class Settings(BaseSettings):
     # dense only.
     rag_lexical_fusion: bool = True
     rag_rrf_k: int = 60
-    # BM25's weight in the fusion; the dense ranking's is 1. At 2 the top 5 held
-    # the passage for 98.2% of those lookups (from 96.8%; with e5 from 97.7%)
-    # and MRR rose from 0.863 to 0.903 (0.817 to 0.883 with e5); the live DB,
-    # one page, moved the same way. Passage lookup is BM25's own task,
-    # though, and no benchmark has the questions users ask, where the dense side
-    # earns its place - so the default stays 1 until chats show which is right.
+    # BM25's weight in the fusion; the dense ranking's is 1. At 2, passage
+    # lookup improves (Hit@5 96.8% -> 98.2%, MRR 0.863 -> 0.903; with e5 MRR
+    # 0.817 -> 0.883), but questions about the same pages (--questions, 151
+    # lookups) do not with e5: MRR -0.011 [-0.028, +0.002], Hit@5 -0.007
+    # [-0.020, 0.000]. On questions BM25 alone finds the answer in the top 5 for
+    # 49% and e5 for 82%. With ChromaDB's default model 2 helps both (+0.049
+    # MRR on questions). The default stays 1.
     rag_lexical_weight: float = 1.0
     # Candidates each ranker contributes to the fusion.
     rag_fusion_pool: int = 50

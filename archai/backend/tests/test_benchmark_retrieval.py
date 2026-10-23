@@ -151,3 +151,34 @@ def test_the_report_counts_lookups_per_page(bench, tmp_path: Path, capsys, monke
     assert set(meta["lookups_per_page"]) == {"a", "b"}
     assert meta["pages"] == 2
     assert sum(meta["lookups_per_page"].values()) == meta["queries"]
+
+
+BACKEND = Path(__file__).resolve().parents[1]
+
+
+def test_every_question_answer_is_in_its_reference_once() -> None:
+    """The labels come from these spans: one that drifts from the text labels nothing."""
+    import json
+
+    pages = {p["page_id"]: p["reference"] for p in json.loads((BACKEND / "eval/quality_gate/readings.json").read_text())["pages"]}
+    questions = json.loads((BACKEND / "eval/retrieval/questions.json").read_text(encoding="utf-8"))["questions"]
+    assert len(questions) >= 30
+    for q in questions:
+        assert pages[q["page_id"]].count(q["answer"]) == 1, q
+
+
+def test_a_question_is_relevant_where_its_answer_is_in_each_reading(bench, tmp_path: Path) -> None:
+    page = _page(1, lines=30)
+    reread = _reread(page, 0.15, seed=4)
+    path = _readings_file(tmp_path / "readings.json", {"a": {"reference": page, "kraken": reread}})
+    texts, groups = bench.load_readings(path)
+    lines = page.splitlines()
+    answer = "\n".join(lines[20:22])
+    queries, chunks = bench.build_question_benchmark(texts, groups, [{"page_id": "a", "question": "where?", "answer": answer}])
+    assert {q.target for q in queries} == {"a:reference", "a:kraken"}
+    start = page.index(answer)
+    for q in queries:
+        holding = {f"{q.target}#{c['idx']}" for c in chunks[q.target] if c["start_offset"] <= start and start + len(answer) <= c["end_offset"]}
+        # Rereading keeps every offset, so the same chunks hold the answer in both.
+        assert q.relevant == frozenset(holding)
+        assert q.text == "where?"

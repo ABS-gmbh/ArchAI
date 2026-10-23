@@ -148,8 +148,8 @@ def _space_key() -> str:
 # the live DB, whose lookups nearly all come from one page, dense MRR rose from
 # 0.510 to 0.628; over the four reference pages (--readings) it was 0.690
 # bare and 0.683 with it, a paired difference of -0.007 [-0.045, +0.036].
-# Lookup quotes the page; the questions users ask, which the benchmark does not
-# measure, are the asymmetric case the instruction is for.
+# On questions about those pages (--questions) it made no difference either:
+# dense MRR -0.004 [-0.032, +0.025]. It stays as the model card prescribes.
 E5_RETRIEVAL_TASK = "Given a web search query, retrieve relevant passages that answer the query"
 
 
