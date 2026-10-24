@@ -166,16 +166,28 @@ ChromaDB's default model:
 BM25 alone ranks the passage first more often, but the fusion puts it in the
 top 5, the chunks chat passes to the model, more often than either ranker.
 
-`RAG_LEXICAL_WEIGHT` sets BM25's weight in the fusion (the dense ranking's is
-1). At 2, Hit@5 rose to 0.982 and MRR to 0.903 here, and both rose on the live
-DB and with e5 as well. It stays 1 by default: passage lookup is the task BM25
-is built for, and no benchmark has the questions users ask, where the dense
-side earns its place. Try a weight on real chats with `--lexical-weight` and
-`--rrf-k` for the benchmark side:
+Passage lookup quotes the page. `eval/retrieval/questions.json` holds 35
+questions a reader might ask about the same pages, in English, each with the
+span of the reference that answers it; `--questions` asks them of every
+reading (151 lookups):
 
 ```bash
-python scripts/benchmark_retrieval.py --readings eval/quality_gate/readings.json --lexical-weight 2
+python scripts/benchmark_retrieval.py --questions eval/retrieval/questions.json --embedder e5-local
 ```
+
+| Questions | MRR | Hit@1 | Hit@5 |
+|---|---|---|---|
+| dense, e5 | 0.590 | 0.417 | 0.821 |
+| dense, ChromaDB's default model | 0.449 | 0.272 | 0.722 |
+| BM25 over character 4-grams | 0.382 | 0.305 | 0.490 |
+| fused, e5 | 0.620 | 0.464 | 0.815 |
+
+Here the dense side carries the fusion. `RAG_LEXICAL_WEIGHT` sets BM25's weight
+in the fusion (the dense ranking's is 1); `--lexical-weight` and `--rrf-k` try
+other settings on the benchmark. At 2, passage lookup gains (MRR 0.863 to
+0.903) but questions with e5 do not (MRR -0.011, Hit@5 -0.007), so it stays 1.
+latin-apocalypse has four chunks, so every ranker puts its answer in the top
+5 there; MRR is the measure that separates them on that page.
 
 The configured embedding model, `multilingual-e5-large-instruct`, expects every
 query to state its task: `Instruct: <task>\nQuery: <text>`. Documents are
@@ -183,7 +195,8 @@ embedded as they are. `rag_store.embedding_input` adds the instruction to
 queries only, so stored vectors stay valid. The task is the model card's own
 retrieval sentence. On passage lookup its effect depends on the page: it
 raised dense MRR from 0.510 to 0.628 on the live DB (one page), and left it
-unchanged on the reference pages (0.690 bare, 0.683 with it). `--embedder
+unchanged on the reference pages (0.690 bare, 0.683 with it) and on the
+questions (0.593 bare, 0.590 with it). `--embedder
 e5-local` runs the model on this machine (sentence-transformers) when the
 provider cannot be reached:
 
