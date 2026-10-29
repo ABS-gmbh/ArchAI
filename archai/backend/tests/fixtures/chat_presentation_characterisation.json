@@ -1,0 +1,1581 @@
+{
+ "00": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: run-0\n- OCR chunk hits: 3\n- Linked entity hits: 0\n- Unresolved mention hits: 2\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"run-0\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-0.png\",\n    \"detected_language\": \"\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 3,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 2\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"\",\n        \"mention_surface\": \"costu\",\n        \"probable_type\": \"place\",\n        \"reason_unresolved\": \"ambiguous\",\n        \"confidence\": 0.101\n      },\n      {\n        \"mention_id\": \"m01\",\n        \"mention_surface\": \"costu\",\n        \"probable_type\": \"\",\n        \"reason_unresolved\": \"\",\n        \"confidence\": \"\"\n      }\n    ]\n  },\n  \"transcript_snippet\": \"mẽt en autre boneᷤ cau || ses. ⁊ honestes ⁊ ꝑfitableᷤ.\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-0\",\n      \"chunk_id\": \"c0\"\n    },\n    {\n      \"run_id\": \"run-0\",\n      \"chunk_id\": \"c1\",\n      \"chunk_idx\": 1,\n      \"offsets\": \"733-793\",\n      \"text\": \"rtieumẽt ⁊ ne\\npuet auoir reson qui lẽ\\npuisse escuser. ⁊ cil \"\n    },\n    {\n      \"asset_ref\": \"page-0.png\",\n      \"chunk_id\": \"c2\",\n      \"chunk_idx\": 2,\n      \"offsets\": \"513-573\",\n      \"text\": \"tu\\nmance est perilleuse ⁊\\npuet bien torner a pechie\\nmortel. \"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"run_id\": \"run-0\",\n      \"chunk_id\": \"c0\",\n      \"mention_surface\": \"costu\",\n      \"probable_type\": \"place\",\n      \"reason_unresolved\": \"ambiguous\",\n      \"confidence\": 0.101,\n      \"offsets\": \"0-5\",\n      \"evidence_excerpt\": \"de ⁊ lordena. Ce ꝯman dement a complist espi\",\n      \"bbox\": null\n    },\n    {\n      \"run_id\": \"run-0\",\n      \"chunk_id\": \"c1\",\n      \"mention_id\": \"m01\",\n      \"mention_surface\": \"costu\",\n      \"retrieval_score\": 0.87,\n      \"offsets\": \"7-12\",\n      \"evidence_excerpt\": \"de ⁊ lordena. Ce ꝯman dement a complist espi\",\n      \"bbox\": null\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: run-0\n\n**Document Metadata**\n- Asset ref: page-0.png\n\n**Extraction Summary**\n- OCR chunk hits: 3\n- Linked entity hits: 0\n- Unresolved mention hits: 2\n\n**Transcript Snippet**\n- mẽt en autre boneᷤ cau || ses. ⁊ honestes ⁊ ꝑfitableᷤ.\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- costu (place; confidence 0.10) unresolved because ambiguous [chunk c0, offsets 0-5]\n- costu (unknown type; confidence ) unresolved because  [chunk c1, offsets 7-12]",
+  "stage": {
+   "mode_used": "debug",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "[unclear]",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-0\nasset_ref: \nmention_id: \nmention_surface: costu\nprobable_type: place\nreason_unresolved: ambiguous\nlink_confidence: 0.10\nretrieval_score: \nchunk_id: c0\noffsets: 0-5\nbbox: \nevidence_excerpt: de ⁊ lordena. Ce ꝯman dement a complist espi\n[/UNRESOLVED_MENTION_EVIDENCE]\n\n[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-0\nasset_ref: \nmention_id: m01\nmention_surface: costu\nprobable_type: \nreason_unresolved: \nlink_confidence: \nretrieval_score: 0.87\nchunk_id: c1\noffsets: 7-12\nbbox: \nevidence_excerpt: de ⁊ lordena. Ce ꝯman dement a complist espi\n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "01": {
+  "appendix": "\n\n[Verification]\nAssessment: supported\nVerified answer: Arthur is named.\nNotes: checked\nCitations checked: chunk-1 | wikidata:Q45720\nVerifier model: ",
+  "chat_inspection": {
+   "confidence_or_assessment": "supported",
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Où est Lausanne ?"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Où est Lausanne ?\n- Run ID: run-1\n- OCR chunk hits: 1\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"Où est Lausanne ?\",\n  \"run_id\": \"run-1\",\n  \"document_metadata\": {\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 1,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": []\n  },\n  \"transcript_snippet\": \"Venit qui compedes diuina potẽcia soluit || Ex hac uxore non erit sermo pudicus\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"asset_ref\": \"page-1.png\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"582-642\",\n      \"text\": \"sanatur tp̃re breui\\nTibi dico c̾tum reddet̾ amissio tua\\nPaup\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Où est Lausanne ?\n- Run ID: run-1\n\n**Document Metadata**\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 1\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- Venit qui compedes diuina potẽcia soluit || Ex hac uxore non erit sermo pudicus\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "chat"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "Venit qui compedes diuina potẽcia soluit\nEx hac uxore non erit sermo pudicus\nInimicos multos habes ⁊ plures amicos\nQ spe",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "translation_normalized": "[unclear]",
+  "unresolved": ""
+ },
+ "02": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "rag_inspection"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: run-2\n- OCR chunk hits: 0\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"run-2\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-2.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 0,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": []\n  },\n  \"transcript_snippet\": \"reuelatio. beati apostoli || & euangelistæ iohannis:\",\n  \"ocr_chunk_evidence_sample\": [],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: run-2\n\n**Document Metadata**\n- Asset ref: page-2.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 0\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- reuelatio. beati apostoli || & euangelistæ iohannis:\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "mode_used": "debug",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "rag_inspection"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "  « Le roi vint. »  ",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "rag_inspection"
+   }
+  },
+  "translation_normalized": "« Le roi vint. »",
+  "unresolved": ""
+ },
+ "03": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 1,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: run-3\n- OCR chunk hits: 1\n- Linked entity hits: 1\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"run-3\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-3.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 1,\n    \"linked_entity_hits\": 1,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"wikidata:Q1030\",\n        \"canonical_label\": \"De\",\n        \"authority_source\": \"wikidata\",\n        \"authority_id\": \"A30\",\n        \"wikidata_qid\": \"\",\n        \"viaf_id\": \"9000\",\n        \"geonames_id\": \"2600\",\n        \"confidence\": \"\"\n      }\n    ],\n    \"unresolved_mentions\": []\n  },\n  \"transcript_snippet\": \"La satyre megere. || Tresreuerend pere en dieu Ame\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-3\",\n      \"asset_ref\": \"page-3.png\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"151-211\",\n      \"text\": \"nt\\nlan de grace Mille cinq cens. considerãt que\\ndesirez veoi\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"run_id\": \"run-3\",\n      \"asset_ref\": \"page-3.png\",\n      \"chunk_id\": \"c0\",\n      \"entity_id\": \"wikidata:Q1030\",\n      \"canonical_label\": \"De\",\n      \"entity_type\": \"person\",\n      \"authority_source\": \"wikidata\",\n      \"authority_id\": \"A30\",\n      \"viaf_id\": \"9000\",\n      \"geonames_id\": \"2600\",\n      \"retrieval_score\": 0.861,\n      \"mention_surfaces\": [\n        \"de\"\n      ],\n      \"bbox\": {\n        \"x\": 1,\n        \"y\": 2,\n        \"w\": 3,\n        \"h\": 4\n      }\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: run-3\nasset_ref: page-3.png\nentity_id: wikidata:Q1030\ncanonical_label: De\nmention_surfaces: de\nentity_type: person\nauthority_source: wikidata\nauthority_id: A30\nwikidata_qid: \nviaf_id: 9000\ngeonames_id: 2600\nlink_confidence: \nretrieval_score: 0.86\nchunk_id: c0\noffsets: \nbbox: x,y,w,h\nevidence_excerpt: \n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: run-3\n\n**Document Metadata**\n- Asset ref: page-3.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 1\n- Linked entity hits: 1\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- La satyre megere. || Tresreuerend pere en dieu Ame\n\n**Linked Entities**\n- De (person; confidence ; VIAF 9000, GeoNames 2600) [chunk c0, offsets ]\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "mode_used": "debug",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "La satyre megere.\nTresreuerend pere en dieu Ame\nde monfalcon euesque et prince\nde lausanne. Antitus vr̃e tres\nhumble cha",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "[unclear]",
+  "unresolved": ""
+ },
+ "04": {
+  "appendix": "\n\n[Verification]\nAssessment: supported\nVerified answer: Arthur is named.\nNotes: checked\nCitations checked: chunk-1 | wikidata:Q45720\nVerifier model: ",
+  "chat_inspection": {
+   "confidence_or_assessment": "supported",
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": "doc-1",
+    "ocr_run_id": "run-4",
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: \n- OCR chunk hits: 1\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-4.png\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 1,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": []\n  },\n  \"transcript_snippet\": \"Sage fu enfez ⁊ endiz || Caldꝰ li roys qui ml̾t fu ber\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-4\",\n      \"asset_ref\": \"page-4.png\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"621-681\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: \n\n**Document Metadata**\n- Asset ref: page-4.png\n\n**Extraction Summary**\n- OCR chunk hits: 1\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- Sage fu enfez ⁊ endiz || Caldꝰ li roys qui ml̾t fu ber\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [
+     "language",
+     "year",
+     "origin",
+     "script"
+    ],
+    "ocr_transcript_used": true,
+    "page_image_used": false
+   },
+   "final_output": "  « Le roi vint. »  ",
+   "input_source_summary": {
+    "metadata_hints": {
+     "language": "latin",
+     "origin": "Paris",
+     "script": "gothic",
+     "year": "1350"
+    },
+    "ocr_run_id": "run-4",
+    "source_language": "latin",
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 200
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "« Le roi vint. »",
+  "unresolved": ""
+ },
+ "05": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 2,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": "doc-1",
+    "ocr_run_id": "run-5",
+    "question": "Who is mentioned on this page?"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Who is mentioned on this page?\n- Run ID: run-5\n- OCR chunk hits: 2\n- Linked entity hits: 2\n- Unresolved mention hits: 1\n\n```json\n{\n  \"query\": \"Who is mentioned on this page?\",\n  \"run_id\": \"run-5\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-5.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 2,\n    \"linked_entity_hits\": 2,\n    \"unresolved_mention_hits\": 1\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"wikidata:Q1050\",\n        \"canonical_label\": \"\",\n        \"authority_source\": \"wikidata\",\n        \"authority_id\": \"\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"9000\",\n        \"geonames_id\": \"2600\",\n        \"confidence\": 0.182\n      },\n      {\n        \"entity_id\": \"wikidata:Q1051\",\n        \"canonical_label\": \"Mortel.\",\n        \"authority_source\": \"viaf\",\n        \"authority_id\": \"A51\",\n        \"wikidata_qid\": \"Q1001\",\n        \"viaf_id\": \"9001\",\n        \"geonames_id\": \"\",\n        \"confidence\": \"\"\n      }\n    ],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m50\",\n        \"mention_surface\": \"\",\n        \"probable_type\": \"person\",\n        \"reason_unresolved\": \"no_candidates\",\n        \"confidence\": 0.047\n      }\n    ]\n  },\n  \"transcript_snippet\": \"mẽt en autre boneᷤ cau || ses. ⁊ honestes ⁊ ꝑfitableᷤ.\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-5\",\n      \"chunk_id\": \"c0\",\n      \"offsets\": \"734-794\",\n      \"text\": \"tieumẽt ⁊ ne\\npuet auoir reson qui lẽ\\npuisse escuser. ⁊ cil q\"\n    },\n    {\n      \"run_id\": \"run-5\",\n      \"chunk_id\": \"c1\",\n      \"chunk_idx\": 1,\n      \"offsets\": \"510-570\",\n      \"text\": \"costu\\nmance est perilleuse ⁊\\npuet bien torner a pechie\\nmorte\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"record_type\": \"linked\",\n      \"run_id\": \"run-5\",\n      \"asset_ref\": \"page-5.png\",\n      \"chunk_id\": \"c0\",\n      \"entity_id\": \"wikidata:Q1050\",\n      \"entity_type\": \"work\",\n      \"authority_source\": \"wikidata\",\n      \"wikidata_qid\": \"Q1000\",\n      \"viaf_id\": \"9000\",\n      \"geonames_id\": \"2600\",\n      \"confidence\": 0.182,\n      \"offsets\": \"0-8\",\n      \"mention_surfaces\": [\n        \"⁊\",\n        \"⁊\"\n      ],\n      \"bbox\": null\n    },\n    {\n      \"run_id\": \"run-5\",\n      \"asset_ref\": \"page-5.png\",\n      \"chunk_id\": \"c1\",\n      \"entity_id\": \"wikidata:Q1051\",\n      \"canonical_label\": \"Mortel.\",\n      \"entity_type\": \"person\",\n      \"authority_source\": \"viaf\",\n      \"authority_id\": \"A51\",\n      \"wikidata_qid\": \"Q1001\",\n      \"viaf_id\": \"9001\",\n      \"geonames_id\": \"\",\n      \"offsets\": \"10-18\",\n      \"mention_surfaces\": [\n        \"mortel.\",\n        \"mortel.\"\n      ],\n      \"evidence_excerpt\": \"ses. ⁊ honestes ⁊ ꝑfitableᷤ. En autre maniere ne.\",\n      \"bbox\": [\n        10,\n        20,\n        300,\n        40\n      ]\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"record_type\": \"unresolved\",\n      \"run_id\": \"run-5\",\n      \"chunk_id\": \"c0\",\n      \"mention_id\": \"m50\",\n      \"probable_type\": \"person\",\n      \"reason_unresolved\": \"no_candidates\",\n      \"confidence\": 0.047,\n      \"retrieval_score\": 0.181,\n      \"offsets\": \"0-5\",\n      \"evidence_excerpt\": \"de ⁊ lordena. Ce ꝯman dement a complist espi\",\n      \"bbox\": null\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: run-5\nasset_ref: page-5.png\nentity_id: wikidata:Q1050\ncanonical_label: \nmention_surfaces: ⁊, ⁊\nentity_type: work\nauthority_source: wikidata\nauthority_id: \nwikidata_qid: Q1000\nviaf_id: 9000\ngeonames_id: 2600\nlink_confidence: 0.18\nretrieval_score: \nchunk_id: c0\noffsets: 0-8\nbbox: \nevidence_excerpt: \n[/LINKED_ENTITY_EVIDENCE]\n\n[LINKED_ENTITY_EVIDENCE]\nrun_id: run-5\nasset_ref: page-5.png\nentity_id: wikidata:Q1051\ncanonical_label: Mortel.\nmention_surfaces: mortel., mortel.\nentity_type: person\nauthority_source: viaf\nauthority_id: A51\nwikidata_qid: Q1001\nviaf_id: 9001\ngeonames_id: \nlink_confidence: \nretrieval_score: \nchunk_id: c1\noffsets: 10-18\nbbox: 10,20,300,40\nevidence_excerpt: ses. ⁊ honestes ⁊ ꝑfitableᷤ. En autre maniere ne.\n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: Who is mentioned on this page?\n- Run ID: run-5\n\n**Document Metadata**\n- Asset ref: page-5.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 0\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- mẽt en autre boneᷤ cau || ses. ⁊ honestes ⁊ ꝑfitableᷤ.\n\n**Linked Entities**\n-  (work; confidence 0.18; Wikidata Q1000, VIAF 9000, GeoNames 2600) [chunk c0, offsets 0-8]\n- Mortel. (person; confidence ; Wikidata Q1001, VIAF 9001) [chunk c1, offsets 10-18]\n\n**Unresolved Mentions**\n-  (person; confidence 0.05) unresolved because no_candidates [chunk c0, offsets 0-5]",
+  "stage": {
+   "mode_used": "presentation",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [
+     "language",
+     "year",
+     "origin",
+     "script"
+    ],
+    "ocr_transcript_used": true,
+    "page_image_used": false
+   },
+   "final_output": "",
+   "input_source_summary": {
+    "metadata_hints": {
+     "language": "latin",
+     "origin": "Paris",
+     "script": "gothic",
+     "year": "1350"
+    },
+    "ocr_run_id": "run-5",
+    "source_language": "latin",
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 200
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "[unclear]",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-5\nasset_ref: \nmention_id: m50\nmention_surface: \nprobable_type: person\nreason_unresolved: no_candidates\nlink_confidence: 0.05\nretrieval_score: 0.18\nchunk_id: c0\noffsets: 0-5\nbbox: \nevidence_excerpt: de ⁊ lordena. Ce ꝯman dement a complist espi\n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "06": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 1,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": ""
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: \n- Run ID: run-6\n- OCR chunk hits: 0\n- Linked entity hits: 1\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"\",\n  \"run_id\": \"run-6\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-6.png\",\n    \"detected_language\": \"\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 0,\n    \"linked_entity_hits\": 1,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"wikidata:Q1060\",\n        \"canonical_label\": \"Quod\",\n        \"authority_source\": \"wikidata\",\n        \"authority_id\": \"\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"\",\n        \"geonames_id\": \"2600\",\n        \"confidence\": \"\"\n      }\n    ],\n    \"unresolved_mentions\": []\n  },\n  \"transcript_snippet\": \"\",\n  \"ocr_chunk_evidence_sample\": [],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"record_type\": \"linked\",\n      \"asset_ref\": \"page-6.png\",\n      \"chunk_id\": \"c0\",\n      \"entity_id\": \"wikidata:Q1060\",\n      \"canonical_label\": \"Quod\",\n      \"entity_type\": \"person\",\n      \"authority_source\": \"wikidata\",\n      \"wikidata_qid\": \"Q1000\",\n      \"geonames_id\": \"2600\",\n      \"retrieval_score\": 0.735,\n      \"offsets\": \"0-8\",\n      \"bbox\": [\n        10,\n        20,\n        300,\n        40\n      ]\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: \nasset_ref: page-6.png\nentity_id: wikidata:Q1060\ncanonical_label: Quod\nmention_surfaces: \nentity_type: person\nauthority_source: wikidata\nauthority_id: \nwikidata_qid: Q1000\nviaf_id: \ngeonames_id: 2600\nlink_confidence: \nretrieval_score: 0.73\nchunk_id: c0\noffsets: 0-8\nbbox: 10,20,300,40\nevidence_excerpt: \n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: \n- Run ID: run-6\n\n**Document Metadata**\n- Asset ref: page-6.png\n\n**Extraction Summary**\n- OCR chunk hits: 0\n- Linked entity hits: 1\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- None\n\n**Linked Entities**\n- Quod (person; confidence ; Wikidata Q1000, GeoNames 2600) [chunk c0, offsets 0-8]\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "Translation:\\nThe king came.",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "\\nThe king came.",
+  "unresolved": ""
+ },
+ "07": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Who is mentioned on this page?"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Who is mentioned on this page?\n- Run ID: run-7\n- OCR chunk hits: 2\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"Who is mentioned on this page?\",\n  \"run_id\": \"run-7\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-7.png\",\n    \"detected_language\": \"\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 2,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": []\n  },\n  \"transcript_snippet\": \"reuelatio. beati apostoli || & euangelistæ iohannis:\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-7\",\n      \"asset_ref\": \"page-7.png\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"77-137\"\n    },\n    {\n      \"run_id\": \"run-7\",\n      \"asset_ref\": \"page-7.png\",\n      \"chunk_id\": \"c1\",\n      \"chunk_idx\": 1,\n      \"offsets\": \"109-169\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Who is mentioned on this page?\n- Run ID: run-7\n\n**Document Metadata**\n- Asset ref: page-7.png\n\n**Extraction Summary**\n- OCR chunk hits: 2\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- reuelatio. beati apostoli || & euangelistæ iohannis:\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "mode_used": "debug",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "chat"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "  « Le roi vint. »  ",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "translation_normalized": "« Le roi vint. »",
+  "unresolved": ""
+ },
+ "08": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Où est Lausanne ?"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "rag_inspection"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Où est Lausanne ?\n- Run ID: run-8\n- OCR chunk hits: 1\n- Linked entity hits: 0\n- Unresolved mention hits: 1\n\n```json\n{\n  \"query\": \"Où est Lausanne ?\",\n  \"run_id\": \"run-8\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-8.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 1,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 1\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m80\",\n        \"mention_surface\": \"que\",\n        \"probable_type\": \"person\",\n        \"reason_unresolved\": \"\",\n        \"confidence\": 0.487\n      }\n    ]\n  },\n  \"transcript_snippet\": \"La satyre megere. || Tresreuerend pere en dieu Ame\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"asset_ref\": \"page-8.png\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"94-154\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"run_id\": \"run-8\",\n      \"asset_ref\": \"page-8.png\",\n      \"chunk_id\": \"c0\",\n      \"mention_id\": \"m80\",\n      \"mention_surface\": \"que\",\n      \"probable_type\": \"person\",\n      \"confidence\": 0.487,\n      \"retrieval_score\": 0.39,\n      \"offsets\": \"0-5\",\n      \"bbox\": null\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Où est Lausanne ?\n- Run ID: run-8\n\n**Document Metadata**\n- Asset ref: page-8.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 1\n- Linked entity hits: 0\n- Unresolved mention hits: 1\n\n**Transcript Snippet**\n- La satyre megere. || Tresreuerend pere en dieu Ame\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- que (person; confidence 0.49) unresolved because  [chunk c0, offsets 0-5]",
+  "stage": {
+   "mode_used": "presentation",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "rag_inspection"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "Translation:\\nThe king came.",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "rag_inspection"
+   }
+  },
+  "translation_normalized": "\\nThe king came.",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-8\nasset_ref: page-8.png\nmention_id: m80\nmention_surface: que\nprobable_type: person\nreason_unresolved: \nlink_confidence: 0.49\nretrieval_score: 0.39\nchunk_id: c0\noffsets: 0-5\nbbox: \nevidence_excerpt: \n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "09": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Who is mentioned on this page?"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Who is mentioned on this page?\n- Run ID: \n- OCR chunk hits: 3\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"Who is mentioned on this page?\",\n  \"run_id\": \"\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-9.png\",\n    \"detected_language\": \"\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 3,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m90\",\n        \"mention_surface\": \"haoit\",\n        \"probable_type\": \"\",\n        \"reason_unresolved\": \"unresolved_low_quality\",\n        \"confidence\": \"\"\n      },\n      {\n        \"mention_id\": \"m91\",\n        \"mention_surface\": \"vint\",\n        \"probable_type\": \"person\",\n        \"reason_unresolved\": \"no_candidates\",\n        \"confidence\": 0.736\n      }\n    ]\n  },\n  \"transcript_snippet\": \"Sage fu enfez ⁊ endiz || Caldꝰ li roys qui ml̾t fu ber\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-9\",\n      \"asset_ref\": \"page-9.png\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"1255-1315\"\n    },\n    {\n      \"run_id\": \"run-9\",\n      \"chunk_id\": \"c1\",\n      \"chunk_idx\": 1,\n      \"offsets\": \"165-225\"\n    },\n    {\n      \"run_id\": \"run-9\",\n      \"asset_ref\": \"page-9.png\",\n      \"chunk_id\": \"c2\",\n      \"chunk_idx\": 2\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Who is mentioned on this page?\n- Run ID: \n\n**Document Metadata**\n- Asset ref: page-9.png\n\n**Extraction Summary**\n- OCR chunk hits: 3\n- Linked entity hits: 0\n- Unresolved mention hits: 2\n\n**Transcript Snippet**\n- Sage fu enfez ⁊ endiz || Caldꝰ li roys qui ml̾t fu ber\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "chat"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "Sage fu enfez ⁊ endiz\nCaldꝰ li roys qui ml̾t fu ber\nLa fist requerre ⁊ demander\nPor .i. suen filz ⁊ issi vint\nQue li mar",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "translation_normalized": "[unclear]",
+  "unresolved": ""
+ },
+ "10": {
+  "appendix": "\n\n[Verification]\nAssessment: supported\nVerified answer: Arthur is named.\nNotes: checked\nCitations checked: chunk-1 | wikidata:Q45720\nVerifier model: ",
+  "chat_inspection": {
+   "confidence_or_assessment": "supported",
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 1,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "rag_inspection"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: run-10\n- OCR chunk hits: 0\n- Linked entity hits: 1\n- Unresolved mention hits: 2\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"run-10\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-10.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 0,\n    \"linked_entity_hits\": 1,\n    \"unresolved_mention_hits\": 2\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"\",\n        \"canonical_label\": \"Chent\",\n        \"authority_source\": \"wikidata\",\n        \"authority_id\": \"A100\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"9000\",\n        \"geonames_id\": \"2600\",\n        \"confidence\": 0.824\n      }\n    ],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m100\",\n        \"mention_surface\": \"garde.\",\n        \"probable_type\": \"person\",\n        \"reason_unresolved\": \"ambiguous\",\n        \"confidence\": 0.004\n      },\n      {\n        \"mention_id\": \"m101\",\n        \"mention_surface\": \"senz\",\n        \"probable_type\": \"unknown\",\n        \"reason_unresolved\": \"ambiguous\",\n        \"confidence\": \"\"\n      }\n    ]\n  },\n  \"transcript_snippet\": \"mẽt en autre boneᷤ cau || ses. ⁊ honestes ⁊ ꝑfitableᷤ.\",\n  \"ocr_chunk_evidence_sample\": [],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"record_type\": \"linked\",\n      \"run_id\": \"run-10\",\n      \"asset_ref\": \"page-10.png\",\n      \"canonical_label\": \"Chent\",\n      \"authority_source\": \"wikidata\",\n      \"authority_id\": \"A100\",\n      \"wikidata_qid\": \"Q1000\",\n      \"viaf_id\": \"9000\",\n      \"geonames_id\": \"2600\",\n      \"confidence\": 0.824,\n      \"retrieval_score\": 0.653,\n      \"offsets\": \"0-8\",\n      \"mention_surfaces\": [\n        \"chent\"\n      ]\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"record_type\": \"unresolved\",\n      \"run_id\": \"run-10\",\n      \"asset_ref\": \"page-10.png\",\n      \"chunk_id\": \"c0\",\n      \"mention_id\": \"m100\",\n      \"mention_surface\": \"garde.\",\n      \"probable_type\": \"person\",\n      \"reason_unresolved\": \"ambiguous\",\n      \"confidence\": 0.004,\n      \"evidence_excerpt\": \"de ⁊ lordena. Ce ꝯman dement a complist espi\",\n      \"bbox\": [\n        1,\n        2,\n        3,\n        4\n      ]\n    },\n    {\n      \"record_type\": \"unresolved\",\n      \"run_id\": \"run-10\",\n      \"asset_ref\": \"page-10.png\",\n      \"chunk_id\": \"c1\",\n      \"mention_id\": \"m101\",\n      \"mention_surface\": \"senz\",\n      \"probable_type\": \"unknown\",\n      \"reason_unresolved\": \"ambiguous\",\n      \"offsets\": \"7-12\",\n      \"evidence_excerpt\": \"de ⁊ lordena. Ce ꝯman dement a complist espi\",\n      \"bbox\": null\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: run-10\nasset_ref: page-10.png\nentity_id: \ncanonical_label: Chent\nmention_surfaces: chent\nentity_type: \nauthority_source: wikidata\nauthority_id: A100\nwikidata_qid: Q1000\nviaf_id: 9000\ngeonames_id: 2600\nlink_confidence: 0.82\nretrieval_score: 0.65\nchunk_id: \noffsets: 0-8\nbbox: \nevidence_excerpt: \n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: run-10\n\n**Document Metadata**\n- Asset ref: page-10.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 0\n- Linked entity hits: 1\n- Unresolved mention hits: 2\n\n**Transcript Snippet**\n- mẽt en autre boneᷤ cau || ses. ⁊ honestes ⁊ ꝑfitableᷤ.\n\n**Linked Entities**\n- Chent (entity; confidence 0.82; Wikidata Q1000, VIAF 9000, GeoNames 2600) [chunk , offsets 0-8]\n\n**Unresolved Mentions**\n- garde. (person; confidence 0.00) unresolved because ambiguous [chunk c0, offsets ]\n- senz (unknown; confidence ) unresolved because ambiguous [chunk c1, offsets 7-12]",
+  "stage": {
+   "mode_used": "debug",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "rag_inspection"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "Translation:\\nThe king came.",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "rag_inspection"
+   }
+  },
+  "translation_normalized": "\\nThe king came.",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-10\nasset_ref: page-10.png\nmention_id: m100\nmention_surface: garde.\nprobable_type: person\nreason_unresolved: ambiguous\nlink_confidence: 0.00\nretrieval_score: \nchunk_id: c0\noffsets: \nbbox: 1,2,3,4\nevidence_excerpt: de ⁊ lordena. Ce ꝯman dement a complist espi\n[/UNRESOLVED_MENTION_EVIDENCE]\n\n[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-10\nasset_ref: page-10.png\nmention_id: m101\nmention_surface: senz\nprobable_type: unknown\nreason_unresolved: ambiguous\nlink_confidence: \nretrieval_score: \nchunk_id: c1\noffsets: 7-12\nbbox: \nevidence_excerpt: de ⁊ lordena. Ce ꝯman dement a complist espi\n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "11": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Où est Lausanne ?"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Où est Lausanne ?\n- Run ID: run-11\n- OCR chunk hits: 3\n- Linked entity hits: 0\n- Unresolved mention hits: 2\n\n```json\n{\n  \"query\": \"Où est Lausanne ?\",\n  \"run_id\": \"run-11\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-11.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 3,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 2\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m110\",\n        \"mention_surface\": \"soluit\",\n        \"probable_type\": \"unknown\",\n        \"reason_unresolved\": \"unresolved_low_quality\",\n        \"confidence\": 0.06\n      },\n      {\n        \"mention_id\": \"m111\",\n        \"mention_surface\": \"amicos\",\n        \"probable_type\": \"unknown\",\n        \"reason_unresolved\": \"no_candidates\",\n        \"confidence\": 0.315\n      }\n    ]\n  },\n  \"transcript_snippet\": \"\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-11\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"886-946\",\n      \"text\": \"melius eẽt\\nQuod optas properat festina suscipe uenit\\nEt ť di\"\n    },\n    {\n      \"run_id\": \"run-11\",\n      \"asset_ref\": \"page-11.png\",\n      \"chunk_id\": \"c1\",\n      \"chunk_idx\": 1,\n      \"offsets\": \"524-584\",\n      \"text\": \"la\\nPegre profecto non datur cito reuti\\nInfirmus ille tuus sa\"\n    },\n    {\n      \"run_id\": \"run-11\",\n      \"asset_ref\": \"page-11.png\",\n      \"offsets\": \"911-971\",\n      \"text\": \"perat festina suscipe uenit\\nEt ť diuicie dabuntur a dño semp\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"record_type\": \"unresolved\",\n      \"run_id\": \"run-11\",\n      \"asset_ref\": \"page-11.png\",\n      \"chunk_id\": \"c0\",\n      \"mention_id\": \"m110\",\n      \"mention_surface\": \"soluit\",\n      \"probable_type\": \"unknown\",\n      \"reason_unresolved\": \"unresolved_low_quality\",\n      \"confidence\": 0.06,\n      \"retrieval_score\": 0.19,\n      \"offsets\": \"0-5\",\n      \"evidence_excerpt\": \"H uestis maliuolis tibi reddet ꝑpositũ Non erit h̃ pugna cessabit altera tͣba\"\n    },\n    {\n      \"record_type\": \"unresolved\",\n      \"run_id\": \"run-11\",\n      \"asset_ref\": \"page-11.png\",\n      \"chunk_id\": \"c1\",\n      \"mention_id\": \"m111\",\n      \"mention_surface\": \"amicos\",\n      \"probable_type\": \"unknown\",\n      \"reason_unresolved\": \"no_candidates\",\n      \"confidence\": 0.315,\n      \"offsets\": \"7-12\",\n      \"evidence_excerpt\": \"H uestis maliuolis tibi reddet ꝑpositũ Non erit h̃ pugna cessabit altera tͣba\",\n      \"bbox\": [\n        1,\n        2,\n        3,\n        4\n      ]\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Où est Lausanne ?\n- Run ID: run-11\n\n**Document Metadata**\n- Asset ref: page-11.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 3\n- Linked entity hits: 0\n- Unresolved mention hits: 2\n\n**Transcript Snippet**\n- None\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- soluit (unknown; confidence 0.06) unresolved because unresolved_low_quality [chunk c0, offsets 0-5]\n- amicos (unknown; confidence 0.32) unresolved because no_candidates [chunk c1, offsets 7-12]",
+  "stage": {
+   "mode_used": "presentation",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "  « Le roi vint. »  ",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "« Le roi vint. »",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-11\nasset_ref: page-11.png\nmention_id: m110\nmention_surface: soluit\nprobable_type: unknown\nreason_unresolved: unresolved_low_quality\nlink_confidence: 0.06\nretrieval_score: 0.19\nchunk_id: c0\noffsets: 0-5\nbbox: \nevidence_excerpt: H uestis maliuolis tibi reddet ꝑpositũ Non erit h̃ pugna cessabit altera tͣba\n[/UNRESOLVED_MENTION_EVIDENCE]\n\n[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-11\nasset_ref: page-11.png\nmention_id: m111\nmention_surface: amicos\nprobable_type: unknown\nreason_unresolved: no_candidates\nlink_confidence: 0.32\nretrieval_score: \nchunk_id: c1\noffsets: 7-12\nbbox: 1,2,3,4\nevidence_excerpt: H uestis maliuolis tibi reddet ꝑpositũ Non erit h̃ pugna cessabit altera tͣba\n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "12": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 2,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: run-12\n- OCR chunk hits: 3\n- Linked entity hits: 2\n- Unresolved mention hits: 2\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"run-12\",\n  \"document_metadata\": {},\n  \"summary\": {\n    \"ocr_chunk_hits\": 3,\n    \"linked_entity_hits\": 2,\n    \"unresolved_mention_hits\": 2\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"wikidata:Q1120\",\n        \"canonical_label\": \"\",\n        \"authority_source\": \"wikidata\",\n        \"authority_id\": \"A120\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"\",\n        \"geonames_id\": \"\",\n        \"confidence\": 0.989\n      },\n      {\n        \"entity_id\": \"\",\n        \"canonical_label\": \"Tem\",\n        \"authority_source\": \"geonames\",\n        \"authority_id\": \"A121\",\n        \"wikidata_qid\": \"Q1001\",\n        \"viaf_id\": \"9001\",\n        \"geonames_id\": \"2601\",\n        \"confidence\": 0.114\n      }\n    ],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m120\",\n        \"mention_surface\": \"\",\n        \"probable_type\": \"unknown\",\n        \"reason_unresolved\": \"no_candidates\",\n        \"confidence\": 0.368\n      },\n      {\n        \"mention_id\": \"m121\",\n        \"mention_surface\": \"hyerusalem\",\n        \"probable_type\": \"person\",\n        \"reason_unresolved\": \"\",\n        \"confidence\": 0.795\n      }\n    ]\n  },\n  \"transcript_snippet\": \"reuelatio. beati apostoli || & euangelistæ iohannis:\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-12\",\n      \"asset_ref\": \"page-12.png\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"137-197\",\n      \"text\": \"uxorem agni: & sustu\\nlit me in sp̃u inmon\\ntem magnum & altum\"\n    },\n    {\n      \"run_id\": \"run-12\",\n      \"asset_ref\": \"page-12.png\",\n      \"chunk_id\": \"c1\",\n      \"chunk_idx\": 1,\n      \"offsets\": \"235-295\",\n      \"text\": \"rusalem\\ndiscendentem de caelo.\\nhabentem claritatem\\ndĩ; lumen\"\n    },\n    {\n      \"run_id\": \"run-12\",\n      \"asset_ref\": \"page-12.png\",\n      \"chunk_id\": \"c2\",\n      \"chunk_idx\": 2,\n      \"offsets\": \"83-143\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"record_type\": \"linked\",\n      \"asset_ref\": \"page-12.png\",\n      \"entity_id\": \"wikidata:Q1120\",\n      \"authority_source\": \"wikidata\",\n      \"authority_id\": \"A120\",\n      \"wikidata_qid\": \"Q1000\",\n      \"viaf_id\": \"\",\n      \"geonames_id\": \"\",\n      \"confidence\": 0.989,\n      \"retrieval_score\": 0.424,\n      \"offsets\": \"0-8\",\n      \"mention_surfaces\": [\n        \"habentem\",\n        \"habentem\"\n      ],\n      \"evidence_excerpt\": \"reuelatio. beati apostoli & euangelistæ \",\n      \"bbox\": null\n    },\n    {\n      \"record_type\": \"linked\",\n      \"asset_ref\": \"page-12.png\",\n      \"chunk_id\": \"c1\",\n      \"canonical_label\": \"Tem\",\n      \"entity_type\": \"place\",\n      \"authority_source\": \"geonames\",\n      \"authority_id\": \"A121\",\n      \"wikidata_qid\": \"Q1001\",\n      \"viaf_id\": \"9001\",\n      \"geonames_id\": \"2601\",\n      \"confidence\": 0.114,\n      \"retrieval_score\": 0.235,\n      \"offsets\": \"10-18\",\n      \"mention_surfaces\": [\n        \"tem\",\n        \"tem\"\n      ],\n      \"evidence_excerpt\": \"& euangelistæ iohannis: In diebus illis. uenit\",\n      \"bbox\": [\n        10,\n        20,\n        300,\n        40\n      ]\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"record_type\": \"unresolved\",\n      \"asset_ref\": \"page-12.png\",\n      \"mention_id\": \"m120\",\n      \"probable_type\": \"unknown\",\n      \"reason_unresolved\": \"no_candidates\",\n      \"confidence\": 0.368,\n      \"offsets\": \"0-5\",\n      \"evidence_excerpt\": \"des sicut cristallũ: & habebat murum mag\",\n      \"bbox\": [\n        1,\n        2,\n        3,\n        4\n      ]\n    },\n    {\n      \"record_type\": \"unresolved\",\n      \"chunk_id\": \"c1\",\n      \"mention_id\": \"m121\",\n      \"mention_surface\": \"hyerusalem\",\n      \"probable_type\": \"person\",\n      \"confidence\": 0.795,\n      \"retrieval_score\": 0.501,\n      \"offsets\": \"7-12\",\n      \"evidence_excerpt\": \"des sicut cristallũ: & habebat murum mag\",\n      \"bbox\": null\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: \nasset_ref: page-12.png\nentity_id: wikidata:Q1120\ncanonical_label: \nmention_surfaces: habentem, habentem\nentity_type: \nauthority_source: wikidata\nauthority_id: A120\nwikidata_qid: Q1000\nviaf_id: \ngeonames_id: \nlink_confidence: 0.99\nretrieval_score: 0.42\nchunk_id: \noffsets: 0-8\nbbox: \nevidence_excerpt: reuelatio. beati apostoli & euangelistæ \n[/LINKED_ENTITY_EVIDENCE]\n\n[LINKED_ENTITY_EVIDENCE]\nrun_id: \nasset_ref: page-12.png\nentity_id: \ncanonical_label: Tem\nmention_surfaces: tem, tem\nentity_type: place\nauthority_source: geonames\nauthority_id: A121\nwikidata_qid: Q1001\nviaf_id: 9001\ngeonames_id: 2601\nlink_confidence: 0.11\nretrieval_score: 0.23\nchunk_id: c1\noffsets: 10-18\nbbox: 10,20,300,40\nevidence_excerpt: & euangelistæ iohannis: In diebus illis. uenit\n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: run-12\n\n**Extraction Summary**\n- OCR chunk hits: 3\n- Linked entity hits: 2\n- Unresolved mention hits: 2\n\n**Transcript Snippet**\n- reuelatio. beati apostoli || & euangelistæ iohannis:\n\n**Linked Entities**\n-  (entity; confidence 0.99; Wikidata Q1000) [chunk , offsets 0-8]\n- Tem (place; confidence 0.11; Wikidata Q1001, VIAF 9001, GeoNames 2601) [chunk c1, offsets 10-18]\n\n**Unresolved Mentions**\n-  (unknown; confidence 0.37) unresolved because no_candidates [chunk , offsets 0-5]\n- hyerusalem (person; confidence 0.80) unresolved because  [chunk c1, offsets 7-12]",
+  "stage": {
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "  « Le roi vint. »  ",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "« Le roi vint. »",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: \nasset_ref: page-12.png\nmention_id: m120\nmention_surface: \nprobable_type: unknown\nreason_unresolved: no_candidates\nlink_confidence: 0.37\nretrieval_score: \nchunk_id: \noffsets: 0-5\nbbox: 1,2,3,4\nevidence_excerpt: des sicut cristallũ: & habebat murum mag\n[/UNRESOLVED_MENTION_EVIDENCE]\n\n[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: \nasset_ref: \nmention_id: m121\nmention_surface: hyerusalem\nprobable_type: person\nreason_unresolved: \nlink_confidence: 0.80\nretrieval_score: 0.50\nchunk_id: c1\noffsets: 7-12\nbbox: \nevidence_excerpt: des sicut cristallũ: & habebat murum mag\n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "13": {
+  "appendix": "\n\n[Verification]\nAssessment: supported\nVerified answer: Arthur is named.\nNotes: checked\nCitations checked: chunk-1 | wikidata:Q45720\nVerifier model: ",
+  "chat_inspection": {
+   "confidence_or_assessment": "supported",
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": "doc-1",
+    "ocr_run_id": "run-13",
+    "question": "Où est Lausanne ?"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Où est Lausanne ?\n- Run ID: run-13\n- OCR chunk hits: 2\n- Linked entity hits: 0\n- Unresolved mention hits: 2\n\n```json\n{\n  \"query\": \"Où est Lausanne ?\",\n  \"run_id\": \"run-13\",\n  \"document_metadata\": {},\n  \"summary\": {\n    \"ocr_chunk_hits\": 2,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 2\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m130\",\n        \"mention_surface\": \"\",\n        \"probable_type\": \"person\",\n        \"reason_unresolved\": \"no_candidates\",\n        \"confidence\": 0.834\n      },\n      {\n        \"mention_id\": \"m131\",\n        \"mention_surface\": \"megere.\",\n        \"probable_type\": \"place\",\n        \"reason_unresolved\": \"ambiguous\",\n        \"confidence\": 0.798\n      }\n    ]\n  },\n  \"transcript_snippet\": \"La satyre megere. || Tresreuerend pere en dieu Ame\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-13\",\n      \"asset_ref\": \"page-13.png\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"74-134\",\n      \"text\": \"ince\\nde lausanne. Antitus vr̃e tres\\nhumble chappellain et se\"\n    },\n    {\n      \"run_id\": \"run-13\",\n      \"asset_ref\": \"page-13.png\",\n      \"chunk_id\": \"c1\",\n      \"offsets\": \"57-117\",\n      \"text\": \"con euesque et prince\\nde lausanne. Antitus vr̃e tres\\nhumble \"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"run_id\": \"run-13\",\n      \"chunk_id\": \"c0\",\n      \"mention_id\": \"m130\",\n      \"probable_type\": \"person\",\n      \"reason_unresolved\": \"no_candidates\",\n      \"confidence\": 0.834,\n      \"retrieval_score\": 0.085,\n      \"offsets\": \"0-5\",\n      \"evidence_excerpt\": \"lan de grace Mille cinq cens. considerãt que desirez veoir gracieuses inuentions poethiq̃s.\",\n      \"bbox\": [\n        1,\n        2,\n        3,\n        4\n      ]\n    },\n    {\n      \"record_type\": \"unresolved\",\n      \"run_id\": \"run-13\",\n      \"asset_ref\": \"page-13.png\",\n      \"chunk_id\": \"c1\",\n      \"mention_id\": \"m131\",\n      \"mention_surface\": \"megere.\",\n      \"probable_type\": \"place\",\n      \"reason_unresolved\": \"ambiguous\",\n      \"confidence\": 0.798,\n      \"retrieval_score\": 0.986,\n      \"offsets\": \"7-12\",\n      \"evidence_excerpt\": \"lan de grace Mille cinq cens. considerãt que desirez veoir gracieuses inuentions poethiq̃s.\",\n      \"bbox\": [\n        1,\n        2,\n        3,\n        4\n      ]\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Où est Lausanne ?\n- Run ID: run-13\n\n**Extraction Summary**\n- OCR chunk hits: 2\n- Linked entity hits: 0\n- Unresolved mention hits: 2\n\n**Transcript Snippet**\n- La satyre megere. || Tresreuerend pere en dieu Ame\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n-  (person; confidence 0.83) unresolved because no_candidates [chunk c0, offsets 0-5]\n- megere. (place; confidence 0.80) unresolved because ambiguous [chunk c1, offsets 7-12]",
+  "stage": {
+   "mode_used": "presentation",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [
+     "language",
+     "year",
+     "origin",
+     "script"
+    ],
+    "ocr_transcript_used": true,
+    "page_image_used": false
+   },
+   "final_output": "  « Le roi vint. »  ",
+   "input_source_summary": {
+    "metadata_hints": {
+     "language": "latin",
+     "origin": "Paris",
+     "script": "gothic",
+     "year": "1350"
+    },
+    "ocr_run_id": "run-13",
+    "source_language": "latin",
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 200
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "« Le roi vint. »",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-13\nasset_ref: \nmention_id: m130\nmention_surface: \nprobable_type: person\nreason_unresolved: no_candidates\nlink_confidence: 0.83\nretrieval_score: 0.09\nchunk_id: c0\noffsets: 0-5\nbbox: 1,2,3,4\nevidence_excerpt: lan de grace Mille cinq cens. considerãt que desirez veoir gracieuses inuentions poethiq̃s.\n[/UNRESOLVED_MENTION_EVIDENCE]\n\n[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-13\nasset_ref: page-13.png\nmention_id: m131\nmention_surface: megere.\nprobable_type: place\nreason_unresolved: ambiguous\nlink_confidence: 0.80\nretrieval_score: 0.99\nchunk_id: c1\noffsets: 7-12\nbbox: 1,2,3,4\nevidence_excerpt: lan de grace Mille cinq cens. considerãt que desirez veoir gracieuses inuentions poethiq̃s.\n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "14": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 2,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": ""
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "rag_inspection"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: \n- Run ID: run-14\n- OCR chunk hits: 0\n- Linked entity hits: 2\n- Unresolved mention hits: 1\n\n```json\n{\n  \"query\": \"\",\n  \"run_id\": \"run-14\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-14.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 0,\n    \"linked_entity_hits\": 2,\n    \"unresolved_mention_hits\": 1\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"wikidata:Q1140\",\n        \"canonical_label\": \"\",\n        \"authority_source\": \"geonames\",\n        \"authority_id\": \"\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"9000\",\n        \"geonames_id\": \"2600\",\n        \"confidence\": 0.734\n      },\n      {\n        \"entity_id\": \"wikidata:Q1141\",\n        \"canonical_label\": \"Lez\",\n        \"authority_source\": \"geonames\",\n        \"authority_id\": \"A141\",\n        \"wikidata_qid\": \"Q1001\",\n        \"viaf_id\": \"\",\n        \"geonames_id\": \"\",\n        \"confidence\": 0.873\n      }\n    ],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m140\",\n        \"mention_surface\": \"prametre.\",\n        \"probable_type\": \"unknown\",\n        \"reason_unresolved\": \"no_candidates\",\n        \"confidence\": 0.455\n      }\n    ]\n  },\n  \"transcript_snippet\": \"Sage fu enfez ⁊ endiz || Caldꝰ li roys qui ml̾t fu ber\",\n  \"ocr_chunk_evidence_sample\": [],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"record_type\": \"linked\",\n      \"run_id\": \"run-14\",\n      \"asset_ref\": \"page-14.png\",\n      \"chunk_id\": \"c0\",\n      \"entity_id\": \"wikidata:Q1140\",\n      \"entity_type\": \"place\",\n      \"authority_source\": \"geonames\",\n      \"wikidata_qid\": \"Q1000\",\n      \"viaf_id\": \"9000\",\n      \"geonames_id\": \"2600\",\n      \"confidence\": 0.734,\n      \"retrieval_score\": 0.658,\n      \"offsets\": \"0-8\",\n      \"mention_surfaces\": [\n        \"Cis\",\n        \"cis\"\n      ],\n      \"evidence_excerpt\": \"Sage fu enfez ⁊ endiz Caldꝰ li roys qui ml̾t fu ber\",\n      \"bbox\": null\n    },\n    {\n      \"record_type\": \"linked\",\n      \"run_id\": \"run-14\",\n      \"chunk_id\": \"c1\",\n      \"entity_id\": \"wikidata:Q1141\",\n      \"canonical_label\": \"Lez\",\n      \"entity_type\": \"place\",\n      \"authority_source\": \"geonames\",\n      \"authority_id\": \"A141\",\n      \"wikidata_qid\": \"Q1001\",\n      \"geonames_id\": \"\",\n      \"confidence\": 0.873,\n      \"retrieval_score\": 0.687,\n      \"offsets\": \"10-18\",\n      \"mention_surfaces\": [\n        \"Lez\"\n      ],\n      \"evidence_excerpt\": \"Caldꝰ li roys qui ml̾t fu ber La fist requerre ⁊ demander\",\n      \"bbox\": [\n        10,\n        20,\n        300,\n        40\n      ]\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"record_type\": \"unresolved\",\n      \"asset_ref\": \"page-14.png\",\n      \"chunk_id\": \"c0\",\n      \"mention_id\": \"m140\",\n      \"mention_surface\": \"prametre.\",\n      \"probable_type\": \"unknown\",\n      \"reason_unresolved\": \"no_candidates\",\n      \"confidence\": 0.455,\n      \"retrieval_score\": 0.485,\n      \"offsets\": \"0-5\",\n      \"bbox\": [\n        1,\n        2,\n        3,\n        4\n      ]\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: run-14\nasset_ref: page-14.png\nentity_id: wikidata:Q1140\ncanonical_label: \nmention_surfaces: Cis, cis\nentity_type: place\nauthority_source: geonames\nauthority_id: \nwikidata_qid: Q1000\nviaf_id: 9000\ngeonames_id: 2600\nlink_confidence: 0.73\nretrieval_score: 0.66\nchunk_id: c0\noffsets: 0-8\nbbox: \nevidence_excerpt: Sage fu enfez ⁊ endiz Caldꝰ li roys qui ml̾t fu ber\n[/LINKED_ENTITY_EVIDENCE]\n\n[LINKED_ENTITY_EVIDENCE]\nrun_id: run-14\nasset_ref: \nentity_id: wikidata:Q1141\ncanonical_label: Lez\nmention_surfaces: Lez\nentity_type: place\nauthority_source: geonames\nauthority_id: A141\nwikidata_qid: Q1001\nviaf_id: \ngeonames_id: \nlink_confidence: 0.87\nretrieval_score: 0.69\nchunk_id: c1\noffsets: 10-18\nbbox: 10,20,300,40\nevidence_excerpt: Caldꝰ li roys qui ml̾t fu ber La fist requerre ⁊ demander\n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: \n- Run ID: run-14\n\n**Document Metadata**\n- Asset ref: page-14.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 0\n- Linked entity hits: 2\n- Unresolved mention hits: 1\n\n**Transcript Snippet**\n- Sage fu enfez ⁊ endiz || Caldꝰ li roys qui ml̾t fu ber\n\n**Linked Entities**\n-  (place; confidence 0.73; Wikidata Q1000, VIAF 9000, GeoNames 2600) [chunk c0, offsets 0-8]\n- Lez (place; confidence 0.87; Wikidata Q1001) [chunk c1, offsets 10-18]\n\n**Unresolved Mentions**\n- prametre. (unknown; confidence 0.46) unresolved because no_candidates [chunk c0, offsets 0-5]",
+  "stage": {
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "rag_inspection"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "Translation:\\nThe king came.",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "rag_inspection"
+   }
+  },
+  "translation_normalized": "\\nThe king came.",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: \nasset_ref: page-14.png\nmention_id: m140\nmention_surface: prametre.\nprobable_type: unknown\nreason_unresolved: no_candidates\nlink_confidence: 0.46\nretrieval_score: 0.48\nchunk_id: c0\noffsets: 0-5\nbbox: 1,2,3,4\nevidence_excerpt: \n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "15": {
+  "appendix": "\n\n[Verification]\nAssessment: supported\nVerified answer: Arthur is named.\nNotes: checked\nCitations checked: chunk-1 | wikidata:Q45720\nVerifier model: ",
+  "chat_inspection": {
+   "confidence_or_assessment": "supported",
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Who is mentioned on this page?"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Who is mentioned on this page?\n- Run ID: \n- OCR chunk hits: 1\n- Linked entity hits: 0\n- Unresolved mention hits: 2\n\n```json\n{\n  \"query\": \"Who is mentioned on this page?\",\n  \"run_id\": \"\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-15.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 1,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 2\n  },\n  \"authority_summary\": {},\n  \"transcript_snippet\": \"mẽt en autre boneᷤ cau || ses. ⁊ honestes ⁊ ꝑfitableᷤ.\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-15\",\n      \"asset_ref\": \"page-15.png\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"23-83\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"record_type\": \"unresolved\",\n      \"run_id\": \"run-15\",\n      \"chunk_id\": \"c0\",\n      \"mention_id\": \"m150\",\n      \"mention_surface\": \"pechie\",\n      \"probable_type\": \"person\",\n      \"reason_unresolved\": \"unresolved_low_quality\",\n      \"confidence\": 0.338,\n      \"retrieval_score\": 0.708,\n      \"evidence_excerpt\": \"de ⁊ lordena. Ce ꝯman dement a complist espi\",\n      \"bbox\": [\n        1,\n        2,\n        3,\n        4\n      ]\n    },\n    {\n      \"record_type\": \"unresolved\",\n      \"chunk_id\": \"c1\",\n      \"mention_surface\": \"espi\",\n      \"probable_type\": \"place\",\n      \"reason_unresolved\": \"no_candidates\",\n      \"retrieval_score\": 0.93,\n      \"offsets\": \"7-12\",\n      \"evidence_excerpt\": \"de ⁊ lordena. Ce ꝯman dement a complist espi\",\n      \"bbox\": [\n        1,\n        2,\n        3,\n        4\n      ]\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Who is mentioned on this page?\n- Run ID: \n\n**Document Metadata**\n- Asset ref: page-15.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 1\n- Linked entity hits: 0\n- Unresolved mention hits: 2\n\n**Transcript Snippet**\n- mẽt en autre boneᷤ cau || ses. ⁊ honestes ⁊ ꝑfitableᷤ.\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- pechie (person; confidence 0.34) unresolved because unresolved_low_quality [chunk c0, offsets ]\n- espi (place; confidence ) unresolved because no_candidates [chunk c1, offsets 7-12]",
+  "stage": {
+   "mode_used": "presentation",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "chat"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "mẽt en autre boneᷤ cau\nses. ⁊ honestes ⁊ ꝑfitableᷤ.\nEn autre maniere ne.\nlest mie iurer. ⁊ por ce\nqui iure senz reson le",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "translation_normalized": "[unclear]",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-15\nasset_ref: \nmention_id: m150\nmention_surface: pechie\nprobable_type: person\nreason_unresolved: unresolved_low_quality\nlink_confidence: 0.34\nretrieval_score: 0.71\nchunk_id: c0\noffsets: \nbbox: 1,2,3,4\nevidence_excerpt: de ⁊ lordena. Ce ꝯman dement a complist espi\n[/UNRESOLVED_MENTION_EVIDENCE]\n\n[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: \nasset_ref: \nmention_id: \nmention_surface: espi\nprobable_type: place\nreason_unresolved: no_candidates\nlink_confidence: \nretrieval_score: 0.93\nchunk_id: c1\noffsets: 7-12\nbbox: 1,2,3,4\nevidence_excerpt: de ⁊ lordena. Ce ꝯman dement a complist espi\n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "16": {
+  "appendix": "\n\n[Verification]\nAssessment: supported\nVerified answer: Arthur is named.\nNotes: checked\nCitations checked: chunk-1 | wikidata:Q45720\nVerifier model: ",
+  "chat_inspection": {
+   "confidence_or_assessment": "supported",
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: run-16\n- OCR chunk hits: 2\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"run-16\",\n  \"document_metadata\": {},\n  \"summary\": {\n    \"ocr_chunk_hits\": 2,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": []\n  },\n  \"transcript_snippet\": \"Venit qui compedes diuina potẽcia soluit || Ex hac uxore non erit sermo pudicus\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-16\",\n      \"asset_ref\": \"page-16.png\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"480-540\",\n      \"text\": \"ta manet\\nDecipe te uult. ⁊ te non diligit illa\\nPegre profect\"\n    },\n    {\n      \"run_id\": \"run-16\",\n      \"asset_ref\": \"page-16.png\",\n      \"chunk_idx\": 1,\n      \"text\": \"nimis ⁊ manet debito semꝑ\\nTutela ť data non est: time nec eẽ\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: run-16\n\n**Extraction Summary**\n- OCR chunk hits: 2\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- Venit qui compedes diuina potẽcia soluit || Ex hac uxore non erit sermo pudicus\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "mode_used": "debug",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "[unclear]",
+  "unresolved": ""
+ },
+ "17": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 2,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: run-17\n- OCR chunk hits: 3\n- Linked entity hits: 2\n- Unresolved mention hits: 1\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"run-17\",\n  \"document_metadata\": {},\n  \"summary\": {\n    \"ocr_chunk_hits\": 3,\n    \"linked_entity_hits\": 2,\n    \"unresolved_mention_hits\": 1\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"wikidata:Q1170\",\n        \"canonical_label\": \"&\",\n        \"authority_source\": \"viaf\",\n        \"authority_id\": \"A170\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"\",\n        \"geonames_id\": \"\",\n        \"confidence\": 0.309\n      },\n      {\n        \"entity_id\": \"wikidata:Q1171\",\n        \"canonical_label\": \"In\",\n        \"authority_source\": \"geonames\",\n        \"authority_id\": \"A171\",\n        \"wikidata_qid\": \"Q1001\",\n        \"viaf_id\": \"\",\n        \"geonames_id\": \"2601\",\n        \"confidence\": 0.659\n      }\n    ],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"\",\n        \"mention_surface\": \"iaspi\",\n        \"probable_type\": \"\",\n        \"reason_unresolved\": \"ambiguous\",\n        \"confidence\": 0.816\n      }\n    ]\n  },\n  \"transcript_snippet\": \"reuelatio. beati apostoli || & euangelistæ iohannis:\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"asset_ref\": \"page-17.png\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"155-215\",\n      \"text\": \"tu\\nlit me in sp̃u inmon\\ntem magnum & altum.\\n& ostendit mihi \"\n    },\n    {\n      \"run_id\": \"run-17\",\n      \"chunk_id\": \"c1\",\n      \"text\": \"ati apostoli\\n& euangelistæ iohannis:\\nIn diebus illis. uenit\\n\"\n    },\n    {\n      \"run_id\": \"run-17\",\n      \"asset_ref\": \"page-17.png\",\n      \"chunk_id\": \"c2\",\n      \"chunk_idx\": 2,\n      \"offsets\": \"205-265\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"record_type\": \"linked\",\n      \"run_id\": \"run-17\",\n      \"asset_ref\": \"page-17.png\",\n      \"chunk_id\": \"c0\",\n      \"entity_id\": \"wikidata:Q1170\",\n      \"canonical_label\": \"&\",\n      \"authority_source\": \"viaf\",\n      \"authority_id\": \"A170\",\n      \"wikidata_qid\": \"Q1000\",\n      \"viaf_id\": \"\",\n      \"geonames_id\": \"\",\n      \"confidence\": 0.309,\n      \"retrieval_score\": 0.082,\n      \"offsets\": \"0-8\",\n      \"mention_surfaces\": [\n        \"&\",\n        \"&\"\n      ],\n      \"bbox\": {\n        \"x\": 1,\n        \"y\": 2,\n        \"w\": 3,\n        \"h\": 4\n      }\n    },\n    {\n      \"record_type\": \"linked\",\n      \"asset_ref\": \"page-17.png\",\n      \"chunk_id\": \"c1\",\n      \"entity_id\": \"wikidata:Q1171\",\n      \"canonical_label\": \"In\",\n      \"entity_type\": \"person\",\n      \"authority_source\": \"geonames\",\n      \"authority_id\": \"A171\",\n      \"wikidata_qid\": \"Q1001\",\n      \"viaf_id\": \"\",\n      \"geonames_id\": \"2601\",\n      \"confidence\": 0.659,\n      \"mention_surfaces\": [\n        \"In\",\n        \"in\"\n      ],\n      \"evidence_excerpt\": \"& euangelistæ iohannis: In diebus illis.\",\n      \"bbox\": [\n        10,\n        20,\n        300,\n        40\n      ]\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"run_id\": \"run-17\",\n      \"chunk_id\": \"c0\",\n      \"mention_surface\": \"iaspi\",\n      \"reason_unresolved\": \"ambiguous\",\n      \"confidence\": 0.816,\n      \"retrieval_score\": 0.183,\n      \"offsets\": \"0-5\",\n      \"evidence_excerpt\": \"des sicut cristallũ: & habebat murum mag\",\n      \"bbox\": [\n        1,\n        2,\n        3,\n        4\n      ]\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: run-17\nasset_ref: page-17.png\nentity_id: wikidata:Q1170\ncanonical_label: &\nmention_surfaces: &, &\nentity_type: \nauthority_source: viaf\nauthority_id: A170\nwikidata_qid: Q1000\nviaf_id: \ngeonames_id: \nlink_confidence: 0.31\nretrieval_score: 0.08\nchunk_id: c0\noffsets: 0-8\nbbox: x,y,w,h\nevidence_excerpt: \n[/LINKED_ENTITY_EVIDENCE]\n\n[LINKED_ENTITY_EVIDENCE]\nrun_id: \nasset_ref: page-17.png\nentity_id: wikidata:Q1171\ncanonical_label: In\nmention_surfaces: In, in\nentity_type: person\nauthority_source: geonames\nauthority_id: A171\nwikidata_qid: Q1001\nviaf_id: \ngeonames_id: 2601\nlink_confidence: 0.66\nretrieval_score: \nchunk_id: c1\noffsets: \nbbox: 10,20,300,40\nevidence_excerpt: & euangelistæ iohannis: In diebus illis.\n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: run-17\n\n**Extraction Summary**\n- OCR chunk hits: 0\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- reuelatio. beati apostoli || & euangelistæ iohannis:\n\n**Linked Entities**\n- & (entity; confidence 0.31; Wikidata Q1000) [chunk c0, offsets 0-8]\n- In (person; confidence 0.66; Wikidata Q1001, GeoNames 2601) [chunk c1, offsets ]\n\n**Unresolved Mentions**\n- iaspi (unknown type; confidence 0.82) unresolved because ambiguous [chunk c0, offsets 0-5]",
+  "stage": {
+   "mode_used": "debug",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "Translation:\\nThe king came.",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "\\nThe king came.",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-17\nasset_ref: \nmention_id: \nmention_surface: iaspi\nprobable_type: \nreason_unresolved: ambiguous\nlink_confidence: 0.82\nretrieval_score: 0.18\nchunk_id: c0\noffsets: 0-5\nbbox: 1,2,3,4\nevidence_excerpt: des sicut cristallũ: & habebat murum mag\n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "18": {
+  "appendix": "\n\n[Verification]\nAssessment: supported\nVerified answer: Arthur is named.\nNotes: checked\nCitations checked: chunk-1 | wikidata:Q45720\nVerifier model: ",
+  "chat_inspection": {
+   "confidence_or_assessment": "supported",
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 1,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Who is mentioned on this page?"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Who is mentioned on this page?\n- Run ID: run-18\n- OCR chunk hits: 1\n- Linked entity hits: 1\n- Unresolved mention hits: 2\n\n```json\n{\n  \"query\": \"Who is mentioned on this page?\",\n  \"run_id\": \"run-18\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-18.png\",\n    \"detected_language\": \"old_french\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 1,\n    \"linked_entity_hits\": 1,\n    \"unresolved_mention_hits\": 2\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"\",\n        \"canonical_label\": \"\",\n        \"authority_source\": \"geonames\",\n        \"authority_id\": \"A180\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"\",\n        \"geonames_id\": \"2600\",\n        \"confidence\": 0.522\n      }\n    ],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m180\",\n        \"mention_surface\": \"\",\n        \"probable_type\": \"unknown\",\n        \"reason_unresolved\": \"unresolved_low_quality\",\n        \"confidence\": 0.281\n      },\n      {\n        \"mention_id\": \"m181\",\n        \"mention_surface\": \"\",\n        \"probable_type\": \"unknown\",\n        \"reason_unresolved\": \"ambiguous\",\n        \"confidence\": \"\"\n      }\n    ]\n  },\n  \"transcript_snippet\": \"La satyre megere. || Tresreuerend pere en dieu Ame\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-18\",\n      \"asset_ref\": \"page-18.png\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"31-91\",\n      \"text\": \"pere en dieu Ame\\nde monfalcon euesque et prince\\nde lausanne.\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"record_type\": \"linked\",\n      \"run_id\": \"run-18\",\n      \"asset_ref\": \"page-18.png\",\n      \"chunk_id\": \"c0\",\n      \"entity_type\": \"place\",\n      \"authority_source\": \"geonames\",\n      \"authority_id\": \"A180\",\n      \"wikidata_qid\": \"Q1000\",\n      \"viaf_id\": \"\",\n      \"geonames_id\": \"2600\",\n      \"confidence\": 0.522,\n      \"retrieval_score\": 0.762,\n      \"offsets\": \"0-8\",\n      \"mention_surfaces\": [\n        \"de\"\n      ],\n      \"evidence_excerpt\": \"La satyre megere. Tresreuerend pere en d\",\n      \"bbox\": null\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"record_type\": \"unresolved\",\n      \"run_id\": \"run-18\",\n      \"asset_ref\": \"page-18.png\",\n      \"chunk_id\": \"c0\",\n      \"mention_id\": \"m180\",\n      \"probable_type\": \"unknown\",\n      \"reason_unresolved\": \"unresolved_low_quality\",\n      \"confidence\": 0.281,\n      \"offsets\": \"0-5\",\n      \"evidence_excerpt\": \"lan de grace Mille cinq cens. considerãt que desirez veoir gracieuses inuentions poethiq̃s.\"\n    },\n    {\n      \"record_type\": \"unresolved\",\n      \"run_id\": \"run-18\",\n      \"asset_ref\": \"page-18.png\",\n      \"chunk_id\": \"c1\",\n      \"mention_id\": \"m181\",\n      \"probable_type\": \"unknown\",\n      \"reason_unresolved\": \"ambiguous\",\n      \"retrieval_score\": 0.492,\n      \"offsets\": \"7-12\",\n      \"bbox\": [\n        1,\n        2,\n        3,\n        4\n      ]\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: run-18\nasset_ref: page-18.png\nentity_id: \ncanonical_label: \nmention_surfaces: de\nentity_type: place\nauthority_source: geonames\nauthority_id: A180\nwikidata_qid: Q1000\nviaf_id: \ngeonames_id: 2600\nlink_confidence: 0.52\nretrieval_score: 0.76\nchunk_id: c0\noffsets: 0-8\nbbox: \nevidence_excerpt: La satyre megere. Tresreuerend pere en d\n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: Who is mentioned on this page?\n- Run ID: run-18\n\n**Document Metadata**\n- Asset ref: page-18.png\n- Detected language: old_french\n\n**Extraction Summary**\n- OCR chunk hits: 1\n- Linked entity hits: 1\n- Unresolved mention hits: 2\n\n**Transcript Snippet**\n- La satyre megere. || Tresreuerend pere en dieu Ame\n\n**Linked Entities**\n-  (place; confidence 0.52; Wikidata Q1000, GeoNames 2600) [chunk c0, offsets 0-8]\n\n**Unresolved Mentions**\n-  (unknown; confidence 0.28) unresolved because unresolved_low_quality [chunk c0, offsets 0-5]\n-  (unknown; confidence ) unresolved because ambiguous [chunk c1, offsets 7-12]",
+  "stage": {
+   "mode_used": "debug",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "Translation:\\nThe king came.",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "\\nThe king came.",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-18\nasset_ref: page-18.png\nmention_id: m180\nmention_surface: \nprobable_type: unknown\nreason_unresolved: unresolved_low_quality\nlink_confidence: 0.28\nretrieval_score: \nchunk_id: c0\noffsets: 0-5\nbbox: \nevidence_excerpt: lan de grace Mille cinq cens. considerãt que desirez veoir gracieuses inuentions poethiq̃s.\n[/UNRESOLVED_MENTION_EVIDENCE]\n\n[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-18\nasset_ref: page-18.png\nmention_id: m181\nmention_surface: \nprobable_type: unknown\nreason_unresolved: ambiguous\nlink_confidence: \nretrieval_score: 0.49\nchunk_id: c1\noffsets: 7-12\nbbox: 1,2,3,4\nevidence_excerpt: \n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "19": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: run-19\n- OCR chunk hits: 0\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"run-19\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-19.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 0,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"\",\n        \"canonical_label\": \"Cil\",\n        \"authority_source\": \"\",\n        \"authority_id\": \"\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"9000\",\n        \"geonames_id\": \"\",\n        \"confidence\": 0.585\n      },\n      {\n        \"entity_id\": \"wikidata:Q1191\",\n        \"canonical_label\": \"Desõneur\",\n        \"authority_source\": \"geonames\",\n        \"authority_id\": \"A191\",\n        \"wikidata_qid\": \"Q1001\",\n        \"viaf_id\": \"\",\n        \"geonames_id\": \"2601\",\n        \"confidence\": \"\"\n      }\n    ],\n    \"unresolved_mentions\": []\n  },\n  \"transcript_snippet\": \"Sage fu enfez ⁊ endiz || Caldꝰ li roys qui ml̾t fu ber\",\n  \"ocr_chunk_evidence_sample\": [],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: run-19\n\n**Document Metadata**\n- Asset ref: page-19.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 0\n- Linked entity hits: 2\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- Sage fu enfez ⁊ endiz || Caldꝰ li roys qui ml̾t fu ber\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "mode_used": "presentation",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "chat"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "  « Le roi vint. »  ",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "translation_normalized": "« Le roi vint. »",
+  "unresolved": ""
+ },
+ "20": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 1,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Who is mentioned on this page?"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Who is mentioned on this page?\n- Run ID: run-20\n- OCR chunk hits: 1\n- Linked entity hits: 1\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"Who is mentioned on this page?\",\n  \"run_id\": \"run-20\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-20.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 1,\n    \"linked_entity_hits\": 1,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"wikidata:Q1200\",\n        \"canonical_label\": \"Qui\",\n        \"authority_source\": \"viaf\",\n        \"authority_id\": \"A200\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"9000\",\n        \"geonames_id\": \"2600\",\n        \"confidence\": 0.412\n      }\n    ],\n    \"unresolved_mentions\": []\n  },\n  \"transcript_snippet\": \"\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-20\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"text\": \"euse ⁊\\npuet bien torner a pechie\\nmortel. qui ne sen garde.\\nM\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"record_type\": \"linked\",\n      \"run_id\": \"run-20\",\n      \"chunk_id\": \"c0\",\n      \"entity_id\": \"wikidata:Q1200\",\n      \"canonical_label\": \"Qui\",\n      \"entity_type\": \"person\",\n      \"authority_source\": \"viaf\",\n      \"authority_id\": \"A200\",\n      \"wikidata_qid\": \"Q1000\",\n      \"viaf_id\": \"9000\",\n      \"geonames_id\": \"2600\",\n      \"confidence\": 0.412,\n      \"retrieval_score\": 0.2,\n      \"offsets\": \"0-8\",\n      \"mention_surfaces\": [\n        \"qui\",\n        \"qui\"\n      ],\n      \"bbox\": null\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: run-20\nasset_ref: \nentity_id: wikidata:Q1200\ncanonical_label: Qui\nmention_surfaces: qui, qui\nentity_type: person\nauthority_source: viaf\nauthority_id: A200\nwikidata_qid: Q1000\nviaf_id: 9000\ngeonames_id: 2600\nlink_confidence: 0.41\nretrieval_score: 0.20\nchunk_id: c0\noffsets: 0-8\nbbox: \nevidence_excerpt: \n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: Who is mentioned on this page?\n- Run ID: run-20\n\n**Document Metadata**\n- Asset ref: page-20.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 1\n- Linked entity hits: 1\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- None\n\n**Linked Entities**\n- Qui (person; confidence 0.41; Wikidata Q1000, VIAF 9000, GeoNames 2600) [chunk c0, offsets 0-8]\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "chat"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "  « Le roi vint. »  ",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "translation_normalized": "« Le roi vint. »",
+  "unresolved": ""
+ },
+ "21": {
+  "appendix": "\n\n[Verification]\nAssessment: supported\nVerified answer: Arthur is named.\nNotes: checked\nCitations checked: chunk-1 | wikidata:Q45720\nVerifier model: ",
+  "chat_inspection": {
+   "confidence_or_assessment": "supported",
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 2,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "rag_inspection"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: run-21\n- OCR chunk hits: 1\n- Linked entity hits: 2\n- Unresolved mention hits: 1\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"run-21\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-21.png\",\n    \"detected_language\": \"old_french\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 1,\n    \"linked_entity_hits\": 2,\n    \"unresolved_mention_hits\": 1\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"\",\n        \"canonical_label\": \"Fortuna\",\n        \"authority_source\": \"wikidata\",\n        \"authority_id\": \"A210\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"\",\n        \"geonames_id\": \"\",\n        \"confidence\": \"\"\n      },\n      {\n        \"entity_id\": \"\",\n        \"canonical_label\": \"\",\n        \"authority_source\": \"geonames\",\n        \"authority_id\": \"A211\",\n        \"wikidata_qid\": \"Q1001\",\n        \"viaf_id\": \"9001\",\n        \"geonames_id\": \"2601\",\n        \"confidence\": \"\"\n      }\n    ],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m210\",\n        \"mention_surface\": \"tua\",\n        \"probable_type\": \"place\",\n        \"reason_unresolved\": \"no_candidates\",\n        \"confidence\": 0.995\n      }\n    ]\n  },\n  \"transcript_snippet\": \"Venit qui compedes diuina potẽcia soluit || Ex hac uxore non erit sermo pudicus\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-21\",\n      \"asset_ref\": \"page-21.png\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"428-488\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"record_type\": \"linked\",\n      \"run_id\": \"run-21\",\n      \"asset_ref\": \"page-21.png\",\n      \"chunk_id\": \"c0\",\n      \"canonical_label\": \"Fortuna\",\n      \"authority_source\": \"wikidata\",\n      \"authority_id\": \"A210\",\n      \"wikidata_qid\": \"Q1000\",\n      \"viaf_id\": \"\",\n      \"geonames_id\": \"\",\n      \"retrieval_score\": 0.585,\n      \"offsets\": \"0-8\",\n      \"evidence_excerpt\": \"Venit qui compedes diuina potẽcia soluit\"\n    },\n    {\n      \"run_id\": \"run-21\",\n      \"asset_ref\": \"page-21.png\",\n      \"chunk_id\": \"c1\",\n      \"entity_type\": \"work\",\n      \"authority_source\": \"geonames\",\n      \"authority_id\": \"A211\",\n      \"wikidata_qid\": \"Q1001\",\n      \"viaf_id\": \"9001\",\n      \"geonames_id\": \"2601\",\n      \"retrieval_score\": 0.187,\n      \"evidence_excerpt\": \"Ex hac uxore non erit sermo pudicus Inimicos multos habes ⁊ plures amicos\",\n      \"bbox\": null\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"run_id\": \"run-21\",\n      \"asset_ref\": \"page-21.png\",\n      \"mention_id\": \"m210\",\n      \"mention_surface\": \"tua\",\n      \"probable_type\": \"place\",\n      \"reason_unresolved\": \"no_candidates\",\n      \"confidence\": 0.995,\n      \"retrieval_score\": 0.387,\n      \"evidence_excerpt\": \"H uestis maliuolis tibi reddet ꝑpositũ Non erit h̃ pugna cessabit altera tͣba\",\n      \"bbox\": null\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: run-21\nasset_ref: page-21.png\nentity_id: \ncanonical_label: Fortuna\nmention_surfaces: \nentity_type: \nauthority_source: wikidata\nauthority_id: A210\nwikidata_qid: Q1000\nviaf_id: \ngeonames_id: \nlink_confidence: \nretrieval_score: 0.58\nchunk_id: c0\noffsets: 0-8\nbbox: \nevidence_excerpt: Venit qui compedes diuina potẽcia soluit\n[/LINKED_ENTITY_EVIDENCE]\n\n[LINKED_ENTITY_EVIDENCE]\nrun_id: run-21\nasset_ref: page-21.png\nentity_id: \ncanonical_label: \nmention_surfaces: \nentity_type: work\nauthority_source: geonames\nauthority_id: A211\nwikidata_qid: Q1001\nviaf_id: 9001\ngeonames_id: 2601\nlink_confidence: \nretrieval_score: 0.19\nchunk_id: c1\noffsets: \nbbox: \nevidence_excerpt: Ex hac uxore non erit sermo pudicus Inimicos multos habes ⁊ plures amicos\n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: run-21\n\n**Document Metadata**\n- Asset ref: page-21.png\n- Detected language: old_french\n\n**Extraction Summary**\n- OCR chunk hits: 1\n- Linked entity hits: 2\n- Unresolved mention hits: 1\n\n**Transcript Snippet**\n- Venit qui compedes diuina potẽcia soluit || Ex hac uxore non erit sermo pudicus\n\n**Linked Entities**\n- Fortuna (entity; confidence ; Wikidata Q1000) [chunk c0, offsets 0-8]\n-  (work; confidence ; Wikidata Q1001, VIAF 9001, GeoNames 2601) [chunk c1, offsets ]\n\n**Unresolved Mentions**\n- tua (place; confidence 0.99) unresolved because no_candidates [chunk , offsets ]",
+  "stage": {
+   "mode_used": "debug",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "rag_inspection"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "  « Le roi vint. »  ",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "rag_inspection"
+   }
+  },
+  "translation_normalized": "« Le roi vint. »",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: run-21\nasset_ref: page-21.png\nmention_id: m210\nmention_surface: tua\nprobable_type: place\nreason_unresolved: no_candidates\nlink_confidence: 0.99\nretrieval_score: 0.39\nchunk_id: \noffsets: \nbbox: \nevidence_excerpt: H uestis maliuolis tibi reddet ꝑpositũ Non erit h̃ pugna cessabit altera tͣba\n[/UNRESOLVED_MENTION_EVIDENCE]"
+ },
+ "22": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 0,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": "doc-1",
+    "ocr_run_id": "run-22",
+    "question": ""
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: \n- Run ID: run-22\n- OCR chunk hits: 1\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n```json\n{\n  \"query\": \"\",\n  \"run_id\": \"run-22\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-22.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 1,\n    \"linked_entity_hits\": 0,\n    \"unresolved_mention_hits\": 0\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [],\n    \"unresolved_mentions\": []\n  },\n  \"transcript_snippet\": \"reuelatio. beati apostoli || & euangelistæ iohannis:\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-22\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"124-184\",\n      \"text\": \"tibi sponsam\\nuxorem agni: & sustu\\nlit me in sp̃u inmon\\ntem m\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [],\n  \"unresolved_mention_evidence_sample\": [],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "",
+  "presentation": "**RAG Evidence**\n- Query: \n- Run ID: run-22\n\n**Document Metadata**\n- Asset ref: page-22.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 0\n- Linked entity hits: 0\n- Unresolved mention hits: 0\n\n**Transcript Snippet**\n- reuelatio. beati apostoli || & euangelistæ iohannis:\n\n**Linked Entities**\n- None\n\n**Unresolved Mentions**\n- None",
+  "stage": {
+   "mode_used": "presentation",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "chat"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [
+     "language",
+     "year",
+     "origin",
+     "script"
+    ],
+    "ocr_transcript_used": true,
+    "page_image_used": false
+   },
+   "final_output": "Translation:\\nThe king came.",
+   "input_source_summary": {
+    "metadata_hints": {
+     "language": "latin",
+     "origin": "Paris",
+     "script": "gothic",
+     "year": "1350"
+    },
+    "ocr_run_id": "run-22",
+    "source_language": "latin",
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 200
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "presentation",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "chat"
+   }
+  },
+  "translation_normalized": "\\nThe king came.",
+  "unresolved": ""
+ },
+ "23": {
+  "appendix": "",
+  "chat_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "authority_report_present": false,
+    "linked_entity_evidence": 2,
+    "ocr_chunk_evidence": 0,
+    "unresolved_mention_evidence": 0
+   },
+   "final_output": "Arthur is mentioned.",
+   "input_source_summary": {
+    "chat_stage": "rag_chat",
+    "document_id": null,
+    "ocr_run_id": null,
+    "question": "Arthur"
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "clean_value": [
+   "x",
+   "",
+   "3",
+   "['a', ' b ']",
+   "{'k': ' v '}"
+  ],
+  "debug": "**RAG Debug View**\n- Query: Arthur\n- Run ID: run-23\n- OCR chunk hits: 2\n- Linked entity hits: 2\n- Unresolved mention hits: 1\n\n```json\n{\n  \"query\": \"Arthur\",\n  \"run_id\": \"run-23\",\n  \"document_metadata\": {\n    \"asset_ref\": \"page-23.png\",\n    \"detected_language\": \"latin\"\n  },\n  \"summary\": {\n    \"ocr_chunk_hits\": 2,\n    \"linked_entity_hits\": 2,\n    \"unresolved_mention_hits\": 1\n  },\n  \"authority_summary\": {\n    \"linked_entities\": [\n      {\n        \"entity_id\": \"wikidata:Q1230\",\n        \"canonical_label\": \"Lan\",\n        \"authority_source\": \"viaf\",\n        \"authority_id\": \"A230\",\n        \"wikidata_qid\": \"Q1000\",\n        \"viaf_id\": \"\",\n        \"geonames_id\": \"\",\n        \"confidence\": 0.783\n      },\n      {\n        \"entity_id\": \"wikidata:Q1231\",\n        \"canonical_label\": \"La\",\n        \"authority_source\": \"viaf\",\n        \"authority_id\": \"A231\",\n        \"wikidata_qid\": \"\",\n        \"viaf_id\": \"\",\n        \"geonames_id\": \"2601\",\n        \"confidence\": \"\"\n      }\n    ],\n    \"unresolved_mentions\": [\n      {\n        \"mention_id\": \"m230\",\n        \"mention_surface\": \"tres\",\n        \"probable_type\": \"\",\n        \"reason_unresolved\": \"unresolved_low_quality\",\n        \"confidence\": 0.81\n      }\n    ]\n  },\n  \"transcript_snippet\": \"La satyre megere. || Tresreuerend pere en dieu Ame\",\n  \"ocr_chunk_evidence_sample\": [\n    {\n      \"run_id\": \"run-23\",\n      \"asset_ref\": \"page-23.png\",\n      \"chunk_id\": \"c0\",\n      \"chunk_idx\": 0,\n      \"offsets\": \"21-81\",\n      \"text\": \"sreuerend pere en dieu Ame\\nde monfalcon euesque et prince\\nde\"\n    },\n    {\n      \"run_id\": \"run-23\",\n      \"asset_ref\": \"page-23.png\",\n      \"chunk_id\": \"c1\",\n      \"chunk_idx\": 1,\n      \"offsets\": \"3-63\",\n      \"text\": \"satyre megere.\\nTresreuerend pere en dieu Ame\\nde monfalcon eu\"\n    }\n  ],\n  \"linked_entity_evidence_sample\": [\n    {\n      \"run_id\": \"run-23\",\n      \"asset_ref\": \"page-23.png\",\n      \"chunk_id\": \"c0\",\n      \"entity_id\": \"wikidata:Q1230\",\n      \"canonical_label\": \"Lan\",\n      \"entity_type\": \"place\",\n      \"authority_source\": \"viaf\",\n      \"authority_id\": \"A230\",\n      \"wikidata_qid\": \"Q1000\",\n      \"viaf_id\": \"\",\n      \"geonames_id\": \"\",\n      \"confidence\": 0.783,\n      \"retrieval_score\": 0.589,\n      \"offsets\": \"0-8\",\n      \"mention_surfaces\": [\n        \"lan\"\n      ],\n      \"bbox\": {\n        \"x\": 1,\n        \"y\": 2,\n        \"w\": 3,\n        \"h\": 4\n      }\n    },\n    {\n      \"record_type\": \"linked\",\n      \"run_id\": \"run-23\",\n      \"asset_ref\": \"page-23.png\",\n      \"chunk_id\": \"c1\",\n      \"entity_id\": \"wikidata:Q1231\",\n      \"canonical_label\": \"La\",\n      \"entity_type\": \"person\",\n      \"authority_source\": \"viaf\",\n      \"authority_id\": \"A231\",\n      \"viaf_id\": \"\",\n      \"geonames_id\": \"2601\",\n      \"retrieval_score\": 0.281,\n      \"mention_surfaces\": [\n        \"La\",\n        \"la\"\n      ],\n      \"bbox\": null\n    }\n  ],\n  \"unresolved_mention_evidence_sample\": [\n    {\n      \"asset_ref\": \"page-23.png\",\n      \"mention_id\": \"m230\",\n      \"mention_surface\": \"tres\",\n      \"reason_unresolved\": \"unresolved_low_quality\",\n      \"confidence\": 0.81,\n      \"retrieval_score\": 0.687,\n      \"offsets\": \"0-5\",\n      \"evidence_excerpt\": \"lan de grace Mille cinq cens. considerãt que desirez veoir gracieuses inuentions poethiq̃s.\"\n    }\n  ],\n  \"omitted_counts\": {\n    \"ocr_chunk_evidence\": 0,\n    \"linked_entity_evidence\": 0,\n    \"unresolved_mention_evidence\": 0\n  }\n}\n```",
+  "linked": "[LINKED_ENTITY_EVIDENCE]\nrun_id: run-23\nasset_ref: page-23.png\nentity_id: wikidata:Q1230\ncanonical_label: Lan\nmention_surfaces: lan\nentity_type: place\nauthority_source: viaf\nauthority_id: A230\nwikidata_qid: Q1000\nviaf_id: \ngeonames_id: \nlink_confidence: 0.78\nretrieval_score: 0.59\nchunk_id: c0\noffsets: 0-8\nbbox: x,y,w,h\nevidence_excerpt: \n[/LINKED_ENTITY_EVIDENCE]\n\n[LINKED_ENTITY_EVIDENCE]\nrun_id: run-23\nasset_ref: page-23.png\nentity_id: wikidata:Q1231\ncanonical_label: La\nmention_surfaces: La, la\nentity_type: person\nauthority_source: viaf\nauthority_id: A231\nwikidata_qid: \nviaf_id: \ngeonames_id: 2601\nlink_confidence: \nretrieval_score: 0.28\nchunk_id: c1\noffsets: \nbbox: \nevidence_excerpt: \n[/LINKED_ENTITY_EVIDENCE]",
+  "presentation": "**RAG Evidence**\n- Query: Arthur\n- Run ID: run-23\n\n**Document Metadata**\n- Asset ref: page-23.png\n- Detected language: latin\n\n**Extraction Summary**\n- OCR chunk hits: 2\n- Linked entity hits: 2\n- Unresolved mention hits: 1\n\n**Transcript Snippet**\n- La satyre megere. || Tresreuerend pere en dieu Ame\n\n**Linked Entities**\n- Lan (place; confidence 0.78; Wikidata Q1000) [chunk c0, offsets 0-8]\n- La (person; confidence ; GeoNames 2601) [chunk c1, offsets ]\n\n**Unresolved Mentions**\n- tres (unknown type; confidence 0.81) unresolved because unresolved_low_quality [chunk , offsets 0-5]",
+  "stage": {
+   "mode_used": "debug",
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_name": "translation"
+  },
+  "translation_inspection": {
+   "confidence_or_assessment": null,
+   "evidence_used": {
+    "metadata_hint_keys": [],
+    "ocr_transcript_used": false,
+    "page_image_used": false
+   },
+   "final_output": "  « Le roi vint. »  ",
+   "input_source_summary": {
+    "metadata_hints": {},
+    "ocr_run_id": null,
+    "source_language": null,
+    "source_type": "extracted_transcript",
+    "target_language": "English",
+    "transcript_chars": 0
+   },
+   "model_used": "qwen3-30b-a3b-instruct-2507",
+   "stage_metadata": {
+    "mode_used": "debug",
+    "model_used": "qwen3-30b-a3b-instruct-2507",
+    "stage_name": "translation"
+   }
+  },
+  "translation_normalized": "« Le roi vint. »",
+  "unresolved": "[UNRESOLVED_MENTION_EVIDENCE]\nrun_id: \nasset_ref: page-23.png\nmention_id: m230\nmention_surface: tres\nprobable_type: \nreason_unresolved: unresolved_low_quality\nlink_confidence: 0.81\nretrieval_score: 0.69\nchunk_id: \noffsets: 0-5\nbbox: \nevidence_excerpt: lan de grace Mille cinq cens. considerãt que desirez veoir gracieuses inuentions poethiq̃s.\n[/UNRESOLVED_MENTION_EVIDENCE]"
+ }
+}
