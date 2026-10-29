@@ -68,9 +68,9 @@ from app.services.ocr_quality import (
     OCRQualityReport,
     EffectiveQuality,
     build_effective_quality,
-    compute_cross_pass_stability,
     apply_uncertainty_markers,
 )
+from app.services.ocr_text_metrics import compute_cross_pass_stability
 from app.services.ocr_quality_config import (
     CROSS_PASS_STABILITY_MIN,
     LEADING_FRAG_HARD_LIMIT,
