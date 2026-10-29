@@ -1,0 +1,8773 @@
+{
+ "00:iohannis:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 8,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "iohannis"
+     },
+     {
+      "value": "iohannisus"
+     }
+    ],
+    "description": "",
+    "id": "Q00",
+    "label": "iohannis",
+    "score": 0.486,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "iohannisus"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "",
+    "id": "Q01",
+    "label": "iohannis",
+    "score": 0.505,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "iohannis"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q02",
+    "label": "iohannisus",
+    "score": 0.987,
+    "source": "viaf",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "iohannis"
+     },
+     {
+      "value": "iohannisus"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q03",
+    "label": "Saint iohannis",
+    "score": 0.73,
+    "source": "geonames",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint iohannis"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q04",
+    "label": "Unrelated Name",
+    "score": 0.354,
+    "source": "geonames",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "ioha"
+     },
+     {
+      "value": "iohannis"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q05",
+    "label": "ioha",
+    "score": 0.477,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9494,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9494,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5534,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5534,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9406,
+    {
+     "alias_match_quality": 0.96,
+     "base_score": 0.8525,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9406,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5446,
+    {
+     "alias_match_quality": 0.96,
+     "base_score": 0.4025,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5446,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9629,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8778,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.3333,
+     "domain_bonus": 0.05,
+     "final_score": 0.9629,
+     "label_similarity": 0.96,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5669,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4278,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.3333,
+     "domain_bonus": 0.05,
+     "final_score": 0.5669,
+     "label_similarity": 0.96,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.865,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7398,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.865,
+     "label_similarity": 0.7273,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.469,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2898,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.469,
+     "label_similarity": 0.7273,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.6328,
+    {
+     "alias_match_quality": 0.7273,
+     "base_score": 0.5327,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.6328,
+     "label_similarity": 0.4187,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.2368,
+    {
+     "alias_match_quality": 0.7273,
+     "base_score": 0.0827,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.2368,
+     "label_similarity": 0.4187,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.8898,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8175,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8898,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4938,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3675,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4938,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "iohannis"
+   ],
+   "rule:salvage_trigger": [
+    "iohannis"
+   ],
+   "unknown": [
+    "iohannis"
+   ]
+  }
+ },
+ "01:hyerusalem:place": {
+  "canonical": null,
+  "deferred": "low_quality; low_evidence_place: cap=False context=False lexical=False shape=True",
+  "levenshtein": 9,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "hyerusalem"
+     },
+     {
+      "value": "hyerusalemus"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q10",
+    "label": "hyerusalem",
+    "score": 0.495,
+    "source": "wikidata",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "hyeru"
+     },
+     {
+      "value": "Saint hyerusalem"
+     }
+    ],
+    "description": "",
+    "id": "Q11",
+    "label": "hyerusalem",
+    "score": 0.094,
+    "source": "viaf",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint hyerusalem"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "",
+    "id": "Q12",
+    "label": "hyerusalemus",
+    "score": 0.696,
+    "source": "wikidata",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "hyerusalem"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q13",
+    "label": "Saint hyerusalem",
+    "score": 0.031,
+    "source": "viaf",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "hyerusalem"
+     },
+     {
+      "value": "Saint hyerusalem"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q14",
+    "label": "Unrelated Name",
+    "score": 0.217,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "hyerusalem"
+     }
+    ],
+    "description": "French king",
+    "id": "Q15",
+    "label": "hyeru",
+    "score": 0.939,
+    "source": "viaf",
+    "types": [
+     "commune of France"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.979,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.979,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.583,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.583,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9174,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.8375,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9174,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5214,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.3875,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5214,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.885,
+    {
+     "alias_match_quality": 0.7692,
+     "base_score": 0.7898,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.885,
+     "label_similarity": 0.9667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.489,
+    {
+     "alias_match_quality": 0.7692,
+     "base_score": 0.3398,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.489,
+     "label_similarity": 0.9667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8773,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.792,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.3333,
+     "domain_bonus": 0.05,
+     "final_score": 0.8773,
+     "label_similarity": 0.7692,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4813,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.342,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.3333,
+     "domain_bonus": 0.05,
+     "final_score": 0.4813,
+     "label_similarity": 0.7692,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.7857,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6996,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7857,
+     "label_similarity": 0.6381,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.3897,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2496,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3897,
+     "label_similarity": 0.6381,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8498,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8175,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8498,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4538,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3675,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4538,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "hyerusalem"
+   ],
+   "rule:salvage_trigger": [
+    "hyerusalem"
+   ],
+   "unknown": [
+    "hyerusalem"
+   ]
+  }
+ },
+ "02:La satyre megere:work": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 13,
+  "name_likeness": 0.75,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "La satyre megereus"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q21",
+    "label": "la satyre megere",
+    "score": 0.607,
+    "source": "geonames",
+    "types": [
+     "literary work"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "La satyre megere"
+     },
+     {
+      "value": "La satyre megereus"
+     }
+    ],
+    "description": "French king",
+    "id": "Q20",
+    "label": "La satyre megere",
+    "score": 0.736,
+    "source": "wikidata",
+    "types": [
+     "literary work"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint La satyre megere"
+     },
+     {
+      "value": "La satyr"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q22",
+    "label": "La satyre megereus",
+    "score": 0.544,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "La satyre megereus"
+     },
+     {
+      "value": "La satyre megere"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q23",
+    "label": "Saint La satyre megere",
+    "score": 0.364,
+    "source": "viaf",
+    "types": [
+     "literary work"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint La satyre megere"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "",
+    "id": "Q24",
+    "label": "Unrelated Name",
+    "score": 0.561,
+    "source": "viaf",
+    "types": [
+     "literary work"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "La satyre megere"
+     },
+     {
+      "value": "la satyre megere"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q25",
+    "label": "La satyr",
+    "score": 0.174,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.949,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.949,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.553,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.553,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9681,
+    {
+     "alias_match_quality": 0.9778,
+     "base_score": 0.8569,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9681,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5721,
+    {
+     "alias_match_quality": 0.9778,
+     "base_score": 0.4069,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5721,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9122,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.8275,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9122,
+     "label_similarity": 0.9778,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5162,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.3775,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5162,
+     "label_similarity": 0.9778,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9169,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7914,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9169,
+     "label_similarity": 0.8421,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5209,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3414,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5209,
+     "label_similarity": 0.8421,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.7312,
+    {
+     "alias_match_quality": 0.8421,
+     "base_score": 0.6714,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7312,
+     "label_similarity": 0.6631,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.3352,
+    {
+     "alias_match_quality": 0.8421,
+     "base_score": 0.2214,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3352,
+     "label_similarity": 0.6631,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8594,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8175,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8594,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4634,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3675,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4634,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "La satyre megere",
+    "satyre megere"
+   ],
+   "rule:salvage_trigger": [
+    "La satyre megere",
+    "satyre megere"
+   ],
+   "unknown": [
+    "La satyre megere",
+    "satyre megere"
+   ]
+  }
+ },
+ "03:Ame\nde monfalcon:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 15,
+  "name_likeness": 0.675,
+  "place_context": true,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "ame\nde monfalcon"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q30",
+    "label": "Ame\nde monfalcon",
+    "score": 0.916,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Ame\nde monfalcon"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q31",
+    "label": "ame\nde monfalcon",
+    "score": 0.909,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "ame\nde monfalcon"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q32",
+    "label": "Ame\nde monfalconus",
+    "score": 0.996,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Saint Ame\nde monfalcon"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q33",
+    "label": "Saint Ame\nde monfalcon",
+    "score": 0.639,
+    "source": "viaf",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Ame\nde m"
+     },
+     {
+      "value": "ame\nde monfalcon"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q34",
+    "label": "Unrelated Name",
+    "score": 0.39,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "ame\nde monfalcon"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "French king",
+    "id": "Q35",
+    "label": "Ame\nde m",
+    "score": 0.301,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.979,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.979,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.583,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.583,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9794,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9794,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5834,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5834,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9706,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8525,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9706,
+     "label_similarity": 0.9778,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5746,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4025,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5746,
+     "label_similarity": 0.9778,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8821,
+    {
+     "alias_match_quality": 0.8421,
+     "base_score": 0.752,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8821,
+     "label_similarity": 0.8421,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4861,
+    {
+     "alias_match_quality": 0.8421,
+     "base_score": 0.302,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4861,
+     "label_similarity": 0.8421,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.7187,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6576,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7187,
+     "label_similarity": 0.5446,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.3227,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2076,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3227,
+     "label_similarity": 0.5446,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8594,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8175,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8594,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4634,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3675,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4634,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Ame de monfalcon",
+    "Ame monfalcon",
+    "monfalcon"
+   ],
+   "rule:salvage_trigger": [
+    "Ame de monfalcon",
+    "Ame monfalcon",
+    "monfalcon"
+   ],
+   "unknown": [
+    "Ame de monfalcon",
+    "Ame monfalcon",
+    "monfalcon"
+   ]
+  }
+ },
+ "04:lausanne:place": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 7,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "lausanne"
+     },
+     {
+      "value": "Saint lausanne"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q40",
+    "label": "lausanne",
+    "score": 0.155,
+    "source": "wikidata",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint lausanne"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "French king",
+    "id": "Q41",
+    "label": "lausanne",
+    "score": 0.8,
+    "source": "wikidata",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "laus"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q42",
+    "label": "lausanneus",
+    "score": 0.277,
+    "source": "wikidata",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "lausanneus"
+     },
+     {
+      "value": "lausanne"
+     }
+    ],
+    "description": "French king",
+    "id": "Q43",
+    "label": "Saint lausanne",
+    "score": 0.829,
+    "source": "wikidata",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "lausanne"
+     },
+     {
+      "value": "laus"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q44",
+    "label": "Unrelated Name",
+    "score": 0.29,
+    "source": "viaf",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "lausanne"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q45",
+    "label": "laus",
+    "score": 0.672,
+    "source": "geonames",
+    "types": [
+     "commune of France"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.979,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.979,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.583,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.583,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8992,
+    {
+     "alias_match_quality": 0.7738,
+     "base_score": 0.806,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8992,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5032,
+    {
+     "alias_match_quality": 0.7738,
+     "base_score": 0.356,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5032,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9112,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.8195,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9112,
+     "label_similarity": 0.96,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5152,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.3695,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5152,
+     "label_similarity": 0.96,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8594,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7607,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8594,
+     "label_similarity": 0.7738,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4634,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3107,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4634,
+     "label_similarity": 0.7738,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.745,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6643,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.745,
+     "label_similarity": 0.5595,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.349,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2143,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.349,
+     "label_similarity": 0.5595,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9034,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8175,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9034,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5074,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3675,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5074,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "lausanne"
+   ],
+   "rule:salvage_trigger": [
+    "lausanne"
+   ],
+   "unknown": [
+    "lausanne"
+   ]
+  }
+ },
+ "05:Antitus:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 4,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Ant"
+     },
+     {
+      "value": "Antitusus"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q50",
+    "label": "Antitus",
+    "score": 0.942,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Antitus"
+     },
+     {
+      "value": "Saint Antitus"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q51",
+    "label": "antitus",
+    "score": 0.649,
+    "source": "geonames",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Antitusus"
+     },
+     {
+      "value": "Saint Antitus"
+     }
+    ],
+    "description": "French king",
+    "id": "Q52",
+    "label": "Antitusus",
+    "score": 0.381,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "antitus"
+     },
+     {
+      "value": "Antitus"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q53",
+    "label": "Saint Antitus",
+    "score": 0.217,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint Antitus"
+     },
+     {
+      "value": "antitus"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q54",
+    "label": "Unrelated Name",
+    "score": 0.139,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "antitus"
+     },
+     {
+      "value": "Ant"
+     }
+    ],
+    "description": "",
+    "id": "Q55",
+    "label": "Ant",
+    "score": 0.972,
+    "source": "geonames",
+    "types": [
+     "human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9632,
+    {
+     "alias_match_quality": 0.9556,
+     "base_score": 0.8514,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9632,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5672,
+    {
+     "alias_match_quality": 0.9556,
+     "base_score": 0.4014,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5672,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.973,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.973,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.577,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.577,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9216,
+    {
+     "alias_match_quality": 0.9556,
+     "base_score": 0.8314,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9216,
+     "label_similarity": 0.9556,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5256,
+    {
+     "alias_match_quality": 0.9556,
+     "base_score": 0.3814,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5256,
+     "label_similarity": 0.9556,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8602,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7275,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8602,
+     "label_similarity": 0.7,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4642,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2775,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4642,
+     "label_similarity": 0.7,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.699,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6348,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.699,
+     "label_similarity": 0.494,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.303,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.1848,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.303,
+     "label_similarity": 0.494,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8402,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8025,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8402,
+     "label_similarity": 0.8667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4442,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3525,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4442,
+     "label_similarity": 0.8667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Antitus"
+   ],
+   "rule:salvage_trigger": [
+    "Antitus"
+   ],
+   "unknown": [
+    "Antitus"
+   ]
+  }
+ },
+ "06:lan de grace Mille cinq cens:date": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 26,
+  "name_likeness": 0.75,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Saint lan de grace Mille cinq cens"
+     },
+     {
+      "value": "lan de grace Mille cinq census"
+     }
+    ],
+    "description": "French king",
+    "id": "Q60",
+    "label": "lan de grace Mille cinq cens",
+    "score": 0.0,
+    "source": "geonames",
+    "types": [
+     "year"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint lan de grace Mille cinq cens"
+     },
+     {
+      "value": "lan de grace Mille cinq census"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q61",
+    "label": "lan de grace mille cinq cens",
+    "score": 0.77,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "lan de grace M"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q63",
+    "label": "Saint lan de grace Mille cinq cens",
+    "score": 0.844,
+    "source": "geonames",
+    "types": [
+     "year"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "lan de grace mille cinq cens"
+     },
+     {
+      "value": "Saint lan de grace Mille cinq cens"
+     }
+    ],
+    "description": "",
+    "id": "Q62",
+    "label": "lan de grace Mille cinq census",
+    "score": 0.193,
+    "source": "viaf",
+    "types": [
+     "year"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "lan de grace Mille cinq census"
+     },
+     {
+      "value": "Saint lan de grace Mille cinq cens"
+     }
+    ],
+    "description": "French king",
+    "id": "Q64",
+    "label": "Unrelated Name",
+    "score": 0.445,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "lan de grace M"
+     },
+     {
+      "value": "lan de grace Mille cinq census"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q65",
+    "label": "lan de grace M",
+    "score": 0.951,
+    "source": "wikidata",
+    "types": [
+     "year"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9201,
+    {
+     "alias_match_quality": 0.9867,
+     "base_score": 0.8592,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9201,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5241,
+    {
+     "alias_match_quality": 0.9867,
+     "base_score": 0.4092,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5241,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9501,
+    {
+     "alias_match_quality": 0.9867,
+     "base_score": 0.8592,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9501,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5541,
+    {
+     "alias_match_quality": 0.9867,
+     "base_score": 0.4092,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5541,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9141,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8565,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9141,
+     "label_similarity": 0.9867,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5181,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4065,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5181,
+     "label_similarity": 0.9867,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8927,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.794,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8927,
+     "label_similarity": 0.9032,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4967,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.344,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4967,
+     "label_similarity": 0.9032,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.7117,
+    {
+     "alias_match_quality": 0.9867,
+     "base_score": 0.6833,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7117,
+     "label_similarity": 0.6091,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.3157,
+    {
+     "alias_match_quality": 0.9867,
+     "base_score": 0.2333,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3157,
+     "label_similarity": 0.6091,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8365,
+    {
+     "alias_match_quality": 0.9867,
+     "base_score": 0.8142,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8365,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4405,
+    {
+     "alias_match_quality": 0.9867,
+     "base_score": 0.3642,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4405,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 1.0
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "lan de grace Mille cinq cens",
+    "lan grace Mille cinq cens",
+    "grace Mille"
+   ],
+   "rule:salvage_trigger": [
+    "lan de grace Mille cinq cens",
+    "lan grace Mille cinq cens",
+    "grace Mille"
+   ],
+   "unknown": [
+    "lan de grace Mille cinq cens",
+    "lan grace Mille cinq cens",
+    "grace Mille"
+   ]
+  }
+ },
+ "07:Caldꝰ:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 6,
+  "name_likeness": 0.5,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Caldꝰ"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q71",
+    "label": "caldꝰ",
+    "score": 0.215,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint Caldꝰ"
+     },
+     {
+      "value": "Caldꝰ"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q70",
+    "label": "Caldꝰ",
+    "score": 0.821,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint Caldꝰ"
+     },
+     {
+      "value": "Caldꝰ"
+     }
+    ],
+    "description": "",
+    "id": "Q72",
+    "label": "Caldꝰus",
+    "score": 0.091,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Caldꝰ"
+     }
+    ],
+    "description": "French king",
+    "id": "Q73",
+    "label": "Saint Caldꝰ",
+    "score": 0.631,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Ca"
+     }
+    ],
+    "description": "French king",
+    "id": "Q74",
+    "label": "Unrelated Name",
+    "score": 0.05,
+    "source": "geonames",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "caldꝰ"
+     }
+    ],
+    "description": "French king",
+    "id": "Q75",
+    "label": "Ca",
+    "score": 0.419,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9494,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9494,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5534,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5534,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.979,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.979,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.583,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.583,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9264,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8368,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9264,
+     "label_similarity": 0.9429,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5304,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3868,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5304,
+     "label_similarity": 0.9429,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8009,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6937,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8009,
+     "label_similarity": 0.625,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4049,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2437,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4049,
+     "label_similarity": 0.625,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.6573,
+    {
+     "alias_match_quality": 0.84,
+     "base_score": 0.5946,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.6573,
+     "label_similarity": 0.4937,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.2613,
+    {
+     "alias_match_quality": 0.84,
+     "base_score": 0.1446,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.2613,
+     "label_similarity": 0.4937,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.8356,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7905,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8356,
+     "label_similarity": 0.84,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4396,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3405,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4396,
+     "label_similarity": 0.84,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Caldꝰ"
+   ],
+   "rule:salvage_trigger": [
+    "Caldꝰ"
+   ],
+   "unknown": [
+    "Caldꝰ"
+   ]
+  }
+ },
+ "08:Marcadigas:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 8,
+  "name_likeness": 0.65,
+  "place_context": true,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Saint Marcadigas"
+     },
+     {
+      "value": "marcadigas"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q80",
+    "label": "Marcadigas",
+    "score": 0.705,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "marcadigas"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q81",
+    "label": "marcadigas",
+    "score": 0.401,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint Marcadigas"
+     },
+     {
+      "value": "Marca"
+     }
+    ],
+    "description": "",
+    "id": "Q82",
+    "label": "Marcadigasus",
+    "score": 0.495,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Marcadigas"
+     },
+     {
+      "value": "Saint Marcadigas"
+     }
+    ],
+    "description": "",
+    "id": "Q83",
+    "label": "Saint Marcadigas",
+    "score": 0.759,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Saint Marcadigas"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q84",
+    "label": "Unrelated Name",
+    "score": 0.902,
+    "source": "geonames",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Marca"
+     },
+     {
+      "value": "Marcadigasus"
+     }
+    ],
+    "description": "French king",
+    "id": "Q85",
+    "label": "Marca",
+    "score": 0.992,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.979,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.979,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.583,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.583,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.949,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.949,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.553,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.553,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9138,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.8225,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9138,
+     "label_similarity": 0.9667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5178,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.3725,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5178,
+     "label_similarity": 0.9667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8576,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7587,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8576,
+     "label_similarity": 0.7692,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4616,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3087,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4616,
+     "label_similarity": 0.7692,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.6657,
+    {
+     "alias_match_quality": 0.7692,
+     "base_score": 0.5702,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.6657,
+     "label_similarity": 0.4786,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.2697,
+    {
+     "alias_match_quality": 0.7692,
+     "base_score": 0.1202,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.2697,
+     "label_similarity": 0.4786,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.8525,
+    {
+     "alias_match_quality": 0.9667,
+     "base_score": 0.8092,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8525,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4565,
+    {
+     "alias_match_quality": 0.9667,
+     "base_score": 0.3592,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4565,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Marcadigas"
+   ],
+   "rule:salvage_trigger": [
+    "Marcadigas"
+   ],
+   "unknown": [
+    "Marcadigas"
+   ]
+  }
+ },
+ "09:marcadigas:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 8,
+  "name_likeness": 0.65,
+  "place_context": true,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "marcadigasus"
+     },
+     {
+      "value": "marca"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q90",
+    "label": "marcadigas",
+    "score": 0.186,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "marcadigasus"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "French king",
+    "id": "Q91",
+    "label": "marcadigas",
+    "score": 0.898,
+    "source": "geonames",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "marca"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q92",
+    "label": "marcadigasus",
+    "score": 0.041,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "marca"
+     },
+     {
+      "value": "Saint marcadigas"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q93",
+    "label": "Saint marcadigas",
+    "score": 0.423,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "marcadigas"
+     },
+     {
+      "value": "marca"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q94",
+    "label": "Unrelated Name",
+    "score": 0.506,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "marca"
+     },
+     {
+      "value": "Saint marcadigas"
+     }
+    ],
+    "description": "French king",
+    "id": "Q95",
+    "label": "marca",
+    "score": 0.887,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9721,
+    {
+     "alias_match_quality": 0.9667,
+     "base_score": 0.8542,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9721,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5761,
+    {
+     "alias_match_quality": 0.9667,
+     "base_score": 0.4042,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5761,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9357,
+    {
+     "alias_match_quality": 0.9667,
+     "base_score": 0.8542,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9357,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5397,
+    {
+     "alias_match_quality": 0.9667,
+     "base_score": 0.4042,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5397,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9438,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.8225,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9438,
+     "label_similarity": 0.9667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5478,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.3725,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5478,
+     "label_similarity": 0.9667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.836,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.7337,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.836,
+     "label_similarity": 0.7692,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.44,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.2837,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.44,
+     "label_similarity": 0.7692,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.6925,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6279,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.6925,
+     "label_similarity": 0.4786,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.2965,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.1779,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.2965,
+     "label_similarity": 0.4786,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8314,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.7925,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8314,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4354,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.3425,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4354,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "marcadigas"
+   ],
+   "rule:salvage_trigger": [
+    "marcadigas"
+   ],
+   "unknown": [
+    "marcadigas"
+   ]
+  }
+ },
+ "10:mͣrcadigas:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 9,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Saint mͣrcadigas"
+     },
+     {
+      "value": "mͣrca"
+     }
+    ],
+    "description": "French king",
+    "id": "Q100",
+    "label": "mͣrcadigas",
+    "score": 0.015,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "mͣrcadigasus"
+     },
+     {
+      "value": "mͣrcadigas"
+     }
+    ],
+    "description": "",
+    "id": "Q101",
+    "label": "mͣrcadigas",
+    "score": 0.521,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "mͣrcadigas"
+     },
+     {
+      "value": "mͣrcadigasus"
+     }
+    ],
+    "description": "French king",
+    "id": "Q102",
+    "label": "mͣrcadigasus",
+    "score": 0.42,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "mͣrcadigasus"
+     },
+     {
+      "value": "Saint mͣrcadigas"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q103",
+    "label": "Saint mͣrcadigas",
+    "score": 0.284,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint mͣrcadigas"
+     },
+     {
+      "value": "mͣrcadigas"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q104",
+    "label": "Unrelated Name",
+    "score": 0.303,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint mͣrcadigas"
+     },
+     {
+      "value": "mͣrcadigas"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q105",
+    "label": "mͣrca",
+    "score": 0.613,
+    "source": "viaf",
+    "types": [
+     "fictional human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9186,
+    {
+     "alias_match_quality": 0.8889,
+     "base_score": 0.8347,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9186,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5226,
+    {
+     "alias_match_quality": 0.8889,
+     "base_score": 0.3847,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5226,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9494,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9494,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5534,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5534,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.935,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8461,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.935,
+     "label_similarity": 0.9636,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.539,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3961,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.539,
+     "label_similarity": 0.9636,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.872,
+    {
+     "alias_match_quality": 0.9636,
+     "base_score": 0.7409,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.872,
+     "label_similarity": 0.75,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.476,
+    {
+     "alias_match_quality": 0.9636,
+     "base_score": 0.2909,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.476,
+     "label_similarity": 0.75,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.7554,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.672,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7554,
+     "label_similarity": 0.5767,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.3594,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.222,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3594,
+     "label_similarity": 0.5767,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.8554,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8554,
+     "label_similarity": 0.8889,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4594,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4594,
+     "label_similarity": 0.8889,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "m rcadigas",
+    "rcadigas"
+   ],
+   "rule:salvage_trigger": [
+    "m rcadigas",
+    "rcadigas"
+   ],
+   "unknown": [
+    "m rcadigas",
+    "rcadigas"
+   ]
+  }
+ },
+ "11:mͣrcadigas:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 9,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Saint mͣrcadigas"
+     },
+     {
+      "value": "mͣrca"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q110",
+    "label": "mͣrcadigas",
+    "score": 0.855,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Saint mͣrcadigas"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q111",
+    "label": "mͣrcadigas",
+    "score": 0.614,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint mͣrcadigas"
+     },
+     {
+      "value": "mͣrcadigasus"
+     }
+    ],
+    "description": "French king",
+    "id": "Q112",
+    "label": "mͣrcadigasus",
+    "score": 0.091,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Saint mͣrcadigas"
+     }
+    ],
+    "description": "French king",
+    "id": "Q113",
+    "label": "Saint mͣrcadigas",
+    "score": 0.654,
+    "source": "geonames",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "mͣrcadigas"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q114",
+    "label": "Unrelated Name",
+    "score": 0.063,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "mͣrcadigas"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q115",
+    "label": "mͣrca",
+    "score": 0.778,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.955,
+    {
+     "alias_match_quality": 0.8889,
+     "base_score": 0.8347,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.955,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.559,
+    {
+     "alias_match_quality": 0.8889,
+     "base_score": 0.3847,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.559,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.894,
+    {
+     "alias_match_quality": 0.75,
+     "base_score": 0.8,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.894,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.498,
+    {
+     "alias_match_quality": 0.75,
+     "base_score": 0.35,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.498,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9266,
+    {
+     "alias_match_quality": 0.9636,
+     "base_score": 0.837,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9266,
+     "label_similarity": 0.9636,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5306,
+    {
+     "alias_match_quality": 0.9636,
+     "base_score": 0.387,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5306,
+     "label_similarity": 0.9636,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.789,
+    {
+     "alias_match_quality": 0.75,
+     "base_score": 0.6875,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.789,
+     "label_similarity": 0.75,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.393,
+    {
+     "alias_match_quality": 0.75,
+     "base_score": 0.2375,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.393,
+     "label_similarity": 0.75,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.7254,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.672,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7254,
+     "label_similarity": 0.5767,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.3294,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.222,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3294,
+     "label_similarity": 0.5767,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.855,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.855,
+     "label_similarity": 0.8889,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.459,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.459,
+     "label_similarity": 0.8889,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "m rcadigas",
+    "rcadigas"
+   ],
+   "rule:salvage_trigger": [
+    "m rcadigas",
+    "rcadigas"
+   ],
+   "unknown": [
+    "m rcadigas",
+    "rcadigas"
+   ]
+  }
+ },
+ "12:Ynabele:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 7,
+  "name_likeness": 0.65,
+  "place_context": true,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Yna"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q120",
+    "label": "Ynabele",
+    "score": 0.35,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Ynabeleus"
+     },
+     {
+      "value": "Saint Ynabele"
+     }
+    ],
+    "description": "French king",
+    "id": "Q121",
+    "label": "ynabele",
+    "score": 0.643,
+    "source": "viaf",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "ynabele"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q122",
+    "label": "Ynabeleus",
+    "score": 0.661,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Ynabeleus"
+     },
+     {
+      "value": "ynabele"
+     }
+    ],
+    "description": "",
+    "id": "Q123",
+    "label": "Saint Ynabele",
+    "score": 0.906,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "ynabele"
+     },
+     {
+      "value": "Ynabele"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q124",
+    "label": "Unrelated Name",
+    "score": 0.687,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Ynabele"
+     },
+     {
+      "value": "Yna"
+     }
+    ],
+    "description": "",
+    "id": "Q125",
+    "label": "Yna",
+    "score": 0.82,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9501,
+    {
+     "alias_match_quality": 0.8667,
+     "base_score": 0.8292,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9501,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5541,
+    {
+     "alias_match_quality": 0.8667,
+     "base_score": 0.3792,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5541,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9396,
+    {
+     "alias_match_quality": 0.9556,
+     "base_score": 0.8514,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9396,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5436,
+    {
+     "alias_match_quality": 0.9556,
+     "base_score": 0.4014,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5436,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9618,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8425,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9618,
+     "label_similarity": 0.9556,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5658,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3925,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5658,
+     "label_similarity": 0.9556,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8302,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7275,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8302,
+     "label_similarity": 0.7,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4342,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2775,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4342,
+     "label_similarity": 0.7,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.7668,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6782,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7668,
+     "label_similarity": 0.5905,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.3708,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2282,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3708,
+     "label_similarity": 0.5905,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8466,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8025,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8466,
+     "label_similarity": 0.8667,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4506,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3525,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4506,
+     "label_similarity": 0.8667,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Ynabele"
+   ],
+   "rule:salvage_trigger": [
+    "Ynabele"
+   ],
+   "unknown": [
+    "Ynabele"
+   ]
+  }
+ },
+ "13:despaigne:place": {
+  "canonical": null,
+  "deferred": "low_quality; low_evidence_place: cap=False context=False lexical=False shape=True",
+  "levenshtein": 9,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "desp"
+     },
+     {
+      "value": "despaigne"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q130",
+    "label": "despaigne",
+    "score": 0.231,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "desp"
+     },
+     {
+      "value": "despaigne"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q131",
+    "label": "despaigne",
+    "score": 0.071,
+    "source": "wikidata",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "despaigne"
+     },
+     {
+      "value": "Saint despaigne"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q132",
+    "label": "despaigneus",
+    "score": 0.838,
+    "source": "wikidata",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "despaigneus"
+     },
+     {
+      "value": "despaigne"
+     }
+    ],
+    "description": "French king",
+    "id": "Q133",
+    "label": "Saint despaigne",
+    "score": 0.871,
+    "source": "geonames",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "despaigne"
+     },
+     {
+      "value": "Saint despaigne"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q135",
+    "label": "desp",
+    "score": 0.564,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "desp"
+     },
+     {
+      "value": "Saint despaigne"
+     }
+    ],
+    "description": "",
+    "id": "Q134",
+    "label": "Unrelated Name",
+    "score": 0.794,
+    "source": "viaf",
+    "types": [
+     "city"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9694,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9694,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5734,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5734,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.949,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.949,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.553,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.553,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9646,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8461,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9646,
+     "label_similarity": 0.9636,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5686,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3961,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5686,
+     "label_similarity": 0.9636,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.864,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.75,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.864,
+     "label_similarity": 0.75,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.468,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.468,
+     "label_similarity": 0.75,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.6478,
+    {
+     "alias_match_quality": 0.8889,
+     "base_score": 0.588,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.6478,
+     "label_similarity": 0.4517,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.2518,
+    {
+     "alias_match_quality": 0.8889,
+     "base_score": 0.138,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.2518,
+     "label_similarity": 0.4517,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8754,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8754,
+     "label_similarity": 0.8889,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4794,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4794,
+     "label_similarity": 0.8889,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "despaigne"
+   ],
+   "rule:salvage_trigger": [
+    "despaigne"
+   ],
+   "unknown": [
+    "despaigne"
+   ]
+  }
+ },
+ "14:Arthur:person": {
+  "canonical": {
+   "bo": 1.0,
+   "canon": "Arthur",
+   "dist": 0,
+   "nd": 0.0,
+   "queries": [
+    "King Arthur",
+    "Arthur Arthurian legend"
+   ],
+   "token": "arthur",
+   "type": "person"
+  },
+  "deferred": "low_quality",
+  "levenshtein": 0,
+  "name_likeness": 1.0,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Art"
+     },
+     {
+      "value": "Arthur"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q141",
+    "label": "arthur",
+    "score": 0.45,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Art"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q140",
+    "label": "Arthur",
+    "score": 0.271,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Arthurus"
+     },
+     {
+      "value": "Art"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q143",
+    "label": "Saint Arthur",
+    "score": 0.632,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint Arthur"
+     },
+     {
+      "value": "Arthur"
+     }
+    ],
+    "description": "",
+    "id": "Q142",
+    "label": "Arthurus",
+    "score": 0.223,
+    "source": "viaf",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Arthurus"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q144",
+    "label": "Unrelated Name",
+    "score": 0.011,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Arthurus"
+     }
+    ],
+    "description": "French king",
+    "id": "Q145",
+    "label": "Art",
+    "score": 0.083,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9533,
+    {
+     "alias_match_quality": 0.8833,
+     "base_score": 0.8333,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9533,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5573,
+    {
+     "alias_match_quality": 0.8833,
+     "base_score": 0.3833,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5573,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9794,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9794,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5834,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5834,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9296,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.84,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9296,
+     "label_similarity": 0.95,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5336,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.39,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5336,
+     "label_similarity": 0.95,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8364,
+    {
+     "alias_match_quality": 0.95,
+     "base_score": 0.7,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8364,
+     "label_similarity": 0.6667,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4404,
+    {
+     "alias_match_quality": 0.95,
+     "base_score": 0.25,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4404,
+     "label_similarity": 0.6667,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.7002,
+    {
+     "alias_match_quality": 0.95,
+     "base_score": 0.6366,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7002,
+     "label_similarity": 0.5258,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.3042,
+    {
+     "alias_match_quality": 0.95,
+     "base_score": 0.1866,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3042,
+     "label_similarity": 0.5258,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8418,
+    {
+     "alias_match_quality": 0.95,
+     "base_score": 0.7975,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8418,
+     "label_similarity": 0.8833,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4458,
+    {
+     "alias_match_quality": 0.95,
+     "base_score": 0.3475,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4458,
+     "label_similarity": 0.8833,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Arthur"
+   ],
+   "rule:salvage_trigger": [
+    "Arthur"
+   ],
+   "unknown": [
+    "Arthur"
+   ]
+  }
+ },
+ "15:Lausanne:place": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 7,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Lausanne"
+     }
+    ],
+    "description": "French king",
+    "id": "Q150",
+    "label": "Lausanne",
+    "score": 0.913,
+    "source": "wikidata",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Lausanne"
+     },
+     {
+      "value": "lausanne"
+     }
+    ],
+    "description": "French king",
+    "id": "Q151",
+    "label": "lausanne",
+    "score": 1.0,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Lausanneus"
+     },
+     {
+      "value": "lausanne"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q153",
+    "label": "Saint Lausanne",
+    "score": 0.875,
+    "source": "viaf",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Lausanneus"
+     },
+     {
+      "value": "Saint Lausanne"
+     }
+    ],
+    "description": "French king",
+    "id": "Q152",
+    "label": "Lausanneus",
+    "score": 0.356,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Lausanneus"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q154",
+    "label": "Unrelated Name",
+    "score": 0.231,
+    "source": "viaf",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint Lausanne"
+     },
+     {
+      "value": "Lausanne"
+     }
+    ],
+    "description": "",
+    "id": "Q155",
+    "label": "Laus",
+    "score": 0.565,
+    "source": "viaf",
+    "types": [
+     "commune of France"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.949,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.949,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.553,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.553,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.949,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.949,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.553,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.553,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9244,
+    {
+     "alias_match_quality": 0.96,
+     "base_score": 0.8345,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9244,
+     "label_similarity": 0.96,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5284,
+    {
+     "alias_match_quality": 0.96,
+     "base_score": 0.3845,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5284,
+     "label_similarity": 0.96,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8798,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7607,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8798,
+     "label_similarity": 0.7738,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4838,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3107,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4838,
+     "label_similarity": 0.7738,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.7062,
+    {
+     "alias_match_quality": 0.96,
+     "base_score": 0.6543,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7062,
+     "label_similarity": 0.5595,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.3102,
+    {
+     "alias_match_quality": 0.96,
+     "base_score": 0.2043,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3102,
+     "label_similarity": 0.5595,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8498,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8175,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8498,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4538,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3675,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4538,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Lausanne"
+   ],
+   "rule:salvage_trigger": [
+    "Lausanne"
+   ],
+   "unknown": [
+    "Lausanne"
+   ]
+  }
+ },
+ "16:Paris:place": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 5,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Saint Paris"
+     },
+     {
+      "value": "Parisus"
+     }
+    ],
+    "description": "",
+    "id": "Q160",
+    "label": "Paris",
+    "score": 0.227,
+    "source": "viaf",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Pa"
+     },
+     {
+      "value": "Parisus"
+     }
+    ],
+    "description": "",
+    "id": "Q161",
+    "label": "paris",
+    "score": 0.635,
+    "source": "wikidata",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Parisus"
+     },
+     {
+      "value": "Pa"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q162",
+    "label": "Parisus",
+    "score": 0.142,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Parisus"
+     },
+     {
+      "value": "Paris"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q163",
+    "label": "Saint Paris",
+    "score": 0.956,
+    "source": "geonames",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "paris"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "French king",
+    "id": "Q164",
+    "label": "Unrelated Name",
+    "score": 0.631,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Parisus"
+     }
+    ],
+    "description": "",
+    "id": "Q165",
+    "label": "Pa",
+    "score": 0.783,
+    "source": "viaf",
+    "types": [
+     "city"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9268,
+    {
+     "alias_match_quality": 0.9429,
+     "base_score": 0.8482,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9268,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5308,
+    {
+     "alias_match_quality": 0.9429,
+     "base_score": 0.3982,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5308,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9364,
+    {
+     "alias_match_quality": 0.9429,
+     "base_score": 0.8482,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9364,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5404,
+    {
+     "alias_match_quality": 0.9429,
+     "base_score": 0.3982,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5404,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9438,
+    {
+     "alias_match_quality": 0.9429,
+     "base_score": 0.8225,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9438,
+     "label_similarity": 0.9429,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5478,
+    {
+     "alias_match_quality": 0.9429,
+     "base_score": 0.3725,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5478,
+     "label_similarity": 0.9429,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8445,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6937,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8445,
+     "label_similarity": 0.625,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4485,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2437,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4485,
+     "label_similarity": 0.625,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.6311,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.5689,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.6311,
+     "label_similarity": 0.3476,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.2351,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.1189,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.2351,
+     "label_similarity": 0.3476,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8135,
+    {
+     "alias_match_quality": 0.9429,
+     "base_score": 0.7762,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8135,
+     "label_similarity": 0.84,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4175,
+    {
+     "alias_match_quality": 0.9429,
+     "base_score": 0.3262,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4175,
+     "label_similarity": 0.84,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Paris"
+   ],
+   "rule:salvage_trigger": [
+    "Paris"
+   ],
+   "unknown": [
+    "Paris"
+   ]
+  }
+ },
+ "17:Rome:place": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 5,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Romeus"
+     },
+     {
+      "value": "Ro"
+     }
+    ],
+    "description": "",
+    "id": "Q170",
+    "label": "Rome",
+    "score": 0.175,
+    "source": "geonames",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Ro"
+     },
+     {
+      "value": "Romeus"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q171",
+    "label": "rome",
+    "score": 0.917,
+    "source": "geonames",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Ro"
+     },
+     {
+      "value": "Saint Rome"
+     }
+    ],
+    "description": "",
+    "id": "Q172",
+    "label": "Romeus",
+    "score": 0.86,
+    "source": "wikidata",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "rome"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "",
+    "id": "Q173",
+    "label": "Saint Rome",
+    "score": 0.14,
+    "source": "viaf",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Ro"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q174",
+    "label": "Unrelated Name",
+    "score": 0.802,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Romeus"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q175",
+    "label": "Ro",
+    "score": 0.882,
+    "source": "geonames",
+    "types": [
+     "city"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9483,
+    {
+     "alias_match_quality": 0.9333,
+     "base_score": 0.8458,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9483,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5523,
+    {
+     "alias_match_quality": 0.9333,
+     "base_score": 0.3958,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5523,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9783,
+    {
+     "alias_match_quality": 0.9333,
+     "base_score": 0.8458,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9783,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5823,
+    {
+     "alias_match_quality": 0.9333,
+     "base_score": 0.3958,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5823,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.8933,
+    {
+     "alias_match_quality": 0.8667,
+     "base_score": 0.7992,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8933,
+     "label_similarity": 0.9333,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4973,
+    {
+     "alias_match_quality": 0.8667,
+     "base_score": 0.3492,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4973,
+     "label_similarity": 0.9333,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.7697,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6696,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7697,
+     "label_similarity": 0.5714,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.3737,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2196,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3737,
+     "label_similarity": 0.5714,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.6905,
+    {
+     "alias_match_quality": 0.8667,
+     "base_score": 0.6256,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.6905,
+     "label_similarity": 0.5476,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.2945,
+    {
+     "alias_match_quality": 0.8667,
+     "base_score": 0.1756,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.2945,
+     "label_similarity": 0.5476,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8455,
+    {
+     "alias_match_quality": 0.9333,
+     "base_score": 0.7858,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8455,
+     "label_similarity": 0.8667,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4495,
+    {
+     "alias_match_quality": 0.9333,
+     "base_score": 0.3358,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4495,
+     "label_similarity": 0.8667,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Rome"
+   ],
+   "rule:salvage_trigger": [
+    "Rome"
+   ],
+   "unknown": [
+    "Rome"
+   ]
+  }
+ },
+ "18:Iohannes:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 8,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Ioha"
+     },
+     {
+      "value": "Saint Iohannes"
+     }
+    ],
+    "description": "French king",
+    "id": "Q180",
+    "label": "Iohannes",
+    "score": 0.239,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "iohannes"
+     },
+     {
+      "value": "Saint Iohannes"
+     }
+    ],
+    "description": "",
+    "id": "Q181",
+    "label": "iohannes",
+    "score": 0.458,
+    "source": "viaf",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Iohannesus"
+     },
+     {
+      "value": "Iohannes"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q182",
+    "label": "Iohannesus",
+    "score": 0.522,
+    "source": "viaf",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "iohannes"
+     },
+     {
+      "value": "Ioha"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q183",
+    "label": "Saint Iohannes",
+    "score": 0.735,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "iohannes"
+     },
+     {
+      "value": "Saint Iohannes"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q184",
+    "label": "Unrelated Name",
+    "score": 0.716,
+    "source": "geonames",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Iohannesus"
+     },
+     {
+      "value": "Saint Iohannes"
+     }
+    ],
+    "description": "French king",
+    "id": "Q185",
+    "label": "Ioha",
+    "score": 0.772,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.927,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.8375,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.927,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.531,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.3875,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.531,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9494,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9494,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5534,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5534,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9336,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8445,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9336,
+     "label_similarity": 0.96,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5376,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3945,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5376,
+     "label_similarity": 0.96,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8512,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7513,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8512,
+     "label_similarity": 0.753,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4552,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3013,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4552,
+     "label_similarity": 0.753,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.6967,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6054,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.6967,
+     "label_similarity": 0.4286,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.3007,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.1554,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3007,
+     "label_similarity": 0.4286,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.851,
+    {
+     "alias_match_quality": 0.96,
+     "base_score": 0.8075,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.851,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.455,
+    {
+     "alias_match_quality": 0.96,
+     "base_score": 0.3575,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.455,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Iohannes"
+   ],
+   "rule:salvage_trigger": [
+    "Iohannes"
+   ],
+   "unknown": [
+    "Iohannes"
+   ]
+  }
+ },
+ "19:Merlin:person": {
+  "canonical": {
+   "bo": 1.0,
+   "canon": "Merlin",
+   "dist": 0,
+   "nd": 0.0,
+   "queries": [
+    "Merlin",
+    "Merlin enchanteur"
+   ],
+   "token": "merlin",
+   "type": "person"
+  },
+  "deferred": "low_quality",
+  "levenshtein": 6,
+  "name_likeness": 1.0,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Merlin"
+     }
+    ],
+    "description": "French king",
+    "id": "Q190",
+    "label": "Merlin",
+    "score": 0.199,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Merlinus"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q191",
+    "label": "merlin",
+    "score": 0.595,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint Merlin"
+     },
+     {
+      "value": "Merlinus"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q192",
+    "label": "Merlinus",
+    "score": 0.835,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Merlin"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q193",
+    "label": "Saint Merlin",
+    "score": 0.202,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Merlin"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q194",
+    "label": "Unrelated Name",
+    "score": 0.389,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Merlin"
+     },
+     {
+      "value": "Saint Merlin"
+     }
+    ],
+    "description": "French king",
+    "id": "Q195",
+    "label": "Mer",
+    "score": 0.099,
+    "source": "geonames",
+    "types": [
+     "human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.943,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.943,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.547,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.547,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9684,
+    {
+     "alias_match_quality": 0.95,
+     "base_score": 0.85,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9684,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5724,
+    {
+     "alias_match_quality": 0.95,
+     "base_score": 0.4,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5724,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9482,
+    {
+     "alias_match_quality": 0.95,
+     "base_score": 0.8275,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9482,
+     "label_similarity": 0.95,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5522,
+    {
+     "alias_match_quality": 0.95,
+     "base_score": 0.3775,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5522,
+     "label_similarity": 0.95,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8474,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8474,
+     "label_similarity": 0.6667,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4514,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4514,
+     "label_similarity": 0.6667,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.7112,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6491,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7112,
+     "label_similarity": 0.5258,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.3152,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.1991,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3152,
+     "label_similarity": 0.5258,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8468,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.81,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8468,
+     "label_similarity": 0.8833,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4508,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.36,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4508,
+     "label_similarity": 0.8833,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Merlin"
+   ],
+   "rule:salvage_trigger": [
+    "Merlin"
+   ],
+   "unknown": [
+    "Merlin"
+   ]
+  }
+ },
+ "20:Lancelot:person": {
+  "canonical": {
+   "bo": 1.0,
+   "canon": "Lancelot",
+   "dist": 0,
+   "nd": 0.0,
+   "queries": [
+    "Lancelot",
+    "Lancelot du Lac"
+   ],
+   "token": "lancelot",
+   "type": "person"
+  },
+  "deferred": "low_quality",
+  "levenshtein": 7,
+  "name_likeness": 1.0,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Lancelotus"
+     },
+     {
+      "value": "Lancelot"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q200",
+    "label": "Lancelot",
+    "score": 0.573,
+    "source": "geonames",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint Lancelot"
+     },
+     {
+      "value": "Lanc"
+     }
+    ],
+    "description": "French king",
+    "id": "Q201",
+    "label": "lancelot",
+    "score": 0.103,
+    "source": "wikidata",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Lancelotus"
+     },
+     {
+      "value": "Saint Lancelot"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q203",
+    "label": "Saint Lancelot",
+    "score": 0.628,
+    "source": "viaf",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Saint Lancelot"
+     }
+    ],
+    "description": "",
+    "id": "Q202",
+    "label": "Lancelotus",
+    "score": 0.209,
+    "source": "viaf",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Lancelot"
+     },
+     {
+      "value": "lancelot"
+     }
+    ],
+    "description": "",
+    "id": "Q204",
+    "label": "Unrelated Name",
+    "score": 0.243,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Lancelot"
+     },
+     {
+      "value": "lancelot"
+     }
+    ],
+    "description": "French king",
+    "id": "Q205",
+    "label": "Lanc",
+    "score": 0.693,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.943,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.943,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.547,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.547,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.927,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.8375,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.927,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.531,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.3875,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.531,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8736,
+    {
+     "alias_match_quality": 0.7273,
+     "base_score": 0.7763,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8736,
+     "label_similarity": 0.96,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4776,
+    {
+     "alias_match_quality": 0.7273,
+     "base_score": 0.3263,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4776,
+     "label_similarity": 0.96,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8626,
+    {
+     "alias_match_quality": 0.96,
+     "base_score": 0.7298,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8626,
+     "label_similarity": 0.7273,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4666,
+    {
+     "alias_match_quality": 0.96,
+     "base_score": 0.2798,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4666,
+     "label_similarity": 0.7273,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.7122,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6498,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7122,
+     "label_similarity": 0.5274,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.3162,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.1998,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3162,
+     "label_similarity": 0.5274,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8594,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8175,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8594,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4634,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3675,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4634,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Lancelot"
+   ],
+   "rule:salvage_trigger": [
+    "Lancelot"
+   ],
+   "unknown": [
+    "Lancelot"
+   ]
+  }
+ },
+ "21:Roman de la Rose:work": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 14,
+  "name_likeness": 0.75,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Roman de"
+     },
+     {
+      "value": "Saint Roman de la Rose"
+     }
+    ],
+    "description": "",
+    "id": "Q210",
+    "label": "Roman de la Rose",
+    "score": 0.479,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "roman de la rose"
+     }
+    ],
+    "description": "",
+    "id": "Q211",
+    "label": "roman de la rose",
+    "score": 0.788,
+    "source": "wikidata",
+    "types": [
+     "literary work"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Saint Roman de la Rose"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q212",
+    "label": "Roman de la Roseus",
+    "score": 0.145,
+    "source": "wikidata",
+    "types": [
+     "literary work"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Roman de"
+     },
+     {
+      "value": "Roman de la Rose"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q213",
+    "label": "Saint Roman de la Rose",
+    "score": 0.998,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "Saint Roman de la Rose"
+     }
+    ],
+    "description": "",
+    "id": "Q214",
+    "label": "Unrelated Name",
+    "score": 0.957,
+    "source": "geonames",
+    "types": [
+     "literary work"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Roman de"
+     },
+     {
+      "value": "Roman de la Rose"
+     }
+    ],
+    "description": "",
+    "id": "Q215",
+    "label": "Roman de",
+    "score": 0.023,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.927,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.8375,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.927,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.531,
+    {
+     "alias_match_quality": 0.9,
+     "base_score": 0.3875,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.531,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.949,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.949,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.553,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.553,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9355,
+    {
+     "alias_match_quality": 0.8421,
+     "base_score": 0.813,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9355,
+     "label_similarity": 0.9778,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5395,
+    {
+     "alias_match_quality": 0.8421,
+     "base_score": 0.363,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5395,
+     "label_similarity": 0.9778,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8865,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7914,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8865,
+     "label_similarity": 0.8421,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4905,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3414,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4905,
+     "label_similarity": 0.8421,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.702,
+    {
+     "alias_match_quality": 0.8421,
+     "base_score": 0.6455,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.702,
+     "label_similarity": 0.6055,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.306,
+    {
+     "alias_match_quality": 0.8421,
+     "base_score": 0.1955,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.306,
+     "label_similarity": 0.6055,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.8534,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8175,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8534,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4574,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3675,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4574,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Roman de la Rose",
+    "Roman Rose",
+    "Roman"
+   ],
+   "rule:salvage_trigger": [
+    "Roman de la Rose",
+    "Roman Rose",
+    "Roman"
+   ],
+   "unknown": [
+    "Roman de la Rose",
+    "Roman Rose",
+    "Roman"
+   ]
+  }
+ },
+ "22:mil cinq cens:date": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 13,
+  "name_likeness": 0.75,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "mil cinq cens"
+     },
+     {
+      "value": "mil cinq cens"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q221",
+    "label": "mil cinq cens",
+    "score": 0.959,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "mil cinq cens"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q220",
+    "label": "mil cinq cens",
+    "score": 0.184,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "mil cinq cens"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q222",
+    "label": "mil cinq census",
+    "score": 0.708,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "mil cinq cens"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q223",
+    "label": "Saint mil cinq cens",
+    "score": 0.311,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "mil cinq census"
+     },
+     {
+      "value": "mil cinq cens"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q225",
+    "label": "mil ci",
+    "score": 0.312,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "mil cinq cens"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q224",
+    "label": "Unrelated Name",
+    "score": 0.698,
+    "source": "wikidata",
+    "types": [
+     "year"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.929,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.929,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.533,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.533,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.959,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.959,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.563,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.563,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9388,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8505,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9388,
+     "label_similarity": 0.9733,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5428,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4005,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5428,
+     "label_similarity": 0.9733,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8848,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7781,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8848,
+     "label_similarity": 0.8125,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4888,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3281,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4888,
+     "label_similarity": 0.8125,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.6601,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6138,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.6601,
+     "label_similarity": 0.4473,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.2641,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.1638,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.2641,
+     "label_similarity": 0.4473,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8604,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.814,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8604,
+     "label_similarity": 0.8923,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4644,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.364,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4644,
+     "label_similarity": 0.8923,
+     "segmentation_label_prior": 0.0,
+     "source_confidence": 0.95
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "mil cinq cens"
+   ],
+   "rule:salvage_trigger": [
+    "mil cinq cens"
+   ],
+   "unknown": [
+    "mil cinq cens"
+   ]
+  }
+ },
+ "23:uilain:place": {
+  "canonical": null,
+  "deferred": "low_quality; low_evidence_place: cap=False context=False lexical=False shape=True",
+  "levenshtein": 6,
+  "name_likeness": 0.5,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "uilain"
+     },
+     {
+      "value": "uil"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q231",
+    "label": "uilain",
+    "score": 0.445,
+    "source": "geonames",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "uilain"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "French king",
+    "id": "Q230",
+    "label": "uilain",
+    "score": 0.424,
+    "source": "viaf",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint uilain"
+     },
+     {
+      "value": "uilain"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q232",
+    "label": "uilainus",
+    "score": 0.086,
+    "source": "wikidata",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint uilain"
+     },
+     {
+      "value": "uilain"
+     }
+    ],
+    "description": "",
+    "id": "Q233",
+    "label": "Saint uilain",
+    "score": 0.628,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "uilain"
+     },
+     {
+      "value": "uilain"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q234",
+    "label": "Unrelated Name",
+    "score": 0.589,
+    "source": "viaf",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "uilain"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q235",
+    "label": "uil",
+    "score": 0.363,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9394,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9394,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5434,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5434,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.993,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.993,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.597,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.597,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9592,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.84,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9592,
+     "label_similarity": 0.95,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5632,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.39,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5632,
+     "label_similarity": 0.95,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.831,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.831,
+     "label_similarity": 0.6667,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.435,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.435,
+     "label_similarity": 0.6667,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.7504,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6704,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7504,
+     "label_similarity": 0.5732,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.3544,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2204,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3544,
+     "label_similarity": 0.5732,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8668,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.81,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8668,
+     "label_similarity": 0.8833,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4708,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.36,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4708,
+     "label_similarity": 0.8833,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "uilain"
+   ],
+   "rule:salvage_trigger": [
+    "uilain"
+   ],
+   "unknown": [
+    "uilain"
+   ]
+  }
+ },
+ "24:dominus:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 6,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "dominus"
+     }
+    ],
+    "description": "",
+    "id": "Q240",
+    "label": "dominus",
+    "score": 0.998,
+    "source": "geonames",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "dom"
+     },
+     {
+      "value": "dominus"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q241",
+    "label": "dominus",
+    "score": 0.758,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "dom"
+     },
+     {
+      "value": "dominus"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q242",
+    "label": "dominusus",
+    "score": 0.468,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "dominus"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "French king",
+    "id": "Q243",
+    "label": "Saint dominus",
+    "score": 0.958,
+    "source": "geonames",
+    "types": [
+     "human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "dominus"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q245",
+    "label": "dom",
+    "score": 0.327,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "dom"
+     },
+     {
+      "value": "dominusus"
+     }
+    ],
+    "description": "",
+    "id": "Q244",
+    "label": "Unrelated Name",
+    "score": 0.953,
+    "source": "geonames",
+    "types": [
+     "fictional human"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.943,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.943,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.547,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.547,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.949,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.949,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.553,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.553,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9614,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8425,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9614,
+     "label_similarity": 0.9556,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5654,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3925,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5654,
+     "label_similarity": 0.9556,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8242,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7275,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8242,
+     "label_similarity": 0.7,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4282,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2775,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4282,
+     "label_similarity": 0.7,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.6098,
+    {
+     "alias_match_quality": 0.9556,
+     "base_score": 0.5407,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.6098,
+     "label_similarity": 0.3095,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.2138,
+    {
+     "alias_match_quality": 0.9556,
+     "base_score": 0.0907,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.2138,
+     "label_similarity": 0.3095,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.8762,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8025,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8762,
+     "label_similarity": 0.8667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.4802,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3525,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4802,
+     "label_similarity": 0.8667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "dominus"
+   ],
+   "rule:salvage_trigger": [
+    "dominus"
+   ],
+   "unknown": [
+    "dominus"
+   ]
+  }
+ },
+ "25:Hyerusalem:place": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 9,
+  "name_likeness": 0.65,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "hyerusalem"
+     },
+     {
+      "value": "Hyerusalemus"
+     }
+    ],
+    "description": "French king",
+    "id": "Q250",
+    "label": "Hyerusalem",
+    "score": 0.474,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Hyerusalemus"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "French king",
+    "id": "Q251",
+    "label": "hyerusalem",
+    "score": 0.096,
+    "source": "viaf",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "hyerusalem"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q253",
+    "label": "Saint Hyerusalem",
+    "score": 0.514,
+    "source": "geonames",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Hyeru"
+     },
+     {
+      "value": "hyerusalem"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q252",
+    "label": "Hyerusalemus",
+    "score": 0.963,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "hyerusalem"
+     },
+     {
+      "value": "Hyeru"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q255",
+    "label": "Hyeru",
+    "score": 0.461,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Hyeru"
+     },
+     {
+      "value": "Hyerusalem"
+     }
+    ],
+    "description": "French king",
+    "id": "Q254",
+    "label": "Unrelated Name",
+    "score": 0.583,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9394,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9394,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5434,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5434,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9321,
+    {
+     "alias_match_quality": 0.9667,
+     "base_score": 0.8542,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9321,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5361,
+    {
+     "alias_match_quality": 0.9667,
+     "base_score": 0.4042,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5361,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.9658,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8475,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9658,
+     "label_similarity": 0.9667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5698,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3975,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5698,
+     "label_similarity": 0.9667,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9016,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.7587,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9016,
+     "label_similarity": 0.7692,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5056,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3087,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5056,
+     "label_similarity": 0.7692,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.7697,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6996,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7697,
+     "label_similarity": 0.6381,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.3737,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2496,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3737,
+     "label_similarity": 0.6381,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.8798,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8175,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8798,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4838,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3675,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4838,
+     "label_similarity": 0.9,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Hyerusalem"
+   ],
+   "rule:salvage_trigger": [
+    "Hyerusalem"
+   ],
+   "unknown": [
+    "Hyerusalem"
+   ]
+  }
+ },
+ "26:Saint Denis:place": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 9,
+  "name_likeness": 0.75,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Saint"
+     },
+     {
+      "value": "saint denis"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q260",
+    "label": "Saint Denis",
+    "score": 0.601,
+    "source": "geonames",
+    "types": [
+     "commune of France"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint Saint Denis"
+     },
+     {
+      "value": "Saint Denis"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q261",
+    "label": "saint denis",
+    "score": 0.683,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint"
+     },
+     {
+      "value": "Saint Saint Denis"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q262",
+    "label": "Saint Denisus",
+    "score": 0.987,
+    "source": "geonames",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "Saint"
+     },
+     {
+      "value": "Saint Denis"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q263",
+    "label": "Saint Saint Denis",
+    "score": 0.938,
+    "source": "viaf",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "saint denis"
+     },
+     {
+      "value": "Unrelated Name"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q265",
+    "label": "Saint",
+    "score": 0.03,
+    "source": "viaf",
+    "types": [
+     "city"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "saint denis"
+     },
+     {
+      "value": "Saint"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q264",
+    "label": "Unrelated Name",
+    "score": 0.483,
+    "source": "wikidata",
+    "types": [
+     "thing"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.963,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.963,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.567,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.567,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.949,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8625,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.949,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.553,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.4125,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.553,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9273,
+    {
+     "alias_match_quality": 0.893,
+     "base_score": 0.8219,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9273,
+     "label_similarity": 0.9692,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5313,
+    {
+     "alias_match_quality": 0.893,
+     "base_score": 0.3719,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5313,
+     "label_similarity": 0.9692,
+     "segmentation_label_prior": 0.04,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.897,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8144,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.897,
+     "label_similarity": 0.893,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.501,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3644,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.501,
+     "label_similarity": 0.893,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.7379,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6794,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.7379,
+     "label_similarity": 0.5931,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.3419,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.2294,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.3419,
+     "label_similarity": 0.5931,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.8762,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8134,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8762,
+     "label_similarity": 0.8909,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.4802,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3634,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4802,
+     "label_similarity": 0.8909,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.92
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "Saint Denis"
+   ],
+   "rule:salvage_trigger": [
+    "Saint Denis"
+   ],
+   "unknown": [
+    "Saint Denis"
+   ]
+  }
+ },
+ "27:xp̄o:person": {
+  "canonical": null,
+  "deferred": "low_quality",
+  "levenshtein": 6,
+  "name_likeness": 0.0,
+  "place_context": false,
+  "prefiltered": [
+   {
+    "aliases": [
+     {
+      "value": "Unrelated Name"
+     },
+     {
+      "value": "xp̄ous"
+     }
+    ],
+    "description": "medieval romance",
+    "id": "Q271",
+    "label": "xp̄o",
+    "score": 0.372,
+    "source": "wikidata",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "xp"
+     },
+     {
+      "value": "xp̄ous"
+     }
+    ],
+    "description": "",
+    "id": "Q270",
+    "label": "xp̄o",
+    "score": 0.196,
+    "source": "geonames",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "xp̄o"
+     },
+     {
+      "value": "xp"
+     }
+    ],
+    "description": "city in Switzerland",
+    "id": "Q272",
+    "label": "xp̄ous",
+    "score": 0.821,
+    "source": "viaf",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "xp"
+     },
+     {
+      "value": "xp̄o"
+     }
+    ],
+    "description": "saint and bishop",
+    "id": "Q273",
+    "label": "Saint xp̄o",
+    "score": 0.839,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "xp"
+     },
+     {
+      "value": "Saint xp̄o"
+     }
+    ],
+    "description": "French king",
+    "id": "Q274",
+    "label": "Unrelated Name",
+    "score": 0.012,
+    "source": "viaf",
+    "types": [
+     "fictional human"
+    ]
+   },
+   {
+    "aliases": [
+     {
+      "value": "xp̄ous"
+     },
+     {
+      "value": "xp̄o"
+     }
+    ],
+    "description": "",
+    "id": "Q275",
+    "label": "xp",
+    "score": 0.94,
+    "source": "geonames",
+    "types": [
+     "thing"
+    ]
+   }
+  ],
+  "scored": [
+   [
+    0.9234,
+    {
+     "alias_match_quality": 0.9111,
+     "base_score": 0.8403,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9234,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.5274,
+    {
+     "alias_match_quality": 0.9111,
+     "base_score": 0.3903,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5274,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.9585,
+    {
+     "alias_match_quality": 0.9067,
+     "base_score": 0.8392,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9585,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.5625,
+    {
+     "alias_match_quality": 0.9067,
+     "base_score": 0.3892,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5625,
+     "label_similarity": 1.0,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 1.0
+    }
+   ],
+   [
+    0.9124,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8205,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.9124,
+     "label_similarity": 0.9067,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.5164,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3705,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.5164,
+     "label_similarity": 0.9067,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.775,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.6375,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.775,
+     "label_similarity": 0.5,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.379,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.1875,
+     "chronology_bonus": 0.03,
+     "cooccurrence_bonus": 0.05,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.379,
+     "label_similarity": 0.5,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4838,
+    {
+     "alias_match_quality": 0.9111,
+     "base_score": 0.3903,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4838,
+     "label_similarity": 0.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.1404,
+    {
+     "alias_match_quality": 0.9111,
+     "base_score": 0.0,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.1404,
+     "label_similarity": 0.0,
+     "segmentation_label_prior": 0.03,
+     "source_confidence": 0.92
+    }
+   ],
+   [
+    0.8578,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.8225,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.8578,
+     "label_similarity": 0.9111,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ],
+   [
+    0.4618,
+    {
+     "alias_match_quality": 1.0,
+     "base_score": 0.3725,
+     "chronology_bonus": 0.0,
+     "cooccurrence_bonus": 0.0,
+     "document_context_compatibility": 0.0,
+     "domain_bonus": 0.05,
+     "final_score": 0.4618,
+     "label_similarity": 0.9111,
+     "segmentation_label_prior": 0.02,
+     "source_confidence": 0.95
+    }
+   ]
+  ],
+  "summary": "ACCEPT score=0.81 margin=0.2",
+  "variants": {
+   "rule:anchor": [
+    "xp o",
+    "xp"
+   ],
+   "rule:salvage_trigger": [
+    "xp o",
+    "xp"
+   ],
+   "unknown": [
+    "xp o",
+    "xp"
+   ]
+  }
+ }
+}
