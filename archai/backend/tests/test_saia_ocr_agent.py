@@ -286,10 +286,6 @@ def test_non_internvl_models_are_allowed_for_ocr() -> None:
     assert fake.calls[0].get("model") == "qwen3-vl-30b-a3b-instruct"
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="SaiaOCRAgent never passes deterministic=True, so SAIA samples (no do_sample=False); fixed separately",
-)
 def test_ocr_payload_uses_deterministic_generation_params() -> None:
     fake = _FakeSaiaClient(
         models=["internvl3.5-30b-a3b"],
@@ -305,3 +301,17 @@ def test_ocr_payload_uses_deterministic_generation_params() -> None:
     assert float(call.get("top_p", -1)) == 1.0
     assert int(call.get("max_tokens", 0)) >= 4096
     assert bool(call.get("deterministic")) is True
+
+
+def test_a_configured_sampling_temperature_is_not_overridden(monkeypatch: Any) -> None:
+    fake = _FakeSaiaClient(
+        models=["internvl3.5-30b-a3b"],
+        responses_by_model={"internvl3.5-30b-a3b": [_valid_json("Linea det")]},
+    )
+    monkeypatch.setattr(SaiaOCRAgent, "_resolve_temperature", staticmethod(lambda: 0.4))
+    agent = SaiaOCRAgent(client=fake, model_prefs=["internvl3.5-30b-a3b"])
+
+    _ = agent.extract(SaiaOCRRequest(image_b64=SAMPLE_B64, apply_proofread=False))
+
+    assert float(fake.calls[0]["temperature"]) == 0.4
+    assert not fake.calls[0].get("deterministic")

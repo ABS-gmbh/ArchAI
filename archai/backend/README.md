@@ -71,9 +71,8 @@ Mark a test that needs model weights or that stack `@pytest.mark.requires_models
 The suite runs offline: `tests/conftest.py` refuses every connection that is
 not loopback, so stub the SAIA, GWDG, Ollama or Wikidata client in the test.
 
-Five tests are expected failures (`xfail(strict=True)`), each with its reason:
-four expect the SAIA OCR agent to try Qwen first while it reads with InternVL
-only, and one expects it to request deterministic decoding, which it does not.
+Four tests are expected failures (`xfail(strict=True)`): they expect the SAIA
+OCR agent to try Qwen first, while it reads with InternVL only.
 
 ## Full-page OCR
 

@@ -1875,6 +1875,11 @@ class SaiaOCRAgent:
         )
         self.temperature = self._resolve_temperature()
         self.max_tokens = self._resolve_max_tokens()
+        # At temperature 0 the reading must not depend on the draw: ask for
+        # greedy decoding too (n=1, no penalties, do_sample=False; the client
+        # drops do_sample if the provider rejects it). A temperature set above
+        # 0 is a choice to sample, and is left alone.
+        self.deterministic = self.temperature == 0.0
 
     @staticmethod
     def _resolve_model_prefs() -> list[str]:
@@ -1992,6 +1997,7 @@ class SaiaOCRAgent:
                 max_tokens=self.max_tokens,
                 response_format={"type": "json_object"},
                 messages=messages,
+                deterministic=self.deterministic,
             )
         except Exception as exc:
             text = str(exc).lower()
@@ -2003,6 +2009,7 @@ class SaiaOCRAgent:
                 top_p=1.0,
                 max_tokens=self.max_tokens,
                 messages=messages,
+                deterministic=self.deterministic,
             )
 
     @staticmethod
