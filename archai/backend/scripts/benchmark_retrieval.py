@@ -8,6 +8,7 @@ Usage::
     python scripts/benchmark_retrieval.py --embedder e5-local
     python scripts/benchmark_retrieval.py --embedder e5-local --no-query-instruction
     python scripts/benchmark_retrieval.py --readings eval/quality_gate/readings.json
+    python scripts/benchmark_retrieval.py --questions eval/retrieval/questions.json
 
 Relevance judgments are the expensive part of a retrieval benchmark, and this
 project has none. They are derived from structure instead: the pipeline DB holds
@@ -35,6 +36,13 @@ instead: a reference and every recogniser's reading of five pages, grouped by
 their page id. A pipeline DB holds what was run, which can be one page read
 many times: the live one gives 1,451 of its 1,457 lookups from one page. The
 report counts lookups per page.
+
+``--questions`` asks questions instead: ``eval/retrieval/questions.json`` holds
+questions a reader might ask about those reference pages, in English, each
+with the span of the reference that answers it. The span is projected into
+every reading of the page by the same alignment, so the relevant chunks are
+the ones holding the answer in that reading. Passage lookup quotes the page;
+a question mostly does not, which is where the rankers differ.
 
 ``--embedder e5-local`` runs the configured model family,
 multilingual-e5-large-instruct, on this machine (sentence-transformers, about
@@ -194,6 +202,30 @@ def build_benchmark(texts: dict[str, str], *, pairs: int, seed: int, groups: lis
     return queries, chunks, groups, pair_cers
 
 
+def build_question_benchmark(texts: dict[str, str], groups: list[list[str]], questions: list[dict]):
+    """One lookup per question per reading of its page, relevant where the answer is."""
+    chunks = {key: build_window_chunks(texts[key], window_lines=6, overlap_lines=2) for group in groups for key in group}
+    page_keys = {group[0].split(":")[0]: group for group in groups}
+    queries: list[Query] = []
+    for n, question in enumerate(questions):
+        keys = page_keys[question["page_id"]]
+        reference = f"{question['page_id']}:reference"
+        start = texts[reference].index(question["answer"])
+        end = start + len(question["answer"])
+        for key in keys:
+            if len(chunks[key]) < MIN_TARGET_CHUNKS:
+                continue
+            offsets = alignment_offsets(texts[reference], texts[key])
+            b_start, b_end = int(offsets[start]), int(offsets[end])
+            # A reading that lost the answer's lines gives no label to trust.
+            if not 0.5 * (end - start) <= b_end - b_start <= 2.0 * (end - start):
+                continue
+            relevant = _relevant_chunks(chunks[key], key, b_start, b_end)
+            if relevant:
+                queries.append(Query(f"q{n}@{key}", "question", key, question["question"], relevant))
+    return queries, chunks
+
+
 def _relevant_chunks(chunks: list[dict], target: str, start: int, end: int) -> frozenset[str]:
     containing = {_cid(target, c) for c in chunks if c["start_offset"] <= start and end <= c["end_offset"]}
     if containing:
@@ -344,6 +376,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--db", type=Path, default=Path(default_db))
     parser.add_argument("--readings", type=Path, help="read pages from a readings file instead of the pipeline DB")
     parser.add_argument(
+        "--questions", type=Path, help="ask the questions of this file about the pages of --readings (default: its own)"
+    )
+    parser.add_argument(
         "--embedder",
         choices=("local", "provider", "e5-local"),
         default="local",
@@ -366,6 +401,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     known_groups = None
+    if args.questions and not args.readings:
+        args.readings = Path(__file__).resolve().parents[1] / "eval" / "quality_gate" / "readings.json"
     if args.readings:
         texts, known_groups = load_readings(args.readings)
     elif not args.db.is_file():
@@ -373,7 +410,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     else:
         texts = load_transcriptions(args.db)
-    queries, chunks, groups, pair_cers = build_benchmark(texts, pairs=args.pairs, seed=args.seed, groups=known_groups)
+    if args.questions:
+        questions = json.loads(args.questions.read_text(encoding="utf-8"))["questions"]
+        queries, chunks = build_question_benchmark(texts, known_groups, questions)
+        groups, pair_cers = known_groups, []
+    else:
+        queries, chunks, groups, pair_cers = build_benchmark(texts, pairs=args.pairs, seed=args.seed, groups=known_groups)
     if not queries:
         print("error: no page has two alignable readings; nothing to benchmark", file=sys.stderr)
         return 2
@@ -402,7 +444,8 @@ def main(argv: list[str] | None = None) -> int:
         "queries": len(queries),
         "targets": len({q.target for q in queries}),
         "reading_pairs": len(pair_cers),
-        "median_pair_cer": float(np.median(pair_cers)),
+        "median_pair_cer": float(np.median(pair_cers)) if pair_cers else None,
+        "lookup": "questions" if args.questions else "passages",
         "pages": len(lookups_per_page),
         "lookups_per_page": lookups_per_page,
         "embedder": args.embedder,
@@ -414,11 +457,17 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"meta": meta, "results": report}, indent=2))
         return 0
 
-    print(
-        f"{meta['queries']} passage lookups over {meta['targets']} readings "
-        f"({meta['reading_pairs']} reading pairs, median CER between readings {meta['median_pair_cer']:.2f}, "
-        f"{meta['pages']} pages), dense embedder: {args.embedder}"
-    )
+    if args.questions:
+        print(
+            f"{meta['queries']} question lookups over {meta['targets']} readings "
+            f"({meta['pages']} pages), dense embedder: {args.embedder}"
+        )
+    else:
+        print(
+            f"{meta['queries']} passage lookups over {meta['targets']} readings "
+            f"({meta['reading_pairs']} reading pairs, median CER between readings {meta['median_pair_cer']:.2f}, "
+            f"{meta['pages']} pages), dense embedder: {args.embedder}"
+        )
     print(f"query as embedded: {meta['query_example']!r}")
     print("lookups per page: " + ", ".join(f"{page} {n}" for page, n in sorted(lookups_per_page.items())))
     print(f"{'':<14}{'MRR':>22}{'Hit@1':>22}{'Hit@5':>22}")
