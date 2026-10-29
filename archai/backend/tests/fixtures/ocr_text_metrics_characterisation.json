@@ -1,0 +1,4155 @@
+{
+ "implausibility_from_contrast": {
+  "0.0": 1.0,
+  "0.5": 1.0,
+  "1.0": 1.0,
+  "1.5": 0.75,
+  "2.0": 0.5,
+  "3.0": 0.0,
+  "5.0": 0.0
+ },
+ "latin-abaton:glmocr": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.1632,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "french",
+     "ratio": 3.4371,
+     "trigrams": 2299
+    },
+    "gibberish": 0.1087,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 3.4371,
+     "trigrams": 2299
+    },
+    "gibberish": 0.1087,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 3.4371,
+     "trigrams": 2299
+    },
+    "gibberish": 0.1087,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 0.1574,
+  "entropy": 4.252743,
+  "leading": 0.060241,
+  "rare_bigrams": 0.0,
+  "repetition": 0.5422,
+  "script": "latin",
+  "seam": 0.04,
+  "seam_default": 0.060241,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.686667,
+  "stability_vs_reference": 0.135889,
+  "token_stats": {
+   "mean": 5.245,
+   "stddev": 3.018,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.202
+  },
+  "tokens": {
+   "Do": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Use": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "abbreviations,": [
+    0.461538,
+    false,
+    0.071429
+   ],
+   "ambiguous": [
+    0.555556,
+    false,
+    0.0
+   ],
+   "cettabit": [
+    0.375,
+    false,
+    0.0
+   ],
+   "characters,": [
+    0.3,
+    false,
+    0.090909
+   ],
+   "data": [
+    0.5,
+    false,
+    0.0
+   ],
+   "enit": [
+    0.5,
+    false,
+    0.0
+   ],
+   "hints": [
+    0.2,
+    false,
+    0.0
+   ],
+   "hints.": [
+    0.2,
+    false,
+    0.166667
+   ],
+   "invent": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "nam": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "non": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "normalize": [
+    0.444444,
+    false,
+    0.0
+   ],
+   "not": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "or": [
+    0.5,
+    false,
+    0.0
+   ],
+   "pacienti": [
+    0.5,
+    false,
+    0.0
+   ],
+   "per": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "reduce": [
+    0.5,
+    false,
+    0.0
+   ],
+   "text": [
+    0.25,
+    false,
+    0.0
+   ],
+   "the": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "these": [
+    0.4,
+    false,
+    0.0
+   ],
+   "to": [
+    0.5,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "latin-abaton:kraken_catmus": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.0922,
+     "trigrams": 507
+    },
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.0922,
+     "trigrams": 507
+    },
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.0922,
+     "trigrams": 507
+    },
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 0.7362,
+  "entropy": 4.25357,
+  "leading": 0.0,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.0,
+  "seam_default": 0.0,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.926667,
+  "stability_vs_reference": 0.536946,
+  "token_stats": {
+   "mean": 4.302,
+   "stddev": 2.149,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.213
+  },
+  "tokens": {
+   "A": [
+    1.0,
+    true,
+    0.5
+   ],
+   "E": [
+    1.0,
+    true,
+    0.5
+   ],
+   "Est": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "Sopniũ": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "amicus": [
+    0.5,
+    false,
+    0.0
+   ],
+   "differtur": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "diuicie": [
+    0.714286,
+    false,
+    0.0
+   ],
+   "donant": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "enit": [
+    0.5,
+    false,
+    0.0
+   ],
+   "est": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "eẽt": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "felix": [
+    0.4,
+    false,
+    0.0
+   ],
+   "hac": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "iram": [
+    0.5,
+    false,
+    0.0
+   ],
+   "multos": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "natur": [
+    0.4,
+    false,
+    0.0
+   ],
+   "non": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "optas": [
+    0.4,
+    false,
+    0.0
+   ],
+   "optata": [
+    0.5,
+    false,
+    0.0
+   ],
+   "q̃ris": [
+    0.25,
+    false,
+    0.2
+   ],
+   "reu̾ti": [
+    0.6,
+    false,
+    0.166667
+   ],
+   "sentꝑ": [
+    0.2,
+    false,
+    0.0
+   ],
+   "tibi": [
+    0.5,
+    false,
+    0.0
+   ],
+   "tisa": [
+    0.5,
+    false,
+    0.0
+   ],
+   "uiaq": [
+    0.75,
+    false,
+    0.2
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "latin-abaton:kraken_cremma_medieval": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0009,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 2.7636,
+     "trigrams": 496
+    },
+    "gibberish": 0.0537,
+    "has_profile": true,
+    "implausibility": 0.1182
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 2.7636,
+     "trigrams": 496
+    },
+    "gibberish": 0.0537,
+    "has_profile": true,
+    "implausibility": 0.1182
+   },
+   "old_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 2.7636,
+     "trigrams": 496
+    },
+    "gibberish": 0.0537,
+    "has_profile": true,
+    "implausibility": 0.1182
+   }
+  },
+  "cross_pass": 0.5857,
+  "entropy": 4.210491,
+  "leading": 0.214286,
+  "rare_bigrams": 0.001565,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.352941,
+  "seam_default": 0.214286,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.863333,
+  "stability_vs_reference": 0.308333,
+  "token_stats": {
+   "mean": 4.239,
+   "stddev": 2.342,
+   "very_long_frac": 0.005,
+   "very_short_frac": 0.229
+  },
+  "tokens": {
+   "a": [
+    1.0,
+    true,
+    0.5
+   ],
+   "debrtosenqz": [
+    0.272727,
+    false,
+    0.05
+   ],
+   "differcur": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "donant": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "duucie": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "e": [
+    1.0,
+    true,
+    0.5
+   ],
+   "enit": [
+    0.5,
+    false,
+    0.0
+   ],
+   "est": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "felpe": [
+    0.4,
+    false,
+    0.0
+   ],
+   "hac": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "i": [
+    1.0,
+    true,
+    0.5
+   ],
+   "multos": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "nec": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "opniñ": [
+    0.4,
+    false,
+    0.0
+   ],
+   "optas": [
+    0.4,
+    false,
+    0.0
+   ],
+   "optata": [
+    0.5,
+    false,
+    0.0
+   ],
+   "profesto": [
+    0.375,
+    false,
+    0.0
+   ],
+   "qe": [
+    0.5,
+    false,
+    0.0
+   ],
+   "q̃us": [
+    0.333333,
+    false,
+    0.25
+   ],
+   "redder": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "t": [
+    0.0,
+    true,
+    0.5
+   ],
+   "te": [
+    0.5,
+    false,
+    0.0
+   ],
+   "tibireddecppolmn": [
+    0.3125,
+    false,
+    0.0
+   ],
+   "tuus": [
+    0.5,
+    false,
+    0.0
+   ],
+   "vam": [
+    0.333333,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "latin-abaton:kraken_mccatmus": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0024,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 1.8921,
+     "trigrams": 477
+    },
+    "gibberish": 0.2503,
+    "has_profile": true,
+    "implausibility": 0.554
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 1.8921,
+     "trigrams": 477
+    },
+    "gibberish": 0.2503,
+    "has_profile": true,
+    "implausibility": 0.554
+   },
+   "old_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 1.8921,
+     "trigrams": 477
+    },
+    "gibberish": 0.2503,
+    "has_profile": true,
+    "implausibility": 0.554
+   }
+  },
+  "cross_pass": 0.3271,
+  "entropy": 4.223333,
+  "leading": 0.107143,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.117647,
+  "seam_default": 0.142857,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.573333,
+  "stability_vs_reference": 0.039604,
+  "token_stats": {
+   "mean": 4.511,
+   "stddev": 2.357,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.209
+  },
+  "tokens": {
+   "&t": [
+    0.0,
+    true,
+    0.6
+   ],
+   "15": [
+    0.0,
+    true,
+    0.3
+   ],
+   "Gedem": [
+    0.4,
+    false,
+    0.0
+   ],
+   "Imicof": [
+    0.5,
+    false,
+    0.0
+   ],
+   "U": [
+    1.0,
+    true,
+    0.5
+   ],
+   "a": [
+    1.0,
+    true,
+    0.5
+   ],
+   "celar": [
+    0.4,
+    false,
+    0.0
+   ],
+   "crit": [
+    0.25,
+    false,
+    0.0
+   ],
+   "cutaye": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "eaye": [
+    1.0,
+    true,
+    0.2
+   ],
+   "ef": [
+    0.5,
+    false,
+    0.0
+   ],
+   "egre": [
+    0.5,
+    false,
+    0.0
+   ],
+   "enst": [
+    0.25,
+    false,
+    0.0
+   ],
+   "i": [
+    1.0,
+    true,
+    0.5
+   ],
+   "ile": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "meliul": [
+    0.5,
+    false,
+    0.0
+   ],
+   "no": [
+    0.5,
+    false,
+    0.0
+   ],
+   "nui": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "per": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "plendm": [
+    0.166667,
+    false,
+    0.15
+   ],
+   "reetuam": [
+    0.571429,
+    false,
+    0.0
+   ],
+   "sics": [
+    0.25,
+    false,
+    0.0
+   ],
+   "t": [
+    0.0,
+    true,
+    0.5
+   ],
+   "tupabil": [
+    0.428571,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.035714,
+  "uncertainty": 0.0
+ },
+ "latin-abaton:reference": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.1127,
+     "trigrams": 526
+    },
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.1127,
+     "trigrams": 526
+    },
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.1127,
+     "trigrams": 526
+    },
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 1.0,
+  "entropy": 4.272185,
+  "leading": 0.0,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.0,
+  "seam_default": 0.0,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 1.0,
+  "stability_vs_reference": 1.0,
+  "token_stats": {
+   "mean": 4.686,
+   "stddev": 1.973,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.124
+  },
+  "tokens": {
+   "Tibi": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Venit": [
+    0.4,
+    false,
+    0.0
+   ],
+   "Viues": [
+    0.6,
+    false,
+    0.0
+   ],
+   "celat": [
+    0.4,
+    false,
+    0.0
+   ],
+   "cessabit": [
+    0.375,
+    false,
+    0.0
+   ],
+   "dabuntur": [
+    0.375,
+    false,
+    0.0
+   ],
+   "diligit": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "eris": [
+    0.5,
+    false,
+    0.0
+   ],
+   "es": [
+    0.5,
+    false,
+    0.0
+   ],
+   "hac": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "honorem": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "longius": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "lucrũ": [
+    0.2,
+    false,
+    0.0
+   ],
+   "manet": [
+    0.4,
+    false,
+    0.0
+   ],
+   "multos": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "properat": [
+    0.375,
+    false,
+    0.0
+   ],
+   "reuti": [
+    0.6,
+    false,
+    0.0
+   ],
+   "sidera": [
+    0.5,
+    false,
+    0.0
+   ],
+   "superis": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "suꝑabis": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "tempore": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "tibi": [
+    0.5,
+    false,
+    0.0
+   ],
+   "uisio": [
+    0.8,
+    true,
+    0.0
+   ],
+   "utilis": [
+    0.5,
+    false,
+    0.0
+   ],
+   "ť": [
+    0.0,
+    true,
+    0.5
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "latin-apocalypse:glmocr": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   },
+   "middle_french": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   },
+   "old_french": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   }
+  },
+  "cross_pass": 0.0103,
+  "entropy": 3.238901,
+  "leading": 0.0,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.0,
+  "seam_default": 0.0,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.023333,
+  "stability_vs_reference": 0.0,
+  "token_stats": {
+   "mean": 3.667,
+   "stddev": 1.247,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.333
+  },
+  "tokens": {
+   "21.9": [
+    0.0,
+    true,
+    0.3
+   ],
+   "71": [
+    0.0,
+    true,
+    0.3
+   ],
+   "apoc.": [
+    0.5,
+    false,
+    0.2
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "latin-apocalypse:kraken_catmus": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.006,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 2.9333,
+     "trigrams": 186
+    },
+    "gibberish": 0.0176,
+    "has_profile": true,
+    "implausibility": 0.0333
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 2.9333,
+     "trigrams": 186
+    },
+    "gibberish": 0.0176,
+    "has_profile": true,
+    "implausibility": 0.0333
+   },
+   "old_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 2.9333,
+     "trigrams": 186
+    },
+    "gibberish": 0.0176,
+    "has_profile": true,
+    "implausibility": 0.0333
+   }
+  },
+  "cross_pass": 0.513,
+  "entropy": 4.207347,
+  "leading": 0.055556,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.090909,
+  "seam_default": 0.055556,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.79,
+  "stability_vs_reference": 0.205882,
+  "token_stats": {
+   "mean": 4.735,
+   "stddev": 2.227,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.147
+  },
+  "tokens": {
+   ":": [
+    0.0,
+    true,
+    0.5
+   ],
+   "R": [
+    0.0,
+    true,
+    0.5
+   ],
+   "Re": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Rosten": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "agni.": [
+    0.5,
+    false,
+    0.2
+   ],
+   "altm": [
+    0.25,
+    false,
+    0.0
+   ],
+   "aposto": [
+    0.5,
+    false,
+    0.0
+   ],
+   "cem": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "cindratan": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "claritatem": [
+    0.4,
+    false,
+    0.0
+   ],
+   "geliste": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "hye": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "inspu": [
+    0.4,
+    false,
+    0.0
+   ],
+   "labente": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "lit": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "locutus": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "mihi": [
+    0.5,
+    false,
+    0.0
+   ],
+   "mẽcum": [
+    0.2,
+    false,
+    0.0
+   ],
+   "ndiebus": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "orlus": [
+    0.4,
+    false,
+    0.0
+   ],
+   "reuelatio.": [
+    0.666667,
+    false,
+    0.1
+   ],
+   "sponsam": [
+    0.285714,
+    false,
+    0.0
+   ],
+   "taidam": [
+    0.5,
+    false,
+    0.0
+   ],
+   "tem": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "uenit": [
+    0.6,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "latin-apocalypse:kraken_cremma_medieval": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0121,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 2.0488,
+     "trigrams": 155
+    },
+    "gibberish": 0.2192,
+    "has_profile": true,
+    "implausibility": 0.4756
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 2.0488,
+     "trigrams": 155
+    },
+    "gibberish": 0.2192,
+    "has_profile": true,
+    "implausibility": 0.4756
+   },
+   "old_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 2.0488,
+     "trigrams": 155
+    },
+    "gibberish": 0.2192,
+    "has_profile": true,
+    "implausibility": 0.4756
+   }
+  },
+  "cross_pass": 0.3005,
+  "entropy": 4.209173,
+  "leading": 0.166667,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.272727,
+  "seam_default": 0.166667,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.486667,
+  "stability_vs_reference": 0.046512,
+  "token_stats": {
+   "mean": 3.88,
+   "stddev": 2.131,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.301
+  },
+  "tokens": {
+   "In": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Re": [
+    0.5,
+    false,
+    0.0
+   ],
+   "br": [
+    0.0,
+    true,
+    0.3
+   ],
+   "cin": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "di": [
+    0.5,
+    false,
+    0.0
+   ],
+   "dit": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "eli": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "inmon": [
+    0.4,
+    false,
+    0.0
+   ],
+   "ius": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "jũi": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "kre": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "le": [
+    0.5,
+    false,
+    0.0
+   ],
+   "li": [
+    0.5,
+    false,
+    0.0
+   ],
+   "lifar": [
+    0.4,
+    false,
+    0.0
+   ],
+   "lo": [
+    0.5,
+    false,
+    0.0
+   ],
+   "ml": [
+    0.0,
+    true,
+    0.3
+   ],
+   "mr": [
+    0.0,
+    true,
+    0.3
+   ],
+   "ndir": [
+    0.25,
+    false,
+    0.0
+   ],
+   "nibi": [
+    0.5,
+    false,
+    0.0
+   ],
+   "nmile": [
+    0.4,
+    false,
+    0.0
+   ],
+   "re": [
+    0.5,
+    false,
+    0.0
+   ],
+   "tapions": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "tioid.t": [
+    0.5,
+    false,
+    0.142857
+   ],
+   "unuoi": [
+    0.8,
+    true,
+    0.0
+   ],
+   "⁊": [
+    0.0,
+    true,
+    0.5
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "latin-apocalypse:kraken_mccatmus": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0137,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 1.4545,
+     "trigrams": 180
+    },
+    "gibberish": 0.3536,
+    "has_profile": true,
+    "implausibility": 0.7728
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 1.4545,
+     "trigrams": 180
+    },
+    "gibberish": 0.3536,
+    "has_profile": true,
+    "implausibility": 0.7728
+   },
+   "old_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 1.4545,
+     "trigrams": 180
+    },
+    "gibberish": 0.3536,
+    "has_profile": true,
+    "implausibility": 0.7728
+   }
+  },
+  "cross_pass": 0.3142,
+  "entropy": 4.285856,
+  "leading": 0.166667,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.090909,
+  "seam_default": 0.166667,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.526667,
+  "stability_vs_reference": 0.035714,
+  "token_stats": {
+   "mean": 4.935,
+   "stddev": 2.488,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.177
+  },
+  "tokens": {
+   "&": [
+    0.0,
+    true,
+    0.5
+   ],
+   "&alcumn-": [
+    0.333333,
+    false,
+    0.25
+   ],
+   "Cumtu": [
+    0.4,
+    false,
+    0.0
+   ],
+   "Err": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "Unu": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "agmi.": [
+    0.5,
+    false,
+    0.2
+   ],
+   "alen": [
+    0.5,
+    false,
+    0.0
+   ],
+   "brsu": [
+    0.25,
+    false,
+    0.0
+   ],
+   "cin": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "clarrartin": [
+    0.3,
+    false,
+    0.0
+   ],
+   "cn": [
+    0.0,
+    true,
+    0.3
+   ],
+   "curta": [
+    0.4,
+    false,
+    0.0
+   ],
+   "drcarlo.": [
+    0.285714,
+    false,
+    0.125
+   ],
+   "grlsfer": [
+    0.142857,
+    true,
+    0.5
+   ],
+   "inypu": [
+    0.6,
+    false,
+    0.0
+   ],
+   "le": [
+    0.5,
+    false,
+    0.0
+   ],
+   "locurus": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "lus": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "m": [
+    0.0,
+    true,
+    0.5
+   ],
+   "mnecum": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "ndirbur": [
+    0.285714,
+    false,
+    0.0
+   ],
+   "ot": [
+    0.5,
+    false,
+    0.0
+   ],
+   "rcam": [
+    0.25,
+    false,
+    0.0
+   ],
+   "re": [
+    0.5,
+    false,
+    0.0
+   ],
+   "ubisponsam": [
+    0.4,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.055556,
+  "uncertainty": 0.0
+ },
+ "latin-apocalypse:reference": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0067,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.3028,
+     "trigrams": 199
+    },
+    "gibberish": 0.0029,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.3028,
+     "trigrams": 199
+    },
+    "gibberish": 0.0029,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.3028,
+     "trigrams": 199
+    },
+    "gibberish": 0.0029,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 1.0,
+  "entropy": 4.260265,
+  "leading": 0.0,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.0,
+  "seam_default": 0.0,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 1.0,
+  "stability_vs_reference": 1.0,
+  "token_stats": {
+   "mean": 5.175,
+   "stddev": 2.688,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.175
+  },
+  "tokens": {
+   "&": [
+    0.0,
+    true,
+    0.5
+   ],
+   "In": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Ueni": [
+    0.75,
+    false,
+    0.0
+   ],
+   "agni:": [
+    0.5,
+    false,
+    0.2
+   ],
+   "angelus": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "apostoli": [
+    0.5,
+    false,
+    0.0
+   ],
+   "de": [
+    0.5,
+    false,
+    0.0
+   ],
+   "dĩ;": [
+    0.0,
+    true,
+    0.6
+   ],
+   "eius": [
+    0.75,
+    false,
+    0.0
+   ],
+   "euangelistæ": [
+    0.545455,
+    false,
+    0.0
+   ],
+   "habentem": [
+    0.375,
+    false,
+    0.0
+   ],
+   "hyerusalem": [
+    0.5,
+    false,
+    0.0
+   ],
+   "illis.": [
+    0.4,
+    false,
+    0.166667
+   ],
+   "locutus": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "me": [
+    0.5,
+    false,
+    0.0
+   ],
+   "mecum": [
+    0.4,
+    false,
+    0.0
+   ],
+   "mihi": [
+    0.5,
+    false,
+    0.0
+   ],
+   "reuelatio.": [
+    0.666667,
+    false,
+    0.1
+   ],
+   "sponsam": [
+    0.285714,
+    false,
+    0.0
+   ],
+   "sp̃u": [
+    0.333333,
+    false,
+    0.25
+   ],
+   "sustu": [
+    0.4,
+    false,
+    0.0
+   ],
+   "tem": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "tendam": [
+    0.333333,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "middle-french-antitus:glmocr": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.2786,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "french",
+     "ratio": 5.6749,
+     "trigrams": 1898
+    },
+    "gibberish": 0.1857,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 5.6749,
+     "trigrams": 1898
+    },
+    "gibberish": 0.1857,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 5.6749,
+     "trigrams": 1898
+    },
+    "gibberish": 0.1857,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 0.1332,
+  "entropy": 4.179188,
+  "leading": 0.0,
+  "rare_bigrams": 0.0,
+  "repetition": 0.9286,
+  "script": "latin",
+  "seam": 0.0,
+  "seam_default": 0.0,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.573333,
+  "stability_vs_reference": 0.2,
+  "token_stats": {
+   "mean": 5.496,
+   "stddev": 3.006,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.201
+  },
+  "tokens": {
+   "&": [
+    0.0,
+    true,
+    0.5
+   ],
+   "Anne": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Antius": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Approchant": [
+    0.3,
+    false,
+    0.0
+   ],
+   "La": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Scor": [
+    0.25,
+    false,
+    0.0
+   ],
+   "Tresseauand": [
+    0.454545,
+    false,
+    0.0
+   ],
+   "ans.": [
+    0.333333,
+    false,
+    0.25
+   ],
+   "auchque": [
+    0.571429,
+    false,
+    0.0
+   ],
+   "chapellain": [
+    0.4,
+    false,
+    0.0
+   ],
+   "considrat": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "diacu": [
+    0.6,
+    false,
+    0.0
+   ],
+   "die": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "en": [
+    0.5,
+    false,
+    0.0
+   ],
+   "et": [
+    0.5,
+    false,
+    0.0
+   ],
+   "granaufes": [
+    0.444444,
+    false,
+    0.0
+   ],
+   "humble": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "inuentions": [
+    0.5,
+    false,
+    0.0
+   ],
+   "lan": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "lausanne.": [
+    0.5,
+    false,
+    0.111111
+   ],
+   "meger.": [
+    0.4,
+    false,
+    0.166667
+   ],
+   "monfalcon": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "que": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "satyze": [
+    0.5,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "middle-french-antitus:kraken_catmus": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   },
+   "middle_french": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   },
+   "old_french": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   }
+  },
+  "cross_pass": 0.7587,
+  "entropy": 4.153011,
+  "leading": 0.0,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.0,
+  "seam_default": 0.0,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.955285,
+  "stability_vs_reference": 0.55814,
+  "token_stats": {
+   "mean": 5.622,
+   "stddev": 3.14,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.243
+  },
+  "tokens": {
+   "A": [
+    1.0,
+    true,
+    0.5
+   ],
+   "Antitus": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "Approchant": [
+    0.3,
+    false,
+    0.0
+   ],
+   "La": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Tresreucrend": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "chappellai": [
+    0.4,
+    false,
+    0.0
+   ],
+   "de": [
+    0.5,
+    false,
+    0.0
+   ],
+   "dicu": [
+    0.5,
+    false,
+    0.0
+   ],
+   "en": [
+    0.5,
+    false,
+    0.0
+   ],
+   "et": [
+    0.5,
+    false,
+    0.0
+   ],
+   "euesque": [
+    0.714286,
+    false,
+    0.0
+   ],
+   "humble": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "lan": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "lausanne.": [
+    0.5,
+    false,
+    0.111111
+   ],
+   "me": [
+    0.5,
+    false,
+    0.0
+   ],
+   "megere.": [
+    0.5,
+    false,
+    0.142857
+   ],
+   "monfalcon": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "pere": [
+    0.5,
+    false,
+    0.0
+   ],
+   "prince": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "satyre": [
+    0.5,
+    false,
+    0.0
+   ],
+   "scruiteur.": [
+    0.444444,
+    false,
+    0.1
+   ],
+   "tres": [
+    0.25,
+    false,
+    0.0
+   ],
+   "ur̃e": [
+    0.666667,
+    false,
+    0.25
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "middle-french-antitus:kraken_cremma_medieval": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   },
+   "middle_french": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   },
+   "old_french": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   }
+  },
+  "cross_pass": 0.4804,
+  "entropy": 4.218643,
+  "leading": 0.0,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.0,
+  "seam_default": 0.0,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.800813,
+  "stability_vs_reference": 0.152542,
+  "token_stats": {
+   "mean": 5.459,
+   "stddev": 3.01,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.216
+  },
+  "tokens": {
+   ".": [
+    0.0,
+    true,
+    0.5
+   ],
+   "Ame": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "Aprochant": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "De": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Untitis": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "a": [
+    1.0,
+    true,
+    0.5
+   ],
+   "chappessain": [
+    0.363636,
+    false,
+    0.0
+   ],
+   "ct": [
+    0.0,
+    true,
+    0.3
+   ],
+   "cucsquc": [
+    0.285714,
+    false,
+    0.0
+   ],
+   "dicu": [
+    0.5,
+    false,
+    0.0
+   ],
+   "en": [
+    0.5,
+    false,
+    0.0
+   ],
+   "humblc": [
+    0.166667,
+    false,
+    0.3
+   ],
+   "lausanne.": [
+    0.5,
+    false,
+    0.111111
+   ],
+   "megtre.": [
+    0.333333,
+    false,
+    0.142857
+   ],
+   "pere": [
+    0.5,
+    false,
+    0.0
+   ],
+   "princc": [
+    0.166667,
+    false,
+    0.15
+   ],
+   "resrcucrend": [
+    0.272727,
+    false,
+    0.0
+   ],
+   "samyre": [
+    0.5,
+    false,
+    0.0
+   ],
+   "san": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "seruitur": [
+    0.5,
+    false,
+    0.0
+   ],
+   "st": [
+    0.0,
+    true,
+    0.3
+   ],
+   "tres": [
+    0.25,
+    false,
+    0.0
+   ],
+   "urẽ": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "ylonfiscon": [
+    0.4,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "middle-french-antitus:kraken_mccatmus": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   },
+   "middle_french": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   },
+   "old_french": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   }
+  },
+  "cross_pass": 0.3328,
+  "entropy": 4.137136,
+  "leading": 0.0,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.2,
+  "seam_default": 0.142857,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.597561,
+  "stability_vs_reference": 0.065574,
+  "token_stats": {
+   "mean": 5.824,
+   "stddev": 3.434,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.206
+  },
+  "tokens": {
+   "&": [
+    0.0,
+    true,
+    0.5
+   ],
+   "Ae": [
+    1.0,
+    true,
+    0.2
+   ],
+   "Annuis": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Apreesunt": [
+    0.444444,
+    false,
+    0.0
+   ],
+   "Et": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Gumbse": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "La": [
+    0.5,
+    false,
+    0.0
+   ],
+   "aresreucrond,": [
+    0.416667,
+    false,
+    0.076923
+   ],
+   "brc": [
+    0.0,
+    true,
+    0.3
+   ],
+   "dicu": [
+    0.5,
+    false,
+    0.0
+   ],
+   "dme": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "e": [
+    1.0,
+    true,
+    0.5
+   ],
+   "empessuin": [
+    0.444444,
+    false,
+    0.0
+   ],
+   "et": [
+    0.5,
+    false,
+    0.0
+   ],
+   "fouutuir.": [
+    0.625,
+    false,
+    0.111111
+   ],
+   "ineque,-=-": [
+    0.666667,
+    false,
+    0.3
+   ],
+   "monfuscon": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "nesqur": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "pert": [
+    0.25,
+    false,
+    0.0
+   ],
+   "prina": [
+    0.4,
+    false,
+    0.0
+   ],
+   "san": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "sausannc.": [
+    0.375,
+    false,
+    0.111111
+   ],
+   "sutiic": [
+    0.5,
+    false,
+    0.0
+   ],
+   "tres": [
+    0.25,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.142857,
+  "uncertainty": 0.0
+ },
+ "middle-french-antitus:reference": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   },
+   "middle_french": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   },
+   "old_french": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": true,
+    "implausibility": null
+   }
+  },
+  "cross_pass": 1.0,
+  "entropy": 4.165679,
+  "leading": 0.0,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.0,
+  "seam_default": 0.0,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 1.0,
+  "stability_vs_reference": 1.0,
+  "token_stats": {
+   "mean": 5.833,
+   "stddev": 3.078,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.194
+  },
+  "tokens": {
+   "Ame": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "Antitus": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "Approchant": [
+    0.3,
+    false,
+    0.0
+   ],
+   "La": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Tresreuerend": [
+    0.416667,
+    false,
+    0.0
+   ],
+   "chappellain": [
+    0.363636,
+    false,
+    0.0
+   ],
+   "de": [
+    0.5,
+    false,
+    0.0
+   ],
+   "dieu": [
+    0.75,
+    false,
+    0.0
+   ],
+   "en": [
+    0.5,
+    false,
+    0.0
+   ],
+   "et": [
+    0.5,
+    false,
+    0.0
+   ],
+   "euesque": [
+    0.714286,
+    false,
+    0.0
+   ],
+   "humble": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "lan": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "lausanne.": [
+    0.5,
+    false,
+    0.111111
+   ],
+   "megere.": [
+    0.5,
+    false,
+    0.142857
+   ],
+   "monfalcon": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "pere": [
+    0.5,
+    false,
+    0.0
+   ],
+   "prince": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "satyre": [
+    0.5,
+    false,
+    0.0
+   ],
+   "seruiteur.": [
+    0.555556,
+    false,
+    0.1
+   ],
+   "tres": [
+    0.25,
+    false,
+    0.0
+   ],
+   "vr̃e": [
+    0.333333,
+    false,
+    0.25
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "old-french-verse:kraken_catmus": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0173,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 4.4167,
+     "trigrams": 819
+    },
+    "gibberish": 0.0074,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 4.4167,
+     "trigrams": 819
+    },
+    "gibberish": 0.0074,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 4.4167,
+     "trigrams": 819
+    },
+    "gibberish": 0.0074,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 0.7224,
+  "entropy": 4.32151,
+  "leading": 0.028571,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.04878,
+  "seam_default": 0.028571,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.923333,
+  "stability_vs_reference": 0.514793,
+  "token_stats": {
+   "mean": 3.841,
+   "stddev": 2.376,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.355
+  },
+  "tokens": {
+   "age": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "amie": [
+    0.75,
+    false,
+    0.0
+   ],
+   "arcadigas": [
+    0.444444,
+    false,
+    0.0
+   ],
+   "aĩment": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "cors": [
+    0.25,
+    false,
+    0.0
+   ],
+   "dauoir": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "enor": [
+    0.5,
+    false,
+    0.0
+   ],
+   "ens̃a": [
+    0.5,
+    false,
+    0.2
+   ],
+   "franz": [
+    0.2,
+    false,
+    0.0
+   ],
+   "gent": [
+    0.25,
+    false,
+    0.0
+   ],
+   "honorer": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "li": [
+    0.5,
+    false,
+    0.0
+   ],
+   "lignage": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "luui": [
+    0.75,
+    false,
+    0.0
+   ],
+   "mͣrtadigas": [
+    0.333333,
+    false,
+    0.1
+   ],
+   "ne": [
+    0.5,
+    false,
+    0.0
+   ],
+   "par": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "pas": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "redist": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "requerre": [
+    0.5,
+    false,
+    0.0
+   ],
+   "sagez": [
+    0.4,
+    false,
+    0.0
+   ],
+   "son": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "uilain": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "uilanie": [
+    0.714286,
+    false,
+    0.0
+   ],
+   "ule": [
+    0.666667,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "old-french-verse:kraken_cremma_medieval": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0137,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 4.2469,
+     "trigrams": 817
+    },
+    "gibberish": 0.0059,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 4.2469,
+     "trigrams": 817
+    },
+    "gibberish": 0.0059,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 4.2469,
+     "trigrams": 817
+    },
+    "gibberish": 0.0059,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 0.6234,
+  "entropy": 4.300317,
+  "leading": 0.085714,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.02439,
+  "seam_default": 0.085714,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.876667,
+  "stability_vs_reference": 0.360313,
+  "token_stats": {
+   "mean": 3.892,
+   "stddev": 2.429,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.357
+  },
+  "tokens": {
+   ".": [
+    0.0,
+    true,
+    0.5
+   ],
+   "A": [
+    1.0,
+    true,
+    0.5
+   ],
+   "D": [
+    0.0,
+    true,
+    0.5
+   ],
+   "N": [
+    0.0,
+    true,
+    0.5
+   ],
+   "Q": [
+    0.0,
+    true,
+    0.5
+   ],
+   "a": [
+    1.0,
+    true,
+    0.5
+   ],
+   "age": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "amie": [
+    0.75,
+    false,
+    0.0
+   ],
+   "auint": [
+    0.6,
+    false,
+    0.0
+   ],
+   "coite": [
+    0.6,
+    false,
+    0.0
+   ],
+   "de": [
+    0.5,
+    false,
+    0.0
+   ],
+   "fist": [
+    0.25,
+    false,
+    0.0
+   ],
+   "gentilz": [
+    0.285714,
+    false,
+    0.0
+   ],
+   "hom": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "iul": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "loiaux": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "metre": [
+    0.4,
+    false,
+    0.0
+   ],
+   "ouu̾r": [
+    0.75,
+    false,
+    0.2
+   ],
+   "puiz": [
+    0.5,
+    false,
+    0.0
+   ],
+   "redist": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "toz": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "⁊cortoiz": [
+    0.428571,
+    false,
+    0.125
+   ],
+   "ꝯ": [
+    0.0,
+    true,
+    0.5
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "old-french-verse:kraken_mccatmus": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.002,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 3.7986,
+     "trigrams": 805
+    },
+    "gibberish": 0.0009,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 3.7986,
+     "trigrams": 805
+    },
+    "gibberish": 0.0009,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 3.7986,
+     "trigrams": 805
+    },
+    "gibberish": 0.0009,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 0.3729,
+  "entropy": 4.220362,
+  "leading": 0.185714,
+  "rare_bigrams": 0.000908,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.146341,
+  "seam_default": 0.185714,
+  "set_apart_initial": true,
+  "similarity_vs_reference": 0.503333,
+  "stability_vs_reference": 0.096311,
+  "token_stats": {
+   "mean": 4.243,
+   "stddev": 2.578,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.306
+  },
+  "tokens": {
+   "Al": [
+    0.5,
+    false,
+    0.0
+   ],
+   "E": [
+    1.0,
+    true,
+    0.5
+   ],
+   "Honeur": [
+    0.5,
+    false,
+    0.0
+   ],
+   "I": [
+    1.0,
+    true,
+    0.5
+   ],
+   "J": [
+    0.0,
+    true,
+    0.5
+   ],
+   "e": [
+    1.0,
+    true,
+    0.5
+   ],
+   "empuist": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "estraite": [
+    0.5,
+    false,
+    0.0
+   ],
+   "et": [
+    0.5,
+    false,
+    0.0
+   ],
+   "glsgentib": [
+    0.222222,
+    false,
+    0.15
+   ],
+   "gus.": [
+    0.333333,
+    false,
+    0.25
+   ],
+   "honoerent": [
+    0.444444,
+    false,
+    0.0
+   ],
+   "jl": [
+    0.0,
+    true,
+    0.3
+   ],
+   "los": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "monu": [
+    0.5,
+    false,
+    0.0
+   ],
+   "onte": [
+    0.5,
+    false,
+    0.0
+   ],
+   "oz": [
+    0.5,
+    false,
+    0.0
+   ],
+   "ramorteaux": [
+    0.5,
+    false,
+    0.0
+   ],
+   "rmarcusigas,": [
+    0.363636,
+    false,
+    0.083333
+   ],
+   "rtels": [
+    0.2,
+    false,
+    0.0
+   ],
+   "ru": [
+    0.5,
+    false,
+    0.0
+   ],
+   "toortoy": [
+    0.571429,
+    false,
+    0.0
+   ],
+   "via": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "vilai": [
+    0.6,
+    false,
+    0.0
+   ],
+   "vilain": [
+    0.5,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.014286,
+  "uncertainty": 0.0
+ },
+ "old-french-verse:reference": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0218,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 4.7289,
+     "trigrams": 817
+    },
+    "gibberish": 0.0093,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 4.7289,
+     "trigrams": 817
+    },
+    "gibberish": 0.0093,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "old_french",
+     "ratio": 4.7289,
+     "trigrams": 817
+    },
+    "gibberish": 0.0093,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 1.0,
+  "entropy": 4.369625,
+  "leading": 0.014286,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.02439,
+  "seam_default": 0.014286,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 1.0,
+  "stability_vs_reference": 1.0,
+  "token_stats": {
+   "mean": 4.091,
+   "stddev": 2.266,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.289
+  },
+  "tokens": {
+   "Aient": [
+    0.6,
+    false,
+    0.0
+   ],
+   "Pou": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "Qr": [
+    0.0,
+    true,
+    0.3
+   ],
+   "Qͥ": [
+    0.0,
+    true,
+    0.6
+   ],
+   "Sage": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Vne": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "a": [
+    1.0,
+    true,
+    0.5
+   ],
+   "fuiroient": [
+    0.555556,
+    false,
+    0.0
+   ],
+   "gentil": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "hardiz": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "honeste": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "honorer": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "le": [
+    0.5,
+    false,
+    0.0
+   ],
+   "mͣrcadigas": [
+    0.333333,
+    false,
+    0.1
+   ],
+   "ni": [
+    0.5,
+    false,
+    0.0
+   ],
+   "par": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "puiz": [
+    0.5,
+    false,
+    0.0
+   ],
+   "sa": [
+    0.5,
+    false,
+    0.0
+   ],
+   "sentr̃merent": [
+    0.272727,
+    false,
+    0.083333
+   ],
+   "vaillans.": [
+    0.375,
+    false,
+    0.111111
+   ],
+   "vilain": [
+    0.5,
+    false,
+    0.0
+   ],
+   "⁊": [
+    0.0,
+    true,
+    0.5
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "old-french:glmocr": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.1414,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.5412,
+     "trigrams": 1791
+    },
+    "gibberish": 0.0942,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.5412,
+     "trigrams": 1791
+    },
+    "gibberish": 0.0942,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "latin",
+     "ratio": 3.5412,
+     "trigrams": 1791
+    },
+    "gibberish": 0.0942,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 0.226,
+  "entropy": 4.626636,
+  "leading": 0.009615,
+  "rare_bigrams": 0.0,
+  "repetition": 0.4712,
+  "script": "latin",
+  "seam": 0.032258,
+  "seam_default": 0.038462,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.63,
+  "stability_vs_reference": 0.227437,
+  "token_stats": {
+   "mean": 5.969,
+   "stddev": 4.064,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.263
+  },
+  "tokens": {
+   "/": [
+    0.0,
+    true,
+    0.5
+   ],
+   "404": [
+    0.0,
+    true,
+    0.3
+   ],
+   "870-1": [
+    0.0,
+    true,
+    0.3
+   ],
+   "Bibliothèque": [
+    0.5,
+    false,
+    0.0
+   ],
+   "Mazarine.": [
+    0.5,
+    false,
+    0.111111
+   ],
+   "Ms": [
+    0.0,
+    true,
+    0.3
+   ],
+   "Source": [
+    0.5,
+    false,
+    0.0
+   ],
+   "a": [
+    1.0,
+    true,
+    0.5
+   ],
+   "contre": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "denant.": [
+    0.333333,
+    false,
+    0.142857
+   ],
+   "gallica.bnf.fr": [
+    0.25,
+    false,
+    0.142857
+   ],
+   "la": [
+    0.5,
+    false,
+    0.0
+   ],
+   "mét": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "nô": [
+    0.5,
+    false,
+    0.0
+   ],
+   "perilleuse": [
+    0.5,
+    false,
+    0.0
+   ],
+   "tune": [
+    0.5,
+    false,
+    0.0
+   ],
+   "uores": [
+    0.6,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.019231,
+  "uncertainty": 0.0
+ },
+ "old-french:kraken_catmus": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0043,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "french",
+     "ratio": 4.4735,
+     "trigrams": 551
+    },
+    "gibberish": 0.0019,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 4.4735,
+     "trigrams": 551
+    },
+    "gibberish": 0.0019,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 4.4735,
+     "trigrams": 551
+    },
+    "gibberish": 0.0019,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 0.7545,
+  "entropy": 4.264279,
+  "leading": 0.037736,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.0625,
+  "seam_default": 0.056604,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.903333,
+  "stability_vs_reference": 0.573529,
+  "token_stats": {
+   "mean": 4.755,
+   "stddev": 2.813,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.241
+  },
+  "tokens": {
+   "Cest": [
+    0.25,
+    false,
+    0.0
+   ],
+   "ason": [
+    0.5,
+    false,
+    0.0
+   ],
+   "aucune": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "blaspheme": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "ce": [
+    0.5,
+    false,
+    0.0
+   ],
+   "crea": [
+    0.5,
+    false,
+    0.0
+   ],
+   "de": [
+    0.5,
+    false,
+    0.0
+   ],
+   "escient": [
+    0.428571,
+    false,
+    0.0
+   ],
+   "iour": [
+    0.75,
+    false,
+    0.0
+   ],
+   "li": [
+    0.5,
+    false,
+    0.0
+   ],
+   "mẽt": [
+    0.0,
+    true,
+    0.3
+   ],
+   "nuisse": [
+    0.5,
+    false,
+    0.0
+   ],
+   "nõ": [
+    0.5,
+    false,
+    0.0
+   ],
+   "pe": [
+    0.5,
+    false,
+    0.0
+   ],
+   "q̃": [
+    0.0,
+    true,
+    0.6
+   ],
+   "sa": [
+    0.5,
+    false,
+    0.0
+   ],
+   "sen": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "seus": [
+    0.5,
+    false,
+    0.0
+   ],
+   "⁊": [
+    0.0,
+    true,
+    0.5
+   ],
+   "⁊adelib̾acion.": [
+    0.545455,
+    false,
+    0.214286
+   ],
+   "⁊est": [
+    0.333333,
+    false,
+    0.25
+   ],
+   "⁊feras": [
+    0.4,
+    false,
+    0.166667
+   ],
+   "ꝑpfitableᷤ.": [
+    0.333333,
+    false,
+    0.181818
+   ],
+   "ꝯmãdem̃t.": [
+    0.285714,
+    false,
+    0.222222
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "old-french:kraken_cremma_medieval": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0068,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "french",
+     "ratio": 4.0166,
+     "trigrams": 533
+    },
+    "gibberish": 0.0029,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 4.0166,
+     "trigrams": 533
+    },
+    "gibberish": 0.0029,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 4.0166,
+     "trigrams": 533
+    },
+    "gibberish": 0.0029,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 0.6948,
+  "entropy": 4.266655,
+  "leading": 0.075472,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.09375,
+  "seam_default": 0.09434,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.826667,
+  "stability_vs_reference": 0.488479,
+  "token_stats": {
+   "mean": 4.99,
+   "stddev": 3.047,
+   "very_long_frac": 0.005,
+   "very_short_frac": 0.221
+  },
+  "tokens": {
+   "a": [
+    1.0,
+    true,
+    0.5
+   ],
+   "ason": [
+    0.5,
+    false,
+    0.0
+   ],
+   "auiour": [
+    0.833333,
+    true,
+    0.2
+   ],
+   "ce": [
+    0.5,
+    false,
+    0.0
+   ],
+   "ceꝯmãcdem̃t.": [
+    0.3,
+    false,
+    0.166667
+   ],
+   "cil": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "costu": [
+    0.4,
+    false,
+    0.0
+   ],
+   "cõciece": [
+    0.571429,
+    false,
+    0.0
+   ],
+   "est": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "iours.": [
+    0.6,
+    false,
+    0.166667
+   ],
+   "meslegierem̃t": [
+    0.416667,
+    false,
+    0.076923
+   ],
+   "miẽt": [
+    0.25,
+    false,
+    0.0
+   ],
+   "n": [
+    0.0,
+    true,
+    0.5
+   ],
+   "nr̃e": [
+    0.333333,
+    false,
+    0.25
+   ],
+   "ou": [
+    1.0,
+    true,
+    0.2
+   ],
+   "ouraignes": [
+    0.555556,
+    false,
+    0.0
+   ],
+   "pe": [
+    0.5,
+    false,
+    0.0
+   ],
+   "pes": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "piure": [
+    0.6,
+    false,
+    0.0
+   ],
+   "quilẽ": [
+    0.4,
+    false,
+    0.0
+   ],
+   "sa": [
+    0.5,
+    false,
+    0.0
+   ],
+   "seigneur.ou": [
+    0.6,
+    false,
+    0.090909
+   ],
+   "torner": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "⁊enclit": [
+    0.333333,
+    false,
+    0.142857
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ },
+ "old-french:kraken_mccatmus": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "french",
+     "ratio": 2.6786,
+     "trigrams": 541
+    },
+    "gibberish": 0.0723,
+    "has_profile": true,
+    "implausibility": 0.1607
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 2.6786,
+     "trigrams": 541
+    },
+    "gibberish": 0.0723,
+    "has_profile": true,
+    "implausibility": 0.1607
+   },
+   "old_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 2.6786,
+     "trigrams": 541
+    },
+    "gibberish": 0.0723,
+    "has_profile": true,
+    "implausibility": 0.1607
+   }
+  },
+  "cross_pass": 0.3848,
+  "entropy": 4.097164,
+  "leading": 0.037736,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.03125,
+  "seam_default": 0.056604,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 0.493333,
+  "stability_vs_reference": 0.111498,
+  "token_stats": {
+   "mean": 5.189,
+   "stddev": 2.764,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.154
+  },
+  "tokens": {
+   "Anite": [
+    0.6,
+    false,
+    0.0
+   ],
+   "En": [
+    0.5,
+    false,
+    0.0
+   ],
+   "ae": [
+    1.0,
+    true,
+    0.2
+   ],
+   "ant": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "buet": [
+    0.5,
+    false,
+    0.0
+   ],
+   "cai": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "ce": [
+    0.5,
+    false,
+    0.0
+   ],
+   "douvaiie": [
+    0.75,
+    false,
+    0.0
+   ],
+   "enes": [
+    0.5,
+    false,
+    0.0
+   ],
+   "le": [
+    0.5,
+    false,
+    0.0
+   ],
+   "mer": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "mie": [
+    0.666667,
+    false,
+    0.0
+   ],
+   "muste": [
+    0.4,
+    false,
+    0.0
+   ],
+   "oeturs": [
+    0.5,
+    false,
+    0.0
+   ],
+   "plir": [
+    0.25,
+    false,
+    0.0
+   ],
+   "se": [
+    0.5,
+    false,
+    0.0
+   ],
+   "seigneur": [
+    0.5,
+    false,
+    0.0
+   ],
+   "soutmeun": [
+    0.5,
+    false,
+    0.0
+   ],
+   "ters": [
+    0.25,
+    false,
+    0.0
+   ],
+   "tes": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "tex-Gantqt": [
+    0.222222,
+    false,
+    0.25
+   ],
+   "tune": [
+    0.5,
+    false,
+    0.0
+   ],
+   "ueru": [
+    0.75,
+    false,
+    0.0
+   ],
+   "uoir": [
+    0.75,
+    false,
+    0.0
+   ]
+  },
+  "trailing": 0.018868,
+  "uncertainty": 0.0
+ },
+ "old-french:reference": {
+  "by_language": {
+   "None": {
+    "contrast": null,
+    "gibberish": 0.0061,
+    "has_profile": false,
+    "implausibility": null
+   },
+   "latin": {
+    "contrast": {
+     "language": "french",
+     "ratio": 4.5344,
+     "trigrams": 531
+    },
+    "gibberish": 0.0026,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "middle_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 4.5344,
+     "trigrams": 531
+    },
+    "gibberish": 0.0026,
+    "has_profile": true,
+    "implausibility": 0.0
+   },
+   "old_french": {
+    "contrast": {
+     "language": "french",
+     "ratio": 4.5344,
+     "trigrams": 531
+    },
+    "gibberish": 0.0026,
+    "has_profile": true,
+    "implausibility": 0.0
+   }
+  },
+  "cross_pass": 1.0,
+  "entropy": 4.243721,
+  "leading": 0.038462,
+  "rare_bigrams": 0.0,
+  "repetition": 0.0,
+  "script": "latin",
+  "seam": 0.0625,
+  "seam_default": 0.057692,
+  "set_apart_initial": false,
+  "similarity_vs_reference": 1.0,
+  "stability_vs_reference": 1.0,
+  "token_stats": {
+   "mean": 4.044,
+   "stddev": 2.51,
+   "very_long_frac": 0.0,
+   "very_short_frac": 0.313
+  },
+  "tokens": {
+   "a": [
+    1.0,
+    true,
+    0.5
+   ],
+   "apenseement": [
+    0.454545,
+    false,
+    0.0
+   ],
+   "costu": [
+    0.4,
+    false,
+    0.0
+   ],
+   "crea": [
+    0.5,
+    false,
+    0.0
+   ],
+   "cõciẽce.": [
+    0.428571,
+    false,
+    0.125
+   ],
+   "escuser.": [
+    0.428571,
+    false,
+    0.125
+   ],
+   "faire": [
+    0.6,
+    false,
+    0.0
+   ],
+   "iure": [
+    0.75,
+    false,
+    0.0
+   ],
+   "legierem̃t": [
+    0.444444,
+    false,
+    0.1
+   ],
+   "li.": [
+    0.5,
+    false,
+    0.3
+   ],
+   "medi": [
+    0.5,
+    false,
+    0.0
+   ],
+   "mortieumẽt": [
+    0.4,
+    false,
+    0.0
+   ],
+   "mẽt": [
+    0.0,
+    true,
+    0.3
+   ],
+   "ou": [
+    1.0,
+    true,
+    0.2
+   ],
+   "pechie": [
+    0.5,
+    false,
+    0.0
+   ],
+   "por": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "pour": [
+    0.5,
+    false,
+    0.0
+   ],
+   "q̃": [
+    0.0,
+    true,
+    0.6
+   ],
+   "qͥ": [
+    0.0,
+    true,
+    0.6
+   ],
+   "seigneur": [
+    0.5,
+    false,
+    0.0
+   ],
+   "son": [
+    0.333333,
+    false,
+    0.0
+   ],
+   "⁊": [
+    0.0,
+    true,
+    0.5
+   ],
+   "ꝑfitableᷤ.": [
+    0.375,
+    false,
+    0.2
+   ],
+   "ꝯmãdem̃t.": [
+    0.285714,
+    false,
+    0.222222
+   ]
+  },
+  "trailing": 0.0,
+  "uncertainty": 0.0
+ }
+}
