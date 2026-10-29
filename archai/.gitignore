@@ -32,8 +32,9 @@ __pycache__/
 .DS_Store
 ._*
 
-# Images and spreadsheets: page scans and exports. This also hides frontend
-# assets and image fixtures; see AUDIT_FINDINGS.md HYG-16.
+# Images and spreadsheets: page scans and exports, which are not committed -
+# except the frontend's static assets and the backend's test fixtures, which
+# a clone needs (AUDIT_FINDINGS.md HYG-16).
 *.png
 *.jpg
 *.jpeg
@@ -42,3 +43,5 @@ __pycache__/
 *.tiff
 *.xlsx
 *.xls
+!frontend/public/**
+!backend/tests/fixtures/**

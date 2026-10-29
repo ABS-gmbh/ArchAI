@@ -906,7 +906,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** `docker compose -f archai/docker/docker-compose.yml up` fails with a parse error on an empty file. A reader consulting the repository map — the document README.md:28 points to as the authoritative structure guide — is told two paths are Active that contain nothing at all.
 - **Fix:** Either write the compose file and Dockerfiles or delete archai/docker/, and correct the rows at docs/repository_map.md:42 and :44 to "Not implemented". Same for the archai/data row given archai/.gitignore:2.
 
-### [HYG-16] Blanket *.png/*.jpg ignore across the whole vendored subtree silently drops frontend assets and image fixtures
+### [HYG-16] Blanket *.png/*.jpg ignore across the whole vendored subtree silently drops frontend assets and image fixtures — **FIXED** (negations for frontend/public and backend/tests/fixtures)
 
 - **Where:** `archai/vendor/layout/.gitignore:34`  
 - **Category:** hygiene  
