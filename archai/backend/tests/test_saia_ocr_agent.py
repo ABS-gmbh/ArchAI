@@ -243,8 +243,8 @@ def test_extract_auto_resizes_image_before_call(monkeypatch: Any) -> None:
         models=["internvl3.5-30b-a3b"],
         responses_by_model={"internvl3.5-30b-a3b": [_valid_json("Linea una")]},
     )
-    monkeypatch.setattr("app.agents.saia_ocr_agent.SAIA_OCR_MAX_PIXELS", 50)
-    monkeypatch.setattr("app.agents.saia_ocr_agent.SAIA_OCR_MAX_LONG_EDGE", 20)
+    monkeypatch.setattr("app.services.ocr_image_prep.SAIA_OCR_MAX_PIXELS", 50)
+    monkeypatch.setattr("app.services.ocr_image_prep.SAIA_OCR_MAX_LONG_EDGE", 20)
 
     original = _png_b64(30, 30)
     agent = SaiaOCRAgent(client=fake, model_prefs=["internvl3.5-30b-a3b"])

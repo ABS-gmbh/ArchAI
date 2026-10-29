@@ -1442,7 +1442,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
         # NO-OP guard: if text_sha256 or tile_boxes identical, switch strategy
         # If gates pass → proceed to downstream. If fail → retry or stop.
         # ══════════════════════════════════════════════════════════════
-        from app.agents.saia_ocr_agent import (
+        from app.services.ocr_sanity import (
             compute_sanity, _quality_label_from_sanity,
             quality_gate_enforce, sanity_adjust_confidence,
             force_uncertainty_markers, format_sanity_summary,
