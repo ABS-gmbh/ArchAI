@@ -11,6 +11,7 @@ if str(_backend_src.parent) not in sys.path:
     sys.path.insert(0, str(_backend_src.parent))
 
 from app.agents import ocr_agent  # type: ignore[import-untyped]
+from app.agents import ocr_text_parsing  # type: ignore[import-untyped]
 from app.schemas.agents_ocr import (  # type: ignore[import-untyped]
     OCRExtractOptions,
     OCRExtractRequest,
@@ -72,10 +73,10 @@ def test_choose_models_prefers_declared_order() -> None:
 
 
 def test_sanitize_ocr_text_strips_json_and_code_fences() -> None:
-    assert ocr_agent.sanitize_ocr_text('```json\n{"text":"Linea prima\\nLinea secunda"}\n```') == (
+    assert ocr_text_parsing.sanitize_ocr_text('```json\n{"text":"Linea prima\\nLinea secunda"}\n```') == (
         "Linea prima\nLinea secunda"
     )
-    assert ocr_agent.sanitize_ocr_text('"Linea tertia"') == "Linea tertia"
+    assert ocr_text_parsing.sanitize_ocr_text('"Linea tertia"') == "Linea tertia"
 
 
 def test_ocr_user_prompt_declares_schema_and_reading_order_rules() -> None:

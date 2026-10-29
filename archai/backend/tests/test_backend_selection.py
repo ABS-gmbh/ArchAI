@@ -24,7 +24,7 @@ import random
 
 import pytest
 
-from app.agents.ocr_agent import _region_quality_value, best_fit_language
+from app.agents.ocr_text_parsing import _region_quality_value, best_fit_language
 
 CLEAN_LATIN = (
     "Igitur in nomine domini nostri Iesu Christi incipit liber de vita "
