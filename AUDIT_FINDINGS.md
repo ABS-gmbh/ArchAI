@@ -178,7 +178,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** A page with 50 person mentions × up to 3-4 query variants (`_build_query_variants`, authority_linking.py:1225-1290) = ~150 AutoSuggest calls, each spawning 5 record fetches = ~900 uncached VIAF requests per run. `as_completed` at authority_linking.py:442 has no timeout and the `with ThreadPoolExecutor` block joins on exit, so one slow VIAF query variant blocks for 10s (AutoSuggest) + 5×10s (records) = 60s; 150 variants worst-case = 2.5 hours. The same surface repeated on a page is re-fetched every time. And per AL-02, none of these candidates can ever be selected.
 - **Fix:** (1) Route VIAF/GeoNames through the same SQLite cache as Wikidata — reuse `cache_get`/`cache_put` with source keys 'viaf'/'geonames' and a per-VIAF-id key for `_fetch_viaf_record`. (2) Add a `_MAX_VIAF_CALLS_PER_RUN` / `_MAX_GEONAMES_CALLS_PER_RUN` budget and check it at authority_linking.py:437-440 before submitting. (3) Fix authority_linking.py:1695 to break for person/work/place too once all source budgets are exhausted. (4) Pass a `timeout=` to `as_completed` at authority_linking.py:442. (5) Delete `_fetch_viaf_profile` (authority_linking.py:61) and reuse the aliases already attached by `search_viaf`.
 
-### [AL-06] rescore_with_canonical clamps scores to fixed constants, so two good candidates always collide at zero margin and are reported 'ambiguous'
+### [AL-06] rescore_with_canonical clamps scores to fixed constants, so two good candidates always collide at zero margin and are reported 'ambiguous' — **FIXED**
 
 - **Where:** `vendor:app/services/entity_scoring.py:298`  
 - **Category:** correctness  

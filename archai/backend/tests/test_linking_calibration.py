@@ -200,3 +200,41 @@ def test_a_reject_keyword_as_a_word_is_still_rejected(description: str) -> None:
     from app.services.authority_scoring import _prefilter_candidates
 
     assert _prefilter_candidates([{"qid": "Q1", "label": "Arthur", "description": description}], "Arthur", "person") == []
+
+
+# ── the canonical boost keeps the candidates' margin (audit AL-06) ──────
+
+
+def _lancelots(first: float, second: float) -> list[dict]:
+    return [
+        {"qid": "Q215681", "label": "Lancelot", "description": "knight of the Round Table", "score": first, "type_compatible": True, "string_similarity": 1.0},
+        {"qid": "Q2", "label": "Lancelot", "description": "legendary character in a novel", "score": second, "type_compatible": True, "string_similarity": 1.0},
+    ]
+
+
+def test_the_better_of_two_canonical_matches_is_linked() -> None:
+    from app.services.entity_scoring import disambiguate, rescore_with_canonical
+
+    result = disambiguate(rescore_with_canonical(_lancelots(0.70, 0.45), "lancelot"))
+    assert result["status"] == "linked"
+    assert result["selected"]["qid"] == "Q215681"
+
+
+def test_two_close_canonical_matches_stay_ambiguous() -> None:
+    from app.services.entity_scoring import disambiguate, rescore_with_canonical
+
+    assert disambiguate(rescore_with_canonical(_lancelots(0.70, 0.66), "lancelot"))["status"] == "ambiguous"
+
+
+def test_a_lone_canonical_match_still_reaches_its_floor() -> None:
+    from app.services.entity_scoring import rescore_with_canonical
+
+    (cand,) = rescore_with_canonical(_lancelots(0.40, 0.0)[:1], "lancelot")
+    assert cand["score"] == pytest.approx(0.92)
+
+
+def test_a_name_entity_is_still_pushed_down() -> None:
+    from app.services.entity_scoring import rescore_with_canonical
+
+    (cand,) = rescore_with_canonical([{"label": "Lancelot", "description": "given name", "score": 0.9, "type_compatible": True}], "lancelot")
+    assert cand["score"] <= 0.10 and not cand["type_compatible"]
