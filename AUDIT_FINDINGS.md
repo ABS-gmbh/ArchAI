@@ -502,7 +502,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** Anyone with read access to the repository can POST admin/layout2024 to /api/analytics/login, or skip login entirely and forge an HS256 token with sub=admin signed by the known literal, and then GET /api/analytics/data. There is no startup check that these were changed, so a deployment fails open silently.
 - **Fix:** Make jwt_secret and analytics_password required with no default (pydantic `Field(...)`) so Settings() raises at startup when unset, and add a pydantic validator that refuses the literal "change-this-to-a-random-string". Replace the `==` password comparison at analytics.py:41 with `secrets.compare_digest` against a hash.
 
-### [AN-02] analytics_db_path points at a file that does not exist, so the dashboard silently creates an empty DB and always reports zero
+### [AN-02] analytics_db_path points at a file that does not exist, so the dashboard silently creates an empty DB and always reports zero — **FIXED** (opened read-only; a missing or unreadable DB is reported as an error)
 
 - **Where:** `vendor:app/config.py:18`  
 - **Category:** correctness  

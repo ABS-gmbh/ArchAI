@@ -1,19 +1,30 @@
 """SQLite analytics queries."""
 
+import logging
+import os
 import sqlite3
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple
+from pathlib import Path
 
 from app.config import settings
+
+_LOGGER = logging.getLogger(__name__)
+
+_EMPTY = {"summary": {}, "by_country": [], "by_day": [], "recent_visits": []}
 
 
 def get_analytics_data(days_filter: int = 30) -> dict:
     """Fetch analytics data from the SQLite database.
 
-    Returns a dict with keys: summary, by_country, by_day, recent_visits.
+    Returns a dict with keys: summary, by_country, by_day, recent_visits, and
+    "error" when there is nothing to read. The database is opened read-only: a
+    missing file used to be created empty, and the dashboard showed zeros with
+    no sign that it had no data (audit AN-02).
     """
+    if not os.path.exists(settings.analytics_db_path):
+        return {**_EMPTY, "error": f"Analytics database not found: {settings.analytics_db_path}"}
     try:
-        conn = sqlite3.connect(settings.analytics_db_path)
+        conn = sqlite3.connect(f"{Path(settings.analytics_db_path).resolve().as_uri()}?mode=ro", uri=True)
         conn.row_factory = sqlite3.Row
 
         if days_filter > 0:
@@ -94,10 +105,5 @@ def get_analytics_data(days_filter: int = 30) -> dict:
         }
 
     except Exception as e:
-        print(f"Analytics DB error: {e}")
-        return {
-            "summary": {},
-            "by_country": [],
-            "by_day": [],
-            "recent_visits": [],
-        }
+        _LOGGER.exception("Analytics DB error")
+        return {**_EMPTY, "error": f"Analytics database could not be read: {e}"}
