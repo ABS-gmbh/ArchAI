@@ -373,6 +373,21 @@ _MEDIEVAL_DOMAIN_KEYWORDS: set[str] = {
 # ── Disambiguation (precision-first v2, quality-adaptive v3) ─────────
 
 
+def _name_similarity(candidate: dict[str, Any]) -> float:
+    """The better of a candidate's label and best-alias similarity to the mention.
+
+    Read from its score breakdown; a candidate without one counts as 1.0, so
+    the gate does not apply to it.
+    """
+    breakdown = candidate.get("score_breakdown")
+    if not isinstance(breakdown, dict):
+        return 1.0
+    return max(
+        float(breakdown.get("label_similarity") or 0.0),
+        float(breakdown.get("alias_match_quality") or 0.0),
+    )
+
+
 def disambiguate(
     scored_candidates: list[dict[str, Any]],
     *,
@@ -385,10 +400,15 @@ def disambiguate(
     1. ``type_compatible`` must be ``True`` — type-incompatible candidates
        are never auto-selected.
     2. Score must be ≥ ``AUTO_SELECT_THRESHOLD`` for the given OCR quality.
-    3. String similarity must be ≥ ``MIN_STRING_SIMILARITY`` for the tier.
+    3. String similarity must be ≥ ``MIN_STRING_SIMILARITY`` for the tier:
+       the better of the label and best-alias similarity recorded in the
+       candidate's ``score_breakdown``. A candidate without a breakdown is
+       not gated.
     4. Margin over runner-up must be ≥ ``MIN_MARGIN``; otherwise
        the mention is marked *ambiguous*.
-    5. ``ent_type == "role"`` → never auto-link.
+    5. ``ent_type == "role"`` → never auto-link. Enforced by the caller:
+       run_authority_linking skips role mentions before searching, so they
+       never reach this function.
 
     Returns a dict with:
     - ``selected``: the best candidate dict (or None)
@@ -400,6 +420,7 @@ def disambiguate(
     thresholds = get_thresholds(ocr_quality)
     threshold = thresholds["AUTO_SELECT_THRESHOLD"]
     min_margin = thresholds["MIN_MARGIN"]
+    min_similarity = thresholds["MIN_STRING_SIMILARITY"]
 
     base_result = {
         "ocr_quality": ocr_quality,
@@ -425,9 +446,8 @@ def disambiguate(
     # top made the mention unresolvable even when a perfectly typed candidate sat
     # directly beneath it. Incompatible candidates are still never selectable -
     # they are simply removed from contention instead of poisoning it.
-    eligible = [c for c in ranked if c.get("type_compatible", True)]
-    rejected_for_type = len(ranked) - len(eligible)
-    if not eligible:
+    typed = [c for c in ranked if c.get("type_compatible", True)]
+    if not typed:
         top = ranked[0]
         return {
             **base_result,
@@ -436,6 +456,23 @@ def disambiguate(
             "reason": (
                 f"all {len(ranked)} candidate(s) type_incompatible "
                 f"(best score={float(top.get('score', 0.0)):.3f}, qid={top.get('qid', '?')})"
+            ),
+            "all": ranked,
+        }
+    # Gate 3 filters the same way. It was documented but never applied, so a
+    # candidate whose name barely resembled the mention could be linked on its
+    # type, source and context bonuses alone (audit AL-07).
+    eligible = [c for c in typed if _name_similarity(c) >= min_similarity]
+    if not eligible:
+        top = typed[0]
+        return {
+            **base_result,
+            "selected": None,
+            "status": "unresolved",
+            "reason": (
+                f"no type-compatible candidate's name similarity reaches {min_similarity} "
+                f"(best score={float(top.get('score', 0.0)):.3f}, qid={top.get('qid', '?')}, "
+                f"similarity={_name_similarity(top):.3f}) [ocr_quality={ocr_quality}]"
             ),
             "all": ranked,
         }
