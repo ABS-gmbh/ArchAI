@@ -592,6 +592,14 @@ def _run_curated_fixture_analysis(
     return chunk_rows, mention_rows, [], {"skipped_non_linkable": mention_rows, "rejected": [], "fixture_override": True}
 
 
+class PostOcrPipelineError(RuntimeError):
+    """The full-page post-OCR pipeline failed; its run is marked FAILED."""
+
+    def __init__(self, run_id: str, message: str) -> None:
+        super().__init__(message)
+        self.run_id = run_id
+
+
 def _run_full_page_post_ocr_pipeline(
     payload: SaiaFullPageExtractRequest,
     response: SaiaFullPageExtractResponse,
@@ -611,6 +619,32 @@ def _run_full_page_post_ocr_pipeline(
     )
     asset_sha256 = hashlib.sha256(image_bytes).hexdigest()
     run_id = create_run(asset_ref=asset_ref, asset_sha256=asset_sha256)
+    # A failure past this point used to leave the run mid-stage with no FAILED
+    # marker, and the router reported the request as complete (audit OCR-005).
+    try:
+        return _full_page_post_ocr_stages(
+            run_id, payload, response, image_bytes, text_value, asset_ref, ocr_backend=ocr_backend
+        )
+    except Exception as exc:
+        err = f"Post-OCR pipeline failed: {type(exc).__name__}: {exc}"
+        try:
+            update_run_fields(run_id, status="FAILED", current_stage="FAILED", error=err)
+            log_event(run_id, "FAILED", "ERROR", err)
+        except Exception:  # noqa: BLE001 - the original error is the one to report
+            pass
+        raise PostOcrPipelineError(run_id, err) from exc
+
+
+def _full_page_post_ocr_stages(
+    run_id: str,
+    payload: SaiaFullPageExtractRequest,
+    response: SaiaFullPageExtractResponse,
+    image_bytes: bytes,
+    text_value: str,
+    asset_ref: str,
+    *,
+    ocr_backend: str,
+) -> dict[str, Any]:
     log_event(run_id, "RECEIVED", "START", f"Full-page OCR run received ({ocr_backend}).")
     log_event(run_id, "OCR_RUNNING", "START", "Running the full-page post-OCR pipeline.")
     update_run_fields(run_id, status="RUNNING", current_stage="OCR_RUNNING")
