@@ -128,8 +128,10 @@ class Settings(BaseSettings):
     rag_lexical_max_chunks: int = 5000
 
     # Authority source expansion
-    geonames_base_url: str = "http://api.geonames.org"
-    geonames_username: str = "demo"
+    geonames_base_url: str = "https://secure.geonames.org"
+    # Empty disables GeoNames. The shared "demo" account is over its daily
+    # quota and answers every search with an error (audit AL-12).
+    geonames_username: str = ""
     geonames_timeout_seconds: int = 10
 
     # Paleography verification
