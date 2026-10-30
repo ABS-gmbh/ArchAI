@@ -243,7 +243,7 @@ confidence = _mean(confidences)
 - **Impact:** The stability pass at ocr.py:4204 re-runs OCR with shifted tiles, which legitimately changes line breaks and indentation. Those pure-whitespace differences are scored as character edits, depressing `cross_pass_stability` — for two transcriptions differing only in line wrapping the Levenshtein half can drop by 0.1-0.3. That pushes runs below `UNCERTAINTY_ENFORCEMENT_STABILITY_THRESHOLD` (0.70) and can cross `CROSS_PASS_STABILITY_MIN` (0.55), triggering uncertainty-marker insertion and gate failure on pages whose text actually agreed.
 - **Fix:** Change the pattern to `r"\s+"`. Add a regression test asserting `compute_cross_pass_stability("a b\nc", "a  b\n\tc") == 1.0`.
 
-### [SVC-05] enforce_quality_gates returns label-derived flags, so gate failures never block downstream
+### [SVC-05] enforce_quality_gates returns label-derived flags, so gate failures never block downstream — **FIXED**
 
 - **Where:** `vendor:app/services/pipeline_hardening.py:500`  
 - **Category:** architecture  
