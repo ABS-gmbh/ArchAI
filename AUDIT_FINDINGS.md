@@ -654,7 +654,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** The 'multi-view' retry mechanism (saia_ocr_agent.py:2310) is not adaptive: it always tries binarized first and always retries with the same second choice, regardless of the crop. Worse, the metric rewards exactly what harms a vision model — unsharp masking at 180 % (line 73) amplifies parchment noise into high Laplacian variance and Canny edges, scoring higher than the cleaner original. The stated benefit of the module ('rank variants without any OCR call', line 14) is not delivered.
 - **Fix:** Score legibility, not edge energy: use stroke-width consistency or a text-line contrast measure on the grayscale image, and exclude binarized/high-contrast variants from the same scale as continuous-tone ones. Simplest defensible alternative — drop the estimator, try variants in a fixed documented order, and record which variant won per crop so the ordering can be justified empirically.
 
-### [SVC-11] Deskew corrects only one rotation direction; the angle-normalisation branch is dead under OpenCV ≥ 4.5
+### [SVC-11] Deskew corrects only one rotation direction; the angle-normalisation branch is dead under OpenCV ≥ 4.5 — partly fixed (Kraken crops are no longer deskewed: measured, it raised CER; the Calamari path, opt-in and not installed, still has it)
 
 - **Where:** `vendor:app/services/ocr_backends.py:228`  
 - **Category:** ocr-quality  
@@ -662,7 +662,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** Roughly half of all skewed line crops (those tilted the other way) are fed to Kraken un-deskewed, and `raw_metadata["deskew_angle"]` reports 0.0 so the omission is invisible in the audit trail. Skew of a few degrees is a well-documented accuracy loss for line recognisers, and it will correlate with which way a given manuscript was placed on the scanner — i.e. a systematic, per-manuscript bias in any accuracy comparison.
 - **Fix:** Normalise explicitly for the modern convention: `angle = rect_angle if rect_angle <= 45 else rect_angle - 90`, then rotate by `-angle` (accounting for the (y,x) transposition of `coords`). Assert in a test that synthetic ±1..±8° skews all come back within 0.5° of level.
 
-### [SVC-20] Kraken crops are hard-binarized before neural baseline recognisers that expect grayscale
+### [SVC-20] Kraken crops are hard-binarized before neural baseline recognisers that expect grayscale — **FIXED** (verified: Kraken gets the grayscale crop; only Calamari binarises, by opting in)
 
 - **Where:** `vendor:app/services/ocr_backends.py:239`  
 - **Category:** ocr-quality  
