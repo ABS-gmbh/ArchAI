@@ -390,7 +390,7 @@ rag_store is reached at app import time: app/main.py:11 imports routers.index an
 - **Impact:** A contributor who copies .env.example to .env and fills in SAIA_API_KEY gets a working chat path but scripts/build_thesis_showcase_payloads.py:133-139 returns "" (it matches only the ARCHAI_ prefix), so llm_client is None at line 673 and the thesis artifacts regenerate with `plain_chat_baseline: "unavailable"` and no error. The template documents 49 variables and misses the one that matters.
 - **Fix:** Add `ARCHAI_SAIA_API_KEY=` to archai/vendor/layout/backend/.env.example near line 10 and document the precedence (ARCHAI_SAIA_API_KEY > SAIA_API_KEY > CHAT_AI_API_KEY) implemented at saia_client.py:44-46.
 
-### [AG-04] GLM OCR timeout is defeated by ThreadPoolExecutor.__exit__ shutdown(wait=True)
+### [AG-04] GLM OCR timeout is defeated by ThreadPoolExecutor.__exit__ shutdown(wait=True) — **FIXED**
 
 - **Where:** `vendor:app/agents/label_analysis_agent.py:697`  
 - **Category:** correctness  

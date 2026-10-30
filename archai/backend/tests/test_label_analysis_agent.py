@@ -402,3 +402,33 @@ def test_label_analysis_agent_selects_single_best_region_by_default() -> None:
     assert result.stage_metadata["region_count_input"] == 2
     assert result.stage_metadata["region_count_used"] == 1
     assert result.stage_metadata["selected_region_strategy"] == "largest_decorative_region"
+
+
+def test_a_hung_glm_call_times_out_on_time(monkeypatch: Any) -> None:
+    """Audit AG-04: the with block waited for the worker, so the timeout never returned early."""
+    import threading
+    import time
+
+    import pytest
+
+    from app.agents import label_analysis_agent
+    from app.agents.label_analysis_agent import LabelAnalysisAgentError
+
+    release = threading.Event()
+    monkeypatch.setattr(label_analysis_agent, "run_glm_ollama_ocr", lambda *a, **k: release.wait(5))
+    started = time.monotonic()
+    try:
+        with pytest.raises(LabelAnalysisAgentError, match="timed out"):
+            LabelAnalysisAgent._run_glm_ocr_for_crop(Image.new("RGB", (8, 8)), label_name="x", timeout_seconds=0.2)
+        elapsed = time.monotonic() - started
+    finally:
+        release.set()
+    assert elapsed < 1.0
+
+
+def test_a_glm_call_that_answers_in_time_returns_its_result(monkeypatch: Any) -> None:
+    from app.agents import label_analysis_agent
+
+    monkeypatch.setattr(label_analysis_agent, "run_glm_ollama_ocr", lambda *a, **k: "read")
+    result, size, fmt = LabelAnalysisAgent._run_glm_ocr_for_crop(Image.new("RGB", (8, 8)), label_name="x", timeout_seconds=2)
+    assert (result, fmt) == ("read", "png") and size > 0

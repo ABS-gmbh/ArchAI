@@ -693,18 +693,22 @@ class LabelAnalysisAgent(BaseAgent):
         timeout_seconds: float,
     ) -> tuple[Any, int, str]:
         crop_bytes = LabelAnalysisAgent._encode_png_bytes(crop_image)
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(
-                run_glm_ollama_ocr,
-                crop_bytes,
-                image_ref=f"label:{label_name}",
-                prompt=build_glm_ocr_prompt(),
-            )
-            try:
-                result = future.result(timeout=timeout_seconds)
-            except FutureTimeoutError as exc:
-                future.cancel()
-                raise LabelAnalysisAgentError("Label OCR timed out.") from exc
+        # Not a with block: leaving one waits for the worker, so a hung Ollama
+        # call held the request until it returned, whatever the timeout said
+        # (audit AG-04). On timeout the worker is abandoned instead.
+        pool = ThreadPoolExecutor(max_workers=1)
+        future = pool.submit(
+            run_glm_ollama_ocr,
+            crop_bytes,
+            image_ref=f"label:{label_name}",
+            prompt=build_glm_ocr_prompt(),
+        )
+        try:
+            result = future.result(timeout=timeout_seconds)
+        except FutureTimeoutError as exc:
+            raise LabelAnalysisAgentError("Label OCR timed out.") from exc
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
         return result, len(crop_bytes), "png"
 
     @staticmethod
