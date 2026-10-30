@@ -64,33 +64,6 @@ def decide_downstream_mode(quality_label: str) -> str:
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# Multi-pass OCR orchestration
-# ═══════════════════════════════════════════════════════════════════════
-
-def select_best_pass(reports: list[OCRQualityReport]) -> OCRQualityReport:
-    """Select the best OCR pass from multiple attempts.
-
-    Priority:
-      1. Prefer pass with better quality_label (HIGH > OK > RISKY > UNRELIABLE)
-      2. Among same label: lower gibberish_score wins
-      3. Among same gibberish: lower leading_fragment_ratio wins
-    """
-    if not reports:
-        return OCRQualityReport(quality_label="UNRELIABLE")
-
-    label_rank = {"HIGH": 0, "OK": 1, "RISKY": 2, "UNRELIABLE": 3}
-
-    return min(
-        reports,
-        key=lambda r: (
-            label_rank.get(r.quality_label, 99),
-            r.gibberish_score,
-            r.leading_fragment_ratio,
-        ),
-    )
-
-
-# ═══════════════════════════════════════════════════════════════════════
 # Proofreading quality guard
 # ═══════════════════════════════════════════════════════════════════════
 

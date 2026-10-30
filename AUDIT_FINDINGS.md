@@ -251,7 +251,7 @@ confidence = _mean(confidences)
 - **Impact:** A page whose text is lexically implausible for its own detected language (score < 0.20) has `gates["LEXICAL_PLAUSIBILITY"]["passed"] = False` yet still gets `token_search_allowed = True`, so authority linking and RAG indexing run on it at ocr.py:3079/3105. Likewise a stability score of 0.10 (far below CROSS_PASS_STABILITY_MIN 0.55) computed after the fact leaves the label at OK and NER running. The gate report shown to the user says FAIL while the pipeline behaves as if it passed.
 - **Fix:** Derive the returned flags from the gates: `token_search_allowed = not ({"token_search"} & set(blocked))`, same for `ner_allowed`, and drop the report passthrough. Add a `recompute_label(report)` helper in ocr_quality.py and call it after any post-hoc mutation of `cross_pass_stability`.
 
-### [SVC-10] select_best_pass prefers truncated passes and is dead code
+### [SVC-10] select_best_pass prefers truncated passes and is dead code — **FIXED** (deleted)
 
 - **Where:** `vendor:app/services/pipeline_hardening.py:69`  
 - **Category:** architecture  
