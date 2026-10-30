@@ -259,7 +259,7 @@ confidence = _mean(confidences)
 - **Impact:** Two problems. (a) The documented multi-pass selection stage is not wired up at all — `ocr.py` picks attempts with its own inline `_quality_rank` logic (ocr.py:3684), so the module's stated contract is not what runs. (b) If it were wired up, a retry that returned only 3 clean lines (gibberish 0.0, label OK) would beat the full 40-line transcription (gibberish 0.08, label OK) and 90 % of the page would be discarded.
 - **Fix:** Either delete the function or wire it in and add a coverage term: reject any candidate whose `token_count` is below, say, 0.7× the best pass's token_count before comparing labels, and break label ties on `(−token_count, gibberish_score)`.
 
-### [SVC-03] seam_band_crop invents seams inside tiles and re-tiles with zero overlap, fragmenting every line
+### [SVC-03] seam_band_crop invents seams inside tiles and re-tiles with zero overlap, fragmenting every line — partly fixed (seams are found only between neighbouring tiles; the re-tiling still has no overlap)
 
 - **Where:** `vendor:app/services/seam_strategies.py:98`  
 - **Category:** correctness  

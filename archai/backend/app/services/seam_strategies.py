@@ -95,33 +95,54 @@ def _infer_grid(boxes: list[Box]) -> str:
     return f"{rows}x{cols}"
 
 
-def _seam_y_coords(boxes: list[Box]) -> list[int]:
-    """Identify horizontal seam Y-coordinates between vertically adjacent tiles."""
+def _overlap(a1: int, a2: int, b1: int, b2: int) -> int:
+    return max(0, min(a2, b2) - max(a1, b1))
+
+
+def _seams(boxes: list[Box], axis: int) -> list[int]:
+    """Seams between boxes that are neighbours along *axis* (1: y, 0: x).
+
+    Two boxes meet at a seam when they share at least half of the smaller
+    one's extent across the axis (the same column, for a y seam) and the
+    second starts where the first ends - overlapping it, touching it, or
+    within a quarter of the smaller box's length. Pairing every box with the
+    next in centre order, as before, also paired boxes of different columns
+    and rows: a 2x2 grid gave three y seams and three x seams where it has one
+    of each, and seam_band_crop cut bands out of the page at the invented ones
+    (audit SVC-03). Seams closer than 8 px are one seam.
+    """
     if len(boxes) < 2:
         return []
-    # Sort by vertical centre
-    sorted_boxes = sorted(boxes, key=lambda b: (b[1] + b[3]) / 2)
-    seams: list[int] = []
-    for i in range(len(sorted_boxes) - 1):
-        b_top = sorted_boxes[i]
-        b_bot = sorted_boxes[i + 1]
-        seam_y = (b_top[3] + b_bot[1]) // 2
-        seams.append(seam_y)
-    return seams
+    lo, hi = axis, axis + 2          # along the axis
+    clo, chi = 1 - axis, 3 - axis    # across it
+    found: list[int] = []
+    for a in boxes:
+        for b in boxes:
+            if a is b or (a[lo] + a[hi]) >= (b[lo] + b[hi]):
+                continue  # b must lie after a along the axis
+            shared = _overlap(a[clo], a[chi], b[clo], b[chi])
+            if shared < 0.5 * min(a[chi] - a[clo], b[chi] - b[clo]):
+                continue
+            gap = b[lo] - a[hi]
+            if gap > 0.25 * min(a[hi] - a[lo], b[hi] - b[lo]):
+                continue
+            found.append((a[hi] + b[lo]) // 2)
+    merged: list[int] = []
+    for seam in sorted(found):
+        if merged and seam - merged[-1] < 8:
+            continue
+        merged.append(seam)
+    return merged
+
+
+def _seam_y_coords(boxes: list[Box]) -> list[int]:
+    """Horizontal seam y-coordinates between vertically adjacent tiles."""
+    return _seams(boxes, 1)
 
 
 def _seam_x_coords(boxes: list[Box]) -> list[int]:
-    """Identify vertical seam X-coordinates between horizontally adjacent tiles."""
-    if len(boxes) < 2:
-        return []
-    sorted_boxes = sorted(boxes, key=lambda b: (b[0] + b[2]) / 2)
-    seams: list[int] = []
-    for i in range(len(sorted_boxes) - 1):
-        b_left = sorted_boxes[i]
-        b_right = sorted_boxes[i + 1]
-        seam_x = (b_left[2] + b_right[0]) // 2
-        seams.append(seam_x)
-    return seams
+    """Vertical seam x-coordinates between horizontally adjacent tiles."""
+    return _seams(boxes, 0)
 
 
 # ───────────────────────────────────────────────────────────────────────
