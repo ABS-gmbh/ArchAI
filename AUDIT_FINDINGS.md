@@ -518,7 +518,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** Journal mode is DELETE, so any writer takes an EXCLUSIVE lock over the whole 32 MB database and blocks every reader for the duration of the commit. OCR runs write from worker threads (app/routers/ocr.py:3646, 3898, 4192 via asyncio.to_thread -> log_event/update_run_fields/insert_ocr_attempt) while /api/ocr/trace/{run_id}/stream readers poll every 0.4 s. Two concurrent /api/ocr/page-with-trace requests plus one open trace stream will exceed Python's default 5 s busy timeout and raise sqlite3.OperationalError: database is locked, aborting the OCR run mid-pipeline with a partially written pipeline_runs row.
 - **Fix:** In _connect(), after opening the connection, execute `PRAGMA journal_mode=WAL`, `PRAGMA busy_timeout=10000`, and `PRAGMA synchronous=NORMAL`. WAL lets readers proceed during writes; busy_timeout makes contention retry instead of raising.
 
-### [CHAT-001] Non-streaming chat completion and model listing block the event loop
+### [CHAT-001] Non-streaming chat completion and model listing block the event loop — **FIXED**
 
 - **Where:** `vendor:app/routers/chat.py:116`  
 - **Category:** performance  
