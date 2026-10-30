@@ -494,7 +494,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A single HTTP 429 or 502 from the SAIA gateway is treated as a permanent model failure. In SaiaOCRAgent.extract the model is appended to `fallbacks` and the loop moves on (line 2621-2623); since _resolve_model_prefs typically yields one InternVL model, the loop then ends and the page returns status=FAIL / OCR_FAILED_ALL_MODELS (line 2745). In ocr_agent the effect is worse: with selected_models length pinned to 1 (see AG-07), _ocr_tile_with_model_candidates raises OCRAgentError at line 1548 and the whole page fails. One rate-limit blip loses an entire page of work.
 - **Fix:** Extract LabelAnalysisAgent._is_transient_error and its sleep-and-retry loop into a shared helper (e.g. app/services/saia_client.retry_transient) that classifies 429/500/502/503/504/connection-reset and retries with exponential backoff plus jitter, honouring Retry-After. Call it from both _chat_completion_with_optional_json_object and _chat_completion_with_optional_json_format so all three agents share one policy.
 
-### [SEC-01] Analytics dashboard password and JWT signing secret are hardcoded defaults in a git-tracked file, and .env overrides neither
+### [SEC-01] Analytics dashboard password and JWT signing secret are hardcoded defaults in a git-tracked file, and .env overrides neither — **FIXED** (verified: no defaults, login fails closed with 503, compare_digest; test_analytics_auth.py)
 
 - **Where:** `vendor:app/config.py:22`  
 - **Category:** security  
@@ -598,7 +598,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** An 85 MP TIFF spends several seconds of pure CPU inside `convert`+`resize`+JPEG encode with the GIL held on the event-loop thread. Every concurrent request — including the `/predict/batch/{id}/progress` and `/ocr/trace/stream/{id}` SSE heartbeats — stalls for that entire window, and SSE clients see the stream freeze.
 - **Fix:** `prepared_img_path, prepared_changed = await asyncio.to_thread(_prepare_image_for_segmentation, img_path)` at predict.py:164, and move the disk write at predict.py:160-161 into the same thread (or use `await asyncio.to_thread(Path(img_path).write_bytes, contents)`).
 
-### [AL-08] context_similarity is counted twice in the final score under two different names
+### [AL-08] context_similarity is counted twice in the final score under two different names — **FIXED** (verified: alias_sim carries the real alias match and context is counted once, in compute_score; test_linking_calibration.py::test_alias_similarity_actually_moves_the_score)
 
 - **Where:** `vendor:app/services/authority_linking.py:351`  
 - **Category:** correctness  
