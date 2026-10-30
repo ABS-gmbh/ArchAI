@@ -78,7 +78,9 @@ class LabelAnalysisResponse(BaseModel):
 @router.get("/chat/models")
 async def chat_models() -> dict[str, Any]:
     try:
-        return list_available_models()
+        # Off the event loop, like every call into the blocking SAIA client
+        # here; it froze the process for the whole round trip (audit CHAT-001).
+        return await asyncio.to_thread(list_available_models)
     except ChatConfigError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:  # pragma: no cover
@@ -113,7 +115,8 @@ async def chat_completions(payload: ChatCompletionRequest) -> Any:
                 },
             )
 
-        return create_chat_completion(
+        return await asyncio.to_thread(
+            create_chat_completion,
             messages=[msg.model_dump() for msg in payload.messages],
             model=payload.model,
             temperature=payload.temperature,

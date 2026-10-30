@@ -206,3 +206,39 @@ def test_ocr_extract_runs_the_agent_off_the_event_loop(monkeypatch: pytest.Monke
 
     loop_thread = asyncio.run(call())
     assert seen["thread"] != loop_thread
+
+
+# ──────────────────────────── chat calls from async routes (CHAT-001) ──
+
+
+def _runs_off_the_loop(monkeypatch: pytest.MonkeyPatch, blocking_name: str, call_route) -> bool:
+    """Whether the route calls the chat service function `blocking_name` from another thread."""
+    import threading
+
+    from app.routers import chat as chat_router
+
+    called_from: list[int] = []
+
+    def blocking(*args, **kwargs):
+        called_from.append(threading.get_ident())
+        return {"ok": True}
+
+    monkeypatch.setattr(chat_router, blocking_name, blocking)
+
+    async def call() -> int:
+        await call_route(chat_router)
+        return threading.get_ident()
+
+    loop_thread = asyncio.run(call())
+    return len(called_from) == 1 and called_from[0] != loop_thread
+
+
+def test_a_non_streaming_chat_completion_runs_off_the_event_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.routers.chat import ChatCompletionRequest
+
+    payload = ChatCompletionRequest(messages=[{"role": "user", "content": "hi"}], stream=False)
+    assert _runs_off_the_loop(monkeypatch, "create_chat_completion", lambda r: r.chat_completions(payload))
+
+
+def test_listing_chat_models_runs_off_the_event_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert _runs_off_the_loop(monkeypatch, "list_available_models", lambda r: r.chat_models())
