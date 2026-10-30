@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -132,3 +133,30 @@ def test_citations_given_as_one_string_are_split_into_citations() -> None:
 def test_arrays_are_taken_as_they_are() -> None:
     _assessment, _answer, notes, citations = _normalized({"assessment": "supported", "notes": ["a note", "another"], "citations_checked": ["c1"]})
     assert (notes, citations) == (["a note", "another"], ["c1"])
+
+
+def _verdict(raw: str) -> tuple[str, str, list[str], list[str]]:
+    from app.agents.paleography_verification_agent import _normalized_verification_payload
+
+    return _normalized_verification_payload(raw, draft_answer="draft")
+
+
+def test_a_verdict_wrapped_in_an_array_is_read() -> None:
+    """Audit AG-02: a list reached payload.get() and raised AttributeError."""
+    assessment, _answer, notes, citations = _verdict(
+        json.dumps([{"assessment": "supported", "notes": ["names Arthur"], "citations_checked": ["chunk-3"]}])
+    )
+    assert (assessment, notes, citations) == ("supported", ["names Arthur"], ["chunk-3"])
+
+
+def test_a_fenced_verdict_wrapped_in_an_array_is_read() -> None:
+    raw = 'Verdict:\n```json\n[{"assessment": "unsupported", "notes": ["no date"]}]\n```'
+    assessment, _answer, notes, _citations = _verdict(raw)
+    assert (assessment, notes) == ("unsupported", ["no date"])
+
+
+def test_json_that_is_not_an_object_reads_as_no_verdict() -> None:
+    for raw in ('"supported"', "[1, 2]", "[]", "42", "null", '[{"a": 1}, {"b": 2}]'):
+        assessment, answer, notes, citations = _verdict(raw)
+        assert assessment == "unavailable", raw
+        assert answer == "draft"

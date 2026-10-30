@@ -69,32 +69,45 @@ _LABELED_VALUE_RE = {
 }
 
 
+def _as_object(value: Any) -> dict[str, Any] | None:
+    """The verdict object in parsed JSON: the value itself, or the one object in a list."""
+    if isinstance(value, list) and len(value) == 1:
+        value = value[0]
+    return value if isinstance(value, dict) else None
+
+
 def _extract_json_blob(raw: str) -> dict[str, Any] | None:
+    """Parse the verifier's verdict object out of its reply, or None.
+
+    Only an object is returned. A model that wraps its answer in an array, or
+    replies with a bare string, used to hand the caller a list or str, and the
+    first .get() on it raised; the caller degraded the verification to
+    "unavailable" for every request to that model, with nothing logged
+    (audit AG-02).
+    """
     text = str(raw or "").strip()
     if not text:
         return None
-    try:
-        return json.loads(text)
-    except Exception:
-        pass
+    candidates = [text]
     if "```" in text:
         for block in text.split("```"):
             candidate = block.strip()
             if candidate.lower().startswith("json"):
                 candidate = candidate[4:].strip()
-            if not candidate:
-                continue
-            try:
-                return json.loads(candidate)
-            except Exception:
-                continue
+            if candidate:
+                candidates.append(candidate)
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
+        candidates.append(text[start : end + 1])
+    for candidate in candidates:
         try:
-            return json.loads(text[start : end + 1])
+            parsed = json.loads(candidate)
         except Exception:
-            return None
+            continue
+        payload = _as_object(parsed)
+        if payload is not None:
+            return payload
     return None
 
 
