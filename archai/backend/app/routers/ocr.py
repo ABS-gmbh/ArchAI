@@ -1286,6 +1286,18 @@ async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFull
 _QUALITY_RANK = {"HIGH": 0, "OK": 1, "RISKY": 2, "UNRELIABLE": 3}
 
 
+def _attempt_rank(gates_passed: bool, label: str, gibberish: float) -> tuple[int, int, float]:
+    """How OCR attempts are ranked, best first: passing the gates, then label, then gibberish.
+
+    The loop stops at the first attempt that passes every gate, and used to
+    keep it only if its label or gibberish beat the attempts before; one that
+    passed with a worse label was dropped for an earlier attempt that had
+    failed, and the run went on with the failing text and its blocked stages
+    while counting the gates as passed (audit OCR-002).
+    """
+    return (0 if gates_passed else 1, _quality_rank(label), gibberish)
+
+
 def _quality_rank(label: str) -> int:
     """Return numeric rank for quality label (lower = better)."""
     return _QUALITY_RANK.get(label, 4)
@@ -1457,6 +1469,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
         best_effective_quality: EffectiveQuality | None = None
         best_attempt_idx: int = -1
         gates_ever_passed: bool = False
+        best_attempt_key: tuple[int, int, float] | None = None
 
         # Track previous attempt for NO-OP detection
         prev_text_sha256: str = ""
@@ -1704,15 +1717,10 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
             })
 
             # ── Track best attempt ────────────────────────────────────
-            is_better = (
-                best_quality_report is None
-                or _quality_rank(hardened_quality_label) < _quality_rank(best_quality_report.quality_label)
-                or (
-                    _quality_rank(hardened_quality_label) == _quality_rank(best_quality_report.quality_label)
-                    and ocr_quality_report.gibberish_score < best_quality_report.gibberish_score
-                )
-            )
+            attempt_key = _attempt_rank(all_gates_passed, hardened_quality_label, ocr_quality_report.gibberish_score)
+            is_better = best_attempt_key is None or attempt_key < best_attempt_key
             if is_better:
+                best_attempt_key = attempt_key
                 best_ocr_result = ocr_result
                 best_ocr_payload = ocr_payload
                 best_quality_report = ocr_quality_report
