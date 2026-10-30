@@ -475,7 +475,7 @@ No `timeout=` argument, and the client comes from chat_ai._create_client (servic
 - **Impact:** The openai SDK defaults to a 600s timeout with 2 automatic retries, so a stalled verifier can hold a request for ~30 minutes. Because _run_paleography_verification is called synchronously inside create_chat_completion (services/chat_ai.py:1567, 1690), the caller's chat request blocks for that whole window before degrading to 'unavailable'.
 - **Fix:** Pass an explicit budget: `client.chat.completions.create(..., timeout=float(settings.paleography_verification_timeout_seconds or 60))` at line 320, and add `timeout=` and `max_retries=` to the OpenAI() construction in chat_ai._create_client so every consumer of that client is bounded.
 
-### [AG-05] _parse_ocr_payload rejects a valid transcription for one extra JSON key
+### [AG-05] _parse_ocr_payload rejects a valid transcription for one extra JSON key — **FIXED**
 
 - **Where:** `vendor:app/agents/saia_ocr_agent.py:666`  
 - **Category:** ocr-quality  
