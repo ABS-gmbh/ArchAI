@@ -574,7 +574,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** Each connected trace-stream client performs ~12-15 blocking sqlite open+query+serialize operations per second on the single event loop thread, against a 32 MB DB holding 5356 runs / 16221 chunks / 2180 events. list_events() has no LIMIT, so the full event list is re-read and re-JSON-serialized every 400 ms and grows with run length. Two or three open trace tabs will visibly stall every other FastAPI route, and the SHARED locks these reads take are what tips DB-01 into a lock error for the concurrently running OCR worker.
 - **Fix:** Wrap the call as `snapshot = await asyncio.to_thread(_build_trace_snapshot, run_id)`; add a LIMIT/`since_id` cursor to list_events so the stream sends only new events; and have _build_trace_snapshot take one connection and run all six queries on it instead of opening six.
 
-### [PRED-001] Batch worker has no exception handling, so a corrupt ZIP leaves the task 'pending' and the SSE stream loops forever
+### [PRED-001] Batch worker has no exception handling, so a corrupt ZIP leaves the task 'pending' and the SSE stream loops forever — **FIXED**
 
 - **Where:** `vendor:app/routers/predict.py:196`  
 - **Category:** correctness  

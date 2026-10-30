@@ -4,7 +4,9 @@ Prediction endpoints — single image and batch processing.
 
 import asyncio
 import json
+import logging
 import os
+import time
 import tempfile
 import zipfile
 from math import sqrt
@@ -16,6 +18,7 @@ from PIL import Image
 
 from app.core.constants import FINAL_CLASSES
 from app.agents.segmentation_agent import run_single_segmentation
+from app.config import settings
 from app.core.model_runner import combine_and_filter_predictions
 from app.services.coco_utils import filter_coco_by_classes, merge_coco_list, stats_from_coco
 from app.services.file_manager import TaskState, create_task, get_task, get_task_dir
@@ -268,8 +271,26 @@ async def predict_single(
     }
 
 
+_LOGGER = logging.getLogger(__name__)
+
+
 def _process_batch(task: TaskState, zip_path: str, conf: float, iou: float, selected_classes: list[str]):
-    """Background worker for batch processing."""
+    """Background worker for batch processing.
+
+    Any failure ends the task as "error". It used to escape the background
+    task with the status still "pending" - a corrupt ZIP was enough - and the
+    progress stream, which stops only on completed or error, polled forever
+    (audit PRED-001).
+    """
+    try:
+        _run_batch(task, zip_path, conf, iou, selected_classes)
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.exception("Batch task %s failed", task.task_id)
+        task.status = "error"
+        task.message = f"Batch processing failed: {exc}"
+
+
+def _run_batch(task: TaskState, zip_path: str, conf: float, iou: float, selected_classes: list[str]):
     task_dir = get_task_dir(task.task_id)
 
     with tempfile.TemporaryDirectory() as extract_dir:
@@ -331,16 +352,17 @@ def _process_batch(task: TaskState, zip_path: str, conf: float, iou: float, sele
             except Exception as e:
                 task.errors.append(f"Error processing {fn}: {str(e)}")
 
-        task.progress = task.total
-        task.status = "completed"
-
-        # Save merged COCO JSON
+        # Save merged COCO JSON before announcing completion, so a client that
+        # fetches results on "completed" finds them.
         if task.batch_coco_list:
             merged = merge_coco_list(task.batch_coco_list)
             task.coco_json = merged
             coco_path = os.path.join(task_dir, "annotations.json")
             with open(coco_path, "w") as f:
                 json.dump(merged, f, indent=2)
+
+        task.progress = task.total
+        task.status = "completed"
 
 
 @router.post("/predict/batch", status_code=202)
@@ -382,7 +404,9 @@ async def batch_progress(task_id: str):
 
     async def event_stream():
         last_progress = -1
-        while True:
+        # A task that never finishes must not hold the connection for good.
+        deadline = time.monotonic() + max(1, int(settings.task_ttl_minutes)) * 60
+        while time.monotonic() < deadline:
             if task.progress != last_progress or task.status in ("completed", "error"):
                 data = json.dumps(
                     {
