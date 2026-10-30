@@ -378,15 +378,27 @@ def ollama_extract(
 
 
 def is_backend_shape_error(exc: Exception) -> bool:
+    """The model failed on this input: retrying the same image will fail again.
+
+    The list also held "/api/generate" and "/api/chat", which every request
+    error names in its message, so a 503 while Ollama loaded the model or a
+    dropped connection gave up on the variant at once and the retries per
+    variant never ran (audit SVC-07).
+    """
     value = str(exc).lower()
     triggers = [
         "ggml_assert",
         "an error was encountered while running the model",
         "http 500",
-        "/api/generate",
-        "/api/chat",
     ]
     return any(trigger in value for trigger in triggers)
+
+
+def is_timeout_error(exc: Exception) -> bool:
+    """The request ran out of time: a model that loops (Ollama 0.35.0 with GLM-OCR)
+    would only time out again, so the next, smaller variant is tried instead."""
+    cause = exc.__cause__ or exc
+    return isinstance(cause, requests.Timeout) or "timed out" in str(exc).lower()
 
 
 def clean_model_output(text: str) -> str:
@@ -591,8 +603,12 @@ def run_glm_ollama_ocr(
                 logger.warning("OCR variant failed ref=%s %s", image_ref, message)
                 if "Pull it first with: ollama pull" in str(exc):
                     raise GlmOllamaOcrError(str(exc)) from exc
-                if is_backend_shape_error(exc):
+                if is_backend_shape_error(exc) or is_timeout_error(exc):
                     break
+                if attempt < selected_retries:
+                    # A transient failure - Ollama loading the model, a dropped
+                    # connection - gets a moment before the same image is retried.
+                    time.sleep(min(2.0 * attempt, 10.0))
 
         if first_empty_variant is not None and first_empty_variant == variant:
             continue

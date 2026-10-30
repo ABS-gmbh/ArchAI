@@ -194,7 +194,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** Every /api/predict/single and /api/predict/batch call writes the raw upload plus annotated output into .tasks/<id>/ (app/routers/predict.py:153, 165, 286-292) and nothing ever removes them — largest single task dir is 9.0 MB. The 60-minute TTL advertised by settings.task_ttl_minutes never fires, so the service fills the deployment disk at roughly 9 MB per prediction until writes start failing with ENOSPC.
 - **Fix:** Call cleanup_expired_tasks() from a FastAPI startup task on a repeating interval (or a lifespan-managed asyncio task) in app/main.py, and make it also sweep directories on disk by mtime, not only entries present in _task_store.
 
-### [SVC-07] GLM/Ollama retry budget is dead — every error is misclassified as a fatal backend-shape error
+### [SVC-07] GLM/Ollama retry budget is dead — every error is misclassified as a fatal backend-shape error — **FIXED**
 
 - **Where:** `vendor:app/services/glm_ollama_ocr.py:380`  
 - **Category:** correctness  
