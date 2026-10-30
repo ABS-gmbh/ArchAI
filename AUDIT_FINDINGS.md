@@ -464,7 +464,7 @@ Both arguments are bound to `_` and thrown away. run_ocr_extraction (line 1656-1
 - **Impact:** The system prompt asks for `"notes": [ ... ]` but models routinely emit `"notes": "The date is unsupported by the evidence."`. That becomes notes == ['T','h','e',' '] (dedup + limit=4) and is surfaced verbatim to the user through _inspection_payload['final_output']['notes'] (line 255) and the verification appendix. No warning is emitted — the answer looks verified with nonsense justification.
 - **Fix:** Add a coercion helper before line 193: if the value is a str, wrap it as [value]; if it is not a list, drop it. e.g. `def _as_list(v): return v if isinstance(v, list) else ([v] if isinstance(v, str) and v.strip() else [])`, then `notes = _clean_string_list(_as_list(payload.get("notes")) or _as_list(salvaged.get("notes")), limit=4)`.
 
-### [AG-09] Verification LLM call has no timeout; inherits the SDK's 600s default with automatic retries
+### [AG-09] Verification LLM call has no timeout; inherits the SDK's 600s default with automatic retries — **FIXED** (60 s per request, PALEOGRAPHY_VERIFICATION_TIMEOUT_SECONDS; the shared chat client is unchanged)
 
 - **Where:** `vendor:app/agents/paleography_verification_agent.py:320`  
 - **Category:** performance  

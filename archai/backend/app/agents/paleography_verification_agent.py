@@ -356,6 +356,9 @@ class PaleographyVerificationAgent(BaseAgent):
                 temperature=float(settings.paleography_verification_temperature),
                 max_tokens=int(settings.paleography_verification_max_tokens),
                 stream=False,
+                # Without it the client's 600 s default applies, with two retries:
+                # a stalled verifier held the chat answer for half an hour (audit AG-09).
+                timeout=float(settings.paleography_verification_timeout_seconds),
             )
 
         try:
