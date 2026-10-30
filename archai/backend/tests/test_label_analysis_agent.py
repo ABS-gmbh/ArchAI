@@ -432,3 +432,73 @@ def test_a_glm_call_that_answers_in_time_returns_its_result(monkeypatch: Any) ->
     monkeypatch.setattr(label_analysis_agent, "run_glm_ollama_ocr", lambda *a, **k: "read")
     result, size, fmt = LabelAnalysisAgent._run_glm_ocr_for_crop(Image.new("RGB", (8, 8)), label_name="x", timeout_seconds=2)
     assert (result, fmt) == ("read", "png") and size > 0
+
+
+class _SlowSequenceClient(_SequenceSaiaClient):
+    """Each answer uses up `seconds` of the fake clock."""
+
+    def __init__(self, texts: list[str], clock: list[float], seconds: float) -> None:
+        super().__init__(texts)
+        self._clock = clock
+        self._seconds = seconds
+
+    def chat_completion(self, **kwargs: Any) -> dict[str, Any]:
+        self._clock[0] += self._seconds
+        return super().chat_completion(**kwargs)
+
+
+def _three_initials_payload() -> SimpleNamespace:
+    return SimpleNamespace(
+        question="What are the embellished letters?",
+        label_name="Embellished",
+        image_b64=_png_b64(size=(220, 180)),
+        filename="folio_001.png",
+        regions=[
+            SimpleNamespace(region_id="ann-1", bbox_xyxy=[10, 15, 40, 55], polygons=[]),
+            SimpleNamespace(region_id="ann-2", bbox_xyxy=[80, 20, 130, 90], polygons=[]),
+            SimpleNamespace(region_id="ann-3", bbox_xyxy=[150, 20, 200, 90], polygons=[]),
+        ],
+    )
+
+
+def _fake_clock(monkeypatch: Any) -> list[float]:
+    from app.agents import label_analysis_agent
+
+    clock = [1000.0]
+    monkeypatch.setattr(
+        label_analysis_agent, "time", SimpleNamespace(perf_counter=lambda: clock[0], sleep=lambda s: None)
+    )
+    return clock
+
+
+def test_letters_read_before_the_deadline_are_kept(monkeypatch: Any) -> None:
+    """Audit AG-13: running out of time on region 2 threw away region 1's letter."""
+    clock = _fake_clock(monkeypatch)
+    client = _SlowSequenceClient(["Letter: R", "Letter: C", "Letter: A"], clock, seconds=40.0)
+
+    result = LabelAnalysisAgent(client=client).run(_three_initials_payload())
+
+    assert result.status == "ok"
+    assert result.text == (
+        "Region 1: R\nRegion 2: not read (time limit reached)\nRegion 3: not read (time limit reached)"
+    )
+    assert "LABEL_ANALYSIS_TRUNCATED:1/3" in result.warnings
+    assert len(client.calls) == 1
+
+
+def test_running_out_of_time_before_any_letter_is_still_an_error(monkeypatch: Any) -> None:
+    import pytest
+
+    from app.agents.label_analysis_agent import LabelAnalysisDeadlineError
+
+    clock = _fake_clock(monkeypatch)
+    agent = LabelAnalysisAgent(client=_SlowSequenceClient(["Letter: R"], clock, seconds=0.0))
+    original = agent._crop_regions
+
+    def slow_crop(*args: Any, **kwargs: Any) -> Any:
+        clock[0] += 40.0
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(agent, "_crop_regions", slow_crop)
+    with pytest.raises(LabelAnalysisDeadlineError):
+        agent.run(_three_initials_payload())

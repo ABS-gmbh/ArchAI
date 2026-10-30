@@ -410,6 +410,10 @@ class LabelAnalysisAgentError(RuntimeError):
     """Raised when label analysis cannot be completed."""
 
 
+class LabelAnalysisDeadlineError(LabelAnalysisAgentError):
+    """Raised when the total label analysis deadline has run out."""
+
+
 @dataclass(frozen=True)
 class SelectedRegions:
     regions: list[Any]
@@ -682,7 +686,7 @@ class LabelAnalysisAgent(BaseAgent):
         remaining = deadline - time.perf_counter()
         allowed = min(float(preferred_timeout_seconds), remaining)
         if allowed <= 0.5:
-            raise LabelAnalysisAgentError("Label analysis exceeded its total deadline.")
+            raise LabelAnalysisDeadlineError("Label analysis exceeded its total deadline.")
         return round(allowed, 2)
 
     @staticmethod
@@ -841,8 +845,9 @@ class LabelAnalysisAgent(BaseAgent):
         warnings: list[str] = []
 
         while True:
+            # Outside the try, so the deadline reaches the caller as itself.
+            timeout_used_seconds = self._remaining_timeout_seconds(overall_deadline, base_timeout_seconds)
             try:
-                timeout_used_seconds = self._remaining_timeout_seconds(overall_deadline, base_timeout_seconds)
                 response = self.client.chat_completion(
                     model=selected_model,
                     messages=messages,
@@ -979,13 +984,23 @@ class LabelAnalysisAgent(BaseAgent):
                     ],
                 },
             ]
-            response, model_used, call_warnings, retry_count, timeout_used_seconds = self._run_saia_completion(
-                messages=messages,
-                selected_model=model_used,
-                prefer_vision=True,
-                analysis_submode="multi_initial_letter_identification",
-                overall_deadline=overall_deadline,
-            )
+            try:
+                response, model_used, call_warnings, retry_count, timeout_used_seconds = self._run_saia_completion(
+                    messages=messages,
+                    selected_model=model_used,
+                    prefer_vision=True,
+                    analysis_submode="multi_initial_letter_identification",
+                    overall_deadline=overall_deadline,
+                )
+            except LabelAnalysisDeadlineError:
+                # Keep the letters already read. Raising discarded them all and
+                # the user got an error for the whole page (audit AG-13).
+                if not lines:
+                    raise
+                for unread in range(index, len(ordered_regions) + 1):
+                    lines.append(f"Region {unread}: not read (time limit reached)")
+                warnings.insert(0, f"LABEL_ANALYSIS_TRUNCATED:{index - 1}/{len(ordered_regions)}")
+                break
             warnings.extend(call_warnings)
             total_retry_count += retry_count
             letter, _confidence = self._normalize_initial_letter_output(str(response.get("text", "") or "UNKNOWN"))
