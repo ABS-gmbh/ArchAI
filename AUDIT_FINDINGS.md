@@ -445,7 +445,7 @@ Both arguments are bound to `_` and thrown away. run_ocr_extraction (line 1656-1
 - **Impact:** Up to 34 fully independent network round trips executed one after another, worst case 34 x 120s = ~68 minutes for a single page, with no overall deadline anywhere in the OCR path (contrast label_analysis_agent's 30s _TOTAL_LABEL_ANALYSIS_DEADLINE_SECONDS). Typical pages take minutes where they could take seconds.
 - **Fix:** Wrap the tile loop in a bounded ThreadPoolExecutor (these are blocking HTTP calls, so threads are the right tool): `with ThreadPoolExecutor(max_workers=settings.ocr_tile_concurrency or 4) as pool: results = list(pool.map(run_one, tiles))`, preserving tile order for _merge_tile_lines. Add a wall-clock deadline checked between tiles so a slow page degrades to PARTIAL rather than hanging.
 
-### [AG-02] _extract_json_blob returns a list/str for valid non-object JSON, then .get() is called on it
+### [AG-02] _extract_json_blob returns a list/str for valid non-object JSON, then .get() is called on it — **FIXED**
 
 - **Where:** `vendor:app/agents/paleography_verification_agent.py:77`  
 - **Category:** correctness  
