@@ -104,3 +104,31 @@ def test_paleography_verification_agent_handles_malformed_output_without_leaking
     assert result.notes == ["Verifier response could not be parsed cleanly."]
     assert "scratchpad" not in result.notes[0].lower()
     assert result.inspection["final_output"]["verified_answer"] == "Draft answer retained."
+
+
+# ── notes and citations given as one string (audit AG-03) ───────────────
+
+
+def _normalized(payload: dict[str, Any]) -> tuple[str, str, list[str], list[str]]:
+    import json
+
+    from app.agents.paleography_verification_agent import _normalized_verification_payload
+
+    return _normalized_verification_payload(json.dumps(payload), draft_answer="draft")
+
+
+def test_notes_given_as_one_string_are_sentences_not_characters() -> None:
+    _assessment, _answer, notes, _citations = _normalized(
+        {"assessment": "supported", "notes": "Supported by chunk 3, which names Arthur; Arthur appears twice."}
+    )
+    assert notes == ["Supported by chunk 3, which names Arthur", "Arthur appears twice."]
+
+
+def test_citations_given_as_one_string_are_split_into_citations() -> None:
+    *_rest, citations = _normalized({"assessment": "supported", "notes": ["ok"], "citations_checked": "chunk-3, wikidata:Q45720"})
+    assert citations == ["chunk-3", "wikidata:Q45720"]
+
+
+def test_arrays_are_taken_as_they_are() -> None:
+    _assessment, _answer, notes, citations = _normalized({"assessment": "supported", "notes": ["a note", "another"], "citations_checked": ["c1"]})
+    assert (notes, citations) == (["a note", "another"], ["c1"])

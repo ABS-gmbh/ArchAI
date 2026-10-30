@@ -453,7 +453,7 @@ Both arguments are bound to `_` and thrown away. run_ocr_extraction (line 1656-1
 - **Impact:** A verifier model that wraps its answer in an array — `[{"assessment": "supported", ...}]`, common with models that emit tool-call-shaped output — raises `AttributeError: 'list' object has no attribute 'get'`. chat_ai._run_paleography_verification swallows it at services/chat_ai.py:1474 and returns _degraded_verification, so verification reports 'unavailable' for every request with that model and no error is ever logged. The failure is permanent and silent.
 - **Fix:** In _extract_json_blob, guard every return: `obj = json.loads(text); return obj if isinstance(obj, dict) else None` at line 77, and apply the same check at lines 88 and 95. Optionally unwrap a single-element list of dicts before rejecting.
 
-### [AG-03] Verifier notes/citations are splatted into single characters when the model returns a string instead of an array
+### [AG-03] Verifier notes/citations are splatted into single characters when the model returns a string instead of an array — **FIXED**
 
 - **Where:** `vendor:app/agents/paleography_verification_agent.py:194`  
 - **Category:** correctness  

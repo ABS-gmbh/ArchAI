@@ -144,6 +144,26 @@ def _split_labeled_list(raw: str) -> list[str]:
     return cleaned
 
 
+def _as_items(value: Any, *, sentences: bool) -> list[Any]:
+    """A JSON field the model may give as an array or as one string.
+
+    ``list(value)`` turned a string into its characters, so a verifier that
+    answered ``"notes": "The answer is supported..."`` showed the notes
+    ``T``, ``h``, ``e``. A string is split into items instead: notes, which
+    are sentences, only at line breaks, bullets and semicolons; citations
+    also at commas.
+    """
+    if value is None:
+        return []
+    if isinstance(value, str):
+        if sentences:
+            return [part for part in re.split(r"\s*(?:\n+|[;•])\s*", value) if part.strip()]
+        return _split_labeled_list(value)
+    if isinstance(value, (list, tuple)):
+        return list(value)
+    return [value]
+
+
 def _salvage_structured_fields(raw: str) -> dict[str, Any]:
     text = str(raw or "").strip()
     if not text:
@@ -191,11 +211,11 @@ def _normalized_verification_payload(raw: str, *, draft_answer: str) -> tuple[st
     ) or draft_answer
 
     notes = _clean_string_list(
-        list(payload.get("notes") or salvaged.get("notes") or []),
+        _as_items(payload.get("notes") or salvaged.get("notes"), sentences=True),
         limit=4,
     )
     citations_checked = _clean_string_list(
-        list(payload.get("citations_checked") or salvaged.get("citations_checked") or []),
+        _as_items(payload.get("citations_checked") or salvaged.get("citations_checked"), sentences=False),
         limit=6,
     )
 
