@@ -319,6 +319,8 @@ def rescore_with_canonical(
     canon_low = canonical_norm.lower().strip()
     medieval_kws = description_keywords or _MEDIEVAL_DOMAIN_KEYWORDS
 
+    # Each boosted candidate's floor; the lift is applied below.
+    floors: list[tuple[dict[str, Any], float]] = []
     for cand in candidates:
         label = str(cand.get("label", ""))
         desc = str(cand.get("description", "")).lower()
@@ -339,11 +341,20 @@ def rescore_with_canonical(
 
         if label_sim >= 0.95 and cand.get("type_compatible", False):
             # Perfect or near-perfect canonical match + type OK
-            boost = 0.92 if domain_hit else 0.90
-            cand["score"] = max(cand.get("score", 0.0), boost)
+            floors.append((cand, 0.92 if domain_hit else 0.90))
         elif label_sim >= 0.85 and cand.get("type_compatible", False) and domain_hit:
             # Good match + domain relevance
-            cand["score"] = max(cand.get("score", 0.0), 0.88)
+            floors.append((cand, 0.88))
+
+    # The best boosted candidate is lifted to its floor and every other by the
+    # same amount. Raising each to its own floor (max(score, 0.92)) put two
+    # good candidates - 0.70 and 0.45 - level at 0.92, and disambiguate then
+    # called the mention ambiguous for want of a margin (audit AL-06).
+    if floors:
+        best, best_floor = max(floors, key=lambda pair: float(pair[0].get("score", 0.0)))
+        lift = max(0.0, best_floor - float(best.get("score", 0.0)))
+        for cand, _floor in floors:
+            cand["score"] = min(1.0, float(cand.get("score", 0.0)) + lift)
 
     return candidates
 
