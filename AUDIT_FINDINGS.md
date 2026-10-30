@@ -550,7 +550,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A SQLite write failure, a schema mismatch in `insert_entity_mentions`, or an exception in `_run_trace_analysis` produces a 200 response whose `chunks_count`/`mentions_count`/`run_id` are all absent (`pipeline_fields.get(...)` -> None at ocr.py:3735/3763-3764) while `status` still defaults to `"COMPLETED"` (ocr.py:3737). The run row is left mid-stage in the DB with no FAILED marker, and the only trace is a string buried in the warnings array. No stack trace is logged anywhere.
 - **Fix:** Log the exception with `logging.exception` before degrading, and set `status` to a distinct value (e.g. `"PARTIAL"`) plus mark the created run FAILED, rather than letting the ocr.py:3737 `pipeline_fields.get("status", "COMPLETED")` default report success. At minimum, do not use `"COMPLETED"` as the fallback default in a branch that only runs when the pipeline threw.
 
-### [OCR-008] Cross-pass stability pass is unreachable on the common first-attempt-succeeds path
+### [OCR-008] Cross-pass stability pass is unreachable on the common first-attempt-succeeds path — **FIXED**
 
 - **Where:** `vendor:app/routers/ocr.py:4180`  
 - **Category:** correctness  
