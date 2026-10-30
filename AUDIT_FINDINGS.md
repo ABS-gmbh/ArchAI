@@ -416,7 +416,7 @@ _crop_regions (line 1096) does, every call: base64-decode the full page (decode_
 - **Impact:** N regions on a 4000x6000 page means N full-page base64 decodes and 3N full-page image allocations (~72MB of pixel buffers each pass). For a page with 12 decorated initials that is roughly 12x the necessary decode work plus ~850MB of transient allocation, all inside the 30s _TOTAL_LABEL_ANALYSIS_DEADLINE_SECONDS budget — pure overhead that pushes the request toward _remaining_timeout_seconds raising (see AG-13).
 - **Fix:** Decode the source once before the loop and refactor _crop_regions into two pieces: a `_decode_page(image_b64) -> Image` and a `_crop_from(source, regions)` that takes the already-decoded image. Call the decoder once at line 925 and pass `source` into each per-region crop.
 
-### [AG-13] Deadline expiry mid-loop discards every already-completed region result
+### [AG-13] Deadline expiry mid-loop discards every already-completed region result — **FIXED** (letters read are kept; no cap on the region count yet)
 
 - **Where:** `vendor:app/agents/label_analysis_agent.py:685`  
 - **Category:** correctness  
