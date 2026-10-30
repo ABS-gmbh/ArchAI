@@ -510,7 +510,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** sqlite3.connect() creates the missing file, the first `SELECT ... FROM visits` raises `no such table: visits`, and AN-01's blanket `except Exception` converts that into an all-zero dashboard. The authenticated /api/analytics/data endpoint has therefore never returned real data in this deployment, and does so without any error the operator can see beyond a `print()` to stdout.
 - **Fix:** Either point analytics_db_path at the database that actually holds the `visits` table, or have get_analytics_data check `os.path.exists(settings.analytics_db_path)` up front and return an explicit `{"error": "analytics database not configured"}` so the failure is visible.
 
-### [DB-01] SQLite opened with rollback journal and no busy_timeout — concurrent OCR writers + SSE readers hit "database is locked"
+### [DB-01] SQLite opened with rollback journal and no busy_timeout — concurrent OCR writers + SSE readers hit "database is locked" — **FIXED**
 
 - **Where:** `vendor:app/db/pipeline_db.py:39`  
 - **Category:** correctness  

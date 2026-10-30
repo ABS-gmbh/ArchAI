@@ -9,5 +9,7 @@ dist/
 !.env.example
 analytics.db
 app/archai.sqlite
+app/archai.sqlite-wal
+app/archai.sqlite-shm
 models/*.pt
 .tasks/
