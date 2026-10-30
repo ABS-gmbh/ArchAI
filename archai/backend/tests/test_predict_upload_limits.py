@@ -79,3 +79,37 @@ def test_a_zip_bomb_ends_its_batch_as_an_error(monkeypatch, tmp_path):
     predict._process_batch(task, str(tmp_path / "bomb.zip"), 0.25, 0.3, [])
     assert task.status == "error"
     assert "expands past" in task.message
+
+
+# ── the single-page route (audit PRED-003) ──────────────────────────────
+
+
+def test_a_single_page_is_prepared_off_the_event_loop(client, monkeypatch):
+    """Audit PRED-003: decoding and resizing a large page ran on the event loop."""
+    import threading
+
+    from PIL import Image
+
+    threads: dict[str, str] = {}
+    original = predict._prepare_image_for_segmentation
+
+    def recording(path: str):
+        threads["prepare"] = threading.current_thread().name
+        return original(path)
+
+    @client.app.middleware("http")
+    async def record_loop_thread(request, call_next):
+        threads["loop"] = threading.current_thread().name
+        return await call_next(request)
+
+    monkeypatch.setattr(predict, "_prepare_image_for_segmentation", recording)
+    monkeypatch.setattr(predict, "run_single_segmentation",
+                        lambda *a, **k: ({"images": [], "annotations": [], "categories": []}, {}))
+    page = io.BytesIO()
+    Image.new("RGB", (60, 40), "white").save(page, format="PNG")
+    page.seek(0)
+
+    response = client.post("/predict/single", files={"image": ("page.png", page, "image/png")})
+
+    assert response.status_code == 200
+    assert threads["prepare"] != threads["loop"]

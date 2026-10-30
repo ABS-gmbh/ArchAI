@@ -257,8 +257,10 @@ async def predict_single(
 
     await _save_upload(image, img_path, empty_detail="Empty upload.")
 
-    # Validate + normalize to RGB and safe size for model inference.
-    prepared = _prepare_image_for_segmentation(img_path)
+    # Validate + normalize to RGB and safe size for model inference. In a
+    # worker thread: decoding and resizing a page of up to 85 megapixels took
+    # seconds on the event loop, stalling every other request (audit PRED-003).
+    prepared = await asyncio.to_thread(_prepare_image_for_segmentation, img_path)
     prepared_img_path, prepared_changed = prepared.path, prepared.changed
 
     annotated_path = os.path.join(task_dir, "annotated.jpg")

@@ -590,7 +590,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A 1 MB ZIP whose single member inflates to 20 GB (a standard zip bomb, ratio ~20000:1) makes `src.read()` allocate until the process is OOM-killed, taking every in-flight request with it. Separately, a few concurrent 2 GB multipart uploads exhaust RAM before any validation runs, since `read()` completes before the first size check.
 - **Fix:** Check `zip_file.size` / `image.size` (or stream `await upload.read(CHUNK)` in a loop with a running total) against a configured max before writing, returning 413. In `_safe_extract_zip`, accumulate `member.file_size` across members and abort past a total-uncompressed-bytes budget, and copy with `shutil.copyfileobj(src, dst, 1 << 20)` instead of `src.read()`.
 
-### [PRED-003] predict_single decodes, converts and resizes an up-to-85-megapixel image on the event loop
+### [PRED-003] predict_single decodes, converts and resizes an up-to-85-megapixel image on the event loop — **FIXED**
 
 - **Where:** `vendor:app/routers/predict.py:164`  
 - **Category:** performance  
