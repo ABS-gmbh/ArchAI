@@ -219,6 +219,19 @@ def _make_grid(
             if c < cols - 1:
                 x2 = min(img_w, x2 + ov_x)
 
+            # The outer tiles reach the page's edges: shifted by y_off, row 0
+            # began below the top band, and with img_h // rows the last
+            # img_h % rows pixel rows (likewise columns) fell outside every
+            # tile, so neither was ever read (audit SVC-04).
+            if r == 0:
+                y1 = 0
+            if r == rows - 1:
+                y2 = img_h
+            if c == 0:
+                x1 = 0
+            if c == cols - 1:
+                x2 = img_w
+
             boxes.append(_clip(x1, y1, x2, y2, img_w, img_h))
     return boxes
 

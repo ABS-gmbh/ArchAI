@@ -267,7 +267,7 @@ confidence = _mean(confidences)
 - **Impact:** The retry that is supposed to REPAIR seam fragmentation instead manufactures two extra horizontal seams and two extra vertical seams per page, with zero overlap, so on a single-column manuscript every text line is sliced into four independently-OCR'd pieces at arbitrary x. `seam_fragment_ratio` then rises, `seam_retry_required` fires again, and attempt 2 (`ocr.py:3966`) re-runs the same strategy chain — the loop actively degrades quality with each attempt.
 - **Fix:** Compute seams only between boxes that share a row band (group by y-overlap before pairing) and only between boxes that share a column band for x seams. Then, instead of re-cutting at those coordinates, generate tiles that are CENTRED on each seam with generous overlap, and merge the seam-tile text back into the previous attempt rather than replacing the whole page.
 
-### [SVC-04] grid_shift offset fallback never covers the top band of the page
+### [SVC-04] grid_shift offset fallback never covers the top band of the page — **FIXED**
 
 - **Where:** `vendor:app/services/seam_strategies.py:207`  
 - **Category:** correctness  
