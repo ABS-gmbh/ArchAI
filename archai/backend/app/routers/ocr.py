@@ -1484,6 +1484,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
         best_attempt_idx: int = -1
         gates_ever_passed: bool = False
         best_attempt_key: tuple[int, int, float] | None = None
+        best_tiling_plan: TilingPlan | None = None
 
         # Track previous attempt for NO-OP detection
         prev_text_sha256: str = ""
@@ -1741,6 +1742,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                 best_gate_decisions = gate_decisions
                 best_effective_quality = effective_quality
                 best_attempt_idx = attempt_idx
+                best_tiling_plan = current_plan
 
             if all_gates_passed:
                 gates_ever_passed = True
@@ -1806,11 +1808,14 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                     ocr_quality_report.seam_fragment_ratio,
                 ) >= SEAM_FRAG_HARD_LIMIT * 0.7
             )
-            if needs_stability and best_attempt_idx >= 0 and prev_tiling_plan is not None:
-                # Use a small perturbation plan for the stability pass
+            # Perturbs the plan of the attempt that was kept. It used to wait for
+            # prev_tiling_plan, which is set only when an attempt fails, so a run
+            # whose first attempt passed as OK never got a stability pass; and it
+            # perturbed the last attempt's plan, not the kept one (audit OCR-008).
+            if needs_stability and best_tiling_plan is not None:
                 from app.services.seam_strategies import expand_overlap as _expand_for_stability
                 stability_plan = _expand_for_stability(
-                    current_plan.tile_boxes, img_w, img_h,
+                    best_tiling_plan.tile_boxes, img_w, img_h,
                     expand_pct=0.10, attempt_idx=99,
                 )
                 stability_dicts = plan_to_suggestions(stability_plan, img_w, img_h)
