@@ -582,7 +582,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** POST /predict/batch with a truncated or non-ZIP upload: `zipfile.ZipFile(zip_path, "r")` raises BadZipFile out of the background task, status stays "pending" forever. The client then opens /predict/batch/{task_id}/progress and the generator spins every 0.5s indefinitely — an immortal event-loop task plus a held HTTP connection per polling client, with the frontend showing 0% forever and no error. `cleanup_expired_tasks` (file_manager.py:64) deleting the store entry does not stop it, because the generator holds a direct reference to the TaskState object.
 - **Fix:** Wrap the body of `_process_batch` (predict.py:190-260) in try/except, setting `task.status = "error"` and `task.message = str(exc)` on failure. Independently, bound the SSE loop in `batch_progress` with a deadline (e.g. break after `settings.task_ttl_minutes`) so a wedged task cannot pin a connection forever.
 
-### [PRED-002] Uploads are read fully into memory with no size cap, and zip members are decompressed unbounded
+### [PRED-002] Uploads are read fully into memory with no size cap, and zip members are decompressed unbounded — **FIXED**
 
 - **Where:** `vendor:app/routers/predict.py:283`  
 - **Category:** security  
