@@ -382,7 +382,7 @@ rag_store is reached at app import time: app/main.py:11 imports routers.index an
 - **Impact:** Both scripts crash on startup with a missing-weights error. 118 KB of unreachable code with a third dependency stack sits in the vendored tree, and APP_DOCUMENTATION.md:296 actively directs readers to run it. `_app_.py` is additionally a stale near-duplicate of `app.py` with no marker saying which supersedes which.
 - **Fix:** Delete both files and archai/vendor/layout/requirements.txt, and strike the `python app.py` section from APP_DOCUMENTATION.md:290-340. If the Gradio demo is still wanted, keep only app.py, fix the SCRIPT_DIR paths at app.py:39-42 to point at backend/models/, and declare gradio/supervision/pandas in a `[project.optional-dependencies] demo` extra.
 
-### [HYG-14] .env.example omits the API-key variable the code actually reads
+### [HYG-14] .env.example omits the API-key variable the code actually reads — **FIXED**
 
 - **Where:** `archai/vendor/layout/backend/.env.example:10`  
 - **Category:** hygiene  
