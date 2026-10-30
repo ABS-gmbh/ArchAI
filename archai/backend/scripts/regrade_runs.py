@@ -64,12 +64,17 @@ def candidates(*, include_ungraded: bool, everything: bool) -> list[dict[str, An
 def grade(text: str, *, tiled: bool) -> dict[str, Any]:
     """The decision the pipeline takes on *text*: language, label, and whether it may be searched."""
     from app.services.language_detection import _detect_language_metadata, _normalize_detected_language, _quality_language
+    from app.services.lexicon_trust import best_fit_plausibility
     from app.services.ocr_quality import compute_quality_report
+    from app.services.pipeline_hardening import enforce_quality_gates
 
     detected, _confidence = _detect_language_metadata(text)
     language = _normalize_detected_language(detected)
     report = compute_quality_report(text, run_id="regrade", pass_idx=0, language=_quality_language(language), tiled=tiled)
-    return {"language": language, "label": report.quality_label, "allowed": bool(report.token_search_allowed)}
+    # As the pipeline decides: the report's label and the hard gates together.
+    lexical = best_fit_plausibility(text, language) if language and language != "unknown" else None
+    gates = enforce_quality_gates(report, run_id="regrade", lexical_plausibility=lexical)
+    return {"language": language, "label": report.quality_label, "allowed": bool(gates["token_search_allowed"])}
 
 
 def regrade(*, apply: bool, include_ungraded: bool, everything: bool) -> list[dict[str, Any]]:

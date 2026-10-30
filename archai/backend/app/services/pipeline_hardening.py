@@ -541,13 +541,17 @@ def enforce_quality_gates(
 
     downstream = decide_downstream_mode(quality_report.quality_label)
 
+    # The flags the pipeline acts on must agree with the gates: they were the
+    # report's label-derived flags, so a page whose gibberish, stability,
+    # non-wordlike or lexical gate failed could still be searched and linked
+    # whenever its label was HIGH or OK (audit SVC-05).
     return {
         "quality_label": quality_report.quality_label,
         "downstream_mode": downstream,
         "gates": gates,
         "blocked_stages": list(set(blocked)),
-        "token_search_allowed": quality_report.token_search_allowed,
-        "ner_allowed": quality_report.ner_allowed,
+        "token_search_allowed": quality_report.token_search_allowed and "token_search" not in blocked,
+        "ner_allowed": quality_report.ner_allowed and "token_ner" not in blocked,
         "seam_retry_required": quality_report.seam_retry_required,
     }
 
