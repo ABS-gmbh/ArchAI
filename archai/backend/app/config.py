@@ -52,6 +52,11 @@ class Settings(BaseSettings):
     # Processing
     max_pool_workers: int = 3
     task_ttl_minutes: int = 60
+    # Upload limits for /predict: one upload, and everything a batch ZIP may
+    # expand to. Uploads were read whole into memory and ZIP members
+    # inflated without a bound (audit PRED-002).
+    max_upload_megabytes: int = 1024
+    max_extracted_megabytes: int = 4096
 
     # Chat AI (GWDG OpenAI-compatible)
     chat_ai_api_key: str = ""

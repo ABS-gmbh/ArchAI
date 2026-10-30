@@ -55,10 +55,34 @@ def _parse_classes(classes: Optional[str]) -> list[str]:
     return selected
 
 
+_COPY_CHUNK = 1 << 20
+
+
+async def _save_upload(upload: UploadFile, path: str, *, empty_detail: str) -> None:
+    """Stream an upload to disk, refusing more than max_upload_megabytes with 413."""
+    limit = max(1, int(settings.max_upload_megabytes)) * (1 << 20)
+    total = 0
+    with open(path, "wb") as out:
+        while chunk := await upload.read(_COPY_CHUNK):
+            total += len(chunk)
+            if total > limit:
+                break
+            out.write(chunk)
+    if total > limit:
+        os.remove(path)
+        raise HTTPException(status_code=413, detail=f"Upload exceeds {settings.max_upload_megabytes} MB.")
+    if total == 0:
+        os.remove(path)
+        raise HTTPException(status_code=422, detail=empty_detail)
+
+
 def _safe_extract_zip(zip_path: str, extract_dir: str) -> None:
     """
-    Extract zip safely (prevents Zip Slip path traversal).
+    Extract zip safely (prevents Zip Slip path traversal, and stops once the
+    extracted bytes pass max_extracted_megabytes, so a ZIP bomb cannot fill
+    memory or disk).
     """
+    budget = max(1, int(settings.max_extracted_megabytes)) * (1 << 20)
     with zipfile.ZipFile(zip_path, "r") as zf:
         for member in zf.infolist():
             member_name = member.filename
@@ -81,7 +105,13 @@ def _safe_extract_zip(zip_path: str, extract_dir: str) -> None:
 
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             with zf.open(member, "r") as src, open(dest_path, "wb") as dst:
-                dst.write(src.read())
+                while chunk := src.read(_COPY_CHUNK):
+                    budget -= len(chunk)
+                    if budget < 0:
+                        raise ValueError(
+                            f"ZIP expands past {settings.max_extracted_megabytes} MB; extraction stopped."
+                        )
+                    dst.write(chunk)
 
 
 class PreparedImage(NamedTuple):
@@ -225,12 +255,7 @@ async def predict_single(
     safe_name = _secure_filename(image.filename or "upload.jpg")
     img_path = os.path.join(task_dir, safe_name)
 
-    contents = await image.read()
-    if not contents:
-        raise HTTPException(status_code=422, detail="Empty upload.")
-
-    with open(img_path, "wb") as f:
-        f.write(contents)
+    await _save_upload(image, img_path, empty_detail="Empty upload.")
 
     # Validate + normalize to RGB and safe size for model inference.
     prepared = _prepare_image_for_segmentation(img_path)
@@ -380,12 +405,7 @@ async def predict_batch(
     task_dir = get_task_dir(task.task_id)
 
     zip_path = os.path.join(task_dir, "upload.zip")
-    contents = await zip_file.read()
-    if not contents:
-        raise HTTPException(status_code=422, detail="Empty ZIP upload.")
-
-    with open(zip_path, "wb") as f:
-        f.write(contents)
+    await _save_upload(zip_file, zip_path, empty_detail="Empty ZIP upload.")
 
     background_tasks.add_task(_process_batch, task, zip_path, confidence, iou, selected_classes)
 
