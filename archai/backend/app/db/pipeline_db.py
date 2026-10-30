@@ -42,6 +42,13 @@ def _connect() -> sqlite3.Connection:
     conn = sqlite3.connect(str(cfg.path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
+    # OCR runs write from worker threads while trace streams poll. In the
+    # default rollback-journal mode a commit locks readers out, and a wait past
+    # five seconds raised "database is locked" mid-run (audit DB-01). WAL lets
+    # readers go on during a write; contention now waits up to ten seconds.
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=10000")
+    conn.execute("PRAGMA synchronous=NORMAL")
     return conn
 
 
