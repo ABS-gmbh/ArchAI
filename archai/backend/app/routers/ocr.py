@@ -9,6 +9,7 @@ import json
 import logging
 import re
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -2284,6 +2285,14 @@ async def ocr_trace_snapshot(run_id: str) -> dict[str, Any]:
     return snapshot
 
 
+# Statuses a run does not leave. FAILED_QUALITY was missing, so a run stopped
+# by the quality gates kept its stream open for good (audit OCR-010).
+_TERMINAL_RUN_STATUSES = frozenset({"COMPLETED", "FAILED", "FAILED_QUALITY"})
+# A run that never reaches one (the process restarted mid-run) must not hold
+# the stream open forever either.
+_TRACE_STREAM_MAX_SECONDS = 60 * 60
+
+
 @router.get("/ocr/trace/stream/{run_id}")
 async def ocr_trace_stream(run_id: str) -> StreamingResponse:
     if get_run(run_id) is None:
@@ -2291,8 +2300,11 @@ async def ocr_trace_stream(run_id: str) -> StreamingResponse:
 
     async def event_stream():
         last_signature: tuple[Any, ...] | None = None
-        while True:
-            snapshot = _build_trace_snapshot(run_id)
+        deadline = time.monotonic() + _TRACE_STREAM_MAX_SECONDS
+        while time.monotonic() < deadline:
+            # Off the event loop: it is several SQLite queries, every 0.4 s per
+            # watching client (audit DB-03).
+            snapshot = await asyncio.to_thread(_build_trace_snapshot, run_id)
             if snapshot is None:
                 payload = {"run_id": run_id, "status": "FAILED", "error": "Run disappeared from database."}
                 yield f"event: snapshot\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
@@ -2310,7 +2322,7 @@ async def ocr_trace_stream(run_id: str) -> StreamingResponse:
                 yield f"event: snapshot\ndata: {json.dumps(snapshot, ensure_ascii=False)}\n\n"
                 last_signature = signature
 
-            if str(run.get("status") or "").upper() in {"COMPLETED", "FAILED"}:
+            if str(run.get("status") or "").upper() in _TERMINAL_RUN_STATUSES:
                 break
             await asyncio.sleep(0.4)
 

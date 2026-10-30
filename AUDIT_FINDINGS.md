@@ -558,7 +558,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A run whose first attempt passes all gates with label OK (not HIGH) computes `needs_stability = True` but is skipped because `prev_tiling_plan` is still None. `ocr_quality_report.cross_pass_stability` stays at its -1 sentinel, gets persisted that way by `insert_ocr_attempt` (ocr.py:4092) and flows into `build_effective_quality`, and `apply_uncertainty_markers` never runs — so the exact runs the stability check was designed for (borderline-but-passing) never get one. The block also reads `current_plan` (ocr.py:4183) while guarding on `prev_tiling_plan`, two names that only coincide on the failure path.
 - **Fix:** Assign `prev_tiling_plan = current_plan` unconditionally right after `current_plan.text_sha256 = text_sha256` (ocr.py:3953), before the gate branch, so the plan is available regardless of how the loop exits. Then use one variable consistently in the stability block at ocr.py:4180-4183.
 
-### [OCR-010] SSE trace stream polls forever with no deadline and does synchronous SQLite reads per tick
+### [OCR-010] SSE trace stream polls forever with no deadline and does synchronous SQLite reads per tick — **FIXED**
 
 - **Where:** `vendor:app/routers/ocr.py:4636`  
 - **Category:** performance  
@@ -566,7 +566,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** Any run that ends in FAILED_QUALITY (the whole point of the gate machinery) never terminates its stream: the generator keeps re-reading the run row and event list from SQLite every 400 ms indefinitely, one open connection and one live event-loop task per watching client. A run killed by a process restart while status is RUNNING behaves the same way. Both also mean the sync `list_events` query runs on the event-loop thread twice a second per client.
 - **Fix:** Add `"FAILED_QUALITY"` to the terminal set at ocr.py:4661 (or test a `TERMINAL_STATUSES` constant shared with `update_run_fields` callers), add an absolute deadline that emits a final snapshot and breaks, and offload `_build_trace_snapshot` with `await asyncio.to_thread(...)` at ocr.py:4638.
 
-### [DB-03] SSE trace stream runs 4-6 synchronous SQLite queries every 400 ms directly on the asyncio event loop
+### [DB-03] SSE trace stream runs 4-6 synchronous SQLite queries every 400 ms directly on the asyncio event loop — partly fixed (the snapshot is read off the event loop; it still opens a connection per query and re-reads every event)
 
 - **Where:** `vendor:app/routers/ocr.py:4640`  
 - **Category:** performance  
