@@ -1,12 +1,15 @@
 """File download endpoints."""
 
+import asyncio
 import io
 import json
 import os
+import tempfile
 import zipfile
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
+from starlette.background import BackgroundTask
 
 from app.services.file_manager import get_task, get_task_dir
 
@@ -70,21 +73,30 @@ async def download_results_zip(task_id: str):
     if task is None or not task.gallery:
         raise HTTPException(status_code=404, detail="Task not found or no results.")
 
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        # Add annotated images
-        for g in task.gallery:
-            if os.path.exists(g["annotated_path"]):
-                zf.write(g["annotated_path"], f"images/{g['filename']}")
-
-        # Add merged annotations
-        if task.coco_json:
-            zf.writestr("annotations.json", json.dumps(task.coco_json, indent=2))
-
-    buf.seek(0)
-    return StreamingResponse(
-        buf,
+    # Built on disk in a worker thread and streamed from there. It was built in
+    # memory on the event loop: a large batch held hundreds of megabytes per
+    # download and froze every other request while it compressed (audit DL-001).
+    path = await asyncio.to_thread(_write_results_zip, task, get_task_dir(task_id))
+    return FileResponse(
+        path,
         media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="results_{task_id}.zip"'},
+        filename=f"results_{task_id}.zip",
+        background=BackgroundTask(os.remove, path),
     )
+
+
+def _write_results_zip(task, directory: str) -> str:
+    """Write the task's annotated images and merged annotations to a new ZIP; return its path."""
+    handle, path = tempfile.mkstemp(prefix="results_", suffix=".zip", dir=directory)
+    try:
+        with os.fdopen(handle, "wb") as out, zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
+            for g in task.gallery:
+                if os.path.exists(g["annotated_path"]):
+                    zf.write(g["annotated_path"], f"images/{g['filename']}")
+            if task.coco_json:
+                zf.writestr("annotations.json", json.dumps(task.coco_json, indent=2))
+    except BaseException:
+        os.remove(path)
+        raise
+    return path
 

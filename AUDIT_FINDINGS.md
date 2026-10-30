@@ -526,7 +526,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A POST /chat/completions with `stream: false` freezes the entire process for the whole LLM round-trip — up to `settings.saia_timeout_seconds` (saia_client.py:24-25) if the upstream hangs. Concurrent /ocr and /predict requests, and every open SSE stream, stall for that duration. The streaming branch is unaffected because Starlette iterates the sync `_sse_events` generator in a threadpool.
 - **Fix:** `return await asyncio.to_thread(create_chat_completion, messages=..., ...)` at chat.py:116 and `return await asyncio.to_thread(list_available_models)` at chat.py:81, matching chat.py:130.
 
-### [DL-001] Results ZIP is assembled entirely in memory on the event loop
+### [DL-001] Results ZIP is assembled entirely in memory on the event loop — **FIXED**
 
 - **Where:** `vendor:app/routers/download.py:74`  
 - **Category:** performance  
