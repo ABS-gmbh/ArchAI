@@ -534,7 +534,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A 500-image batch produces a multi-hundred-megabyte buffer: the handler holds it entirely in RAM and spends the whole DEFLATE pass with the GIL on the event-loop thread, freezing every other request. Two users downloading simultaneously doubles the resident memory with nothing bounding it.
 - **Fix:** Offload with `buf = await asyncio.to_thread(_build_results_zip, task)`, or write the archive to `get_task_dir(task_id)` once and serve it with `FileResponse` (the pattern already used at download.py:39 and download.py:64), which also removes the repeated rebuild on every download.
 
-### [OCR-003] NO-OP escalation re-runs OCR but leaves confidence, language and quality metrics from the discarded result
+### [OCR-003] NO-OP escalation re-runs OCR but leaves confidence, language and quality metrics from the discarded result — **FIXED**
 
 - **Where:** `vendor:app/routers/ocr.py:3992`  
 - **Category:** correctness  
