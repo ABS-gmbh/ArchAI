@@ -137,6 +137,9 @@ class Settings(BaseSettings):
     paleography_verification_model: str = "qwen3-235b-a22b"
     paleography_verification_temperature: float = 0.0
     paleography_verification_max_tokens: int = 900
+    # Per request; the OpenAI client retries twice, so a stalled verifier holds
+    # a chat answer for at most three times this before it degrades.
+    paleography_verification_timeout_seconds: int = 60
 
     # OCR backend routing
     ocr_backend_default: str = "auto"

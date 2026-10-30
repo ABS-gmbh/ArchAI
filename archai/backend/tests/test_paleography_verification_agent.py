@@ -160,3 +160,25 @@ def test_json_that_is_not_an_object_reads_as_no_verdict() -> None:
         assessment, answer, notes, citations = _verdict(raw)
         assert assessment == "unavailable", raw
         assert answer == "draft"
+
+
+def test_the_verifier_call_has_its_own_timeout(monkeypatch: Any) -> None:
+    """Audit AG-09: no timeout meant the SDK's 600 s default, retried twice."""
+    fake = _FakeVerifierClient('{"assessment":"supported","notes":["ok"]}')
+    monkeypatch.setattr(settings, "paleography_verification_timeout_seconds", 45)
+    monkeypatch.setattr("app.services.chat_ai._create_client", lambda: fake)
+
+    PaleographyVerificationAgent().run(
+        SimpleNamespace(
+            question="q", draft_answer="d", transcript="t", authority_report="",
+            evidence_text="", ocr_run_id="run-1",
+        )
+    )
+
+    assert fake.calls[0]["timeout"] == 45.0
+
+
+def test_the_default_timeout_is_a_minute() -> None:
+    from app.config import Settings  # type: ignore[import-untyped]
+
+    assert Settings.model_fields["paleography_verification_timeout_seconds"].default == 60
