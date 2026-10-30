@@ -27,7 +27,7 @@ These are pydantic-settings *defaults*, so they apply whenever the env vars are 
 - **Impact:** Deploy or run `uvicorn app.main:app` without exporting ANALYTICS_PASSWORD and JWT_SECRET (the documented quick-start at README.md:50-53 does not mention them, and the vendor .env is gitignored so a fresh clone has none): the analytics API accepts admin/layout2024, and because jwt_secret is the literal string "change-this-to-a-random-string", anyone reading this public GitHub repo can forge a valid HS256 token via jwt.encode(payload, "change-this-to-a-random-string") and bypass the login at analytics.py:41 entirely. This is the only literal credential material found in tracked files — a full-history scan (`git grep` over all 7 commits for sk-/AKIA/ghp_/xox*/AIza/BEGIN PRIVATE KEY and for `key|secret|token|password = "<20+ chars>"`) returned zero other hits.
 - **Fix:** Remove the defaults: make `analytics_password` and `jwt_secret` required with no fallback (e.g. `jwt_secret: str` with no default, or `Field(...)`) so Settings() raises at import time when unset. Replace the values in .env.example:5-6 with empty placeholders. Rotate the secret if this repo has ever been public.
 
-### [AL-01] Composite score ceiling (0.795) is below every auto-select threshold, so nothing can link except the 23 hard-coded names
+### [AL-01] Composite score ceiling (0.795) is below every auto-select threshold, so nothing can link except the 23 hard-coded names — **FIXED** (verified: test_linking_calibration.py::test_a_perfect_candidate_clears_every_threshold, ::test_thresholds_were_not_lowered_to_make_this_pass)
 
 - **Where:** `vendor:app/services/authority_linking.py:392`  
 - **Category:** correctness  
@@ -94,7 +94,7 @@ These are pydantic-settings *defaults*, so they apply whenever the env vars are 
 - **Impact:** `make backend-dev` starts a server whose /jobs endpoints return fabricated progress from `_simulate_pipeline` while the real pipeline is 27,933 LOC away in archai/vendor/layout/backend/app. A reader following docs/repository_map.md:45 or the Makefile spends their first hour in the wrong tree. It is also the second of three overlapping FastAPI packages, all installable, all named differently.
 - **Fix:** Delete archai/backend/ (nothing imports it) and remove the backend-install/backend-dev targets from archai/Makefile:12-16 plus the rows at docs/repository_map.md:45 and archai/README.md:20. If it must stay as a design sketch, move it to docs/ as prose and mark it "Not implemented" rather than "Active".
 
-### [AG-06] Proofreader hallucination guard is applied at only one of three agent call sites
+### [AG-06] Proofreader hallucination guard is applied at only one of three agent call sites — **FIXED** (#20: proofread() itself applies the line guard; test_proofread_line_guard.py::test_the_agent_returns_the_guarded_text)
 
 - **Where:** `vendor:app/agents/ocr_agent.py:1408`  
 - **Category:** ocr-quality  
@@ -130,7 +130,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** Any deployment that does not set the env overrides accepts `admin` / `layout2024`, and anyone reading this public repo can mint a valid HS256 token offline with the known secret — `_verify_token` will accept it and serve `/analytics/data` without ever hitting the login route. The `==` password comparison is also non-constant-time.
 - **Fix:** Remove the defaults from config.py:21-25 (make them required `str` with no default so pydantic-settings fails fast when unset), or add a startup assertion that rejects the literal placeholder values. Use `hmac.compare_digest` for both comparisons at analytics.py:41 and store a password hash rather than the plaintext.
 
-### [OCR-001] Authority linking does blocking network I/O + time.sleep on the event loop
+### [OCR-001] Authority linking does blocking network I/O + time.sleep on the event loop — **FIXED** (verified: test_event_loop_blocking.py checks every linking call site)
 
 - **Where:** `vendor:app/routers/ocr.py:4575`  
 - **Category:** performance  
@@ -154,7 +154,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** Every POST /ocr/extract freezes the whole process for the full duration of model inference plus the SAIA round-trip (bounded only by `settings.saia_timeout_seconds`, services/saia_client.py:24). Two concurrent /ocr/extract calls serialize completely, and unrelated endpoints time out.
 - **Fix:** `return await asyncio.to_thread(_get_ocr_agent().run, effective_payload)` at ocr.py:3569, matching ocr.py:3229. The surrounding except clauses still catch correctly, since `to_thread` re-raises in the awaiting frame.
 
-### [AL-05] run_authority_linking is fully synchronous (blocking urllib + time.sleep) but is called directly from async FastAPI routes, freezing the event loop for the whole linking stage
+### [AL-05] run_authority_linking is fully synchronous (blocking urllib + time.sleep) but is called directly from async FastAPI routes, freezing the event loop for the whole linking stage — partly fixed (the stage runs off the event loop, see OCR-001; the per-run wall-clock budget is still missing)
 
 - **Where:** `vendor:app/services/authority_linking.py:1296`  
 - **Category:** performance  
@@ -162,7 +162,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** The entire uvicorn event loop stalls for the full duration of authority linking. Combined with AL-03 (up to 60s of serial VIAF I/O per query variant, uncapped), a single page OCR request makes the whole backend unresponsive — every other in-flight request, health check, and SSE/progress stream stops — for minutes to hours. There is no per-run wall-clock budget anywhere in `run_authority_linking` to bound this.
 - **Fix:** At routers/ocr.py:3523 and :4575 wrap the call: `linking_result = await anyio.to_thread.run_sync(_run_authority_linking_stage, run_id)` (or `starlette.concurrency.run_in_threadpool`). Also add a wall-clock budget inside the mention loop at authority_linking.py:1373 — e.g. break out and mark remaining mentions 'deferred' once `time.monotonic() - t0` exceeds a configured ceiling.
 
-### [AL-02] Every VIAF and GeoNames candidate is forced type_compatible=False and hard-gated out, making all VIAF/GeoNames traffic dead work
+### [AL-02] Every VIAF and GeoNames candidate is forced type_compatible=False and hard-gated out, making all VIAF/GeoNames traffic dead work — partly fixed (VIAF personal/corporate/geographic and GeoNames records now carry type QIDs; VIAF work name types still map to none)
 
 - **Where:** `vendor:app/services/authority_sources.py:106`  
 - **Category:** correctness  
@@ -186,7 +186,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** Wikidata `wbsearchentities` for 'Lancelot' returns several items whose label is exactly 'Lancelot' (the character, plus namesakes that survive `_prefilter_candidates`). Two of them clear `label_sim >= 0.95` and `type_compatible`, both get `score = 0.92`, margin = 0.000 < 0.15, and `disambiguate` returns 'ambiguous' with `selected=None`. The single mechanism that can push a score over the bar simultaneously guarantees the margin gate fails whenever more than one plausible candidate exists — so the better the search results, the less likely anything links.
 - **Fix:** Make the boost order-preserving instead of a clamp — e.g. `cand["score"] = boost_floor + (1 - boost_floor) * (0.6*label_sim + 0.4*prior)` so ties are broken by the underlying signal — or apply the margin gate to the pre-boost scores stored in `cand['score_breakdown']['final_score']` (populated at authority_linking.py:413) rather than the post-boost values.
 
-### [TASK-01] cleanup_expired_tasks() has zero callers — .tasks/ has grown to 460 directories / 3.0 GB with entries dating to February
+### [TASK-01] cleanup_expired_tasks() has zero callers — .tasks/ has grown to 460 directories / 3.0 GB with entries dating to February — **FIXED** (verified: test_task_cleanup.py::test_the_cleanup_is_actually_wired_into_startup)
 
 - **Where:** `vendor:app/services/file_manager.py:64`  
 - **Category:** architecture  
@@ -275,7 +275,7 @@ confidence = _mean(confidences)
 - **Impact:** On a 3000 px page the top 330 px — typically the rubric, running title, and first two text lines — is never sent to OCR on that retry attempt. Because the retry result replaces rather than merges with attempt 0, that text disappears from the final transcription, and the page still reports COMPLETED.
 - **Fix:** Clamp row 0 to start at 0 and the last row to end at img_h: `y1 = 0 if r == 0 else r*tile_h + y_off` and `y2 = img_h if r == rows-1 else y1 + tile_h`. Add a unit test asserting `set(range(img_h)) == union(range(y1,y2))` for every grid the module can emit.
 
-### [AL-04] A failed wbgetentities call is cached as a permanent empty enrichment, blacklisting that QID from linking forever
+### [AL-04] A failed wbgetentities call is cached as a permanent empty enrichment, blacklisting that QID from linking forever — **FIXED** (verified: test_wikidata_failure_caching.py; failures raise WikidataUnavailable and are not cached)
 
 - **Where:** `vendor:app/services/wikidata_client.py:467`  
 - **Category:** correctness  
@@ -638,7 +638,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A restart (or a --reload cycle) empties _task_store while .tasks/<id>/ persists. Those directories are then simultaneously (a) unreachable — every /api/download/{task_id}/* returns 404 "Task not found" even though the annotated JPEG is sitting on disk — and (b) unreclaimable, because cleanup_expired_tasks iterates the now-empty dict. This is precisely how 460 orphan directories accumulated. Batch results (task.coco_json, task.gallery) exist only in RAM, so an in-flight batch loses all results on restart with no recovery path.
 - **Fix:** Persist TaskState to `.tasks/<id>/state.json` (written temp-file-then-os.replace for atomicity) and have get_task() fall back to reading it when the id is absent from _task_store; make cleanup scan TASK_BASE_DIR by directory mtime rather than by dict membership.
 
-### [AL-09] lexical_plausibility deletes long-s instead of folding it to 's', depressing the score that hard-gates authority linking
+### [AL-09] lexical_plausibility deletes long-s instead of folding it to 's', depressing the score that hard-gates authority linking — **FIXED** (verified: trigrams come from the search key, which folds long s and splits at apostrophes; the audit's example scores 0.682 with and without long s)
 
 - **Where:** `vendor:app/services/lexicon_trust.py:201`  
 - **Category:** ocr-quality  
