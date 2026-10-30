@@ -614,7 +614,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** Wikidata auto-generated descriptions routinely use the pattern "husband of X" / "wife of X" for spousal relations, exactly the shape of Arthurian entries (e.g. an item described as 'legendary king, husband of Guinevere'). `_prefilter_candidates` drops such candidates BEFORE enrichment (authority_linking.py:1752), so they never reach `wbgetentities`, never get a P31, and are invisible in `raw_hits_by_source` — a silent recall loss with no log trace beyond a `log.debug`. Note also that `"film"` and `"tv series"` contradict `_ETYPE_TO_COMPATIBLE_QIDS["work"]` (wikidata_client.py:514-515), which explicitly lists Q11424 (film) and Q5398426 (TV series) as type-compatible.
 - **Fix:** Match on word boundaries: precompile `_MODERN_REJECT_RE = re.compile(r"\b(?:" + "|".join(re.escape(k) for k in _MODERN_DESCRIPTION_REJECTS) + r")\b")` at module scope and replace the loop at authority_linking.py:1196 with `if _MODERN_REJECT_RE.search(desc): continue`. Drop the now-unneeded trailing space on `"port "`, and reconcile the `film`/`tv series` entries with the `work` type map.
 
-### [AL-12] GeoNames defaults to the shared 'demo' username over plain HTTP; the resulting quota-error payload is swallowed and reported as zero candidates
+### [AL-12] GeoNames defaults to the shared 'demo' username over plain HTTP; the resulting quota-error payload is swallowed and reported as zero candidates — **FIXED**
 
 - **Where:** `vendor:app/services/authority_sources.py:124`  
 - **Category:** correctness  

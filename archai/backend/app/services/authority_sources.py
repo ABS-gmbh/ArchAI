@@ -199,7 +199,7 @@ def search_geonames(query: str, *, k: int = 5, ent_type: str = "") -> list[dict[
     username = str(settings.geonames_username or "").strip()
     if not username:
         return []
-    base_url = str(settings.geonames_base_url or "http://api.geonames.org").rstrip("/")
+    base_url = str(settings.geonames_base_url or "https://secure.geonames.org").rstrip("/")
     payload = _http_json(
         f"{base_url}/searchJSON",
         {
@@ -210,6 +210,11 @@ def search_geonames(query: str, *, k: int = 5, ent_type: str = "") -> list[dict[
         },
         timeout=int(settings.geonames_timeout_seconds or 10),
     )
+    # GeoNames reports errors (quota, bad account) as a 200 with a status
+    # object; they read as "no candidates" unless logged.
+    if isinstance(payload.get("status"), dict):
+        log.warning("GeoNames error for %r: %s", query, payload["status"].get("message") or payload["status"])
+        return []
     rows = payload.get("geonames") or []
     if not isinstance(rows, list):
         return []
