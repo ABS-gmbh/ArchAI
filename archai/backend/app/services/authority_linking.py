@@ -684,6 +684,8 @@ _MAX_SEARCH_CALLS_PER_RUN = 30    # max wbsearchentities calls per run
 # 10 s, made for every query variant of every person and work mention (audit
 # AL-03). Cached answers do not count.
 _MAX_VIAF_CALLS_PER_RUN = 30
+# Mentions not reached within this many seconds of the run are skipped.
+_MAX_LINKING_SECONDS = 300.0
 _MAX_GEONAMES_CALLS_PER_RUN = 30
 _MAX_ENRICH_PER_MENTION = 3       # max wbgetentities calls per mention
 
@@ -803,6 +805,7 @@ def run_authority_linking(
     cache_hits = 0
     type_mismatch_count = 0
     quality_skipped = 0
+    budget_skipped = 0
     canonical_matched = 0
     all_candidate_rows: list[dict[str, Any]] = []
     mention_results: list[dict[str, Any]] = []
@@ -845,9 +848,7 @@ def run_authority_linking(
         )
 
         # ── Quality gate: skip non-linkable types and garbage surfaces ─
-        if ent_type == "role":
-            # Role mentions (trigger without plausible name) → skip
-            quality_skipped += 1
+        def _skip(reason: str) -> None:
             score_breakdown = _score_breakdown_for_mention(
                 mention=mention,
                 query_details=[],
@@ -857,7 +858,7 @@ def run_authority_linking(
                 top_candidates=[],
                 ocr_quality=ocr_quality,
                 status="skipped",
-                reason="ent_type=role (not linkable)",
+                reason=reason,
             )
             _persist_mention_link(
                 run_id=run_id,
@@ -866,7 +867,7 @@ def run_authority_linking(
                 evidence_text=evidence_text,
                 evidence_span_id=evidence_span_id,
                 status="skipped",
-                reason="ent_type=role (not linkable)",
+                reason=reason,
                 score_breakdown=score_breakdown,
             )
             mention_results.append({
@@ -880,12 +881,25 @@ def run_authority_linking(
                 "queries_attempted": [],
                 "query_details": [],
                 "status": "skipped",
-                "reason": "ent_type=role (not linkable)",
+                "reason": reason,
                 "name_likeness": 0.0,
                 "canonical_match": None,
                 "selected": None,
                 "top_candidates": [],
             })
+
+        # ── Wall-clock budget: the rest of the run is skipped, not searched ─
+        # Linking makes blocking network calls per mention and query variant;
+        # without a budget a long page could hold its run for hours (audit AL-05).
+        if time.monotonic() - t0 > _MAX_LINKING_SECONDS:
+            budget_skipped += 1
+            _skip(f"linking time budget of {_MAX_LINKING_SECONDS:.0f}s spent")
+            continue
+
+        if ent_type == "role":
+            # Role mentions (trigger without plausible name) → skip
+            quality_skipped += 1
+            _skip("ent_type=role (not linkable)")
             log.info(
                 "mention %s surface=%r SKIPPED: ent_type=role",
                 mention_id, surface,
@@ -1420,6 +1434,7 @@ def run_authority_linking(
         "ambiguous_total": ambiguous_total,
         "skipped_total": skipped_total,
         "quality_skipped": quality_skipped,
+        "budget_skipped": budget_skipped,
         "canonical_matched": canonical_matched,
         "type_mismatch_count": type_mismatch_count,
         "api_calls_search": api_calls_search,

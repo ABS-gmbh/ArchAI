@@ -95,3 +95,28 @@ def test_a_run_stops_searching_once_every_source_is_spent(monkeypatch: Any, tmp_
 
     assert viaf_calls == []
     assert result["api_calls_viaf"] == 0
+
+
+# ── AL-05: the run's wall-clock budget ───────────────────────────────────
+
+
+def test_mentions_past_the_time_budget_are_skipped_not_searched(monkeypatch: Any, tmp_path: Path) -> None:
+    from types import SimpleNamespace
+
+    from tests.test_authority_linking_multisource import _seed_run
+
+    run_id = _seed_run(tmp_path, monkeypatch, surface="Merlin", ent_type="person",
+                       base_text="Merlin medieval legendary wizard")
+    readings = iter([0.0] + [10_000.0] * 50)  # the run starts, then the budget is gone
+    monkeypatch.setattr(authority_linking, "time", SimpleNamespace(monotonic=lambda: next(readings)))
+    monkeypatch.setattr(authority_linking, "cache_check", lambda *args, **kwargs: (None, "miss"))
+    wikidata_calls = _counting(monkeypatch, "search_wikidata", [])
+    viaf_calls = _counting(monkeypatch, "search_viaf", [VIAF_HIT])
+
+    result = authority_linking.run_authority_linking(run_id, top_k=3)
+
+    assert (wikidata_calls, viaf_calls) == ([], [])
+    assert result["budget_skipped"] == 1
+    [mention] = result["mention_results"]
+    assert mention["status"] == "skipped"
+    assert mention["reason"].startswith("linking time budget")

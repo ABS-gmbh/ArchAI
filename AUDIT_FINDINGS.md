@@ -154,7 +154,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** Every POST /ocr/extract freezes the whole process for the full duration of model inference plus the SAIA round-trip (bounded only by `settings.saia_timeout_seconds`, services/saia_client.py:24). Two concurrent /ocr/extract calls serialize completely, and unrelated endpoints time out.
 - **Fix:** `return await asyncio.to_thread(_get_ocr_agent().run, effective_payload)` at ocr.py:3569, matching ocr.py:3229. The surrounding except clauses still catch correctly, since `to_thread` re-raises in the awaiting frame.
 
-### [AL-05] run_authority_linking is fully synchronous (blocking urllib + time.sleep) but is called directly from async FastAPI routes, freezing the event loop for the whole linking stage — partly fixed (the stage runs off the event loop, see OCR-001; the per-run wall-clock budget is still missing)
+### [AL-05] run_authority_linking is fully synchronous (blocking urllib + time.sleep) but is called directly from async FastAPI routes, freezing the event loop for the whole linking stage — **FIXED** (the stage runs off the event loop, see OCR-001; mentions not reached within 300 s are skipped)
 
 - **Where:** `vendor:app/services/authority_linking.py:1296`  
 - **Category:** performance  
