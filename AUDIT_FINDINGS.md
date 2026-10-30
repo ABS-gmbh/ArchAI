@@ -406,7 +406,7 @@ future.cancel() is a no-op on an already-running future, and leaving the `with` 
 - **Impact:** When run_glm_ollama_ocr hangs, future.result() raises after timeout_seconds, but the raise propagates out of the `with` block, which then blocks on shutdown(wait=True) until the Ollama call finishes on its own. The 12-22s budget from _timeout_seconds_for_submode and the 30s _TOTAL_LABEL_ANALYSIS_DEADLINE_SECONDS are both unenforceable; a stalled Ollama backend holds the /chat/label-analysis worker thread indefinitely. Under FastAPI's asyncio.to_thread pool (routers/chat.py:134) this exhausts the default thread pool and stalls unrelated requests.
 - **Fix:** Do not use a context manager here. Create the executor once at module/class level (or use `pool = ThreadPoolExecutor(max_workers=1)` and on timeout call `pool.shutdown(wait=False, cancel_futures=True)` before raising), so the timeout path returns immediately and the orphaned thread is abandoned rather than waited on. Better still, give run_glm_ollama_ocr its own HTTP-level timeout so the worker actually dies.
 
-### [AG-12] _run_multi_initial_letter_identification re-decodes the entire page image once per region
+### [AG-12] _run_multi_initial_letter_identification re-decodes the entire page image once per region — **FIXED** (decoded once; each region still masks a page-sized composite)
 
 - **Where:** `vendor:app/agents/label_analysis_agent.py:927`  
 - **Category:** performance  

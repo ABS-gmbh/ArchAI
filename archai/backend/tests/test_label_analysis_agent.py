@@ -502,3 +502,32 @@ def test_running_out_of_time_before_any_letter_is_still_an_error(monkeypatch: An
     monkeypatch.setattr(agent, "_crop_regions", slow_crop)
     with pytest.raises(LabelAnalysisDeadlineError):
         agent.run(_three_initials_payload())
+
+
+def test_the_page_is_decoded_once_for_all_initials(monkeypatch: Any) -> None:
+    """Audit AG-12: each region decoded the whole page again."""
+    from app.agents import label_analysis_agent
+
+    decodes: list[int] = []
+    original = label_analysis_agent.decode_image_bytes
+
+    def counting(value: str) -> bytes:
+        decodes.append(1)
+        return original(value)
+
+    monkeypatch.setattr(label_analysis_agent, "decode_image_bytes", counting)
+    client = _SequenceSaiaClient(["Letter: R", "Letter: C", "Letter: A"])
+
+    result = LabelAnalysisAgent(client=client).run(_three_initials_payload())
+
+    assert result.text == "Region 1: R\nRegion 2: C\nRegion 3: A"
+    assert len(decodes) == 2  # the selection crop, then once for the three initials
+
+
+def test_a_crop_from_the_decoded_page_matches_the_crop_from_base64() -> None:
+    page_b64 = _png_b64(size=(220, 180))
+    region = SimpleNamespace(region_id="ann-2", bbox_xyxy=[80, 20, 130, 90], polygons=[])
+    from_b64, _b64, box_b64, _ = LabelAnalysisAgent._crop_regions(page_b64, [region])
+    from_page, box_page, _ = LabelAnalysisAgent._crop_from(LabelAnalysisAgent._decode_page(page_b64), [region])
+    assert box_page == box_b64
+    assert from_page.tobytes() == from_b64.tobytes()

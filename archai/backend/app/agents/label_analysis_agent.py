@@ -942,8 +942,11 @@ class LabelAnalysisAgent(BaseAgent):
         max_crop_bytes = 0
         image_format_sent = "jpeg"
 
+        # Decoded once for all regions. Each region used to decode the whole page
+        # again, and encode a PNG of its crop that nothing read (audit AG-12).
+        page = self._decode_page(image_b64)
         for index, region in enumerate(ordered_regions, start=1):
-            region_crop, _region_crop_b64, _region_bounds, _ = self._crop_regions(image_b64, [region])
+            region_crop, _region_bounds, _ = self._crop_from(page, [region])
             prepared_payload = self._prepare_label_crop_for_model(
                 region_crop,
                 label_name=label_name,
@@ -1114,13 +1117,23 @@ class LabelAnalysisAgent(BaseAgent):
 
     @staticmethod
     def _crop_regions(image_b64: str, regions: Sequence[Any]) -> tuple[Image.Image, str, list[int], int]:
+        crop, crop_box, region_count = LabelAnalysisAgent._crop_from(
+            LabelAnalysisAgent._decode_page(image_b64), regions
+        )
+        return crop, encode_png_base64(crop), crop_box, region_count
+
+    @staticmethod
+    def _decode_page(image_b64: str) -> Image.Image:
         image_bytes = decode_image_bytes(image_b64)
         try:
             with Image.open(io.BytesIO(image_bytes)) as image:
-                source = ImageOps.exif_transpose(image).convert("RGB")
+                return ImageOps.exif_transpose(image).convert("RGB")
         except Exception as exc:
             raise LabelAnalysisAgentError("Could not decode the source page image.") from exc
 
+    @staticmethod
+    def _crop_from(source: Image.Image, regions: Sequence[Any]) -> tuple[Image.Image, list[int], int]:
+        """The masked crop around `regions` of a decoded page, its box, and the region count."""
         if not regions:
             raise LabelAnalysisAgentError("No label regions were provided.")
 
@@ -1161,7 +1174,7 @@ class LabelAnalysisAgent(BaseAgent):
         composite = Image.new("RGB", source.size, (255, 255, 255))
         composite.paste(source, mask=mask)
         crop = composite.crop(tuple(crop_box)).copy()
-        return crop, encode_png_base64(crop), crop_box, len(bounds)
+        return crop, crop_box, len(bounds)
 
     def run(self, payload: Any) -> LabelAnalysisResult:
         started_at = time.perf_counter()
