@@ -20,7 +20,7 @@ from openai import OpenAI
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BACKEND_ROOT = ROOT / "archai" / "vendor" / "layout" / "backend"
+BACKEND_ROOT = ROOT / "archai" / "backend"
 ARTIFACT_ROOT = ROOT / "artifacts" / "thesis_showcase"
 BACKEND_URL = os.environ.get("ARCHAI_BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
 BACKEND_ENV = BACKEND_ROOT / ".env"
@@ -130,13 +130,19 @@ def ensure_dirs() -> dict[str, Path]:
     return paths
 
 
+# The names the backend reads the key from, in its order (app/services/chat_ai.py).
+_KEY_NAMES = ("CHAT_AI_API_KEY", "SAIA_API_KEY", "ARCHAI_CHAT_AI_API_KEY", "ARCHAI_SAIA_API_KEY")
+
+
 def load_backend_key() -> str:
     if not BACKEND_ENV.exists():
         return ""
+    values: dict[str, str] = {}
     for line in BACKEND_ENV.read_text(encoding="utf-8").splitlines():
-        if line.startswith("ARCHAI_SAIA_API_KEY="):
-            return line.split("=", 1)[1].strip()
-    return ""
+        name, sep, value = line.partition("=")
+        if sep and name.strip() in _KEY_NAMES:
+            values[name.strip()] = value.strip()
+    return next((values[name] for name in _KEY_NAMES if values.get(name)), "")
 
 
 def configured_model() -> str:
