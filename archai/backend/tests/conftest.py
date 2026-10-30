@@ -67,3 +67,21 @@ def _evidence_log_outside_the_checkout(tmp_path_factory: pytest.TempPathFactory)
     settings.ocr_evidence_path = str(tmp_path_factory.mktemp("evidence") / "ocr_evidence.jsonl")
     yield
     settings.ocr_evidence_path = real
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _authority_cache_outside_the_checkout(tmp_path_factory: pytest.TempPathFactory):
+    """Tests feed the linker fake candidates, which it caches: keep them out of app/.data."""
+    import os
+
+    from app.services import wikidata_client
+
+    real = os.environ.get("ARCHAI_WIKIDATA_CACHE")
+    os.environ["ARCHAI_WIKIDATA_CACHE"] = str(tmp_path_factory.mktemp("authority_cache") / "cache.sqlite")
+    wikidata_client._CACHE_READY = False
+    yield
+    if real is None:
+        os.environ.pop("ARCHAI_WIKIDATA_CACHE", None)
+    else:
+        os.environ["ARCHAI_WIKIDATA_CACHE"] = real
+    wikidata_client._CACHE_READY = False

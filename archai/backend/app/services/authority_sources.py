@@ -60,6 +60,7 @@ def search_viaf(query: str, *, k: int = 5, ent_type: str = "") -> list[dict[str,
         return []
 
     out: list[dict[str, Any]] = []
+    incomplete = False
     for row in rows[:k]:
         if not isinstance(row, dict):
             continue
@@ -68,6 +69,8 @@ def search_viaf(query: str, *, k: int = 5, ent_type: str = "") -> list[dict[str,
         if not viaf_id or not label:
             continue
         record = _fetch_viaf_record(viaf_id)
+        if not record:
+            incomplete = True
         aliases: list[dict[str, str]] = []
         seen: set[str] = set()
         main_headings = record.get("mainHeadings", {}).get("data", [])
@@ -114,6 +117,11 @@ def search_viaf(query: str, *, k: int = 5, ent_type: str = "") -> list[dict[str,
                 "source_confidence": 0.92,
             }
         )
+    if incomplete:
+        # A record fetch failed: the candidates lack aliases and type, so the
+        # caller must not cache them (audit AL-03).
+        for item in out:
+            item["partial"] = True
     return out
 
 
