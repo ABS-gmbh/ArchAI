@@ -138,7 +138,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** A page with 40 linkable mentions blocks the single uvicorn event loop for 40 x (polite-delay + up to 15s Wikidata timeout). During that window every other request on the process — `/ocr/trace/{run_id}`, the SSE stream, `/health` — is frozen. One slow or unreachable Wikidata endpoint stalls the whole server, not just the one run.
 - **Fix:** Wrap the stage the same way the OCR calls already are: `linking_result = await asyncio.to_thread(_run_authority_linking_stage, run_id)` at ocr.py:4575, and make `_run_segmented_trace_pipeline` (ocr.py:3523) do the same. Only `_run_post_ocr_pipeline_for_glm` (ocr.py:3086) is already safe because that whole function is invoked via `asyncio.to_thread`.
 
-### [OCR-002] Best-attempt selection ignores whether quality gates passed, so a passing attempt is discarded
+### [OCR-002] Best-attempt selection ignores whether quality gates passed, so a passing attempt is discarded — **FIXED**
 
 - **Where:** `vendor:app/routers/ocr.py:4099`  
 - **Category:** correctness  
