@@ -170,3 +170,33 @@ def test_score_candidate_still_separates_a_wrong_mention() -> None:
     )
     assert correct > wrong
     assert correct - wrong >= QUALITY_THRESHOLDS["HIGH"]["MIN_MARGIN"]
+
+
+# ── modern-description rejects match whole words (audit AL-10) ─────────
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        "legendary king, husband of Guinevere",
+        "French benefactor and abbot",
+        "variable or factor associated with an increased risk",
+        "the provision to cells to support life and growth",
+        "medieval filmmaker's patron saint",
+    ],
+)
+def test_a_word_containing_a_reject_keyword_is_kept(description: str) -> None:
+    from app.services.authority_scoring import _prefilter_candidates
+
+    kept = _prefilter_candidates([{"qid": "Q1", "label": "Arthur", "description": description}], "Arthur", "person")
+    assert [c["qid"] for c in kept] == ["Q1"]
+
+
+@pytest.mark.parametrize(
+    "description",
+    ["American actor", "British rock band", "2004 film by Antoine Fuqua", "song by Queen", "seaport in Wales", "port in Brittany", "actors' guild"],
+)
+def test_a_reject_keyword_as_a_word_is_still_rejected(description: str) -> None:
+    from app.services.authority_scoring import _prefilter_candidates
+
+    assert _prefilter_candidates([{"qid": "Q1", "label": "Arthur", "description": description}], "Arthur", "person") == []

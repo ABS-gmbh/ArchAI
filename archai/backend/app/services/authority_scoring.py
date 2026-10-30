@@ -9,6 +9,7 @@ persists the links.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from app.services.entity_scoring import context_coverage, compute_score, string_similarity
@@ -131,10 +132,16 @@ _MODERN_DESCRIPTION_REJECTS: set[str] = {
     "asteroid", "galaxy", "planet", "star system",
     "erectile", "dysfunction",
     "operating system", "linux",
-    "port ", "seaport", "airport",
+    "port", "seaport", "airport",
     "brand", "company", "corporation",
     "football club", "sports team",
 }
+# Whole words only, plural allowed: as substrings "band" rejected "husband of
+# Guinevere", "actor" "benefactor" and "risk factor", and "port " (its trailing
+# space a guard against "important") still matched "to support life".
+_MODERN_DESCRIPTION_REJECT_RE = re.compile(
+    r"\b(" + "|".join(re.escape(k) for k in sorted(_MODERN_DESCRIPTION_REJECTS, key=len, reverse=True)) + r")s?\b"
+)
 
 
 # ── Domain keywords that boost medieval entity confidence ──────────────
@@ -538,16 +545,12 @@ def _prefilter_candidates(
     for wd in candidates:
         desc = str(wd.get("description", "")).lower()
         # Reject modern-occupation descriptions
-        rejected = False
-        for reject_kw in _MODERN_DESCRIPTION_REJECTS:
-            if reject_kw in desc:
-                log.debug(
-                    "pre-filter: rejecting %s (%s) — description contains '%s'",
-                    wd.get("qid", "?"), wd.get("label", "?"), reject_kw,
-                )
-                rejected = True
-                break
-        if rejected:
+        reject = _MODERN_DESCRIPTION_REJECT_RE.search(desc)
+        if reject:
+            log.debug(
+                "pre-filter: rejecting %s (%s) — description contains '%s'",
+                wd.get("qid", "?"), wd.get("label", "?"), reject.group(1),
+            )
             continue
 
         # Domain keyword bonus for sorting

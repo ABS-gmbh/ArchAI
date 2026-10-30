@@ -606,7 +606,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** The documented weight schedule (`final_score = 0.55*label_sim + 0.25*alias_sim + 0.15*type_bonus + 0.05*domain_bonus`, entity_scoring.py:199 and :223) does not describe what the code computes, and the redundant call doubles the CPU cost of `_tokenise`/`normalize_for_search` over a 400-char context for every candidate of every mention. Anyone tuning `_W_ALIAS` to fix AL-01 will change the context weight and be unable to reproduce the documented behaviour.
 - **Fix:** Pass `alias_match_quality` (authority_linking.py:342) into `compute_score` as a new `alias_sim` argument and drop the `context_similarity` call from entity_scoring.py:237, leaving context overlap solely on the 0.08 term at authority_linking.py:395. Update the weight comments at entity_scoring.py:198-208 and :223 to match.
 
-### [AL-10] Modern-occupation reject keywords are matched as unbounded substrings, so 'band' rejects 'husband' and 'actor' rejects 'benefactor'
+### [AL-10] Modern-occupation reject keywords are matched as unbounded substrings, so 'band' rejects 'husband' and 'actor' rejects 'benefactor' — **FIXED** (word boundaries)
 
 - **Where:** `vendor:app/services/authority_linking.py:1196`  
 - **Category:** correctness  
