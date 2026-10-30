@@ -146,7 +146,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** Attempt 0 = RISKY, gibberish 0.10, gates FAIL (blocked_stages=['ner'], ner_allowed=False). Attempt 1 = RISKY, gibberish 0.20, gates PASS -> loop sets `gates_ever_passed=True` and breaks, but `is_better` is False so `best_*` stays on attempt 0. Post-loop `gate_decisions` = attempt 0's failing decisions; the hard-stop is skipped because `gates_ever_passed` is True; the pipeline then proceeds downstream on the gate-failing text with `ner_allowed=False`, silently running degraded mention capture even though a fully passing OCR pass existed and was thrown away.
 - **Fix:** Make gate outcome the primary sort key in the `is_better` tuple at ocr.py:4099 — prefer any attempt with `all_gates_passed` over any without, and only fall back to `_quality_rank` / `gibberish_score` to break ties within the same gate outcome. Alternatively, when `all_gates_passed` is true at ocr.py:4116, unconditionally assign `best_*` before the `break`.
 
-### [OCR-004] /ocr/extract runs the full OCR agent synchronously on the event loop
+### [OCR-004] /ocr/extract runs the full OCR agent synchronously on the event loop — **FIXED**
 
 - **Where:** `vendor:app/routers/ocr.py:3569`  
 - **Category:** performance  

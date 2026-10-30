@@ -155,3 +155,54 @@ def test_to_thread_keeps_the_loop_responsive() -> None:
         await asyncio.to_thread(blocking_work)
 
     assert asyncio.run(worst_loop_lag(threaded)) < 0.05
+
+
+# ──────────────────────────────── agents called from async routes (OCR-004) ──
+
+_SYNC_AGENT_METHODS = {"run", "extract", "extract_tiles", "proofread", "verify"}
+
+
+def _direct_agent_calls() -> list[str]:
+    """Calls of a synchronous agent method made directly inside an ``async def`` route."""
+    found = []
+    for path in sorted((APP / "routers").glob("*.py")):
+        for fn in ast.walk(ast.parse(path.read_text())):
+            if not isinstance(fn, ast.AsyncFunctionDef):
+                continue
+            threaded = {
+                id(arg)
+                for call in ast.walk(fn)
+                if isinstance(call, ast.Call) and ast.unparse(call.func) in {"asyncio.to_thread", "run_in_threadpool"}
+                for arg in call.args
+            }
+            for call in ast.walk(fn):
+                if isinstance(call, ast.Call) and isinstance(call.func, ast.Attribute) and call.func.attr in _SYNC_AGENT_METHODS and id(call) not in threaded:
+                    found.append(f"{path.name}:{call.lineno} {fn.name}: {ast.unparse(call)}")
+    return found
+
+
+def test_no_async_route_calls_a_synchronous_agent_directly() -> None:
+    assert _direct_agent_calls() == []
+
+
+def test_ocr_extract_runs_the_agent_off_the_event_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    import threading
+
+    from app.routers import ocr as ocr_router
+    from app.schemas.agents_ocr import OCRExtractRequest
+
+    seen: dict[str, int] = {}
+
+    class _Agent:
+        def run(self, payload):
+            seen["thread"] = threading.get_ident()
+            return {"ok": True}
+
+    monkeypatch.setattr(ocr_router, "_get_ocr_agent", lambda: _Agent())
+
+    async def call() -> int:
+        await ocr_router.ocr_extract(OCRExtractRequest(page_id="p", image_b64="aGk="))
+        return threading.get_ident()
+
+    loop_thread = asyncio.run(call())
+    assert seen["thread"] != loop_thread

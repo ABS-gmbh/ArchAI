@@ -1050,7 +1050,9 @@ async def ocr_extract(
     if mode in {"full", "simple"} and payload.mode != mode:
         effective_payload = payload.model_copy(update={"mode": mode})
     try:
-        return _get_ocr_agent().run(effective_payload)
+        # OcrAgent.run is synchronous - model calls and image work - so it
+        # runs in a worker thread, not on the event loop (audit OCR-004).
+        return await asyncio.to_thread(_get_ocr_agent().run, effective_payload)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except SaiaConfigError as exc:
