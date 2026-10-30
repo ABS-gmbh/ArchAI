@@ -54,3 +54,37 @@ def test_each_grid_grid_shift_moves_to_covers_the_page() -> None:
         plan = grid_shift(prev, 2001, 3001, attempt_idx=attempt)
         assert _covers_page(plan.tile_boxes, 2001, 3001), plan.grid
         prev = plan.tile_boxes
+
+
+# ── seams are only where neighbouring tiles meet (audit SVC-03) ─────────
+
+from app.services.seam_strategies import _seam_x_coords, _seam_y_coords, seam_band_crop  # type: ignore[import-untyped]  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    ("rows", "cols", "ys", "xs"),
+    [
+        (2, 2, [1500], [1000]),
+        (3, 1, [1000, 2000], []),
+        (1, 3, [], [666, 1332]),
+        (3, 2, [1000, 2000], [1000]),
+        (1, 1, [], []),
+    ],
+)
+def test_a_grid_has_only_its_own_seams(rows: int, cols: int, ys: list[int], xs: list[int]) -> None:
+    grid = _make_grid(rows, cols, 2000, 3000, 0.15)
+    assert _seam_y_coords(grid) == ys
+    assert _seam_x_coords(grid) == xs
+
+
+def test_two_text_columns_meet_at_one_vertical_seam() -> None:
+    """Layout regions of uneven height side by side: one seam between them, none across."""
+    left, right = (100, 200, 950, 2700), (1000, 260, 1900, 2500)
+    assert _seam_x_coords([left, right]) == [975]
+    assert _seam_y_coords([left, right]) == []
+
+
+def test_seam_band_crop_cuts_only_at_the_real_seams() -> None:
+    plan = seam_band_crop(_make_grid(2, 2, 2000, 3000, 0.15), 2000, 3000)
+    assert plan.preproc["seam_ys"] == [1500]
+    assert plan.preproc["seam_xs"] == [1000]
