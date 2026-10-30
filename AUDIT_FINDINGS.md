@@ -622,7 +622,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** Out of the box, every place lookup returns zero GeoNames candidates while `api_calls_geonames` still increments (authority_linking.py:458) and the run summary reports GeoNames as an active source (authority_linking.py:1981). An operator sees 'geonames: 0 candidates' and cannot distinguish a genuine miss from an unconfigured/quota-blocked account. Separately, the username is sent as a query parameter (authority_sources.py:134) over unencrypted HTTP, exposing the account identifier on the wire.
 - **Fix:** Default `geonames_base_url` to `https://secure.geonames.org` in config.py:75, leave `geonames_username` empty by default so the guard at authority_sources.py:124 actually disables the source, and in `search_geonames` log at WARNING when `payload.get("status")` is present: `log.warning("GeoNames error for %r: %s", query, payload["status"])` before returning [].
 
-### [AL-07] MIN_STRING_SIMILARITY is documented as hard gate 3 but is never read anywhere in the codebase
+### [AL-07] MIN_STRING_SIMILARITY is documented as hard gate 3 but is never read anywhere in the codebase — **FIXED** (gate 3 applied; rule 5 is enforced by the caller, which skips role mentions)
 
 - **Where:** `vendor:app/services/entity_scoring.py:344`  
 - **Category:** correctness  
