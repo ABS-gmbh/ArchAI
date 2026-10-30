@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+import requests
 from PIL import Image
 
 _backend_src = Path(__file__).resolve().parent.parent / "app"
@@ -154,6 +156,7 @@ def test_run_glm_ollama_ocr_reports_variant_fallback_and_retry_metadata(monkeypa
         return "Linea due"
 
     monkeypatch.setattr(glm_ollama_ocr, "ollama_extract", _fake_ollama_extract)
+    monkeypatch.setattr(glm_ollama_ocr.time, "sleep", lambda _seconds: None)
 
     result = glm_ollama_ocr.run_glm_ollama_ocr(
         b"original-image-bytes",
@@ -240,3 +243,65 @@ def test_the_runner_reports_a_removed_recital(monkeypatch: Any) -> None:
 
     assert result.lines == ["entit qui compedes duum ported solut", "ac hae uxore non erit fermo pudient"]
     assert "OCR_PROMPT_ECHO_REMOVED:11" in result.warnings
+
+
+# ── which failures are retried (audit SVC-07) ───────────────────────────
+
+
+def _one_variant(monkeypatch: Any, failures: list[Exception]) -> tuple[list[int], list[float]]:
+    """Run with a single variant whose extractor raises *failures* in turn, then reads.
+
+    Returns the extractor calls and the waits between them."""
+    variant = glm_ollama_ocr.PreparedOcrImage(
+        name="rgb_jpeg_1536", image_bytes=b"v", width=10, height=10, size_bytes=10,
+        resized=False, compressed=False, applied_autocontrast=False, jpeg_quality=90,
+    )
+    monkeypatch.setattr(glm_ollama_ocr, "preprocess_variants", lambda image_bytes, *, max_payload_bytes: ((10, 10), [variant]))
+    calls: list[int] = []
+
+    def _extract(**_kwargs: Any) -> str:
+        calls.append(1)
+        if len(calls) <= len(failures):
+            raise failures[len(calls) - 1]
+        return "Linea una"
+
+    monkeypatch.setattr(glm_ollama_ocr, "ollama_extract", _extract)
+    sleeps: list[float] = []
+    monkeypatch.setattr(glm_ollama_ocr.time, "sleep", sleeps.append)
+    try:
+        glm_ollama_ocr.run_glm_ollama_ocr(b"img", image_ref="p", model="glm-ocr:latest", host="http://localhost:11434", timeout=30, temperature=0.0, retries=3, max_payload_bytes=2_000_000)
+    except glm_ollama_ocr.GlmOllamaOcrError:
+        pass
+    return calls, sleeps
+
+
+def _wrapped(message: str, cause: Exception | None = None) -> Exception:
+    error = glm_ollama_ocr.GlmOllamaOcrError(message)
+    error.__cause__ = cause
+    return error
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        _wrapped("Ollama HTTP 503 at http://localhost:11434/api/chat: model is loading"),
+        _wrapped("Ollama request failed at http://localhost:11434/api/chat: ('Connection aborted.', ConnectionResetError(54))"),
+        _wrapped("Ollama HTTP 502 at http://localhost:11434/api/generate: bad gateway"),
+    ],
+)
+def test_a_transient_failure_is_retried_on_the_same_image(monkeypatch: Any, failure: Exception) -> None:
+    calls, sleeps = _one_variant(monkeypatch, [failure])
+    assert len(calls) == 2  # failed once, then read
+    assert sleeps == [2.0]  # and waited before the retry
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [
+        _wrapped("Ollama HTTP 500 at http://localhost:11434/api/chat: GGML_ASSERT(a->ne[2] == b->ne[0]) failed"),
+        _wrapped("Ollama request failed at http://localhost:11434/api/chat: Read timed out. (read timeout=300)", requests.ReadTimeout()),
+    ],
+)
+def test_a_model_crash_or_a_timeout_moves_on_without_retrying(monkeypatch: Any, failure: Exception) -> None:
+    calls, sleeps = _one_variant(monkeypatch, [failure, failure, failure])
+    assert (len(calls), sleeps) == (1, [])
