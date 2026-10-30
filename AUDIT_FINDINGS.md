@@ -542,7 +542,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** When a NO-OP is detected and escalation produces genuinely different text, the run reports the *new* text alongside the *old* confidence, script_hint, detected_language, quality_label and sanity_metrics. Those stale values are then persisted by `insert_ocr_attempt` (ocr.py:4068 `"quality_label": hardened_quality_label`, and ocr.py:4257-4265 `warnings_json`) and drive `_detect_language_metadata`-dependent downstream branches such as `_lexical_plausibility(ocr_payload["text"], _lex_lang)` at ocr.py:4029, scoring the new text against the old language.
 - **Fix:** After the escalation rebinds `ocr_result` at ocr.py:3991, rebuild the whole `ocr_payload` dict (re-running `compute_sanity`, `_quality_label_from_sanity`, `format_sanity_summary`, and re-reading `ocr_result.raw_json`) instead of patching only `lines`/`text`. Extracting lines 3908-3948 into a `_build_attempt_payload(ocr_result, base_warnings)` helper and calling it from both sites removes the divergence.
 
-### [OCR-005] Post-OCR pipeline failures are swallowed into a warning string and returned as HTTP 200
+### [OCR-005] Post-OCR pipeline failures are swallowed into a warning string and returned as HTTP 200 — **FIXED** (logged, run marked FAILED, run_id returned; page_with_trace reports FAILED)
 
 - **Where:** `vendor:app/routers/ocr.py:3671`  
 - **Category:** correctness  

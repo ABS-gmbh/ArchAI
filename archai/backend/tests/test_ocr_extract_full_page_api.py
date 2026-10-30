@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 _backend_src = Path(__file__).resolve().parent.parent / "app"
 if str(_backend_src.parent) not in sys.path:
     sys.path.insert(0, str(_backend_src.parent))
@@ -693,3 +695,58 @@ def test_the_search_decision_is_recorded_before_the_run_is_indexed(tmp_path: Pat
     trace_pipeline._run_full_page_post_ocr_pipeline(payload, response, b"image-bytes", ocr_backend="segmented")
 
     assert seen == {"decision": 1}
+
+
+# ── a failed post-OCR pipeline is recorded, not reported as success (audit OCR-005) ──
+
+
+def _raise_post_ocr(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    raise trace_pipeline.PostOcrPipelineError("run-broken", "Post-OCR pipeline failed: OperationalError: database is locked")
+
+
+def test_a_failed_post_ocr_pipeline_marks_its_run_failed(tmp_path: Path, monkeypatch: Any) -> None:
+    monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
+    monkeypatch.setattr(pipeline_db, "_DB_READY", False)
+
+    def broken_stage(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("schema mismatch")
+
+    monkeypatch.setattr(trace_pipeline, "compute_quality_report", broken_stage)
+    response = SaiaFullPageExtractResponse(
+        status="FULL", model_used="glm-ocr:latest", detected_language="latin", script_hint="latin",
+        confidence=0.74, warnings=[], lines=["Arthur"], text="Arthur appears here", fallbacks=[], comparison_runs=[],
+    )
+    payload = SaiaFullPageExtractRequest(document_id="doc-1", page_id="page-1", image_b64=SAMPLE_B64, apply_proofread=False)
+
+    with pytest.raises(trace_pipeline.PostOcrPipelineError) as raised:
+        trace_pipeline._run_full_page_post_ocr_pipeline(payload, response, b"image-bytes", ocr_backend="glmocr")
+
+    run = pipeline_db.get_run(raised.value.run_id)
+    assert (run["status"], run["current_stage"]) == ("FAILED", "FAILED")
+    assert "RuntimeError: schema mismatch" in run["error"]
+
+
+def test_extract_full_page_logs_the_failure_and_returns_the_run(monkeypatch: Any, caplog: Any) -> None:
+    monkeypatch.setattr(ocr_router, "run_glm_ollama_ocr", lambda *args, **kwargs: _fake_glm_result())
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", _raise_post_ocr)
+    payload = SaiaFullPageExtractRequest(
+        document_id="doc-1", page_id="page-1", image_b64=SAMPLE_B64, apply_proofread=False, ocr_backend="glmocr",
+    )
+
+    with caplog.at_level("ERROR", logger="archai.ocr"):
+        result = asyncio.run(ocr_router.ocr_extract_full_page(payload))
+
+    assert result.run_id == "run-broken"
+    assert any(w.startswith("POST_OCR_PIPELINE_FAILED:") for w in result.warnings)
+    assert "post-OCR pipeline failed" in caplog.text
+
+
+def test_page_with_trace_reports_a_failed_post_ocr_pipeline_as_failed(monkeypatch: Any) -> None:
+    monkeypatch.setattr(ocr_router, "get_test_ocr_fixture", lambda image_bytes: None)
+    monkeypatch.setattr(ocr_router, "get_test_ocr_override", lambda image_bytes: _fake_glm_result())
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", _raise_post_ocr)
+    payload = SaiaFullPageExtractRequest(document_id="doc-1", page_id="page-1", image_b64=SAMPLE_B64, apply_proofread=False)
+
+    result = asyncio.run(ocr_router.ocr_page_with_trace(payload))
+
+    assert (result["run_id"], result["status"]) == ("run-broken", "FAILED")

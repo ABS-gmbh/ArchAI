@@ -6,6 +6,7 @@ from collections import defaultdict
 import hashlib
 import io
 import json
+import logging
 import re
 import tempfile
 from pathlib import Path
@@ -123,6 +124,8 @@ from app.services.trace_pipeline import (
     _run_segmented_trace_pipeline,
     _run_trace_analysis,
 )
+
+_LOGGER = logging.getLogger("archai.ocr")
 
 router = APIRouter(tags=["ocr"])
 _saia_ocr_agent_instance: SaiaOCRAgent | None = None
@@ -1274,8 +1277,13 @@ async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFull
             image_bytes,
             ocr_backend=ocr_backend,
         )
-    except Exception as exc:  # pragma: no cover
-        pipeline_fields = {"warnings": [f"POST_OCR_PIPELINE_FAILED:{exc}"]}
+    except Exception as exc:
+        # The run, if one was created, is already marked FAILED (audit OCR-005).
+        _LOGGER.exception("Full-page post-OCR pipeline failed")
+        pipeline_fields = {
+            "run_id": getattr(exc, "run_id", None),
+            "warnings": [f"POST_OCR_PIPELINE_FAILED:{exc}"],
+        }
 
     merged_warnings = list(dict.fromkeys([*list(response.warnings), *list(pipeline_fields.pop("warnings", []) or [])]))
     return response.model_copy(update={**pipeline_fields, "warnings": merged_warnings})
@@ -1341,8 +1349,14 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                 image_bytes,
                 ocr_backend="glmocr",
             )
-        except Exception as exc:  # pragma: no cover
-            pipeline_fields = {"warnings": [f"POST_OCR_PIPELINE_FAILED:{exc}"]}
+        except Exception as exc:
+            # Reported as FAILED: the fallback below said COMPLETED (audit OCR-005).
+            _LOGGER.exception("Full-page post-OCR pipeline failed")
+            pipeline_fields = {
+                "run_id": getattr(exc, "run_id", None),
+                "status": "FAILED",
+                "warnings": [f"POST_OCR_PIPELINE_FAILED:{exc}"],
+            }
 
         merged_warnings = list(
             dict.fromkeys([*list(response.warnings), *list(pipeline_fields.get("warnings", []) or [])])
