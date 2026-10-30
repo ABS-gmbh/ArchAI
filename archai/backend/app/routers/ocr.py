@@ -1294,6 +1294,28 @@ async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFull
 _QUALITY_RANK = {"HIGH": 0, "OK": 1, "RISKY": 2, "UNRELIABLE": 3}
 
 
+def _attempt_ocr_payload(ocr_result: SaiaOCRResponse, base_warnings: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """The payload the retry loop keeps for one OCR result, and its sanity metrics."""
+    from app.services.ocr_sanity import _quality_label_from_sanity, compute_sanity, format_sanity_summary
+
+    raw_blob = ocr_result.raw_json if isinstance(ocr_result.raw_json, dict) else {}
+    ocr_sanity = compute_sanity(str(ocr_result.text or ""))
+    quality_label = raw_blob.get("quality_label") or _quality_label_from_sanity(ocr_sanity)
+    sanity_metrics = raw_blob.get("sanity_metrics") or ocr_sanity
+    sanity_summary = format_sanity_summary(sanity_metrics)
+    payload: dict[str, Any] = {
+        "lines": list(ocr_result.lines),
+        "text": str(ocr_result.text or ""),
+        "script_hint": str(ocr_result.script_hint or "unknown"),
+        "detected_language": _normalize_detected_language(ocr_result.detected_language),
+        "confidence": float(ocr_result.confidence) if ocr_result.confidence is not None else 0.0,
+        "warnings": list(dict.fromkeys([*base_warnings, *ocr_result.warnings, sanity_summary])),
+        "quality_label": quality_label,
+        "sanity_metrics": sanity_metrics,
+    }
+    return payload, ocr_sanity
+
+
 def _attempt_rank(gates_passed: bool, label: str, gibberish: float) -> tuple[int, int, float]:
     """How OCR attempts are ranked, best first: passing the gates, then label, then gibberish.
 
@@ -1555,27 +1577,15 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                           f"Column-split OCR: {raw_blob.get('columns', 2)} cols.")
 
             # ── Legacy sanity metrics ─────────────────────────────────
-            ocr_sanity = compute_sanity(str(ocr_result.text or ""))
-            quality_label = raw_blob.get("quality_label") or _quality_label_from_sanity(ocr_sanity)
-            sanity_metrics = raw_blob.get("sanity_metrics") or ocr_sanity
-            sanity_summary = format_sanity_summary(sanity_metrics)
+            ocr_payload, ocr_sanity = _attempt_ocr_payload(ocr_result, base_warnings)
+            quality_label = ocr_payload["quality_label"]
+            sanity_metrics = ocr_payload["sanity_metrics"]
 
             log_event(run_id, "OCR_SANITY", "INFO",
                       f"attempt={attempt_idx} quality_label={quality_label} "
                       f"single_char={ocr_sanity.get('single_char_ratio',0):.3f} "
                       f"weird={ocr_sanity.get('weird_ratio',0):.3f} "
                       f"leading_frag={ocr_sanity.get('leading_fragment_ratio',0):.3f}")
-
-            ocr_payload: dict[str, Any] = {
-                "lines": list(ocr_result.lines),
-                "text": str(ocr_result.text or ""),
-                "script_hint": str(ocr_result.script_hint or "unknown"),
-                "detected_language": _normalize_detected_language(ocr_result.detected_language),
-                "confidence": float(ocr_result.confidence) if ocr_result.confidence is not None else 0.0,
-                "warnings": list(dict.fromkeys([*base_warnings, *ocr_result.warnings, sanity_summary])),
-                "quality_label": quality_label,
-                "sanity_metrics": sanity_metrics,
-            }
 
             # ── Compute text hash for NO-OP detection ─────────────────
             text_sha256 = hashlib.sha256(
@@ -1623,9 +1633,13 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                                 location_suggestions=effective_suggestions,
                             ),
                         )
-                        # Recompute text hash after escalation
-                        ocr_payload["lines"] = list(ocr_result.lines)
-                        ocr_payload["text"] = str(ocr_result.text or "")
+                        # Rebuild the whole payload from the new result. Only lines
+                        # and text were replaced, so the new text went on with the
+                        # discarded result's confidence, language and quality
+                        # (audit OCR-003).
+                        ocr_payload, _ = _attempt_ocr_payload(ocr_result, base_warnings)
+                        quality_label = ocr_payload["quality_label"]
+                        sanity_metrics = ocr_payload["sanity_metrics"]
                         text_sha256 = hashlib.sha256(
                             (ocr_payload["text"] or "").encode()
                         ).hexdigest()

@@ -140,3 +140,22 @@ def test_the_stability_pass_perturbs_the_kept_attempts_tiles(monkeypatch: Any) -
     sent = [list(s.bbox_xywh) for s in harness.requests[-1].location_suggestions]
     assert sent == [list(d["bbox_xywh"]) for d in expected]
 
+
+# ── OCR-003: the NO-OP escalation ───────────────────────────────────────
+
+
+def test_an_escalated_result_brings_its_own_language_and_confidence(monkeypatch: Any) -> None:
+    """Audit OCR-003: only lines and text were replaced after the escalation's re-run."""
+    harness = _Harness(monkeypatch, [
+        ("Arthur rex", "RISKY", False),
+        ("Arthur rex", "RISKY", False),  # the retry reads the same text: a NO-OP
+        ("Li rois Artus", "OK", True, {"detected_language": "french", "confidence": 0.55,
+                                        "warnings": ["ESCALATED_READ"]}),
+    ])
+    harness.run()
+
+    assert len(harness.requests) == 4  # two attempts, the escalation, the stability pass
+    done = harness.ocr_done
+    assert done["ocr_text"] == "Li rois Artus"
+    assert (done["detected_language"], done["confidence"]) == ("french", 0.55)
+    assert "ESCALATED_READ" in done["warnings_json"]
