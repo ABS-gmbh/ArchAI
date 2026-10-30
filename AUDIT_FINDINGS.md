@@ -170,7 +170,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** `disambiguate` (entity_scoring.py:371) rejects the run outright when the top candidate has `type_compatible` False, and `compute_score` (entity_scoring.py:248) subtracts a 0.30 penalty. A GeoNames hit for 'Camelot' or a VIAF hit for 'Lancelot du Lac' can never be selected under any score, so the multi-source resolver silently degrades to Wikidata-only while still paying the full VIAF/GeoNames HTTP cost (see AL-03) and still reporting `api_calls_viaf`/`api_calls_geonames` in the run summary at authority_linking.py:1980-1981.
 - **Fix:** Do not route non-Wikidata candidates through the P31 gate. In authority_linking.py:1777, branch on `_candidate_source(candidate)`: for `viaf`/`geonames`, derive type compatibility from the source's own typing — GeoNames `feature_code`/`fcode` (already carried at authority_sources.py:174) for places, VIAF `nameType == 'Personal'` (authority_sources.py:88) for persons and `'UniformTitleWork'` for works — and only call `is_type_compatible` for `source == 'wikidata'`.
 
-### [AL-03] search_viaf issues 1+k HTTP requests per query with no cache, no rate limit, and no per-run cap; the wbsearchentities cap explicitly does not apply to it
+### [AL-03] search_viaf issues 1+k HTTP requests per query with no cache, no rate limit, and no per-run cap; the wbsearchentities cap explicitly does not apply to it — partly fixed (VIAF and GeoNames answers are cached and capped at 30 calls per run, and a run stops searching once every source is spent; the selected record is still fetched again, and as_completed has no timeout)
 
 - **Where:** `vendor:app/services/authority_sources.py:70`  
 - **Category:** performance  

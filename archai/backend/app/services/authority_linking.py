@@ -46,6 +46,7 @@ from app.services.wikidata_client import (
     search_wikidata,
     cache_check,
     cache_get,
+    cache_put,
     normalise_surface,
 )
 from app.services.text_normalization import (
@@ -338,7 +339,14 @@ def _search_all_sources_for_query(
     ent_type: str,
     top_k: int,
     wikidata_mode: str,
+    allow_viaf: bool = True,
+    allow_geonames: bool = True,
 ) -> tuple[dict[str, list[dict[str, Any]]], int, int, int]:
+    """Search every source that serves `ent_type`; returns results and the API calls made.
+
+    VIAF and GeoNames answers are cached like Wikidata's (complete, non-empty
+    ones only) and served from the cache even when their budget is spent.
+    """
     results: dict[str, list[dict[str, Any]]] = {"wikidata": [], "viaf": [], "geonames": []}
     api_calls_search = 0
     api_calls_viaf = 0
@@ -348,14 +356,25 @@ def _search_all_sources_for_query(
         cached = cache_get("wikidata", query, max_age_hours=6.0) or []
         results["wikidata"] = cached[:top_k]
 
+    other_sources: dict[str, Any] = {}
+    if ent_type in {"person", "work"}:
+        other_sources["viaf"] = (search_viaf, allow_viaf)
+    if ent_type == "place":
+        other_sources["geonames"] = (search_geonames, allow_geonames)
+    cache_keys = {name: f"{ent_type}|{top_k}|{query}" for name in other_sources}
+    for name in list(other_sources):
+        cached = cache_get(name, cache_keys[name])
+        if cached:
+            results[name] = cached[:top_k]
+            del other_sources[name]
+
     with ThreadPoolExecutor(max_workers=3) as executor:
         futures: dict[Any, str] = {}
         if wikidata_mode == "api":
             futures[executor.submit(search_wikidata, query, k=top_k, force_refresh=True)] = "wikidata"
-        if ent_type in {"person", "work"}:
-            futures[executor.submit(search_viaf, query, k=top_k, ent_type=ent_type)] = "viaf"
-        if ent_type == "place":
-            futures[executor.submit(search_geonames, query, k=top_k, ent_type=ent_type)] = "geonames"
+        for name, (search, allowed) in other_sources.items():
+            if allowed:
+                futures[executor.submit(search, query, k=top_k, ent_type=ent_type)] = name
 
         for future in as_completed(futures):
             source = futures[future]
@@ -368,12 +387,14 @@ def _search_all_sources_for_query(
                 results["wikidata"] = payload
                 if wikidata_mode == "api":
                     api_calls_search += 1
-            elif source == "viaf":
-                results["viaf"] = payload
-                api_calls_viaf += 1
-            elif source == "geonames":
-                results["geonames"] = payload
-                api_calls_geonames += 1
+            else:
+                results[source] = payload
+                if source == "viaf":
+                    api_calls_viaf += 1
+                else:
+                    api_calls_geonames += 1
+                if payload and not any(item.get("partial") for item in payload):
+                    cache_put(source, cache_keys[source], payload)
 
     return results, api_calls_search, api_calls_viaf, api_calls_geonames
 
@@ -659,6 +680,11 @@ def _persist_selected_entity(
 
 # ── API call caps ──────────────────────────────────────────────────────
 _MAX_SEARCH_CALLS_PER_RUN = 30    # max wbsearchentities calls per run
+# VIAF and GeoNames had no cap: each VIAF search is 1 + top_k requests of up to
+# 10 s, made for every query variant of every person and work mention (audit
+# AL-03). Cached answers do not count.
+_MAX_VIAF_CALLS_PER_RUN = 30
+_MAX_GEONAMES_CALLS_PER_RUN = 30
 _MAX_ENRICH_PER_MENTION = 3       # max wbgetentities calls per mention
 
 # ── Editorial / philology blacklist (non-entity markers) ──────────────
@@ -1104,7 +1130,13 @@ def run_authority_linking(
                 else:
                     wikidata_mode = "skip"
 
-            if wikidata_mode == "skip" and ent_type not in {"person", "work", "place"}:
+            allow_viaf = api_calls_viaf < _MAX_VIAF_CALLS_PER_RUN
+            allow_geonames = api_calls_geonames < _MAX_GEONAMES_CALLS_PER_RUN
+            if wikidata_mode == "skip" and (
+                ent_type not in {"person", "work", "place"}
+                or (ent_type in {"person", "work"} and not allow_viaf)
+                or (ent_type == "place" and not allow_geonames)
+            ):
                 log.warning(
                     "mention %s: all authority lookups skipped for query %r due to caps/type",
                     mention_id,
@@ -1117,6 +1149,8 @@ def run_authority_linking(
                 ent_type=effective_ent_type,
                 top_k=top_k,
                 wikidata_mode=wikidata_mode,
+                allow_viaf=allow_viaf,
+                allow_geonames=allow_geonames,
             )
             api_calls_search += search_calls
             api_calls_viaf += viaf_calls
