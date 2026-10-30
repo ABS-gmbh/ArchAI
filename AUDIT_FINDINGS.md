@@ -486,7 +486,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A model that returns all six required keys plus a seventh (e.g. "reasoning", "notes", "page_layout") has its entire correct transcription discarded. _request_json_from_model (line 1955) then burns a second full VLM call on the repair prompt; if the model repeats the extra key, it returns {lines: [], text: "", warnings: ["INVALID_OCR_JSON"]} at line 1962-1969, i.e. an empty page. Doubling of VLM cost plus total transcription loss for a purely cosmetic schema deviation. The tile path (line 2084) and column-split path share the same helper, so all three OCR routes are affected.
 - **Fix:** Change line 666 to require only that the mandatory keys are present, and drop extras: `if not set(REQUIRED_JSON_KEYS) <= set(payload.keys()): return None`, then record a `SCHEMA_EXTRA_KEYS` warning listing `set(payload) - set(REQUIRED_JSON_KEYS)` so the deviation is still visible in the run record.
 
-### [AG-14] No retry or backoff for transient 429/5xx in either OCR agent
+### [AG-14] No retry or backoff for transient 429/5xx in either OCR agent — **NOT A DEFECT AS STATED** (both agents call SaiaClient, i.e. the OpenAI SDK, which retries 408/409/429/5xx twice with backoff and Retry-After; pinned by test_saia_client_retries.py)
 
 - **Where:** `vendor:app/agents/saia_ocr_agent.py:1981`  
 - **Category:** correctness  
