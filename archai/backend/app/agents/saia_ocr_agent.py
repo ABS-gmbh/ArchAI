@@ -519,8 +519,12 @@ def _parse_ocr_payload(raw: str) -> dict[str, Any] | None:
         return None
     if not isinstance(payload, dict):
         return None
-    if set(payload.keys()) != set(REQUIRED_JSON_KEYS):
+    # Every required key must be there; keys beyond them are ignored and named
+    # in a warning. Rejecting them discarded a whole correct transcription and
+    # spent a repair call on a cosmetic deviation (audit AG-05).
+    if not set(REQUIRED_JSON_KEYS) <= set(payload.keys()):
         return None
+    extra_keys = sorted(str(key) for key in set(payload.keys()) - set(REQUIRED_JSON_KEYS))
 
     lines = payload.get("lines")
     text = payload.get("text")
@@ -552,6 +556,8 @@ def _parse_ocr_payload(raw: str) -> dict[str, Any] | None:
     except Exception:
         confidence_value = 0.0
     normalized_warnings.extend([str(item).strip() for item in warnings if str(item).strip()])
+    if extra_keys:
+        normalized_warnings.append("SCHEMA_EXTRA_KEYS: " + ", ".join(extra_keys))
 
     return {
         "lines": normalized_lines,
