@@ -186,12 +186,32 @@ def _embed(texts: list[str]) -> list[list[float]] | None:
     # Reuse the same key/base-url resolution as chat_ai
     from app.services.chat_ai import _require_api_key, _base_url
 
+    # One client per key and URL, with a timeout, and the texts sent in
+    # batches. A client was built per call with no timeout - a hung provider
+    # held the thread for good - and a run's chunks went in one request, which
+    # a payload limit failed as a whole (audit RAG-02).
+    embeddings: list[list[float]] = []
     try:
-        client = OpenAI(api_key=_require_api_key(), base_url=_base_url())
-        response = client.embeddings.create(model=model, input=texts)
+        client = _embedding_client(OpenAI, _require_api_key(), _base_url())
+        for start in range(0, len(texts), _EMBED_BATCH_SIZE):
+            response = client.embeddings.create(model=model, input=texts[start:start + _EMBED_BATCH_SIZE])
+            embeddings.extend(list(d.embedding) for d in response.data)
     except Exception as exc:  # noqa: BLE001 - any provider failure means no embeddings
         raise EmbeddingUnavailable(f"{model}: {exc}") from exc
-    return [list(d.embedding) for d in response.data]
+    return embeddings
+
+
+_EMBED_BATCH_SIZE = 64
+_EMBED_TIMEOUT_SECONDS = 60.0
+_EMBED_CLIENTS: dict[tuple[str, str], Any] = {}
+
+
+def _embedding_client(openai_class: Any, api_key: str, base_url: str) -> Any:
+    key = (api_key, base_url)
+    with _LOCK:
+        if key not in _EMBED_CLIENTS:
+            _EMBED_CLIENTS[key] = openai_class(api_key=api_key, base_url=base_url, timeout=_EMBED_TIMEOUT_SECONDS)
+        return _EMBED_CLIENTS[key]
 
 
 # ── Indexing ────────────────────────────────────────────────────────────

@@ -734,7 +734,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** An LLM proofreader that summarises, paraphrases, or silently drops the last third of a page passes every check — shorter, cleaner text scores LOWER gibberish and LOWER non_wordlike_frac, so truncation looks like an improvement and is accepted. It is also allowed to push a page from OK into RISKY, which then blocks all downstream stages, contradicting the function's stated purpose.
 - **Fix:** Reject when `proof_rank > orig_rank` at all, and add a content-preservation bound: reject if the token count changes by more than ~10 % or if `normalized_levenshtein_similarity(original, proofread) < 0.85`, so the proofreader can fix characters but cannot rewrite or truncate.
 
-### [RAG-01] A transient embedding-API failure silently redirects retrieval to a different, empty Chroma collection and re-indexes the whole run with a different embedding model
+### [RAG-01] A transient embedding-API failure silently redirects retrieval to a different, empty Chroma collection and re-indexes the whole run with a different embedding model — **FIXED** (verified: a provider failure raises EmbeddingUnavailable; retrieval reports lexical mode and indexing is skipped, never redirected; test_retrieval_scope.py, test_hybrid_retrieval.py)
 
 - **Where:** `vendor:app/services/rag_store.py:603`  
 - **Category:** correctness  
@@ -1067,7 +1067,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** This extractor exists specifically for pages where standard extraction found too few mentions — i.e. degraded OCR where casing is unreliable, which is the stated reason for the capitalisation-independent design. Requiring an uppercase initial means it recovers almost nothing on lowercase-only or case-garbled transcriptions, and on medieval manuscripts where scribal majuscules are inconsistent. It is called at ocr.py:3472 and ocr.py:4504 as the recall safety net, so the recall gap it is meant to close stays open.
 - **Fix:** Implement what the docstring says — drop the `tok[0].isupper()` requirement and lower the length bound to 4 — and rely on the low `confidence: 0.25` already attached to these candidates plus downstream verification to control precision. If the uppercase filter was deliberate, correct the docstring and add a separate lowercase-tolerant strategy for the degraded case.
 
-### [RAG-02] _provider_embed builds a fresh OpenAI client per call, sets no timeout, and posts every document of a run in a single unbatched request
+### [RAG-02] _provider_embed builds a fresh OpenAI client per call, sets no timeout, and posts every document of a run in a single unbatched request — **FIXED**
 
 - **Where:** `vendor:app/services/rag_store.py:143`  
 - **Category:** performance  
