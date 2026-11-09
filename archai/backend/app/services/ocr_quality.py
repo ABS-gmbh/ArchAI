@@ -653,7 +653,7 @@ def apply_uncertainty_markers(
     """Apply conservative uncertainty markers to unstable/suspicious tokens.
 
     This function NEVER corrects text into plausible words — it only
-    downgrades uncertain tokens to ``?`` (character) or ``[…]`` (span).
+    downgrades uncertain tokens to ``[…]``.
 
     Returns:
         (processed_text, markers_inserted_count)
@@ -711,17 +711,13 @@ def apply_uncertainty_markers(
                     new_tokens.append("[…]")
                     markers_count += 1
                 elif _token_has_unlikely_bigrams(tok) and non_wordlike_score(tok) > 0.45:
-                    # Non-wordlike + unlikely bigrams → replace chars
-                    replaced = "".join(
-                        "?" if c.isalpha() and non_wordlike_score(c, "latin") > 0.3 else c
-                        for c in tok
-                    )
-                    if replaced != tok:
-                        new_tokens.append(replaced)
-                        markers_count += 1
-                    else:
-                        new_tokens.append("[…]")
-                        markers_count += 1
+                    # Non-wordlike + unlikely bigrams → the whole token is
+                    # uncertain. This replaced each letter scoring above 0.3,
+                    # and a single letter always scores 0.5, so every letter
+                    # became "?" - a made-up token of a definite length
+                    # (audit SVC-15).
+                    new_tokens.append("[…]")
+                    markers_count += 1
                 elif non_wordlike_score(tok) > 0.55:
                     new_tokens.append("[…]")
                     markers_count += 1
