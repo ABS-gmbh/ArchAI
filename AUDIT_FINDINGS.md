@@ -686,7 +686,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** Three concrete failures. (a) If one pass emits or drops a single line, every subsequent line is compared against the wrong partner, so nearly every token lands in `unstable_tokens`. (b) A common word (e.g. `de`, `li`) that differed on one line is then masked on all 40 lines of the page, including the ones where both passes agreed — the marked-up transcription understates confidence everywhere. (c) `" ".join` collapses the original spacing and leading indentation, which is exactly the layout evidence a diplomatic transcription is supposed to preserve.
 - **Fix:** Track instability per (line_index, token_index) instead of by surface string, align the two passes with a line-level sequence alignment (difflib.SequenceMatcher) instead of positional zip, and rebuild lines by substituting in place over the original string spans so whitespace survives.
 
-### [SVC-15] Per-character uncertainty masking replaces every letter because non_wordlike_score(single_char) is always 0.5
+### [SVC-15] Per-character uncertainty masking replaces every letter because non_wordlike_score(single_char) is always 0.5 — **FIXED**
 
 - **Where:** `vendor:app/services/ocr_quality.py:1178`  
 - **Category:** correctness  
