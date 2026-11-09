@@ -41,6 +41,7 @@ from app.services.entity_scoring import (
 )
 from app.services.authority_sources import search_geonames, search_viaf
 from app.services.wikidata_client import (
+    DEFAULT_SEARCH_LANGUAGE,
     enrich_wikidata_item,
     is_type_compatible,
     search_wikidata,
@@ -353,7 +354,7 @@ def _search_all_sources_for_query(
     api_calls_geonames = 0
 
     if wikidata_mode == "cache":
-        cached = cache_get("wikidata", query, max_age_hours=6.0) or []
+        cached = cache_get("wikidata", query, max_age_hours=6.0, lang=DEFAULT_SEARCH_LANGUAGE) or []
         results["wikidata"] = cached[:top_k]
 
     other_sources: dict[str, Any] = {}
@@ -1135,7 +1136,9 @@ def run_authority_linking(
                 cache_status = "bypassed"
                 wikidata_mode = "api" if api_calls_search < _MAX_SEARCH_CALLS_PER_RUN else "skip"
             else:
-                _, cache_status = cache_check("wikidata", query_str, max_age_hours=6.0)
+                _, cache_status = cache_check(
+                    "wikidata", query_str, max_age_hours=6.0, lang=DEFAULT_SEARCH_LANGUAGE
+                )
                 if cache_status == "hit":
                     wikidata_mode = "cache"
                     cache_hits += 1
