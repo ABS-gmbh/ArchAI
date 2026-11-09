@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 
 from app.config import settings
+from app.services.ocr_text_metrics import levenshtein_distance
 from app.services.proofread_guard import guard_proofread
 from app.services.saia_client import SaiaClient
 
@@ -179,14 +180,7 @@ def _normalised_levenshtein(a: str, b: str) -> float:
     la, lb = len(a), len(b)
     if la == 0 or lb == 0:
         return 1.0
-    prev = list(range(lb + 1))
-    for i in range(1, la + 1):
-        curr = [i] + [0] * lb
-        for j in range(1, lb + 1):
-            cost = 0 if a[i - 1] == b[j - 1] else 1
-            curr[j] = min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost)
-        prev = curr
-    return prev[lb] / max(la, lb)
+    return levenshtein_distance(a, b) / max(la, lb)
 
 
 def _count_uncertainty_markers(text: str) -> int:
