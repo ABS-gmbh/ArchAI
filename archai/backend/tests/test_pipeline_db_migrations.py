@@ -78,3 +78,50 @@ def test_a_v2_database_is_left_alone(monkeypatch, tmp_path):
     _open(monkeypatch, path)
     assert _tables(path) == before
     assert not any("_v1_" in name for name in before)
+
+
+# ── DB-05: a failed column migration is reported at startup ─────────────
+
+
+class _FailingAlter:
+    """A connection whose ALTER TABLE on ocr_attempts fails with `message`."""
+
+    def __init__(self, conn: sqlite3.Connection, message: str) -> None:
+        self._conn = conn
+        self._message = message
+
+    def execute(self, sql: str, *args):
+        if sql.startswith("ALTER TABLE ocr_attempts"):
+            raise sqlite3.OperationalError(self._message)
+        return self._conn.execute(sql, *args)
+
+
+def _v1_ocr_attempts(path) -> sqlite3.Connection:
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    conn.executescript(
+        "CREATE TABLE pipeline_runs (run_id TEXT PRIMARY KEY);"
+        "CREATE TABLE ocr_attempts (attempt_id INTEGER PRIMARY KEY, run_id TEXT);"
+    )
+    return conn
+
+
+def test_a_failed_column_migration_raises(tmp_path):
+    """Audit DB-05: it was swallowed, and the run failed later on the missing column."""
+    import pytest
+
+    conn = _v1_ocr_attempts(tmp_path / "old.sqlite")
+    with pytest.raises(sqlite3.OperationalError, match="locked"):
+        pipeline_db._ensure_run_columns(_FailingAlter(conn, "database is locked"))
+
+
+def test_a_column_that_already_exists_is_passed_over(tmp_path):
+    conn = _v1_ocr_attempts(tmp_path / "old.sqlite")
+    pipeline_db._ensure_run_columns(_FailingAlter(conn, "duplicate column name: tile_grid"))
+
+
+def test_missing_columns_are_added(tmp_path):
+    conn = _v1_ocr_attempts(tmp_path / "old.sqlite")
+    pipeline_db._ensure_run_columns(conn)
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(ocr_attempts)")}
+    assert {"tile_grid", "text_sha256", "noop_detected"} <= columns

@@ -979,7 +979,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** (a) hides the fact that a genuinely empty model response is now indistinguishable from a schema violation — both surface as warnings=['INVALID_OCR_JSON'] with no fallback record, so run diagnostics cannot tell them apart. (b) operators reading stage_metadata for multi-region label runs get a per-call number where the field name implies a total, making timeout tuning misleading. (c) dead code that invites a future edit to the wrong list (see AG-16).
 - **Fix:** (a) Either make _request_json_from_model return None on total failure and keep the branch, or delete lines 2625-2627 and rely on the INVALID_OCR_JSON warning; pick one and make the tile path consistent. (b) Accumulate the per-region budgets into a running total before returning at line 998. (c) Delete line 55.
 
-### [DB-05] Schema migration swallows every ALTER TABLE failure, deferring the error to a runtime INSERT that references the missing column
+### [DB-05] Schema migration swallows every ALTER TABLE failure, deferring the error to a runtime INSERT that references the missing column — **FIXED**
 
 - **Where:** `vendor:app/db/pipeline_db.py:440`  
 - **Category:** correctness  

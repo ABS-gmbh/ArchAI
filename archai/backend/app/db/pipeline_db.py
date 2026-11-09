@@ -448,10 +448,15 @@ def _ensure_run_columns(conn: sqlite3.Connection) -> None:
     ):
         name = col_def.split(" ", 1)[0]
         if name not in att_cols:
+            # Only an already-present column may be passed over. Swallowing every
+            # error let a failed migration (a locked database, say) start the
+            # service as healthy, to fail mid-run on an INSERT naming the column
+            # (audit DB-05).
             try:
                 conn.execute(f"ALTER TABLE ocr_attempts ADD COLUMN {col_def}")
-            except Exception:
-                pass
+            except sqlite3.OperationalError as exc:
+                if "duplicate column name" not in str(exc).lower():
+                    raise
 
 
 def _migrate_entity_decisions_v2(conn: sqlite3.Connection) -> None:
