@@ -487,27 +487,56 @@ def token_stability_score(
     return len(s1 & s2) / len(union)
 
 
+def levenshtein_distance(a: str, b: str) -> int:
+    """Exact Levenshtein distance, computed bit-parallel (Hyyroe 2001).
+
+    One step per character of `a`, each on integers as wide as `b`. The
+    two-row dynamic programme it replaces made len(a) * len(b) interpreted
+    steps: whole pages of 2,000-4,000 characters took seconds of CPU, on the
+    event loop in the trace pipeline (audit SVC-19, AG-10).
+    """
+    if a == b:
+        return 0
+    if len(a) < len(b):
+        a, b = b, a
+    m = len(b)
+    if m == 0:
+        return len(a)
+    peq: dict[str, int] = {}
+    for i, ch in enumerate(b):
+        peq[ch] = peq.get(ch, 0) | (1 << i)
+    full = (1 << m) - 1
+    top = 1 << (m - 1)
+    pv, mv, score = full, 0, m
+    for ch in a:
+        eq = peq.get(ch, 0)
+        xv = eq | mv
+        xh = (((eq & pv) + pv) ^ pv) | eq
+        ph = (mv | ~(xh | pv)) & full
+        mh = pv & xh
+        if ph & top:
+            score += 1
+        elif mh & top:
+            score -= 1
+        ph = ((ph << 1) | 1) & full
+        mh = (mh << 1) & full
+        pv = (mh | ~(xv | ph)) & full
+        mv = ph & xv
+    return score
+
+
 def normalized_levenshtein_similarity(a: str, b: str) -> float:
     """Normalized Levenshtein similarity between two strings (0..1).
 
-    Uses standard DP edit-distance.  1.0 = identical, 0.0 = completely
-    different.  Normalised by the length of the longer string.
+    1.0 = identical, 0.0 = completely different. Normalised by the length of
+    the longer string.
     """
     if a == b:
         return 1.0
     la, lb = len(a), len(b)
     if la == 0 or lb == 0:
         return 0.0
-    # Standard two-row DP
-    prev = list(range(lb + 1))
-    for i in range(1, la + 1):
-        curr = [i] + [0] * lb
-        for j in range(1, lb + 1):
-            cost = 0 if a[i - 1] == b[j - 1] else 1
-            curr[j] = min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost)
-        prev = curr
-    dist = prev[lb]
-    return 1.0 - dist / max(la, lb)
+    return 1.0 - levenshtein_distance(a, b) / max(la, lb)
 
 
 def compute_cross_pass_stability(text_a: str, text_b: str) -> float:

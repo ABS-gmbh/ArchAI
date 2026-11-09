@@ -710,7 +710,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A `[…]` span is 3 characters long but adds 4 to the numerator, so density exceeds 1.0 for text dominated by spans and the metric is not a fraction at all. Combined with the insertion step, marking uncertainty mechanically drives the page toward RISKY/UNRELIABLE — the act of honestly annotating doubt is scored as if the OCR itself got worse, and the effect is 33 % stronger than the weights intend.
 - **Fix:** Count spans first and subtract their internal characters: `spans = text.count("[…]"); markers = text.count("?") + (text.count("…") - spans) + spans*3`. Better, compute density over the pre-annotation text and store the marker count separately so annotation cannot influence the gate.
 
-### [SVC-19] Unbounded pure-Python Levenshtein DP on full page texts blocks the event loop
+### [SVC-19] Unbounded pure-Python Levenshtein DP on full page texts blocks the event loop — **FIXED** (bit-parallel, exact: 4,000 characters in ~10 ms instead of ~2 s; the call is still on the event loop)
 
 - **Where:** `vendor:app/services/ocr_quality.py:522`  
 - **Category:** performance  
@@ -950,7 +950,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** This is the mechanism behind AG-01 (extract_tiles diverged from its correct twin _try_column_split_ocr) and AG-02/AG-05 (each JSON extractor has different, incompatible robustness). Fixes such as AG-14's transient retry must be applied in three places and will inevitably be applied in two. The class named BaseAgent carries no shared behaviour at all.
 - **Fix:** Promote the shared pieces into base.py or a new app/agents/_llm_common.py: one extract_json_object, one is_image_too_large_error, one chat_completion_with_optional_json_object, and one call_with_json_repair(build_messages, parse, repair_messages) that both saia_ocr_agent request methods and ocr_agent._call_ocr_model delegate to. Then delete the copies.
 
-### [AG-10] Proofreader guard runs a full O(n*m) pure-Python Levenshtein over whole-page OCR text
+### [AG-10] Proofreader guard runs a full O(n*m) pure-Python Levenshtein over whole-page OCR text — **FIXED** (same bit-parallel distance as SVC-19)
 
 - **Where:** `vendor:app/agents/ocr_proofreader_agent.py:213`  
 - **Category:** performance  
