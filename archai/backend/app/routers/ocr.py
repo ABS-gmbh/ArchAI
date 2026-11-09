@@ -1424,11 +1424,15 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
             "ocr_backend_results": [],
         }
 
-    # Get image dimensions for strategy computation
-    import io
+    # Get image dimensions for strategy computation. Unreadable bytes (a PDF,
+    # say) are bad input: 422, as the decode above and extract_full_page give,
+    # not an unhandled 500 (audit OCR-006).
     from PIL import Image as _PILImage
-    with _PILImage.open(io.BytesIO(image_bytes)) as _pil_img:
-        img_w, img_h = _pil_img.size
+    try:
+        with _PILImage.open(io.BytesIO(image_bytes)) as _pil_img:
+            img_w, img_h = _pil_img.size
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"Unreadable image: {exc}") from exc
 
     asset_ref = (
         str(payload.page_id or "").strip()
