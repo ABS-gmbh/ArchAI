@@ -726,7 +726,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** When quality is RISKY/UNRELIABLE the system reports `downstream_mode: "vision_fallback"` to the UI and persists it to the run record, but the only actual behaviour change is that token-based stages are SKIPPED — nothing runs in their place. A reader of the API response or the thesis would reasonably conclude a shape/layout recognition path exists; it does not.
 - **Fix:** Either implement the fallback (feed `generate_shape_based_candidates` from the YOLO layout boxes when `should_use_shape_based_search(label)`) or rename the mode to `token_search_disabled` and delete the two unused functions, so the reported state matches what the pipeline does.
 
-### [SVC-21] proofreading_quality_guard permits a one-level quality drop and has no length bound
+### [SVC-21] proofreading_quality_guard permits a one-level quality drop and has no length bound — **FIXED** (any label drop is rejected, and so is losing over 15% of the non-space characters)
 
 - **Where:** `vendor:app/services/pipeline_hardening.py:96`  
 - **Category:** ocr-quality  
