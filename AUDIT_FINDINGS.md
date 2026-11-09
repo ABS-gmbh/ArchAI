@@ -766,7 +766,7 @@ It is also packaged into distributions: archai/vendor/layout/backend/pyproject.t
 - **Impact:** Any bare `pytest` run from the backend or repo root imports this production module during collection and emits two warnings per run — noise that hides real collection errors, and a trap for anyone who adds `-W error` or `--strict-config`. A future `filterwarnings = ["error"]` turns collection into a hard failure. The name also reads as test scaffolding, inviting someone to delete a module that routers/ocr.py:73 depends on at request time.
 - **Fix:** Rename the module to app/services/ocr_test_fixtures.py (or ocr_overrides.py) and rename the two dataclasses to SemanticMentionFixture / OcrOverrideFixture, updating the import at app/routers/ocr.py:73.
 
-### [AL-11] _cache_conn opens a new SQLite connection on every cache operation and never closes it, leaking file descriptors across a run
+### [AL-11] _cache_conn opens a new SQLite connection on every cache operation and never closes it, leaking file descriptors across a run — **FIXED**
 
 - **Where:** `vendor:app/services/wikidata_client.py:66`  
 - **Category:** hygiene  

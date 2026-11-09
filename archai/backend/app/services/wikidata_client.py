@@ -17,8 +17,9 @@ import sqlite3
 import threading
 import time
 import unicodedata
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 from urllib.parse import quote_plus
 
 log = logging.getLogger("archai.wikidata")
@@ -63,12 +64,23 @@ def _cache_path() -> Path:
     return app_dir / ".data" / "wikidata_cache.sqlite"
 
 
-def _cache_conn() -> sqlite3.Connection:
+@contextmanager
+def _cache_conn() -> Iterator[sqlite3.Connection]:
+    """A cache connection that commits on success and is always closed.
+
+    Used as `with sqlite3.connect(...) as conn`, it was committed but never
+    closed: a run left hundreds of connections and file descriptors open
+    until the garbage collector got to them (audit AL-11).
+    """
     p = _cache_path()
     p.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(p), check_same_thread=False)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def _init_cache_if_needed() -> None:
