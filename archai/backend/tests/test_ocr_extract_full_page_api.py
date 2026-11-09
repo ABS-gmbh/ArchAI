@@ -750,3 +750,21 @@ def test_page_with_trace_reports_a_failed_post_ocr_pipeline_as_failed(monkeypatc
     result = asyncio.run(ocr_router.ocr_page_with_trace(payload))
 
     assert (result["run_id"], result["status"]) == ("run-broken", "FAILED")
+
+
+def test_page_with_trace_answers_422_for_bytes_that_are_not_an_image(monkeypatch: Any) -> None:
+    """Audit OCR-006: PIL's UnidentifiedImageError escaped as a 500."""
+    import base64
+
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(ocr_router, "get_test_ocr_fixture", lambda image_bytes: None)
+    monkeypatch.setattr(ocr_router, "get_test_ocr_override", lambda image_bytes: None)
+    pdf = base64.b64encode(b"%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\n").decode()
+    payload = SaiaFullPageExtractRequest(document_id="doc-1", page_id="page-1", image_b64=pdf, apply_proofread=False)
+
+    with pytest.raises(HTTPException) as raised:
+        asyncio.run(ocr_router.ocr_page_with_trace(payload))
+
+    assert raised.value.status_code == 422
+    assert "Unreadable image" in str(raised.value.detail)

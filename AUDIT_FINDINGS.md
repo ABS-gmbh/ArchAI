@@ -1003,7 +1003,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** The SQLite file and the Chroma store grow without bound in lockstep with usage, which directly worsens DB-01 (longer EXCLUSIVE lock windows on a bigger file) and DB-03 (each 400 ms SSE poll scans a larger table). Nothing correlates SQLite rows with the .tasks/ directories of TASK-01, so the two stores drift apart permanently: 5356 DB runs versus 460 surviving task directories.
 - **Fix:** Add a `delete_run(run_id)` in pipeline_db that removes the pipeline_runs row (the existing ON DELETE CASCADE foreign keys handle chunks/mentions/decisions/attempts), have it also call rag_store.delete_run and rmtree the task directory, and drive it from the same scheduled sweep that TASK-01 needs.
 
-### [OCR-006] Unguarded PIL open returns 500 where the same malformed input returns 422 on the sibling endpoint
+### [OCR-006] Unguarded PIL open returns 500 where the same malformed input returns 422 on the sibling endpoint — **FIXED**
 
 - **Where:** `vendor:app/routers/ocr.py:3775`  
 - **Category:** correctness  
