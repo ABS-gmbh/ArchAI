@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sqlite3
 import threading
@@ -9,6 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Sequence
+
+_LOGGER = logging.getLogger("archai.pipeline_db")
 
 
 @dataclass(frozen=True)
@@ -452,11 +455,13 @@ def _ensure_run_columns(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_entity_decisions_v2(conn: sqlite3.Connection) -> None:
-    """Drop v1 entity_decisions (no span_key) so CREATE TABLE IF NOT EXISTS creates v2.
+    """Set aside v1 entity_decisions (no span_key) so CREATE TABLE IF NOT EXISTS creates v2.
 
-    Also drops entity_attempts in case a partial migration left it behind.
-    entity_decisions is derived data — it is fully reconstructed on each
-    pipeline run, so dropping it is safe.
+    entity_attempts goes with it, as it references the decisions. The tables
+    are renamed with a _v1_<timestamp> suffix, not dropped: this runs on the
+    first touch of a database, and dropping them destroyed the decision
+    history of every older database pointed at, with no log line (audit
+    DB-06). Their indexes are dropped so the v2 tables can create theirs.
     """
     try:
         cols = {str(r[1]) for r in conn.execute("PRAGMA table_info(entity_decisions)").fetchall()}
@@ -464,8 +469,20 @@ def _migrate_entity_decisions_v2(conn: sqlite3.Connection) -> None:
         return
     if not cols or "span_key" in cols:
         return  # Table absent or already v2
-    conn.execute("DROP TABLE IF EXISTS entity_attempts")
-    conn.execute("DROP TABLE IF EXISTS entity_decisions")
+    suffix = "_v1_" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+    for table in ("entity_attempts", "entity_decisions"):
+        exists = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+        ).fetchone()
+        if not exists:
+            continue
+        indexes = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name=? AND sql IS NOT NULL", (table,)
+        ).fetchall()
+        for (index_name,) in indexes:
+            conn.execute(f'DROP INDEX IF EXISTS "{index_name}"')
+        conn.execute(f'ALTER TABLE "{table}" RENAME TO "{table}{suffix}"')
+        _LOGGER.warning("Set aside v1 table %s as %s%s (entity_decisions v2 migration)", table, table, suffix)
 
 
 def make_span_key(start_offset: int, end_offset: int, surface: str) -> str:

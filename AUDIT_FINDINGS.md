@@ -987,7 +987,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** If the ALTER fails — the DB is locked at startup (DB-01), or the column exists with an incompatible definition — _init_db_if_needed still sets _DB_READY = True and the service starts looking healthy. The failure only surfaces much later, mid-OCR-run, as `sqlite3.OperationalError: table ocr_attempts has no column named tile_grid` from insert_ocr_attempt, aborting the run after the expensive model inference has already been paid for.
 - **Fix:** Narrow the except to `sqlite3.OperationalError` and re-raise anything whose message is not "duplicate column name", so a genuinely failed migration fails loudly at startup rather than during a run.
 
-### [DB-06] First DB touch of every process can unconditionally DROP the entity_decisions and entity_attempts tables
+### [DB-06] First DB touch of every process can unconditionally DROP the entity_decisions and entity_attempts tables — **FIXED** (v1 tables are renamed aside with a _v1_<timestamp> suffix and logged)
 
 - **Where:** `vendor:app/db/pipeline_db.py:457`  
 - **Category:** architecture  
