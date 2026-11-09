@@ -1,11 +1,13 @@
 """Temporary file and task state management."""
 
+import json
 import logging
 import os
+import re
 import shutil
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from threading import Lock
 from typing import Any, Dict
 
@@ -53,9 +55,45 @@ def create_task() -> TaskState:
     return task
 
 
+_TASK_ID_RE = re.compile(r"[0-9a-f]{12}")
+_STATE_FILE = "state.json"
+
+
 def get_task(task_id: str) -> TaskState | None:
+    """The task in memory, or the state saved with its directory.
+
+    The store is a dict in the worker process: a restart emptied it while the
+    task directories stayed, and every download of a finished task answered
+    404 though its files were on disk (audit TASK-02).
+    """
     with _lock:
-        return _task_store.get(task_id)
+        task = _task_store.get(task_id)
+        if task is not None:
+            return task
+    if not _TASK_ID_RE.fullmatch(str(task_id)):
+        return None
+    path = os.path.join(TASK_BASE_DIR, task_id, _STATE_FILE)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+        known = {f.name for f in fields(TaskState)}
+        task = TaskState(**{key: value for key, value in data.items() if key in known})
+    except (OSError, ValueError, TypeError):
+        return None
+    with _lock:
+        return _task_store.setdefault(task_id, task)
+
+
+def save_task_state(task: TaskState) -> None:
+    """Write the task's state beside its files, so it outlives the process."""
+    directory = get_task_dir(task.task_id)
+    temporary = os.path.join(directory, f".{_STATE_FILE}.tmp")
+    try:
+        with open(temporary, "w", encoding="utf-8") as handle:
+            json.dump(asdict(task), handle, ensure_ascii=False)
+        os.replace(temporary, os.path.join(directory, _STATE_FILE))
+    except (OSError, TypeError, ValueError):
+        _LOGGER.exception("Could not save the state of task %s", task.task_id)
 
 
 def get_task_dir(task_id: str) -> str:

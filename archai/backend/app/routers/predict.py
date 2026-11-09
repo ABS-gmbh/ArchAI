@@ -21,7 +21,7 @@ from app.agents.segmentation_agent import run_single_segmentation
 from app.config import settings
 from app.core.model_runner import combine_and_filter_predictions
 from app.services.coco_utils import filter_coco_by_classes, merge_coco_list, stats_from_coco
-from app.services.file_manager import TaskState, create_task, get_task, get_task_dir
+from app.services.file_manager import TaskState, create_task, get_task, get_task_dir, save_task_state
 from app.services.inference import run_models_parallel
 from app.services.visualization import draw_coco_on_image
 
@@ -289,6 +289,7 @@ async def predict_single(
     task.coco_json = filtered_coco
     task.stats = stats
     task.annotated_image_path = annotated_path
+    save_task_state(task)
 
     return {
         "task_id": task.task_id,
@@ -315,6 +316,7 @@ def _process_batch(task: TaskState, zip_path: str, conf: float, iou: float, sele
         _LOGGER.exception("Batch task %s failed", task.task_id)
         task.status = "error"
         task.message = f"Batch processing failed: {exc}"
+    save_task_state(task)
 
 
 def _run_batch(task: TaskState, zip_path: str, conf: float, iou: float, selected_classes: list[str]):

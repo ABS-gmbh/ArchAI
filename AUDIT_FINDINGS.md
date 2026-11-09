@@ -630,7 +630,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A candidate whose label barely resembles the surface can still be auto-selected purely on the type bonus, source_confidence and domain/co-occurrence bonuses. Concretely: `label_similarity` 0.30 combined with the 0.90 canonical boost from AL-06 produces status 'linked' even though the tier requires 0.70 string similarity for LOW-quality OCR — the precision guarantee the module's docstring advertises does not exist, and reviewers reading the docstring will trust a gate that isn't there.
 - **Fix:** In `disambiguate`, after the AUTO_SELECT_THRESHOLD check at entity_scoring.py:384, add a gate on the candidate's recorded label similarity: read `best.get('score_breakdown', {}).get('label_similarity', 0.0)` (written by authority_linking.py:404) and return status 'unresolved' when it is below `thresholds['MIN_STRING_SIMILARITY']`. If the gate is genuinely unwanted, delete the key and the two docstring claims instead of leaving a phantom threshold.
 
-### [TASK-02] Task TTL only sees the in-memory store, so any task directory surviving a process restart becomes permanently unreachable and permanently undeletable
+### [TASK-02] Task TTL only sees the in-memory store, so any task directory surviving a process restart becomes permanently unreachable and permanently undeletable — **FIXED** (orphan directories are swept by mtime since TASK-01; finished tasks save state.json and are read back after a restart)
 
 - **Where:** `vendor:app/services/file_manager.py:68`  
 - **Category:** architecture  
