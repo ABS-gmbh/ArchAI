@@ -693,7 +693,13 @@ def _build_segmented_extract_request(
     )
 
 
-def _build_masked_text_page_b64(image_bytes: bytes, regions: list[OCRRegionInput]) -> str:
+def _full_page_png_b64(image_bytes: bytes) -> str:
+    """The whole page as an RGB PNG, base64-encoded.
+
+    Named _build_masked_text_page_b64 and given the regions, it never masked
+    anything: GLM gets the unmodified page (audit OCR-012). Whether masking
+    non-text regions helps has not been measured.
+    """
     from PIL import Image
 
     with Image.open(io.BytesIO(image_bytes)) as source:
@@ -773,7 +779,7 @@ def _build_glm_block_images(image_bytes: bytes, regions: list[OCRRegionInput]) -
     width, height = base.size
     region_groups = _group_regions_for_glm_blocks(regions)
     if not region_groups:
-        return [{"region_id": "__glm_full_page__", "image_b64": _build_masked_text_page_b64(image_bytes, regions), "mode": "full_page"}]
+        return [{"region_id": "__glm_full_page__", "image_b64": _full_page_png_b64(image_bytes), "mode": "full_page"}]
 
     blocks: list[dict[str, Any]] = []
     for index, group in enumerate(region_groups):
@@ -805,7 +811,7 @@ def _build_glm_block_images(image_bytes: bytes, regions: list[OCRRegionInput]) -
                 "bbox_xyxy": list(crop_box),
             }
         )
-    return blocks or [{"region_id": "__glm_full_page__", "image_b64": _build_masked_text_page_b64(image_bytes, regions), "mode": "full_page"}]
+    return blocks or [{"region_id": "__glm_full_page__", "image_b64": _full_page_png_b64(image_bytes), "mode": "full_page"}]
 
 
 def _run_glmocr_full_page_summary(
