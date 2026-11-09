@@ -131,6 +131,7 @@ def cache_get(
     query: str,
     *,
     max_age_hours: float | None = None,
+    lang: str = "",
 ) -> list[dict[str, Any]] | None:
     """Return cached candidates or ``None``.
 
@@ -140,7 +141,7 @@ def cache_get(
     returned regardless of age.
     """
     _init_cache_if_needed()
-    key = _cache_key(source, query)
+    key = _cache_key(source, query, lang=lang)
     with _cache_conn() as conn:
         row = conn.execute(
             "SELECT result_json, created_at FROM wikidata_cache WHERE cache_key=?",
@@ -173,6 +174,7 @@ def cache_check(
     query: str,
     *,
     max_age_hours: float | None = None,
+    lang: str = "",
 ) -> tuple[list[dict[str, Any]] | None, str]:
     """Check cache and return ``(data, status)``.
 
@@ -184,7 +186,7 @@ def cache_check(
     - ``"expired"`` — empty cached results that exceeded the TTL
     """
     _init_cache_if_needed()
-    key = _cache_key(source, query)
+    key = _cache_key(source, query, lang=lang)
     with _cache_conn() as conn:
         row = conn.execute(
             "SELECT result_json, created_at FROM wikidata_cache WHERE cache_key=?",
@@ -218,7 +220,7 @@ def cache_check(
     return data, "empty-hit"
 
 
-def cache_put(source: str, query: str, results: list[dict[str, Any]]) -> None:
+def cache_put(source: str, query: str, results: list[dict[str, Any]], *, lang: str = "") -> None:
     """Store candidates in cache.
 
     **Empty results are never cached** (option A) so that negative hits
@@ -228,7 +230,7 @@ def cache_put(source: str, query: str, results: list[dict[str, Any]]) -> None:
         log.debug("cache_put: skipping empty results for %s/%s", source, query)
         return
     _init_cache_if_needed()
-    key = _cache_key(source, query)
+    key = _cache_key(source, query, lang=lang)
     from datetime import datetime, timezone
     ts = datetime.now(timezone.utc).isoformat()
     blob = json.dumps(results, ensure_ascii=False)
@@ -298,10 +300,13 @@ def _rate_limit() -> None:
 
 # ── Wikidata search ───────────────────────────────────────────────────
 
+DEFAULT_SEARCH_LANGUAGE = "fr"
+
+
 def search_wikidata(
     surface: str,
     *,
-    language: str = "fr",
+    language: str = DEFAULT_SEARCH_LANGUAGE,
     k: int = _DEFAULT_K,
     force_refresh: bool = False,
 ) -> list[dict[str, Any]]:
@@ -315,11 +320,12 @@ def search_wikidata(
 
     **v3 fixes:**
     - Applies ``normalize_for_search`` to the query for better matching.
-    - Cache key includes language to avoid cross-contamination.
+    - Cache key includes language to avoid cross-contamination (it did not
+      until audit AL-13: a second language read the first one's results).
     - Empty-hit cache entries are treated as misses (never block API).
     """
     if not force_refresh:
-        cached = cache_get("wikidata", surface, max_age_hours=6.0)
+        cached = cache_get("wikidata", surface, max_age_hours=6.0, lang=language)
         if cached is not None:
             return cached[:k]
 
@@ -354,7 +360,7 @@ def search_wikidata(
             "description": item.get("description", ""),
             "url": item.get("url") or f"https://www.wikidata.org/wiki/{item.get('id', '')}",
         })
-    cache_put("wikidata", surface, results)
+    cache_put("wikidata", surface, results, lang=language)
     return results[:k]
 
 

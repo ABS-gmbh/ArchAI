@@ -1107,7 +1107,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** The no-op regex burns a compiled-pattern scan per normalization call in the hottest path in the module. More seriously, `ocr_aware_similarity` is dead but latent-dangerous: `_ocr_confuse_normalize` (text_normalization.py:290-292) collapses BOTH 'c' and 'e' into the class 'C', so in French — where 'e' is roughly 15% of all letters — 'cent' and 'eent' normalize identically to 'CCnt'. If a future author wires this in as the fuzzy matcher for medieval surfaces (its docstring at :296 advertises exactly that), it will produce mass false-positive matches. The unreferenced comment at text_normalization.py:116-117 ('Terminal -ct -> -ct') describes a rule that was never written.
 - **Fix:** Delete the no-op tuple at text_normalization.py:115 and the stale comment at :116-117; delete the unreachable `("vne", "une")` entry at :89. For the three dead functions, either delete them or wire them in deliberately — and before using `ocr_aware_similarity`, drop the `"c": "C", "e": "C"` pair from `_OCR_CONFUSION_CLASSES` (text_normalization.py:272) or gate it behind an explicit opt-in flag.
 
-### [AL-13] search_wikidata's cache key ignores the language parameter it documents, so 'fr' and 'en' searches share one cache row
+### [AL-13] search_wikidata's cache key ignores the language parameter it documents, so 'fr' and 'en' searches share one cache row — **FIXED**
 
 - **Where:** `vendor:app/services/wikidata_client.py:131`  
 - **Category:** correctness  
