@@ -77,6 +77,10 @@ Never sufficient on its own: correcting spelling inherently creates new
 tokens, so genuine conservative corrections score high here."""
 
 
+# A proofread must keep at least this share of the original's non-space characters.
+_MIN_TEXT_RETENTION = 0.85
+
+
 def proofreading_quality_guard(
     original_text: str,
     proofread_text: str,
@@ -115,12 +119,29 @@ def proofreading_quality_guard(
     orig_rank = label_rank.get(original_report.quality_label, 3)
     proof_rank = label_rank.get(proofread_report.quality_label, 3)
 
-    # Reject if quality degraded by more than one level
-    if proof_rank > orig_rank + 1:
+    # Reject any drop in quality label. One level was allowed, so a proofread
+    # could take a page from OK to RISKY - which blocks the downstream stages -
+    # and be kept (audit SVC-21).
+    if proof_rank > orig_rank:
         return (
             original_text,
             False,
             f"proofreading degraded quality: {original_report.quality_label} → {proofread_report.quality_label}",
+        )
+
+    # Reject a proofread that dropped text. Shorter text scores cleaner, so a
+    # page whose last third was left out looked like an improvement; the edit
+    # ratio and line-drift bounds in check_proofread_delta let up to 40% of the
+    # characters of a single long line go (audit SVC-21). Characters are
+    # counted without whitespace, as rejoining OCR-split words ("sanctifi
+    # etur") legitimately lowers the word count.
+    original_chars = len("".join(original_text.split()))
+    proofread_chars = len("".join(proofread_text.split()))
+    if original_chars and proofread_chars < original_chars * _MIN_TEXT_RETENTION:
+        return (
+            original_text,
+            False,
+            f"proofreading dropped text: {original_chars} → {proofread_chars} characters",
         )
 
     # Reject if gibberish increased significantly

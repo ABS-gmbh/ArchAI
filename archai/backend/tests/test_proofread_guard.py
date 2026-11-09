@@ -95,3 +95,39 @@ def test_the_delta_check_is_reachable_from_the_router_path() -> None:
     _, accepted, reason = proofreading_quality_guard(GARBLED, HALLUCINATED, report_for(GARBLED))
     assert accepted is False
     assert "char_edit_ratio" in reason or "invention" in reason
+
+
+# ── SVC-21: no quality drop, no dropped text ────────────────────────────
+
+LONG_LINE = (
+    "In nomine domini amen anno incarnationis eiusdem millesimo ducentesimo quinto mense maio "
+    "ego Arturus rex Britannie notum facio presentibus et futuris quod dedi et concessi "
+    "abbati et conventui sancte Marie de Glastonia totam terram meam de Avalonia"
+)
+
+
+def test_a_proofread_that_drops_the_end_of_a_line_is_rejected() -> None:
+    """Within the 40% edit ratio, and one line so no line drift: it used to pass."""
+    words = LONG_LINE.split()
+    truncated = " ".join(words[: len(words) * 2 // 3])
+    text, accepted, reason = proofreading_quality_guard(LONG_LINE, truncated, report_for(LONG_LINE))
+    assert accepted is False
+    assert text == LONG_LINE
+    assert "dropped text" in reason
+
+
+def test_a_one_level_quality_drop_is_rejected(monkeypatch) -> None:
+    """OK to RISKY blocks downstream stages; one level used to be allowed."""
+    from app.services import pipeline_hardening
+    from app.services.ocr_quality import OCRQualityReport
+
+    monkeypatch.setattr(
+        pipeline_hardening, "compute_quality_report",
+        lambda *args, **kwargs: OCRQualityReport(quality_label="RISKY", gibberish_score=0.1),
+    )
+    proofread = LONG_LINE.replace("Arturus", "Arthurus")
+    _, accepted, reason = proofreading_quality_guard(
+        LONG_LINE, proofread, OCRQualityReport(quality_label="OK", gibberish_score=0.1)
+    )
+    assert accepted is False
+    assert "degraded quality: OK → RISKY" in reason
