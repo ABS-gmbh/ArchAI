@@ -1027,7 +1027,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** The `authority_report` key is present in the response of /ocr/extract_full_page and in `ocr_page_with_trace`'s test-override return (ocr.py:3766) but absent from both real `ocr_page_with_trace` returns (ocr.py:4595-4614) and from `_run_segmented_trace_pipeline` (ocr.py:3535-3556). A client reading `authority_report` gets it or not depending on whether segmentation happened to produce structured regions — a routing detail it cannot observe. Any future fix to the gate logic has to be applied in three places or the copies drift further.
 - **Fix:** Extract ocr.py:4448-4614 into one `_run_downstream_stages(run_id, asset_ref, base_text, gate_decisions, quality_label, *, fixture=None) -> dict` and call it from all three sites. Start by reconciling the response dicts so every path returns the same key set, since that is the difference clients can already see.
 
-### [OCR-012] _build_masked_text_page_b64 takes a regions argument and masks nothing
+### [OCR-012] _build_masked_text_page_b64 takes a regions argument and masks nothing — **FIXED** (renamed _full_page_png_b64, unused regions dropped; masking itself not added, as its effect is unmeasured)
 
 - **Where:** `vendor:app/routers/ocr.py:2679`  
 - **Category:** correctness  

@@ -768,3 +768,23 @@ def test_page_with_trace_answers_422_for_bytes_that_are_not_an_image(monkeypatch
 
     assert raised.value.status_code == 422
     assert "Unreadable image" in str(raised.value.detail)
+
+
+def test_the_full_page_sent_to_glm_is_the_whole_unmasked_page() -> None:
+    """Audit OCR-012: named "masked" and given regions, it never masked anything; the name now says so."""
+    import base64
+    import io
+
+    from PIL import Image
+
+    page = Image.new("RGB", (30, 20), (200, 10, 10))
+    page.putpixel((5, 5), (0, 0, 0))
+    raw = io.BytesIO()
+    page.save(raw, format="PNG")
+
+    encoded = ocr_router._full_page_png_b64(raw.getvalue())
+
+    with Image.open(io.BytesIO(base64.b64decode(encoded))) as sent:
+        assert sent.mode == "RGB" and sent.size == (30, 20)
+        assert sent.tobytes() == page.tobytes()
+    assert not hasattr(ocr_router, "_build_masked_text_page_b64")
