@@ -1011,7 +1011,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** POST /ocr/page_with_trace with `image_b64` holding a base64-encoded PDF, or any non-image, raises `PIL.UnidentifiedImageError` and FastAPI returns 500 with a stack trace in the logs. The identical payload on POST /ocr/extract_full_page returns a clean 422, so clients cannot distinguish 'bad input' from 'server broken' between the two endpoints. `import io` here also shadows the module-level `import io` at ocr.py:7.
 - **Fix:** Wrap ocr.py:3775-3776 in `try: ... except Exception as exc: raise HTTPException(status_code=422, detail=f"Unreadable image: {exc}") from exc`, and drop the redundant `import io` at ocr.py:3773 (module-level `io` at line 7 is already in scope).
 
-### [OCR-007] Stale loop-variable quality_label is persisted alongside best-attempt data
+### [OCR-007] Stale loop-variable quality_label is persisted alongside best-attempt data — **FIXED**
 
 - **Where:** `vendor:app/routers/ocr.py:4263`  
 - **Category:** correctness  

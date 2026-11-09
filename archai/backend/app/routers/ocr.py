@@ -1805,6 +1805,9 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
 
         ocr_result = best_ocr_result
         ocr_payload = best_ocr_payload
+        # The legacy label of the kept attempt. The loop variable held the last
+        # attempt's, and was stored beside the kept attempt's text (audit OCR-007).
+        quality_label = ocr_payload["quality_label"]
         ocr_quality_report = best_quality_report
         gate_decisions = best_gate_decisions
         effective_quality = best_effective_quality

@@ -159,3 +159,22 @@ def test_an_escalated_result_brings_its_own_language_and_confidence(monkeypatch:
     assert done["ocr_text"] == "Li rois Artus"
     assert (done["detected_language"], done["confidence"]) == ("french", 0.55)
     assert "ESCALATED_READ" in done["warnings_json"]
+
+
+# ── OCR-007: the stored legacy label ────────────────────────────────────
+
+
+def test_the_run_stores_the_kept_attempts_legacy_label(monkeypatch: Any) -> None:
+    """Audit OCR-007: the last attempt's label was stored with the kept attempt's text."""
+    import json
+
+    harness = _Harness(monkeypatch, [
+        ("Arthur rex", "OK", False, {"raw_json": {"quality_label": "OK"}}),
+        ("zz qx", "UNRELIABLE", False, {"raw_json": {"quality_label": "UNRELIABLE"}}),
+        ("qq zx", "UNRELIABLE", False, {"raw_json": {"quality_label": "UNRELIABLE"}}),
+    ])
+    harness.run()
+
+    done = harness.ocr_done
+    assert done["ocr_text"] == "Arthur rex"
+    assert json.loads(done["warnings_json"])["quality_label"] == "OK"
