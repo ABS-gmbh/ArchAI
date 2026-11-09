@@ -1035,7 +1035,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** Callers reading the name reasonably assume non-text regions are masked out before the page goes to GLM; they are not — the model receives the unmodified full page including borders, illustrations and marginalia that the segmentation stage identified as non-text. Whatever accuracy the masking was meant to buy is silently absent, and the dead `regions` parameter hides that from review.
 - **Fix:** Either implement the masking (composite white over every region whose label fails `_is_relevant_text_label`, ocr.py:2165, before encoding) or rename to `_build_full_page_b64` and drop the unused `regions` parameter so the two call sites at ocr.py:2757 and 2792 stop implying work that is not happening.
 
-### [AN-01] analytics_service builds SQL by f-string interpolation, never closes the connection, and swallows every failure into an empty result
+### [AN-01] analytics_service builds SQL by f-string interpolation, never closes the connection, and swallows every failure into an empty result — **FIXED** (with AN-02, which made failures visible)
 
 - **Where:** `vendor:app/services/analytics_service.py:21`  
 - **Category:** security  
