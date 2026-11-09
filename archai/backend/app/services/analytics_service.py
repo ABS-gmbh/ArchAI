@@ -3,6 +3,7 @@
 import logging
 import os
 import sqlite3
+from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -23,87 +24,76 @@ def get_analytics_data(days_filter: int = 30) -> dict:
     """
     if not os.path.exists(settings.analytics_db_path):
         return {**_EMPTY, "error": f"Analytics database not found: {settings.analytics_db_path}"}
+    # The cutoff and today's date are bound parameters, not spliced into the
+    # SQL, and the connection is closed on every path - it leaked whenever a
+    # query failed (audit AN-01). With no day filter the cutoff is NULL, which
+    # admits every row, as the old query without a WHERE clause did.
+    cutoff = (datetime.now() - timedelta(days=days_filter)).strftime("%Y-%m-%d") if days_filter > 0 else None
+    today = datetime.now().strftime("%Y-%m-%d")
     try:
-        conn = sqlite3.connect(f"{Path(settings.analytics_db_path).resolve().as_uri()}?mode=ro", uri=True)
-        conn.row_factory = sqlite3.Row
-
-        if days_filter > 0:
-            date_cutoff = (datetime.now() - timedelta(days=days_filter)).strftime("%Y-%m-%d")
-            date_filter = f"WHERE DATE(timestamp) >= '{date_cutoff}'"
-        else:
-            date_filter = ""
-
-        # By country
-        country_rows = conn.execute(
-            f"""
-            SELECT
-                COALESCE(NULLIF(country, ''), 'Unknown') as country,
-                COUNT(*) as visits,
-                COUNT(DISTINCT visitor_id) as unique_visitors
-            FROM visits
-            {date_filter}
-            GROUP BY country
-            ORDER BY visits DESC
-            """
-        ).fetchall()
-        by_country = [dict(r) for r in country_rows]
-
-        # By day
-        daily_rows = conn.execute(
-            f"""
-            SELECT
-                DATE(timestamp) as date,
-                COUNT(*) as visits,
-                COUNT(DISTINCT visitor_id) as unique_visitors
-            FROM visits
-            {date_filter}
-            GROUP BY DATE(timestamp)
-            ORDER BY date DESC
-            LIMIT 30
-            """
-        ).fetchall()
-        by_day = [dict(r) for r in daily_rows]
-
-        # Recent visits
-        recent_rows = conn.execute(
-            f"""
-            SELECT
-                timestamp,
-                COALESCE(NULLIF(country, ''), 'Unknown') as country,
-                COALESCE(NULLIF(city, ''), 'Unknown') as city,
-                browser, os, device, page, action
-            FROM visits
-            {date_filter}
-            ORDER BY timestamp DESC
-            LIMIT 100
-            """
-        ).fetchall()
-        recent_visits = [dict(r) for r in recent_rows]
-
-        # Summary
-        today = datetime.now().strftime("%Y-%m-%d")
-        summary_row = conn.execute(
-            f"""
-            SELECT
-                COUNT(*) as total_visits,
-                COUNT(DISTINCT visitor_id) as unique_visitors,
-                COUNT(DISTINCT COALESCE(NULLIF(country, ''), 'Unknown')) as countries,
-                SUM(CASE WHEN DATE(timestamp) = '{today}' THEN 1 ELSE 0 END) as today_visits,
-                SUM(CASE WHEN is_bot = 1 THEN 1 ELSE 0 END) as bot_visits
-            FROM visits
-            {date_filter}
-            """
-        ).fetchone()
-        summary = dict(summary_row) if summary_row else {}
-
-        conn.close()
-        return {
-            "summary": summary,
-            "by_country": by_country,
-            "by_day": by_day,
-            "recent_visits": recent_visits,
-        }
-
+        uri = f"{Path(settings.analytics_db_path).resolve().as_uri()}?mode=ro"
+        with closing(sqlite3.connect(uri, uri=True)) as conn:
+            conn.row_factory = sqlite3.Row
+            by_country = [dict(r) for r in conn.execute(
+                """
+                SELECT
+                    COALESCE(NULLIF(country, ''), 'Unknown') as country,
+                    COUNT(*) as visits,
+                    COUNT(DISTINCT visitor_id) as unique_visitors
+                FROM visits
+                WHERE (? IS NULL OR DATE(timestamp) >= ?)
+                GROUP BY country
+                ORDER BY visits DESC
+                """,
+                (cutoff, cutoff),
+            )]
+            by_day = [dict(r) for r in conn.execute(
+                """
+                SELECT
+                    DATE(timestamp) as date,
+                    COUNT(*) as visits,
+                    COUNT(DISTINCT visitor_id) as unique_visitors
+                FROM visits
+                WHERE (? IS NULL OR DATE(timestamp) >= ?)
+                GROUP BY DATE(timestamp)
+                ORDER BY date DESC
+                LIMIT 30
+                """,
+                (cutoff, cutoff),
+            )]
+            recent_visits = [dict(r) for r in conn.execute(
+                """
+                SELECT
+                    timestamp,
+                    COALESCE(NULLIF(country, ''), 'Unknown') as country,
+                    COALESCE(NULLIF(city, ''), 'Unknown') as city,
+                    browser, os, device, page, action
+                FROM visits
+                WHERE (? IS NULL OR DATE(timestamp) >= ?)
+                ORDER BY timestamp DESC
+                LIMIT 100
+                """,
+                (cutoff, cutoff),
+            )]
+            summary_row = conn.execute(
+                """
+                SELECT
+                    COUNT(*) as total_visits,
+                    COUNT(DISTINCT visitor_id) as unique_visitors,
+                    COUNT(DISTINCT COALESCE(NULLIF(country, ''), 'Unknown')) as countries,
+                    SUM(CASE WHEN DATE(timestamp) = ? THEN 1 ELSE 0 END) as today_visits,
+                    SUM(CASE WHEN is_bot = 1 THEN 1 ELSE 0 END) as bot_visits
+                FROM visits
+                WHERE (? IS NULL OR DATE(timestamp) >= ?)
+                """,
+                (today, cutoff, cutoff),
+            ).fetchone()
     except Exception as e:
         _LOGGER.exception("Analytics DB error")
         return {**_EMPTY, "error": f"Analytics database could not be read: {e}"}
+    return {
+        "summary": dict(summary_row) if summary_row else {},
+        "by_country": by_country,
+        "by_day": by_day,
+        "recent_visits": recent_visits,
+    }
