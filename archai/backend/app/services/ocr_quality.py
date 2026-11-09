@@ -23,6 +23,7 @@ dicts / labels.
 
 from __future__ import annotations
 
+import difflib
 import re
 from dataclasses import asdict, dataclass, field
 from typing import TYPE_CHECKING, Any, Sequence
@@ -678,55 +679,73 @@ def apply_uncertainty_markers(
     if cross_pass_text is None:
         return text, 0
 
-    # Build set of unstable tokens by comparing the two passes line-by-line
+    # Instability is tracked by position: (line, token) of this pass. It was
+    # a set of surface forms matched against every line, after pairing lines by
+    # index - one extra or missing line misaligned the rest of the page, a word
+    # that differed once was masked on every line, and lines were rebuilt with
+    # single spaces (audit SVC-14).
     lines_a = text.splitlines()
     lines_b = cross_pass_text.splitlines()
-    # Build unstable-token set from differing lines
-    unstable_tokens: set[str] = set()
-    max_lines = max(len(lines_a), len(lines_b))
-    for i in range(max_lines):
-        la = lines_a[i].strip() if i < len(lines_a) else ""
-        lb = lines_b[i].strip() if i < len(lines_b) else ""
-        if la == lb:
-            continue
-        toks_a = set(la.split())
-        toks_b = set(lb.split())
-        # Tokens that appear in one pass but not the other are unstable
-        unstable_tokens |= toks_a.symmetric_difference(toks_b)
-
-    if not unstable_tokens:
+    unstable = _unstable_token_positions(lines_a, lines_b)
+    if not unstable:
         return text, 0
 
-    # Apply markers - replace unstable tokens in-place
     markers_count = 0
     result_lines: list[str] = []
-    for line in lines_a:
-        tokens = line.split()
-        new_tokens: list[str] = []
-        for tok in tokens:
-            if tok in unstable_tokens:
-                # Check for hallucinated hyphen
-                is_unstable = True
-                if _looks_like_hallucinated_hyphen(tok, is_unstable):
-                    new_tokens.append("[…]")
-                    markers_count += 1
+    for line_idx, line in enumerate(lines_a):
+        pieces: list[str] = []
+        cursor = 0
+        for tok_idx, match in enumerate(re.finditer(r"\S+", line)):
+            tok = match.group(0)
+            replacement = tok
+            if (line_idx, tok_idx) in unstable:
+                if _looks_like_hallucinated_hyphen(tok, True):
+                    replacement = "[…]"
                 elif _token_has_unlikely_bigrams(tok) and non_wordlike_score(tok) > 0.45:
                     # Non-wordlike + unlikely bigrams → the whole token is
                     # uncertain. This replaced each letter scoring above 0.3,
                     # and a single letter always scores 0.5, so every letter
                     # became "?" - a made-up token of a definite length
                     # (audit SVC-15).
-                    new_tokens.append("[…]")
-                    markers_count += 1
+                    replacement = "[…]"
                 elif non_wordlike_score(tok) > 0.55:
-                    new_tokens.append("[…]")
-                    markers_count += 1
-                else:
-                    # Token differs across passes but isn't clearly garbage →
-                    # leave it, don't hallucinate a correction
-                    new_tokens.append(tok)
-            else:
-                new_tokens.append(tok)
-        result_lines.append(" ".join(new_tokens))
+                    replacement = "[…]"
+                # Otherwise the token differs across passes but isn't clearly
+                # garbage: leave it, don't hallucinate a correction.
+            if replacement != tok:
+                markers_count += 1
+            pieces.append(line[cursor:match.start()])
+            pieces.append(replacement)
+            cursor = match.end()
+        pieces.append(line[cursor:])
+        result_lines.append("".join(pieces))
 
     return "\n".join(result_lines), markers_count
+
+
+def _unstable_token_positions(lines_a: list[str], lines_b: list[str]) -> set[tuple[int, int]]:
+    """(line, token) positions in pass A whose token the other pass did not read alike.
+
+    Lines are aligned with a sequence match, so an extra or missing line does
+    not shift the rest; aligned lines that differ are compared token by token.
+    A line of A with no counterpart in B is unstable throughout.
+    """
+    unstable: set[tuple[int, int]] = set()
+    stripped_a = [line.strip() for line in lines_a]
+    stripped_b = [line.strip() for line in lines_b]
+    matcher = difflib.SequenceMatcher(None, stripped_a, stripped_b, autojunk=False)
+    for op, a1, a2, b1, b2 in matcher.get_opcodes():
+        if op == "equal":
+            continue
+        for offset, line_idx in enumerate(range(a1, a2)):
+            toks_a = stripped_a[line_idx].split()
+            partner = b1 + offset
+            if op == "replace" and partner < b2:
+                toks_b = stripped_b[partner].split()
+                tokens = difflib.SequenceMatcher(None, toks_a, toks_b, autojunk=False)
+                for t_op, t1, t2, _, _ in tokens.get_opcodes():
+                    if t_op != "equal":
+                        unstable.update((line_idx, t) for t in range(t1, t2))
+            else:
+                unstable.update((line_idx, t) for t in range(len(toks_a)))
+    return unstable

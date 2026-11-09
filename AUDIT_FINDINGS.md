@@ -678,7 +678,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** `SEAM_FRAG_HARD_LIMIT` (0.10) is applied to a page-wide heuristic rather than to seam-adjacent lines, so it is a strictly noisier duplicate of `leading_fragment_ratio` with a lower threshold. Seam retries are triggered by generic short-token noise (common in medieval verse) rather than by actual tile boundaries, and real seam breaks on a page with otherwise clean line starts are diluted below threshold. The distinction the code claims to draw between the two metrics does not exist at runtime.
 - **Fix:** Thread the tiling geometry through: map each `TilingPlan` seam Y to the index of the assembled line nearest that Y and pass the list as `seam_line_indices`. Until that is done, remove the 'geometry-aware' comments and collapse the two ratios into one so the thresholds are not double-counted.
 
-### [SVC-14] apply_uncertainty_markers masks tokens globally by surface form and destroys line whitespace
+### [SVC-14] apply_uncertainty_markers masks tokens globally by surface form and destroys line whitespace — **FIXED**
 
 - **Where:** `vendor:app/services/ocr_quality.py:1108`  
 - **Category:** correctness  
