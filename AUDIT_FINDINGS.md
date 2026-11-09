@@ -742,7 +742,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** One network blip against chat-ai.academiccloud.de turns a grounded RAG query into a query against a *different* collection built with a *different* embedding model — at best degraded, at worst empty — and the only signal is a log.warning. It also triggers a full silent re-embed of every chunk of the run into a second collection (.data/chroma already holds 4 separate HNSW index directories), so storage and retrieval quality diverge with no error surfaced to the caller.
 - **Fix:** Do not silently fall back. When settings.rag_embedding_model is configured and _provider_embed fails, raise (or return an explicit `{"status": "embedding_unavailable"}` the way _index_chunks_for_run:391-397 already does) so the chat route can report degraded retrieval, and never auto-index into a different backend_key than the one the run was indexed under.
 
-### [SVC-22] is_model_not_found_error matches '404' and 'invalid_request_error', misclassifying ordinary API errors as missing models
+### [SVC-22] is_model_not_found_error matches '404' and 'invalid_request_error', misclassifying ordinary API errors as missing models — **FIXED**
 
 - **Where:** `vendor:app/services/saia_client.py:182`  
 - **Category:** correctness  

@@ -180,12 +180,23 @@ class SaiaClient:
 
 
 def is_model_not_found_error(exc: Exception) -> bool:
+    """Whether `exc` says the requested model is not available.
+
+    It used to match the substrings "404" and "invalid_request_error". The
+    latter is the type of every 400 from an OpenAI-compatible server - an
+    oversized image, a context overflow - so those were reported as
+    MODEL_NOT_FOUND and the same request was retried on every fallback model
+    (audit SVC-22). The HTTP status and error code are read instead.
+    """
+    if getattr(exc, "status_code", None) == 404:
+        return True
+    if str(getattr(exc, "code", "") or "").lower() == "model_not_found":
+        return True
     text = str(exc).lower()
     return (
         "model not found" in text
+        or "model_not_found" in text
         or "unknown model" in text
         or "does not exist" in text
         or "invalid model" in text
-        or "404" in text
-        or "invalid_request_error" in text
     )
