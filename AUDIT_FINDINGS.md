@@ -1045,7 +1045,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** Any exception from the four queries (locked DB, missing `visits` table, malformed row) skips conn.close() and leaks the handle, and is then reported to the caller as a perfectly valid dashboard showing zero visits — indistinguishable from "no traffic". The string-built WHERE clause is the standard injection shape: it is currently fed only from `datetime.now()`, but the pattern invites the next contributor to route `days`, `country`, or a date range straight in from the route (analytics.py:47 already forwards a client-supplied `days`).
 - **Fix:** Use `with sqlite3.connect(...) as conn:` inside a try/finally that closes, pass the cutoff as a bound `?` parameter with the WHERE clause chosen from a fixed pair of literal SQL strings, and let the exception propagate (or return an explicit error field) instead of masquerading as empty data.
 
-### [AL-14] Trigram profiles contain duplicate entries and differ in size by 40%, making lexical_plausibility incomparable across languages
+### [AL-14] Trigram profiles contain duplicate entries and differ in size by 40%, making lexical_plausibility incomparable across languages — partly fixed (repeats removed, no set changed; the gate already scores the best fit over all four profiles, so a French-label flip cannot flip it; sizes left unequal, since rescaling would move the calibrated 0.25 floor without a measured gain, and lexical_trust_adjustment on the SAIA path still scores the detected language's profile alone)
 
 - **Where:** `vendor:app/services/lexicon_trust.py:123`  
 - **Category:** correctness  
