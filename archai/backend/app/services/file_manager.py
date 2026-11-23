@@ -96,6 +96,19 @@ def save_task_state(task: TaskState) -> None:
         _LOGGER.exception("Could not save the state of task %s", task.task_id)
 
 
+def discard_task(task_id: str) -> None:
+    """Forget a task and remove its directory, for a request refused before it produced anything.
+
+    A refused upload (empty, not an image, over the limit) left its task in the
+    store and its directory, with the uploaded bytes, on disk until the TTL
+    sweep.
+    """
+    with _lock:
+        _task_store.pop(task_id, None)
+    if _TASK_ID_RE.fullmatch(str(task_id)):
+        shutil.rmtree(os.path.join(TASK_BASE_DIR, task_id), ignore_errors=True)
+
+
 def get_task_dir(task_id: str) -> str:
     path = os.path.join(TASK_BASE_DIR, task_id)
     os.makedirs(path, exist_ok=True)
