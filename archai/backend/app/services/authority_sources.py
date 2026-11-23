@@ -215,14 +215,21 @@ _GEONAMES_CLASS_QIDS: dict[str, str] = {
     "U": "Q618123",        # undersea
 }
 
+# VIAF's nameType, as the cluster record writes it ("Personal",
+# "UniformTitleWork") and AutoSuggest's nametype ("personal", "uniformtitlework"),
+# both normalised by viaf_type_qids. The keys are the values VIAF was seen to
+# return on 2026-11-23 (eval/entities/linking_cache.json, and AutoSuggest /
+# cluster responses for "Chanson de Roland", tests/fixtures/viaf/); earlier
+# guessed keys ("uniformtitle", "work", "expression") matched nothing VIAF
+# sends, so every VIAF work was untyped and gated out (audit AL-02).
 _VIAF_NAMETYPE_QIDS: dict[str, str] = {
     "personal": "Q5",          # human
     "corporate": "Q43229",     # organization
     "geographic": "Q486972",   # human settlement
-    "uniformtitle": "Q7725634",  # literary work
-    "title": "Q7725634",
-    "work": "Q7725634",
-    "expression": "Q7725634",
+    "uniformtitlework": "Q7725634",  # literary work
+    # "uniformtitleexpression" is left out on purpose: an expression is one
+    # version or translation ("Chanson de Roland. English"), not the work a
+    # mention names, so it stays untyped and incompatible.
 }
 
 
