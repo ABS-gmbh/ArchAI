@@ -64,10 +64,13 @@ def test_authority_linking_route_runs_off_the_event_loop(monkeypatch: pytest.Mon
         seen["on_loop"] = _on_event_loop()
         return {"run_id": run_id}
 
+    from app.db import pipeline_db
+
     monkeypatch.setattr(authority_linking, "run_authority_linking", fake_linking)
+    run_id = pipeline_db.create_run(asset_ref="page-1")
     app = FastAPI()
     app.include_router(authority.router)
-    response = TestClient(app).post("/authority/link/run-1")
+    response = TestClient(app).post(f"/authority/link/{run_id}")
     assert response.status_code == 200
     assert seen == {"on_loop": False}
 
