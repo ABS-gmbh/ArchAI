@@ -9,6 +9,7 @@ Usage::
     python scripts/benchmark_retrieval.py --embedder e5-local --no-query-instruction
     python scripts/benchmark_retrieval.py --readings eval/quality_gate/readings.json
     python scripts/benchmark_retrieval.py --questions eval/retrieval/questions.json
+    python scripts/benchmark_retrieval.py --questions eval/retrieval/questions.json --question-set 2026-10
 
 Relevance judgments are the expensive part of a retrieval benchmark, and this
 project has none. They are derived from structure instead: the pipeline DB holds
@@ -41,7 +42,9 @@ report counts lookups per page.
 questions a reader might ask about those reference pages, in English, each
 with the span of the reference that answers it. The span is projected into
 every reading of the page by the same alignment, so the relevant chunks are
-the ones holding the answer in that reading. Passage lookup quotes the page;
+the ones holding the answer in that reading (``--question-set`` keeps one
+set, e.g. the 35 questions of ``2026-10``; see ``eval/retrieval/README.md``).
+Passage lookup quotes the page;
 a question mostly does not, which is where the rankers differ.
 
 ``--embedder e5-local`` runs the configured model family,
@@ -379,6 +382,9 @@ def main(argv: list[str] | None = None) -> int:
         "--questions", type=Path, help="ask the questions of this file about the pages of --readings (default: its own)"
     )
     parser.add_argument(
+        "--question-set", action="append", help="with --questions, only the questions of this set (repeatable; default: all)"
+    )
+    parser.add_argument(
         "--embedder",
         choices=("local", "provider", "e5-local"),
         default="local",
@@ -412,6 +418,8 @@ def main(argv: list[str] | None = None) -> int:
         texts = load_transcriptions(args.db)
     if args.questions:
         questions = json.loads(args.questions.read_text(encoding="utf-8"))["questions"]
+        if args.question_set:
+            questions = [q for q in questions if q.get("set") in args.question_set]
         queries, chunks = build_question_benchmark(texts, known_groups, questions)
         groups, pair_cers = known_groups, []
     else:
