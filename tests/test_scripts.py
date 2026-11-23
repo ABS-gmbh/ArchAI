@@ -109,3 +109,34 @@ def test_an_unknown_flag_is_refused(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exit_info:
         _showcase_script().main(["--verfy"])
     assert exit_info.value.code == 2
+
+
+def _check_packages() -> Any:
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "check_packages", REPO_ROOT / "scripts" / "check_packages.py"
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_package_check_is_not_a_test_module() -> None:
+    """Audit OCR-020: test_packages.py at the root was collectable and asserted nothing."""
+    assert not (REPO_ROOT / "test_packages.py").exists()
+    assert "/Users/" not in (REPO_ROOT / "scripts" / "check_packages.py").read_text(encoding="utf-8")
+
+
+def test_the_package_check_exits_1_when_a_check_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    """It printed the error and exited 0."""
+    module = _check_packages()
+
+    def broken() -> None:
+        raise ImportError("No module named 'cv2'")
+
+    monkeypatch.setattr(module, "CHECKS", {"ok": lambda: None, "opencv": broken})
+    assert module.main() == 1
+    monkeypatch.setattr(module, "CHECKS", {"ok": lambda: None})
+    assert module.main() == 0
