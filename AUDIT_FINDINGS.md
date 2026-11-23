@@ -1117,7 +1117,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** `search_wikidata(surface, language=...)` (wikidata_client.py:280) is a public parameter; any caller that searches the same surface in a second language reads back the first language's cached labels and descriptions. Today only one call site exists (authority_linking.py:436, always the 'fr' default), so the damage is latent — but the false docstring will lead the next author to add an English-language pass and get silently wrong cached results.
 - **Fix:** Thread the parameter through: give `cache_get`/`cache_check`/`cache_put` keyword-only `lang`/`etype` arguments, forward them into `_cache_key` at wikidata_client.py:131/175/219, and pass `lang=language` from `search_wikidata` (:298, :329). Or delete the unused `lang`/`etype` parameters and correct both docstrings.
 
-### [OCR-019] pyproject declares opencv-python-headless which archai_ocr never imports, and omits requests/openai which scripts/ imports at module level
+### [OCR-019] pyproject declares opencv-python-headless which archai_ocr never imports, and omits requests/openai which scripts/ imports at module level — **FIXED** (opencv dropped; requests and openai in a `showcase` extra; test_packaging.py keeps declared and imported dependencies equal. test_packages.py's needs: see OCR-020)
 
 - **Where:** `pyproject.toml:15`  
 - **Category:** hygiene  

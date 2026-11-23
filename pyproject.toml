@@ -22,12 +22,17 @@ dependencies = [
   "ultralytics>=8.2.0",
   "kraken>=5.3.0",
   "Pillow>=10.0.0",
-  "opencv-python-headless>=4.9.0",
   "PyYAML>=6.0.1",
   "python-dotenv>=1.0.1",
 ]
 
 [project.optional-dependencies]
+# scripts/build_thesis_showcase_payloads.py, which drives a running backend and
+# the SAIA chat API. Not needed by the archai_ocr package itself.
+showcase = [
+  "requests>=2.31.0",
+  "openai>=1.51.0",
+]
 dev = [
   "pytest>=8.0.0",
   "pytest-cov>=5.0.0",
