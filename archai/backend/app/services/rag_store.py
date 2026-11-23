@@ -37,7 +37,24 @@ log = logging.getLogger(__name__)
 
 _LOCK = threading.Lock()
 _CLIENT: chromadb.ClientAPI | None = None
+_RUN_LOCKS: dict[tuple[str, str], threading.RLock] = {}
 _LOCAL_EMBED_BACKEND = "local_default"
+
+
+def _run_lock(kind: str, run_id: str) -> threading.RLock:
+    """The lock serialising indexing of one run's *kind* ("chunks" or "entities") vectors.
+
+    Checking whether a run is indexed and indexing it are two steps. Without a
+    lock, two chat requests for a freshly finished run both saw it unindexed and
+    both embedded every chunk (RAG-03). Re-entrant, so :func:`index_run` may hold
+    it while the auto-index path takes it again.
+    """
+    key = (kind, str(run_id))
+    with _LOCK:
+        lock = _RUN_LOCKS.get(key)
+        if lock is None:
+            lock = _RUN_LOCKS[key] = threading.RLock()
+        return lock
 
 
 # ── ChromaDB client singleton ──────────────────────────────────────────
@@ -473,6 +490,11 @@ def _is_searchable(run_id: str) -> bool:
 
 
 def _index_chunks_for_run(run_id: str, run: dict[str, Any]) -> dict[str, Any]:
+    with _run_lock("chunks", run_id):
+        return _index_chunks_for_run_locked(run_id, run)
+
+
+def _index_chunks_for_run_locked(run_id: str, run: dict[str, Any]) -> dict[str, Any]:
     chunks = pipeline_db.list_chunks(run_id)
     chunks_total = len(chunks)
     asset_ref = str(run.get("asset_ref") or "")
@@ -537,6 +559,11 @@ def _index_chunks_for_run(run_id: str, run: dict[str, Any]) -> dict[str, Any]:
 
 
 def index_entity_run(run_id: str) -> dict[str, Any]:
+    with _run_lock("entities", run_id):
+        return _index_entity_run_locked(run_id)
+
+
+def _index_entity_run_locked(run_id: str) -> dict[str, Any]:
     t0 = time.perf_counter()
     run = pipeline_db.get_run(run_id)
     if run is None:
@@ -692,12 +719,15 @@ def _ensure_chunk_runs_indexed(run_ids: Sequence[str]) -> None:
         # run whose vectors exist may hold an ENTIRELY different set of chunks -
         # for instance the old one-line-per-chunk vectors after the chunk geometry
         # changed. Skipping on existence served those stale vectors forever.
-        if _collection_chunks_are_current(collection, str(run_id)):
-            continue
-        run = pipeline_db.get_run(str(run_id))
-        if run is None:
-            continue
-        _index_chunks_for_run(str(run_id), run)
+        with _run_lock("chunks", str(run_id)):
+            # Checked under the lock: a request that waited on another one's
+            # indexing finds the vectors current and embeds nothing.
+            if _collection_chunks_are_current(collection, str(run_id)):
+                continue
+            run = pipeline_db.get_run(str(run_id))
+            if run is None:
+                continue
+            _index_chunks_for_run(str(run_id), run)
 
 
 def _ensure_entity_runs_indexed(run_ids: Sequence[str]) -> None:
@@ -705,9 +735,10 @@ def _ensure_entity_runs_indexed(run_ids: Sequence[str]) -> None:
         return
     collection = _entity_collection(backend_key=_space_key())
     for run_id in run_ids:
-        if _collection_has_run(collection, str(run_id)):
-            continue
-        index_entity_run(str(run_id))
+        with _run_lock("entities", str(run_id)):
+            if _collection_has_run(collection, str(run_id)):
+                continue
+            index_entity_run(str(run_id))
 
 
 # ── Retrieval ───────────────────────────────────────────────────────────
