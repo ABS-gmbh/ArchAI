@@ -39,9 +39,14 @@ The script prioritizes models described as:
 - covering handwritten + printed (and typewritten if available)
 - broader language/script coverage
 
-Current expected default recognition candidate is:
-
-- `10.5281/zenodo.13788177` (McCATMuS generic model; broad format/language coverage)
+For medieval manuscripts, use CATMuS Medieval as the recognition model, as
+`weights/README.md` says and `scripts/fetch_kraken_models.sh` downloads. The
+backend reads every page with it first. McCATMuS
+(`10.5281/zenodo.13788177`), which the generic discovery above tends to
+suggest, is trained on prints and on hands from the late 16th century onwards.
+On the five medieval reference pages in `archai/backend/eval/recognizers/` it
+reads at 36.5% CER against CATMuS Medieval's 7.6%, so use it only for print
+and later material.
 
 Current expected default segmentation candidate is:
 

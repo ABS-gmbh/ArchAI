@@ -155,6 +155,16 @@ over all of them (micro-averaged):
 | segmented, McCATMuS | 34.3% | 38.8% | 41.0% | 40.0% | 35.4% | 36.5% |
 | GLM-OCR, whole page | 25.6% | 27.6% | 29.9% | 24.5% | 29.2% | 27.7% |
 
+Which model reads a page: `select_backend_plan` puts CATMuS Medieval first
+under every language hint, and with none. Year, script family and place are
+not consulted, and backend election (`OCR_BACKEND_ELECTION`) is off. A later
+model reads a line only when every earlier one fails or reads nothing. So
+for all five pages the routed model is CATMuS Medieval, and it is also the
+best reading of each page. Three references (Latin Romanesque, Middle French,
+Old French verse) were transcribed with a CATMuS draft beside the image, which
+flatters CATMuS on those pages (see `eval/quality_gate/README.md`). On the two
+pages read off the image alone, it still leads (6.5% and 6.6%).
+
 Kraken reads each line crop in plain grayscale, as its models are trained; see
 `_preprocess_kraken_crop_with_metadata` for what an earlier contrast stretch,
 denoise and deskew cost.
