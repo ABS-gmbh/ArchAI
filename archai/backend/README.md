@@ -44,6 +44,30 @@ source .venv/bin/activate
 pip install -e .
 ```
 
+## Configure
+
+```bash
+cd archai/backend
+cp .env.example .env
+```
+
+Settings are read from `.env`, `.env.local` and the environment: the
+environment overrides `.env.local`, which overrides `.env`. `app/config.py`
+holds every setting and its default. A value of the wrong type or out of range stops startup with an
+error that names the variable. The ones to look at first:
+
+| Variable | What it does |
+|---|---|
+| `CHAT_AI_API_KEY` | SAIA / Chat AI key for chat, translation and provider embeddings |
+| `GLMOCR_OLLAMA_HOST` | Ollama server running `glm-ocr`, for GLM-OCR and the segmented engine's fallback |
+| `ANALYTICS_USERNAME`, `ANALYTICS_PASSWORD` | Analytics login; with either empty the login refuses with 503 |
+| `JWT_SECRET` | Signs analytics tokens; empty, a random secret is made per process and tokens end at restart |
+| `ARCHAI_DB_PATH`, `CHROMA_PERSIST_DIR` | Pipeline database and vector store; by default inside this directory |
+| `MAX_UPLOAD_MEGABYTES`, `TASK_TTL_MINUTES` | Upload limit, and how long layout task files are kept |
+| `CHAT_AI_TIMEOUT_SECONDS` | How long the chat client waits for an answer (default 180) |
+| `LOG_LEVEL`, `LOG_FORMAT` | Log level, and `text` or `json` lines on stderr |
+| `ENABLE_TEST_OCR_FIXTURES` | Canned answers for four test images; keep it `false` |
+
 ## Run
 
 ```bash
@@ -56,6 +80,13 @@ Health endpoint:
 ```bash
 curl http://127.0.0.1:8000/api/health
 ```
+
+`status` is `ok` when every check passes; `degraded` (HTTP 200) when Ollama is
+unreachable or no chat key is configured, so GLM-OCR or chat will fail; and
+`unavailable` (HTTP 503) when the pipeline database cannot be used. Each entry
+under `checks` (`database`, `ollama`, `chat_api_key`) has `ok` and a short
+`detail`; the endpoint is unauthenticated, so error text and hosts go to the
+log, not the response. The chat key's presence is checked, not its validity.
 
 ## Test
 
