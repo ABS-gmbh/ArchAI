@@ -600,6 +600,25 @@ def update_run_fields(run_id: str, **fields: Any) -> None:
         conn.commit()
 
 
+def delete_run(run_id: str) -> bool:
+    """Delete one run and everything recorded under it; return whether it existed.
+
+    One statement in one transaction: the ON DELETE CASCADE foreign keys remove
+    the run's events, chunks, mentions and their candidates and links,
+    decisions and attempts, quality reports, tile audit, OCR attempts, backend
+    results, benchmark references and evidence spans. Retention
+    (run_retention.plan_retention) never selects a run with a benchmark
+    reference, for that reason. Authority entities are shared between runs and
+    stay. Vectors live in the vector store and are removed by
+    rag_store.delete_run.
+    """
+    _init_db_if_needed()
+    with _connect() as conn:
+        deleted = conn.execute("DELETE FROM pipeline_runs WHERE run_id=?", (run_id,)).rowcount
+        conn.commit()
+    return deleted > 0
+
+
 def get_run(run_id: str) -> dict[str, Any] | None:
     _init_db_if_needed()
     with _connect() as conn:
