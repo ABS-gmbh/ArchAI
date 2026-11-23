@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.logging_setup import configure_logging
 from app.services.file_manager import cleanup_expired_tasks
 from app.services.inference import init_model_pool, shutdown_model_pool
 from app.routers import health, classes, predict, download, analytics, chat, agents_ocr, ocr, evidence, index, rag_debug, authority
@@ -34,6 +35,7 @@ async def _periodic_task_cleanup() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Initialize model pool on startup, clean up on shutdown."""
+    configure_logging(settings.log_level, settings.log_format)
     try:
         mp.set_start_method("spawn", force=True)
     except RuntimeError:

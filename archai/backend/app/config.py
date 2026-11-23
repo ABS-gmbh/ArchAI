@@ -17,6 +17,27 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3001"
     )
 
+    # Logging (app/logging_setup.py): level of the root logger, and "text" or
+    # "json" lines on stderr. uvicorn's own access and error logs are unaffected.
+    log_level: str = "INFO"
+    log_format: str = "text"
+
+    @field_validator("log_level")
+    @classmethod
+    def _known_log_level(cls, value: str) -> str:
+        normalized = str(value).strip().upper()
+        if normalized not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+            raise ValueError(f"LOG_LEVEL must be DEBUG, INFO, WARNING, ERROR or CRITICAL, got {value!r}")
+        return normalized
+
+    @field_validator("log_format")
+    @classmethod
+    def _known_log_format(cls, value: str) -> str:
+        normalized = str(value).strip().lower()
+        if normalized not in {"text", "json"}:
+            raise ValueError(f"LOG_FORMAT must be text or json, got {value!r}")
+        return normalized
+
     # Model paths
     model_dir: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
 
