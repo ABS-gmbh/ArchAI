@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import argparse
 import base64
 import csv
+import hashlib
 import json
 import os
 import re
@@ -12,11 +14,15 @@ import textwrap
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import requests
 from PIL import Image, ImageDraw, ImageFont, ImageOps
-from openai import OpenAI
+
+if TYPE_CHECKING:
+    import requests
+
+# requests and openai are imported where generation uses them, so --verify runs
+# without either installed and without touching the network.
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -160,6 +166,8 @@ def configured_model() -> str:
 
 
 def session() -> requests.Session:
+    import requests
+
     client = requests.Session()
     client.headers.update({"User-Agent": "archai-thesis-showcase/1.0"})
     return client
@@ -659,7 +667,79 @@ def pivot_markdown() -> str:
     )
 
 
-def main() -> int:
+def verify_bundle(root: Path = ARTIFACT_ROOT) -> list[str]:
+    """Problems with the bundle at *root*, checked offline against its manifest.
+
+    Every listed file must exist, every listed JSON file must parse, and no file
+    may be present that the manifest omits. When the manifest carries a
+    "sha256" map of {relative path: hex digest}, each file's content is checked
+    against it too; the bundle committed in 2026 has no such map, so for it
+    this checks presence and well-formedness, not content.
+    """
+    manifest_path = root / "manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"manifest unreadable: {manifest_path}: {exc}"]
+    listed = manifest.get("files")
+    if not isinstance(listed, list) or not all(isinstance(item, str) for item in listed):
+        return [f"manifest has no list of files: {manifest_path}"]
+
+    problems: list[str] = []
+    for name in listed:
+        path = root / name
+        if not path.is_file():
+            problems.append(f"listed but missing: {name}")
+        elif path.suffix == ".json":
+            try:
+                json.loads(path.read_text(encoding="utf-8"))
+            except ValueError as exc:
+                problems.append(f"not valid JSON: {name}: {exc}")
+    digests = manifest.get("sha256") or {}
+    if not isinstance(digests, dict):
+        problems.append('manifest "sha256" is not a map of path to digest')
+        digests = {}
+    for name, expected in sorted(digests.items()):
+        path = root / name
+        if not path.is_file():
+            problems.append(f"hashed but missing: {name}")
+        elif hashlib.sha256(path.read_bytes()).hexdigest() != str(expected).lower():
+            problems.append(f"content changed: {name}")
+    present = {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file()}
+    problems.extend(f"present but not in the manifest: {name}" for name in sorted(present - set(listed)))
+    return problems
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build the thesis showcase bundle in artifacts/thesis_showcase. Generation needs the "
+            "backend running at ARCHAI_BACKEND_URL and, for the chat figures, a SAIA key in "
+            "archai/backend/.env; it overwrites the bundle."
+        )
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="check the existing bundle against its manifest, offline, and exit 1 on any problem",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    if args.verify:
+        problems = verify_bundle(ARTIFACT_ROOT)
+        for problem in problems:
+            print(problem, file=sys.stderr)
+        print(f"{ARTIFACT_ROOT}: {'FAILED, ' + str(len(problems)) + ' problem(s)' if problems else 'OK'}")
+        return 1 if problems else 0
+    return generate()
+
+
+def generate() -> int:
+    from openai import OpenAI
+
     paths = ensure_dirs()
     client = session()
     log("Checking backend health")

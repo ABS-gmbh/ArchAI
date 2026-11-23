@@ -807,7 +807,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** `mypy` at the repo root passes while typing regressions anywhere in routers/ocr.py (4687 lines), saia_ocr_agent.py (2757) or authority_linking.py (2448) go unreported. The `# type: ignore` comments in those files are unverifiable and may now be stale — a `# type: ignore[import-untyped]` that no longer suppresses anything is invisible without a config that checks the file.
 - **Fix:** Add `[tool.mypy] files = ["app"]` with `strict = false` and per-module `ignore_missing_imports` to archai/vendor/layout/backend/pyproject.toml so the vendor tree gets at least non-strict checking, and enable `warn_unused_ignores` there to surface the stale ignores.
 
-### [OCR-017] README documents a --verify flag that build_thesis_showcase_payloads.py does not implement — the flag is ignored and the full network run executes
+### [OCR-017] README documents a --verify flag that build_thesis_showcase_payloads.py does not implement — the flag is ignored and the full network run executes — partly fixed (--verify now exists and runs offline: listed files present, JSON parses, nothing unlisted, sha256 when the manifest has a map; unknown flags are refused. The committed bundle does not pass: 18 problems, listed in README.md)
 
 - **Where:** `scripts/build_thesis_showcase_payloads.py:656`  
 - **Category:** correctness  
@@ -815,7 +815,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** A user who wants to verify existing artifacts instead triggers the full generation path: check_backend hits a live backend (line 163), post_trace_run drives the OCR pipeline across every PageSpec, and an OpenAI-compatible client is constructed against https://chat-ai.academiccloud.de/v1 (lines 669-673) which bills real completions. The thesis artifacts in artifacts/thesis_showcase/ are then overwritten rather than checked.
 - **Fix:** Add argparse to build_thesis_showcase_payloads.py with a `--verify` flag that only recomputes and compares the manifest hashes and returns nonzero on mismatch, without touching the backend or the LLM client. Until then, correct README.md:78 to remove the flag.
 
-### [HYG-11] README's thesis-artifact verification command has no --verify flag and silently performs a live networked pipeline run
+### [HYG-11] README's thesis-artifact verification command has no --verify flag and silently performs a live networked pipeline run — partly fixed (--verify now exists and runs offline: listed files present, JSON parses, nothing unlisted, sha256 when the manifest has a map; unknown flags are refused. The committed bundle does not pass: 18 problems, listed in README.md)
 
 - **Where:** `scripts/build_thesis_showcase_payloads.py:656`  
 - **Category:** hygiene  
