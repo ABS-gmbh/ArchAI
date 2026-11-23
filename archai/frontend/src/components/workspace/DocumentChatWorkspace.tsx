@@ -141,6 +141,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const chatScrollAnchorRef = useRef<HTMLDivElement | null>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const metadataDialogWasOpenRef = useRef(false);
 
   const currentDocument = useMemo(
     () => documents.find((doc) => doc.id === selectedDocumentId) ?? null,
@@ -176,6 +178,18 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   useEffect(() => {
     setClientReady(true);
   }, []);
+
+  // When the metadata dialog closes, hand focus back to the control that
+  // opened it; otherwise it falls to the page body and a keyboard user starts
+  // again from the top.
+  useEffect(() => {
+    if (pendingUpload) {
+      metadataDialogWasOpenRef.current = true;
+    } else if (metadataDialogWasOpenRef.current) {
+      metadataDialogWasOpenRef.current = false;
+      uploadInputRef.current?.focus();
+    }
+  }, [pendingUpload]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1121,6 +1135,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
               type="file"
               accept="image/*"
               multiple
+              ref={uploadInputRef}
               className="sr-only"
               onChange={handleUpload}
             />
@@ -1419,6 +1434,30 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
               if (event.key === "Escape") {
                 event.stopPropagation();
                 cancelPendingUpload();
+                return;
+              }
+              if (event.key !== "Tab") {
+                return;
+              }
+              // aria-modal promises that focus stays in the dialog: wrap Tab at
+              // both ends instead of letting it reach the page underneath.
+              const focusable = Array.from(
+                event.currentTarget.querySelectorAll<HTMLElement>(
+                  "input:not([disabled]), textarea:not([disabled]), button:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex='-1'])",
+                ),
+              );
+              if (!focusable.length) {
+                return;
+              }
+              const first = focusable[0];
+              const last = focusable[focusable.length - 1];
+              const active = document.activeElement;
+              if (event.shiftKey && (active === first || !event.currentTarget.contains(active))) {
+                event.preventDefault();
+                last.focus();
+              } else if (!event.shiftKey && active === last) {
+                event.preventDefault();
+                first.focus();
               }
             }}
             className="max-h-full w-full max-w-2xl overflow-y-auto rounded-xl border bg-background p-6 shadow-2xl"
