@@ -54,7 +54,7 @@ in `archai/backend` or pass them as environment variables.
 | `CHAT_AI_API_KEY` | Without it, chat, translation, SAIA OCR and provider embeddings fail ("Chat API key not configured"). |
 | `GLMOCR_OLLAMA_HOST` | The Ollama server running `glm-ocr`, if GLM-OCR or the segmented engine's fallback is to work. |
 | `ANALYTICS_USERNAME`, `ANALYTICS_PASSWORD`, `JWT_SECRET` | Analytics login refuses with 503 until the first two are set. Set `JWT_SECRET` too, so tokens survive restarts. |
-| `ARCHAI_DB_PATH`, `CHROMA_PERSIST_DIR`, `ARCHAI_WIKIDATA_CACHE`, `OCR_EVIDENCE_PATH` | Their defaults are inside the code checkout. Point them at a data directory you back up. |
+| `ARCHAI_DB_PATH`, `CHROMA_PERSIST_DIR`, `ARCHAI_WIKIDATA_CACHE`, `OCR_EVIDENCE_PATH`, `TASK_BASE_DIR` | Their defaults are inside the code checkout. Point them at a data directory (the first four are the ones to back up). |
 | `MAX_UPLOAD_MEGABYTES` | The default is 1024 MB per upload, and request bodies may be a third larger for base64. Set what your pages need. |
 | `LOG_FORMAT=json` | One JSON object per log line, for a log collector. |
 
@@ -63,9 +63,10 @@ images) and leave `ARCHAI_DEBUG_RAG` unset (it exposes `/api/rag/debug/*`).
 Both are off by default. A setting of the wrong type, or out of range, stops
 startup with an error that names the variable.
 
-The layout task directory is always `archai/backend/.tasks`; it cannot be
-moved by a setting. It must be writable and needs no backup: task files
-expire after `TASK_TTL_MINUTES` (60).
+Layout tasks keep their uploads and outputs in `TASK_BASE_DIR` (default
+`archai/backend/.tasks`). It must be a writable directory: the server creates
+it if missing and refuses to start, naming the variable, if it cannot write
+there. It needs no backup: task files expire after `TASK_TTL_MINUTES` (60).
 
 ## What to put in front
 
@@ -115,8 +116,7 @@ directly; it is also fixed at build time.
 | Authority cache | `archai/backend/app/.data/wikidata_cache.sqlite` (`ARCHAI_WIKIDATA_CACHE`) | A cache; losing it only costs requests. |
 | Analytics database | `archai/backend/analytics.db` (`ANALYTICS_DB_PATH`) | Read only by the backend; written by whatever records visits. |
 | Model weights | `archai/backend/models`, `archai/backend/weights` | Not data, but needed to start; see [`model_setup.md`](model_setup.md). |
-
-`.tasks` needs no backup.
+| Layout tasks | `archai/backend/.tasks` (`TASK_BASE_DIR`) | Temporary: uploads and outputs, removed after `TASK_TTL_MINUTES`. No backup needed; give it room for the largest upload batch. |
 
 ## Health
 

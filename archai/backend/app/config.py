@@ -94,6 +94,10 @@ class Settings(BaseSettings):
     # Processing
     max_pool_workers: int = 3
     task_ttl_minutes: int = 60
+    # Where layout tasks (/api/predict, /api/download) keep their uploads and
+    # outputs, one directory per task, removed after task_ttl_minutes. Must be
+    # a writable directory; it is created if missing (checked at startup).
+    task_base_dir: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".tasks")
     # Upload limits for /predict: one upload, and everything a batch ZIP may
     # expand to. Uploads were read whole into memory and ZIP members
     # inflated without a bound (audit PRED-002).
