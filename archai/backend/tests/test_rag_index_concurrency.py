@@ -73,21 +73,31 @@ def test_concurrent_auto_index_of_one_run_embeds_its_entities_once(
     assert slow_store == [2]
 
 
-def test_different_runs_still_index_in_parallel(slow_store: list[int]) -> None:
+def test_different_runs_still_index_in_parallel(slow_store: list[int], monkeypatch: pytest.MonkeyPatch) -> None:
     first = _run("page-a", sha="sha-a", allowed=True)
     second = _run("page-b", sha="sha-b", allowed=True)
     runs = iter([first, second])
     lock = threading.Lock()
+    # Both embeddings must be in flight at once to pass the barrier. Behind one
+    # shared lock the first would wait here alone until the barrier breaks. No
+    # wall-clock limit: a slow CI runner made the old 0.55 s bound fail.
+    together = threading.Barrier(2, timeout=10)
+
+    def embed_together(texts: list[str]) -> list[list[float]]:
+        slow_store.append(len(texts))
+        together.wait()
+        return _embed(texts)
+
+    monkeypatch.setattr(rag_store, "_embed", embed_together)
 
     def next_run() -> None:
         with lock:
             run_id = next(runs)
         rag_store._ensure_chunk_runs_indexed([run_id])
 
-    started = time.perf_counter()
     _concurrently(next_run, n=2)
     assert slow_store == [3, 3]
-    assert time.perf_counter() - started < 0.55  # not serialised behind one lock
+    assert not together.broken  # not serialised behind one lock
 
 
 def test_delete_waits_for_an_index_of_the_same_run_in_flight(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
