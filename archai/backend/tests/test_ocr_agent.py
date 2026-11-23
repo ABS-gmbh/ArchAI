@@ -206,3 +206,108 @@ def test_ocr_agent_simple_mode_returns_only_final_text(monkeypatch: Any) -> None
     assert isinstance(result, OCRExtractSimpleResponse)
     assert result.text == "fauente"
     assert result.script_hint == "latin_medieval"
+
+
+# ── tile concurrency (audit AG-11) ──────────────────────────────────────
+
+
+def test_tiles_read_concurrently_give_the_sequential_results_in_order(monkeypatch: Any) -> None:
+    """Every tile is read; results, order and the merged page match the serial loop exactly."""
+    import threading
+    import time
+
+    tiles_seen: list[str] = []
+    active = {"now": 0, "peak": 0}
+    lock = threading.Lock()
+
+    def tile_reader(**kwargs: Any) -> Any:
+        tile = kwargs["tile"]
+        with lock:
+            tiles_seen.append(tile.tile_id)
+            active["now"] += 1
+            active["peak"] = max(active["peak"], active["now"])
+        # Later tiles answer first, so completion order differs from tile order.
+        time.sleep(0.02 * (len(tiles_seen) % 3))
+        try:
+            return ocr_agent.OCRTileResult(
+                tile_id=tile.tile_id,
+                bbox_xyxy=tile.bbox_xyxy,
+                lines=[f"line of {tile.tile_id}"],
+                text=f"line of {tile.tile_id}",
+                confidence=0.9,
+                script_hint="latin",
+                warnings=[],
+                flags=[],
+                model="internvl3.5-30b-a3b",
+            ), [], []
+        finally:
+            with lock:
+                active["now"] -= 1
+
+    monkeypatch.setattr(ocr_agent, "_ocr_tile_with_model_candidates", tile_reader)
+    monkeypatch.setattr(ocr_agent, "SaiaClient", lambda: _FakeSaiaClient(models=["internvl3.5-30b-a3b"]))
+    import base64
+    import io
+
+    from PIL import Image
+
+    page = io.BytesIO()
+    Image.new("RGB", (800, 1200), (200, 190, 170)).save(page, format="PNG")  # cut into 6 tiles
+    request = OCRExtractRequest(
+        page_id="page-1",
+        image_b64=base64.b64encode(page.getvalue()).decode(),
+        options=OCRExtractOptions(backend="saia", max_fallbacks=0, quality_floor=0.0),
+    )
+
+    monkeypatch.setattr(ocr_agent.settings, "ocr_tile_concurrency", 1)
+    sequential = ocr_agent.run_ocr_extraction(request)
+    assert active["peak"] == 1
+    active["peak"] = 0
+    tiles_seen.clear()
+
+    monkeypatch.setattr(ocr_agent.settings, "ocr_tile_concurrency", 4)
+    concurrent = ocr_agent.run_ocr_extraction(request)
+
+    def stable(result: Any) -> dict[str, Any]:
+        data = result.model_dump()
+        for key in ("created_at", "timestamp", "duration_ms", "elapsed_ms"):
+            data.pop(key, None)
+        return data
+
+    assert len(tiles_seen) == 6
+    assert stable(concurrent)["raw_ocr"] == stable(sequential)["raw_ocr"]
+    assert concurrent.raw_ocr.lines == sequential.raw_ocr.lines
+    assert concurrent.regions == sequential.regions
+    assert concurrent.text == sequential.text and concurrent.warnings == sequential.warnings
+    assert active["peak"] > 1  # tiles really overlapped
+
+
+def test_map_tiles_keeps_order_and_raises_the_first_failure(monkeypatch: Any) -> None:
+    import time
+
+    monkeypatch.setattr(ocr_agent.settings, "ocr_tile_concurrency", 3)
+
+    def slow_reverse(n: int) -> int:
+        time.sleep(0.01 * (5 - n))
+        return n * 10
+
+    assert ocr_agent._map_tiles(slow_reverse, [1, 2, 3, 4]) == [10, 20, 30, 40]
+
+    started: list[int] = []
+
+    def fails_on_two(n: int) -> int:
+        started.append(n)
+        if n == 2:
+            raise ocr_agent.OCRAgentError("tile 2 failed")
+        time.sleep(0.05)
+        return n
+
+    with pytest.raises(ocr_agent.OCRAgentError, match="tile 2"):
+        ocr_agent._map_tiles(fails_on_two, list(range(1, 30)))
+    assert len(started) < 29  # tiles not yet started were cancelled
+
+
+def test_the_default_tile_concurrency_is_cautious() -> None:
+    from app.config import Settings
+
+    assert Settings.model_fields["ocr_tile_concurrency"].default == 2

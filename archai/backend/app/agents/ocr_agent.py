@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -1056,6 +1058,24 @@ def _ocr_tile_with_model_candidates(
     )
 
 
+def _map_tiles(read: Callable[[Any], Any], tiles: Sequence[Any]) -> list[Any]:
+    """``[read(tile) for tile in tiles]``, up to ``settings.ocr_tile_concurrency`` tiles at a time.
+
+    Results keep tile order, which _merge_tile_lines relies on. The first
+    failure (in tile order) is raised, as the serial loop raised it; tiles not
+    yet started are cancelled.
+    """
+    workers = max(1, min(int(settings.ocr_tile_concurrency or 1), len(tiles)))
+    if workers == 1:
+        return [read(tile) for tile in tiles]
+    pool = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="ocr-tile")
+    try:
+        futures = [pool.submit(read, tile) for tile in tiles]
+        return [future.result() for future in futures]
+    finally:
+        pool.shutdown(wait=True, cancel_futures=True)
+
+
 def run_ocr_extraction(
     payload: OCRExtractRequest,
     *,
@@ -1086,14 +1106,16 @@ def run_ocr_extraction(
     fallback_records: list[OCRFallback] = []
     fallbacks_used: list[str] = []
 
-    for tile in tiles:
-        tile_result, tile_fallbacks, tile_fallback_models = _ocr_tile_with_model_candidates(
+    def read_tile(tile: OCRTile) -> tuple[OCRTileResult, list[OCRFallback], list[str]]:
+        return _ocr_tile_with_model_candidates(
             tile=tile,
             saia=saia,
             selected_models=selected_models,
             quality_floor=payload.options.quality_floor,
             latin_lock=latin_lock,
         )
+
+    for tile_result, tile_fallbacks, tile_fallback_models in _map_tiles(read_tile, tiles):
         tile_results.append(tile_result)
         fallback_records.extend(tile_fallbacks)
         fallbacks_used.extend(tile_fallback_models)
