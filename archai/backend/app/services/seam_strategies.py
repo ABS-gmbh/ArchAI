@@ -395,7 +395,6 @@ def select_retry_strategy(
     img_w: int,
     img_h: int,
     *,
-    prev_text_sha256: str = "",
     attempt_idx: int = 1,
 ) -> TilingPlan:
     """Pick a retry strategy that is guaranteed to change tile_boxes.
@@ -403,6 +402,11 @@ def select_retry_strategy(
     Walks the strategy chain; the first strategy whose box signature
     differs from *prev_plan* wins.  If none do, returns the last one
     (the expand_overlap, which always changes geometry unless image is 1×1).
+
+    It decides by geometry alone. It used to accept ``prev_text_sha256`` and
+    never read it (audit SVC-25), so callers believed identical text steered
+    the choice; the caller's NO-OP check (:func:`is_noop_retry`) handles that
+    case by escalating with a high ``attempt_idx``.
     """
     prev_sig = prev_plan.boxes_signature()
 

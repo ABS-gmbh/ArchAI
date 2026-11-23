@@ -1559,7 +1559,6 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                 assert prev_tiling_plan is not None
                 current_plan = select_retry_strategy(
                     prev_tiling_plan, img_w, img_h,
-                    prev_text_sha256=prev_text_sha256,
                     attempt_idx=attempt_idx,
                 )
                 # Convert TilingPlan → SaiaOCRLocationSuggestion objects
@@ -1638,7 +1637,6 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                     # Auto-escalate: immediately pick a different strategy
                     escalated_plan = select_retry_strategy(
                         current_plan, img_w, img_h,
-                        prev_text_sha256=text_sha256,
                         attempt_idx=attempt_idx + 10,  # high idx to force fallback chain
                     )
                     if escalated_plan.boxes_signature() != current_plan.boxes_signature():

@@ -1093,7 +1093,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** These two queries against authority_aliases and authority_source_assertions run without the schema-ready guarantee — they happen to be safe today only because the caller chain reaches them via list_mention_links_for_run, which initialises first. Any future caller of _build_entity_index_payload that skips that path gets `no such table: authority_aliases`. It also means the two sites will silently miss the WAL/busy_timeout/close policy that DB-01 and DB-02 require, since they inherit whatever _connect does but sit outside the module that owns the fix.
 - **Fix:** Add public `list_authority_aliases(entity_ids)` and `list_authority_source_assertions(entity_ids)` to pipeline_db (each calling _init_db_if_needed and using the module's own connection helper) and have rag_store call those instead of _connect().
 
-### [SVC-25] select_retry_strategy accepts prev_text_sha256 and never uses it
+### [SVC-25] select_retry_strategy accepts prev_text_sha256 and never uses it — **FIXED** (the unused parameter, its two caller arguments and the unread HALLUCINATED_HYPHEN_MIN_INSTABILITY are removed; the caller's NO-OP check already escalates on identical text)
 
 - **Where:** `vendor:app/services/seam_strategies.py:364`  
 - **Category:** hygiene  

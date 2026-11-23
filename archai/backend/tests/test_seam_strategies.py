@@ -88,3 +88,13 @@ def test_seam_band_crop_cuts_only_at_the_real_seams() -> None:
     plan = seam_band_crop(_make_grid(2, 2, 2000, 3000, 0.15), 2000, 3000)
     assert plan.preproc["seam_ys"] == [1500]
     assert plan.preproc["seam_xs"] == [1000]
+
+
+def test_select_retry_strategy_takes_no_text_hash_it_would_ignore() -> None:
+    """It accepted prev_text_sha256 and never read it (audit SVC-25): callers thought text steered it."""
+    import inspect
+
+    from app.services import ocr_quality_config, seam_strategies
+
+    assert "prev_text_sha256" not in inspect.signature(seam_strategies.select_retry_strategy).parameters
+    assert not hasattr(ocr_quality_config, "HALLUCINATED_HYPHEN_MIN_INSTABILITY")  # defined, never read
