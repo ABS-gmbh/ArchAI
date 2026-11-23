@@ -702,7 +702,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** For Greek, Cyrillic, Hebrew, Arabic, or CJK pages every single-character final token counts as a broken-off word, because no non-Latin character is in `_VOWELS_LATIN`. Chinese and Japanese lines routinely end in a single character, so `trailing_fragment_ratio` approaches 1.0 for correctly-transcribed CJK. The module docstring advertises itself as 'Language-agnostic OCR quality engine' (line 1).
 - **Fix:** Add a `script: str = "latin"` parameter, look the vowel set up via `_VOWEL_SETS.get(script)` and return 0.0 (not applicable) when the script has no vowel set, and pass `report.script_family` at the call site on line 802.
 
-### [SVC-17] uncertainty_density double-counts […] spans and feeds a loop that inserts them
+### [SVC-17] uncertainty_density double-counts […] spans and feeds a loop that inserts them — **FIXED** (a span counts 3; on a synthetic marked set of 29 real reading pairs no verdict changes and every density drops about a quarter; the real calibration readings hold no marker)
 
 - **Where:** `vendor:app/services/ocr_quality.py:583`  
 - **Category:** ocr-quality  
