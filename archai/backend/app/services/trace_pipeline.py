@@ -606,9 +606,20 @@ def _run_full_page_post_ocr_pipeline(
     image_bytes: bytes,
     *,
     ocr_backend: str,
+    run_id: str | None = None,
 ) -> dict[str, Any]:
+    """The downstream stages for a full-page OCR response, in a new run or in *run_id*.
+
+    *run_id* is a run the router already claimed for this request (a client
+    reserved it to follow the trace); without one, a run is created here, as
+    before, and only when there is text.
+    """
     text_value = str(response.text or "").strip()
     if not text_value:
+        if run_id is not None:
+            update_run_fields(run_id, status="COMPLETED", current_stage="DONE", error=None)
+            log_event(run_id, "DONE", "END", "No text was read; nothing to analyse.")
+            return {"run_id": run_id}
         return {}
 
     asset_ref = (
@@ -618,7 +629,8 @@ def _run_full_page_post_ocr_pipeline(
         or "inline:image_b64"
     )
     asset_sha256 = hashlib.sha256(image_bytes).hexdigest()
-    run_id = create_run(asset_ref=asset_ref, asset_sha256=asset_sha256)
+    if run_id is None:
+        run_id = create_run(asset_ref=asset_ref, asset_sha256=asset_sha256)
     # A failure past this point used to leave the run mid-stage with no FAILED
     # marker, and the router reported the request as complete (audit OCR-005).
     try:

@@ -23,6 +23,7 @@ from app.agents.segmentation_agent import run_single_segmentation
 from app.core.constants import FINAL_CLASSES
 from app.routers.errors import configuration_message, provider_failure, unexpected_error
 from app.db.pipeline_db import (
+    claim_reserved_run,
     count_chunks,
     count_entity_mentions,
     create_run,
@@ -33,6 +34,7 @@ from app.db.pipeline_db import (
     list_entity_mentions,
     list_events,
     log_event,
+    reserve_run,
     table_view_for_chunks,
     table_view_for_entity_attempts,
     table_view_for_entity_candidates,
@@ -1342,12 +1344,64 @@ async def _run_glm_full_page(
     return response.model_copy(update={"ocr_engine": "glmocr"})
 
 
+@router.post("/ocr/runs", status_code=201)
+async def ocr_reserve_run() -> dict[str, str]:
+    """Reserve a run for one /ocr/extract_full_page request (its ``run_id`` field).
+
+    The request then logs its trace into this run from the start, so the client
+    can open /ocr/trace/stream/{run_id} before sending it. A reserved run can be
+    used once.
+    """
+    return {"run_id": await asyncio.to_thread(reserve_run)}
+
+
 @router.post("/ocr/extract_full_page", response_model=SaiaFullPageExtractResponse)
 async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFullPageExtractResponse:
     try:
         image_bytes = decode_image_bytes(payload.image_b64 or "")
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Invalid image_b64 payload: {exc}") from exc
+    run_id = await asyncio.to_thread(_claim_client_run, payload, image_bytes) if payload.run_id else None
+    try:
+        return await _extract_full_page(payload, image_bytes, run_id)
+    except Exception as exc:
+        if run_id is not None:
+            # The client is following this run: it must end, not stay RUNNING.
+            # (A post-OCR failure is caught below and has marked it FAILED already.)
+            detail = exc.detail if isinstance(exc, HTTPException) else f"{type(exc).__name__}: {exc}"
+            await asyncio.to_thread(_fail_run, run_id, f"Full-page OCR failed: {detail}")
+        raise
+
+
+def _claim_client_run(payload: SaiaFullPageExtractRequest, image_bytes: bytes) -> str:
+    """Start the run the client reserved (POST /ocr/runs) for this request, or refuse."""
+    run_id = str(payload.run_id or "").strip()
+    asset_ref = (
+        str(payload.page_id or "").strip()
+        or str(payload.image_id or "").strip()
+        or str(payload.document_id or "").strip()
+        or "inline:image_b64"
+    )
+    outcome = claim_reserved_run(run_id, asset_ref=asset_ref, asset_sha256=hashlib.sha256(image_bytes).hexdigest())
+    if outcome == "unknown":
+        raise HTTPException(status_code=404, detail=f"Unknown run_id {run_id!r}: reserve one with POST /ocr/runs.")
+    if outcome == "used":
+        raise HTTPException(
+            status_code=409, detail=f"run_id {run_id!r} was not reserved or is already used; reserve a new one with POST /ocr/runs."
+        )
+    log_event(run_id, "RECEIVED", "START", "Full-page OCR request received.")
+    log_event(run_id, "OCR_RUNNING", "START", "Full-page OCR running.")
+    return run_id
+
+
+def _fail_run(run_id: str, error: str) -> None:
+    update_run_fields(run_id, status="FAILED", current_stage="FAILED", error=error)
+    log_event(run_id, "FAILED", "ERROR", error)
+
+
+async def _extract_full_page(
+    payload: SaiaFullPageExtractRequest, image_bytes: bytes, run_id: str | None
+) -> SaiaFullPageExtractResponse:
     fixture = get_test_ocr_fixture(image_bytes)
     if fixture is None:
         _require_readable_image(image_bytes)
@@ -1372,18 +1426,21 @@ async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFull
             response = response.model_copy(update={"warnings": [*response.warnings, *fallback_warnings]})
 
     try:
+        if run_id is not None:
+            await asyncio.to_thread(log_event, run_id, "OCR_DONE", "END", f"Full-page OCR done ({response.ocr_engine or ocr_backend}).")
         pipeline_fields = await asyncio.to_thread(
             _run_full_page_post_ocr_pipeline,
             payload,
             response,
             image_bytes,
             ocr_backend=ocr_backend,
+            **({"run_id": run_id} if run_id is not None else {}),
         )
     except Exception as exc:
         # The run, if one was created, is already marked FAILED (audit OCR-005).
         _LOGGER.exception("Full-page post-OCR pipeline failed")
         pipeline_fields = {
-            "run_id": getattr(exc, "run_id", None),
+            "run_id": getattr(exc, "run_id", None) or run_id,
             "warnings": [f"POST_OCR_PIPELINE_FAILED:{exc}"],
         }
 

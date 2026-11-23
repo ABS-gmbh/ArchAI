@@ -252,6 +252,11 @@ class SaiaFullPageExtractRequest(BaseModel):
     metadata: OCRDocumentMetadata | None = None
     benchmark_text: str | None = None
     benchmark_source: str | None = None
+    # A run reserved with POST /ocr/runs. /ocr/extract_full_page then logs this
+    # request's trace into it from the start, so a client can follow
+    # /ocr/trace/stream/{run_id} while the request runs. Optional; without it a
+    # run is created after OCR, as before.
+    run_id: str | None = Field(default=None, max_length=64)
 
     @model_validator(mode="after")
     def _validate_image(self) -> "SaiaFullPageExtractRequest":
