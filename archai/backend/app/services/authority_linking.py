@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -734,7 +735,35 @@ def _display_probable_type(ent_type: str, reason: str, surface: str) -> str:
 # ── Public API ─────────────────────────────────────────────────────────
 
 
+# One lock per run_id. Linking clears a run's candidates and links, spends
+# seconds to minutes on network lookups, then inserts candidates with fresh
+# uuid4 ids, so two calls for one run interleaved as clear, clear, insert,
+# insert and left every candidate twice. Different runs still link in parallel.
+# A lock per run ever linked is a few dozen bytes; they are not reclaimed.
+_RUN_LOCKS: dict[str, threading.Lock] = {}
+_RUN_LOCKS_GUARD = threading.Lock()
+
+
+def _run_lock(run_id: str) -> threading.Lock:
+    with _RUN_LOCKS_GUARD:
+        return _RUN_LOCKS.setdefault(run_id, threading.Lock())
+
+
 def run_authority_linking(
+    run_id: str,
+    *,
+    top_k: int = 5,
+    force_refresh: bool = False,
+) -> dict[str, Any]:
+    """Run authority linking for *run_id*, one call per run at a time.
+
+    See :func:`_run_authority_linking` for what it does.
+    """
+    with _run_lock(run_id):
+        return _run_authority_linking(run_id, top_k=top_k, force_refresh=force_refresh)
+
+
+def _run_authority_linking(
     run_id: str,
     *,
     top_k: int = 5,
