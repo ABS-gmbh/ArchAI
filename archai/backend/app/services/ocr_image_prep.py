@@ -104,7 +104,7 @@ def _enhance_manuscript_image(image: Image.Image) -> Image.Image:
         return image
 
     try:
-        import cv2  # type: ignore[import-not-found]
+        import cv2
     except ImportError:
         # Fallback: PIL-only sharpening if OpenCV is unavailable
         return image.filter(

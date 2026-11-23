@@ -128,10 +128,11 @@ It is not a CI check; whether to make it one is still open. From this directory:
 mypy
 ```
 
-Baseline on 2026-11-23 (mypy 2.4, Python 3.10 target): 101 errors in 26 files,
+Baseline on 2026-11-23 (mypy 2.4, Python 3.10 target): 89 errors in 26 files,
 none of them a confirmed runtime defect. By kind: 49 `arg-type` (mostly a `str`
 passed where a `Literal` is declared: script hints, languages and statuses in
-the OCR schemas), 14 stale `# type: ignore` comments, 11 `assignment`, 10
+the OCR schemas), 2 stale `# type: ignore` comments (in chat_ai and rag_store),
+11 `assignment`, 10
 `attr-defined` (`object` values iterated, numpy and Pillow stubs), and 17 others.
 By module, leaving the stale comments out: saia_ocr_agent 13, ocr_agent 11,
 rag_store 8, label_analysis_agent 7, ocr_text_parsing 6, ocr_backends 5,
