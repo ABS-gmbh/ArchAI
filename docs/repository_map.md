@@ -17,7 +17,7 @@ which parts are active, experimental, or runtime-only.
 | `.github/workflows/ci.yml` | CI: `src/archai_ocr` lint, types and tests; the backend's test suite; secret scan | Config |
 | `pyproject.toml` | Package metadata for `src/archai_ocr` (`archai`, `archai-ocr` commands) | Build config |
 | `.env.example`, `config.example.yaml` | Batch pipeline configuration templates | Config template |
-| `test_packages.py` | Manual check that OpenCV, ChromaDB and NumPy import and run | Utility |
+| `scripts/check_packages.py` | Manual check that OpenCV, ChromaDB and NumPy import and run (exits 1 on failure) | Utility |
 | `weights/` | Local OCR model binaries (only `README.md` is tracked) | Runtime-only |
 | `outputs/`, `data/` | Generated OCR outputs and logs | Runtime-only (ignored) |
 

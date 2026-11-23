@@ -1157,7 +1157,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** The redundant conf check is dead code. The second NMS pass is class-agnostic and runs after the single-class filter, so it can only remove boxes ultralytics kept — including legitimately nested MainZone regions (a column plus a sub-block) that exceed the IoU threshold, dropping real text with no log line. It also reuses one threshold for two semantically different jobs, so tuning for detection quality changes dedup behaviour as a side effect.
 - **Fix:** Delete the redundant score check at layout_yolo.py:62. Either delete the _nms call at line 74 and rely on ultralytics (noting per OCR-006 that end2end models skip NMS entirely, in which case keep it but give it its own `dedup_iou_threshold` config key), and log how many regions _nms removed so silent drops become visible.
 
-### [OCR-020] test_packages.py is collected by pytest but hardcodes an absolute path to the author's Desktop and swallows all failures
+### [OCR-020] test_packages.py is collected by pytest but hardcodes an absolute path to the author's Desktop and swallows all failures — **FIXED** (moved to scripts/check_packages.py: temp directory, assertions, exit 1 on any failure, check_* names pytest does not collect; no PNG was ever committed; tests/test_scripts.py)
 
 - **Where:** `test_packages.py:63`  
 - **Category:** testing  
