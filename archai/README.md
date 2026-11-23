@@ -17,9 +17,11 @@ separate package, `src/archai_ocr` at the repository root.
 
 ```bash
 cd archai
-make backend     # FastAPI on 127.0.0.1:8000
+make backend     # FastAPI on 127.0.0.1:8010
 make frontend    # Next.js on 127.0.0.1:3001
 ```
+
+The frontend expects the backend at 127.0.0.1:8010; `NEXT_PUBLIC_BACKEND_URL` (the browser's direct URL) and `BACKEND_URL` (the dev server's `/api` proxy) override it.
 
 Setup, environment variables and tests: [`backend/README.md`](backend/README.md)
 and [`frontend/README.md`](frontend/README.md).

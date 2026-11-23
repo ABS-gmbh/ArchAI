@@ -125,8 +125,10 @@ Backend:
 cd archai/backend
 pip install -e .
 cp .env.example .env    # then fill in CHAT_AI_API_KEY, and ANALYTICS_USERNAME / ANALYTICS_PASSWORD / JWT_SECRET
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+uvicorn app.main:app --host 127.0.0.1 --port 8010
 ```
+
+The frontend expects the backend at 127.0.0.1:8010; `NEXT_PUBLIC_BACKEND_URL` (the browser's direct URL) and `BACKEND_URL` (the dev server's `/api` proxy) override it.
 
 Without `CHAT_AI_API_KEY` the backend starts, but chat, translation and SAIA OCR
 answer that the key is not configured, and `/api/health` reports `degraded`.
@@ -204,7 +206,7 @@ problems:
 
 Without `--verify` the script regenerates the bundle and overwrites it. That
 needs the backend running at `ARCHAI_BACKEND_URL` (default
-`http://127.0.0.1:8000`), the `showcase` extra (`pip install -e ".[showcase]"`)
+`http://127.0.0.1:8010`), the `showcase` extra (`pip install -e ".[showcase]"`)
 and, for the chat figures, a SAIA key in `archai/backend/.env`, which bills
 real completions.
 

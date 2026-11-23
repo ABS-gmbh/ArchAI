@@ -12,7 +12,7 @@ import requests
 
 
 DEFAULT_IMAGE_PATH = Path("/Users/mobasuony/Downloads/e-codices_fmb-cb-0001_001r_max.jpg")
-DEFAULT_BASE_URL = "http://127.0.0.1:8000/api"
+DEFAULT_BASE_URL = "http://127.0.0.1:8010/api"
 DEFAULT_METADATA = {
     "language": "old french",
     "year": "1290",

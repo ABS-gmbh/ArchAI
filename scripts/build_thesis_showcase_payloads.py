@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND_ROOT = ROOT / "archai" / "backend"
 ARTIFACT_ROOT = ROOT / "artifacts" / "thesis_showcase"
-BACKEND_URL = os.environ.get("ARCHAI_BACKEND_URL", "http://127.0.0.1:8000").rstrip("/")
+BACKEND_URL = os.environ.get("ARCHAI_BACKEND_URL", "http://127.0.0.1:8010").rstrip("/")
 BACKEND_ENV = BACKEND_ROOT / ".env"
 TIMEOUT = 300
 COMPLETION_TIMEOUT = 45

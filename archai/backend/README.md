@@ -72,13 +72,15 @@ error that names the variable. The ones to look at first:
 
 ```bash
 cd archai/backend
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+uvicorn app.main:app --host 127.0.0.1 --port 8010 --reload
 ```
+
+The frontend expects the backend at 127.0.0.1:8010; `NEXT_PUBLIC_BACKEND_URL` (the browser's direct URL) and `BACKEND_URL` (the dev server's `/api` proxy) override it.
 
 Health endpoint:
 
 ```bash
-curl http://127.0.0.1:8000/api/health
+curl http://127.0.0.1:8010/api/health
 ```
 
 `status` is `ok` when every check passes; `degraded` (HTTP 200) when Ollama is
