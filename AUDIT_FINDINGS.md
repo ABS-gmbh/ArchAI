@@ -366,7 +366,7 @@ rag_store is reached at app import time: app/main.py:11 imports routers.index an
 
 ## MEDIUM (60)
 
-### [HYG-13] Vendored upstream has no recorded provenance — only an orphaned .git/config naming a different GitHub org
+### [HYG-13] Vendored upstream has no recorded provenance — only an orphaned .git/config naming a different GitHub org — partly fixed (archai/UPSTREAM.md records the upstream URL, the branches the stray config named, the import commit 4203a98 and the move 1a5c949; the stray .git went with the move. The upstream commit SHA is not recoverable from this repository, and the upstream licence is unchecked: both need the upstream repository)
 
 - **Where:** `archai/vendor/layout/.gitignore:1`  
 - **Category:** hygiene  

@@ -32,4 +32,4 @@ The application began as a copy of
 [emanuskript/layout](https://github.com/emanuskript/layout) (the layout
 comparison scripts still carry its `/home/hasan/layout` paths) and lived under
 `archai/vendor/layout/` until it was moved here. The upstream commit it was
-copied from was not recorded; see AUDIT_FINDINGS.md HYG-13.
+copied from was not recorded; [`UPSTREAM.md`](UPSTREAM.md) sets out what is known.
