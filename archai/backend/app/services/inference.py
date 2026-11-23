@@ -1,5 +1,6 @@
 """Model pool management and parallel YOLO inference."""
 
+import logging
 import os
 import sys
 import tempfile
@@ -10,6 +11,8 @@ from typing import Dict
 
 from app.config import settings
 from app.core.constants import MODEL_CLASSES
+
+_LOGGER = logging.getLogger(__name__)
 
 # Per-process model cache
 _worker_models: dict = {}
@@ -71,20 +74,19 @@ def init_model_pool():
         if disable_pool:
             _model_pool = None
             reason = "ARCHAI_DISABLE_PROCESS_POOL" if disable_pool_env in {"1", "true", "yes"} else sys.platform
-            print(f"Process pool disabled ({reason}). Using sequential inference.", flush=True)
+            _LOGGER.info("Process pool disabled (%s). Using sequential inference.", reason)
             return
         try:
             _model_pool = ProcessPoolExecutor(
                 max_workers=settings.max_pool_workers,
                 initializer=_worker_init,
             )
-            print("Model worker pool initialized.", flush=True)
+            _LOGGER.info("Model worker pool initialized.")
         except PermissionError:
             _model_pool = None
-            print(
+            _LOGGER.warning(
                 "Process pools are not permitted in this environment. "
-                "Using sequential in-process inference.",
-                flush=True,
+                "Using sequential in-process inference."
             )
 
 
@@ -162,10 +164,10 @@ def run_models_parallel(
             results[name] = dir_path
         return results
     except (BrokenProcessPool, TimeoutError, RuntimeError, FileNotFoundError) as exc:
-        print(
-            f"Model worker pool failed ({exc.__class__.__name__}: {exc}). "
-            "Falling back to sequential in-process inference.",
-            flush=True,
+        _LOGGER.warning(
+            "Model worker pool failed (%s: %s). Falling back to sequential in-process inference.",
+            exc.__class__.__name__,
+            exc,
         )
         shutdown_model_pool()
         return _run_models_sequential(model_args)
