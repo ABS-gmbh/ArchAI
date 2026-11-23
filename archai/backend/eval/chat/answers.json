@@ -1,0 +1,1088 @@
+{
+ "description": "Chat answer evaluation on the reference pages of eval/quality_gate/readings.json. Every item was labelled by hand; see README.md. Scored by scripts/evaluate_chat_answers.py.",
+ "items": [
+  {
+   "id": "a00",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "What happens to someone who knowingly swears a false oath?",
+   "answer_span": "se il iure faus\na son esciẽt il se ꝑiure.",
+   "expected": "He perjures himself (and sins mortally).",
+   "accept": [
+    [
+     "perjur",
+     "false oath"
+    ]
+   ]
+  },
+  {
+   "id": "a01",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "When is swearing only a venial sin?",
+   "answer_span": "mes legierem̃t ⁊ senz\nblaspheme peche ueni\naument.",
+   "expected": "When one swears truly, though for nothing, lightly and without blasphemy, not maliciously.",
+   "accept": [
+    [
+     "light",
+     "without blasphem",
+     "not malicious",
+     "careless",
+     "frivolous"
+    ]
+   ]
+  },
+  {
+   "id": "a02",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "Why is the habit of swearing dangerous?",
+   "answer_span": "la costu\nmance est perilleuse ⁊\npuet bien torner a pechie\nmortel.",
+   "expected": "The habit can easily turn into mortal sin if one does not guard against it.",
+   "accept": [
+    [
+     "mortal"
+    ]
+   ]
+  },
+  {
+   "id": "a03",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "What does the text say about people who swear horribly by God and the saints?",
+   "answer_span": "Mes cil qui iure horrible\nmẽt de nr̃e seigneur. ou\ndes sainz",
+   "expected": "They sin mortally and nothing can excuse them; the more they do it the more they sin.",
+   "accept": [
+    [
+     "mortal",
+     "cannot be excused",
+     "no excuse",
+     "nothing can excuse"
+    ]
+   ]
+  },
+  {
+   "id": "a04",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "What is the third commandment?",
+   "answer_span": "Li tierz ꝯmandemẽz\nest tiex. Garde q̃ tu\nsaintefies le ior dou sa\nmedi.",
+   "expected": "Keep the Sabbath day holy.",
+   "accept": [
+    [
+     "sabbath",
+     "saturday"
+    ],
+    [
+     "holy",
+     "sanctif",
+     "hallow"
+    ]
+   ]
+  },
+  {
+   "id": "a05",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "Is it allowed to do your usual work on the Sabbath?",
+   "answer_span": "tu ne\nferas mie auiour du sa\nmedi tes besoignes",
+   "expected": "No: on the Sabbath you shall not do your business and work as on other days, but rest.",
+   "accept": [
+    [
+     "not",
+     "no,",
+     "no.",
+     "rest"
+    ]
+   ]
+  },
+  {
+   "id": "a06",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "Who rested on the seventh day?",
+   "answer_span": "teur qui se reposa au sep\ntieme iour",
+   "expected": "The creator (God) rested on the seventh day.",
+   "accept": [
+    [
+     "god",
+     "creator",
+     "lord"
+    ]
+   ]
+  },
+  {
+   "id": "a07",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "In how many days was the world created?",
+   "answer_span": "les .vj. iors.",
+   "expected": "In six days.",
+   "accept": [
+    [
+     "six",
+     "6"
+    ]
+   ]
+  },
+  {
+   "id": "a08",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will I defeat my opponent?",
+   "answer_span": "Vinces adũsariũ ⁊ placito hunc suꝑabis",
+   "expected": "Yes: you will defeat your adversary and overcome him in the plea.",
+   "accept": [
+    [
+     "defeat",
+     "overcome",
+     "vanquish",
+     "conquer",
+     "prevail",
+     "win",
+     "victor"
+    ]
+   ]
+  },
+  {
+   "id": "a09",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will my sick friend get better?",
+   "answer_span": "Infirmus ille tuus sanatur tp̃re breui",
+   "expected": "Yes: your sick friend will be healed in a short time.",
+   "accept": [
+    [
+     "heal",
+     "recover",
+     "cured",
+     "get better",
+     "will be well",
+     "soon"
+    ]
+   ]
+  },
+  {
+   "id": "a10",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will I get back what I lost?",
+   "answer_span": "Tibi dico c̾tum reddet̾ amissio tua",
+   "expected": "Yes: certainly your loss will be returned to you.",
+   "accept": [
+    [
+     "return",
+     "restored",
+     "get it back",
+     "recover",
+     "given back"
+    ]
+   ]
+  },
+  {
+   "id": "a11",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Am I going to be poor and in debt?",
+   "answer_span": "Pauper eris nimis ⁊ manet debito semꝑ",
+   "expected": "Yes: you will be very poor and always in debt.",
+   "accept": [
+    [
+     "yes",
+     "you will be",
+     "always",
+     "debt"
+    ]
+   ]
+  },
+  {
+   "id": "a12",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Did my dream mean anything?",
+   "answer_span": "Sopniũ ĩ cͦpula fuit. ⁊ erit uisio uana",
+   "expected": "The dream was empty: it was and will be a vain vision.",
+   "accept": [
+    [
+     "vain",
+     "empty",
+     "meaningless",
+     "nothing",
+     "no meaning",
+     "idle"
+    ]
+   ]
+  },
+  {
+   "id": "a13",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Does she love me?",
+   "answer_span": "Decipe te uult. ⁊ te non diligit illa",
+   "expected": "No: she wants to deceive you and does not love you.",
+   "accept": [
+    [
+     "deceiv",
+     "does not love",
+     "doesn't love",
+     "not love"
+    ]
+   ]
+  },
+  {
+   "id": "a14",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Should I buy it?",
+   "answer_span": "Eme nam est bona ⁊ utilis emys",
+   "expected": "Yes: buy, for the thing is good and useful.",
+   "accept": [
+    [
+     "yes",
+     "buy it",
+     "good",
+     "useful"
+    ]
+   ]
+  },
+  {
+   "id": "a15",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will I live a long life?",
+   "answer_span": "Viues ⁊ non diũ ⁊ mors optata cessabit",
+   "expected": "You will live, but not long, and death will come as wished.",
+   "accept": [
+    [
+     "not long",
+     "short",
+     "not for long"
+    ]
+   ]
+  },
+  {
+   "id": "a16",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will God make me rich?",
+   "answer_span": "Et ť diuicie dabuntur a dño semper",
+   "expected": "Yes: riches will always be given you by the Lord.",
+   "accept": [
+    [
+     "yes",
+     "riches",
+     "wealth",
+     "given"
+    ]
+   ]
+  },
+  {
+   "id": "a17",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Do I have more enemies than friends?",
+   "answer_span": "Inimicos multos habes ⁊ plures amicos",
+   "expected": "You have many enemies and even more friends.",
+   "accept": [
+    [
+     "more friends",
+     "friends than enemies",
+     "outnumber",
+     "even more"
+    ]
+   ]
+  },
+  {
+   "id": "a18",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "Which apostle's revelation is this?",
+   "answer_span": "beati apostoli\n& euangelistæ iohannis",
+   "expected": "The blessed apostle and evangelist John.",
+   "accept": [
+    [
+     "john",
+     "iohannes",
+     "johannes"
+    ]
+   ]
+  },
+  {
+   "id": "a19",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "What did the angel offer to show him?",
+   "answer_span": "tendam tibi sponsam\nuxorem agni",
+   "expected": "The bride, the wife of the Lamb.",
+   "accept": [
+    [
+     "bride",
+     "wife"
+    ],
+    [
+     "lamb"
+    ]
+   ]
+  },
+  {
+   "id": "a20",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "Where was he carried in the spirit?",
+   "answer_span": "inmon\ntem magnum & altum",
+   "expected": "Onto a great and high mountain.",
+   "accept": [
+    [
+     "mountain"
+    ]
+   ]
+  },
+  {
+   "id": "a21",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "Which city came down out of heaven?",
+   "answer_span": "ciuita\ntem sc̃am hyerusalem",
+   "expected": "The holy city Jerusalem.",
+   "accept": [
+    [
+     "jerusalem",
+     "hyerusalem",
+     "hierusalem"
+    ]
+   ]
+  },
+  {
+   "id": "a22",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "What was the city's light like?",
+   "answer_span": "lumen eius simile\nlapide pretioso",
+   "expected": "Like a precious stone.",
+   "accept": [
+    [
+     "precious stone",
+     "precious",
+     "jewel",
+     "gem"
+    ]
+   ]
+  },
+  {
+   "id": "a23",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "Which precious stone is it compared to?",
+   "answer_span": "lapides iaspi\ndes sicut cristallũ",
+   "expected": "Jasper, clear as crystal.",
+   "accept": [
+    [
+     "jasper",
+     "iaspis",
+     "jaspis"
+    ]
+   ]
+  },
+  {
+   "id": "a24",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "Did the city have a wall?",
+   "answer_span": "habebat murum mag",
+   "expected": "Yes: it had a great wall.",
+   "accept": [
+    [
+     "wall"
+    ]
+   ]
+  },
+  {
+   "id": "a25",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "Which king had the marriage arranged for his son?",
+   "answer_span": "Caldꝰ li roys qui ml̾t fu ber",
+   "expected": "King Caldus.",
+   "accept": [
+    [
+     "caldus",
+     "caldu"
+    ]
+   ]
+  },
+  {
+   "id": "a26",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "Whom did Marcadigas marry?",
+   "answer_span": "Ynabele ⁊ marcadigas.",
+   "expected": "Ynabele.",
+   "accept": [
+    [
+     "ynabele",
+     "inabele",
+     "ynabel"
+    ]
+   ]
+  },
+  {
+   "id": "a27",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "How grand was the wedding?",
+   "answer_span": "Mout par furent les nocez gnͣs.",
+   "expected": "Very grand: the wedding was great and fitting for such people.",
+   "accept": [
+    [
+     "grand",
+     "great",
+     "magnific",
+     "splend",
+     "lavish"
+    ]
+   ]
+  },
+  {
+   "id": "a28",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "Which people honoured Marcadigas?",
+   "answer_span": "Cil despaigne ml̾t honorerent",
+   "expected": "The people of Spain.",
+   "accept": [
+    [
+     "spain",
+     "spanish",
+     "espaigne",
+     "despaigne"
+    ]
+   ]
+  },
+  {
+   "id": "a29",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "What qualities did the king have?",
+   "answer_span": "⁊ douz ⁊ cortoiz ⁊ loiaux\n⁊ du cors hardiz ⁊ vassaux.",
+   "expected": "Wise, valiant, generous, courteous, gentle, loyal and bold in body.",
+   "accept": [
+    [
+     "wise",
+     "valiant",
+     "courteous",
+     "loyal",
+     "generous",
+     "bold",
+     "gentle"
+    ]
+   ]
+  },
+  {
+   "id": "a30",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "Whom did the king keep in his company?",
+   "answer_span": "Ainz i amoit lez ch̾rs\nLez damoiseaux lez escuiers",
+   "expected": "Knights, young nobles (damoiseaux) and squires.",
+   "accept": [
+    [
+     "knight",
+     "squire",
+     "damoiseau"
+    ]
+   ]
+  },
+  {
+   "id": "a31",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "Why did Marcadigas hate low-born people?",
+   "answer_span": "Por cen mͣrcadigas haoit\nLez vilainz ⁊ gentilz amoit",
+   "expected": "Because he knew that a noble would be loath to act basely, unlike commoners.",
+   "accept": [
+    [
+     "noble",
+     "gentle",
+     "base",
+     "villain",
+     "vilain",
+     "shame"
+    ]
+   ]
+  },
+  {
+   "id": "a32",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "What proverb about roots is quoted?",
+   "answer_span": "De pute rachine pute h̾be.",
+   "expected": "From a rotten root, a rotten plant (de pute rachine pute herbe).",
+   "accept": [
+    [
+     "root",
+     "rachine"
+    ]
+   ]
+  },
+  {
+   "id": "a33",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "Who runs away when the lords die in battle?",
+   "answer_span": "La ou li uilain sen fuiroient",
+   "expected": "The commoners (villeins) flee.",
+   "accept": [
+    [
+     "commoner",
+     "villein",
+     "vilain",
+     "peasant",
+     "low-born",
+     "lowborn"
+    ]
+   ]
+  },
+  {
+   "id": "a34",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "What does a rich commoner care about?",
+   "answer_span": "Richez vilainz ne ẜuiroit\nIames se son p᷑u ni sauoit",
+   "expected": "Only his own profit: he would never serve unless it brought him gain.",
+   "accept": [
+    [
+     "profit",
+     "gain",
+     "advantage",
+     "wealth",
+     "money"
+    ]
+   ]
+  },
+  {
+   "id": "a35",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "Under what conditions may one swear an oath?",
+   "answer_span": "ses. ⁊ honestes ⁊ ꝑfitableᷤ.\nEn autre maniere ne.\nlest mie iurer.",
+   "expected": "Only for good, honest and profitable causes; otherwise one may not swear.",
+   "accept": [
+    [
+     "honest",
+     "profitable",
+     "good cause",
+     "good reason",
+     "worthy"
+    ]
+   ]
+  },
+  {
+   "id": "a36",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "Why is knowingly swearing falsely a mortal sin?",
+   "answer_span": "car\nil iure contre sa cõciẽce.",
+   "expected": "Because he swears against his conscience.",
+   "accept": [
+    [
+     "conscience"
+    ]
+   ]
+  },
+  {
+   "id": "a37",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "When is perjury considered deliberate?",
+   "answer_span": "qnͣt lẽ\nse ꝑiure apenseement\n⁊ a delib̾acion.",
+   "expected": "When one perjures oneself with forethought and deliberation.",
+   "accept": [
+    [
+     "deliberat",
+     "forethought",
+     "intention",
+     "premeditat",
+     "knowingly",
+     "on purpose"
+    ]
+   ]
+  },
+  {
+   "id": "a38",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "Can anything excuse someone who blasphemes?",
+   "answer_span": "⁊ ne\npuet auoir reson qui lẽ\npuisse escuser.",
+   "expected": "No: nothing can excuse him.",
+   "accept": [
+    [
+     "no ",
+     "no,",
+     "no.",
+     "nothing",
+     "cannot",
+     "not be excused"
+    ]
+   ]
+  },
+  {
+   "id": "a39",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "Do people who swear more often sin more?",
+   "answer_span": "⁊ cil qui\nplus la coustumẽt plus\npechent.",
+   "expected": "Yes: the more they do it, the more they sin.",
+   "accept": [
+    [
+     "more"
+    ]
+   ]
+  },
+  {
+   "id": "a40",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "What should one do on the Sabbath instead of working?",
+   "answer_span": "mes te reposeras ⁊ feras\npour mieuz entendre a\nprier ⁊ a seruir ton crea\nteur",
+   "expected": "Rest, and pray to and serve your creator.",
+   "accept": [
+    [
+     "pray",
+     "serv",
+     "worship"
+    ]
+   ]
+  },
+  {
+   "id": "a41",
+   "page_id": "old-french",
+   "kind": "answerable",
+   "question": "What did God do in the six days before he rested?",
+   "answer_span": "en q̃l fist le mõ\nde ⁊ lordena.",
+   "expected": "He made the world and ordered it.",
+   "accept": [
+    [
+     "world",
+     "creat",
+     "made"
+    ]
+   ]
+  },
+  {
+   "id": "a42",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will the thief get away with what he stole?",
+   "answer_span": "Est fur exͣneus cum furto longius ibit",
+   "expected": "The thief is a stranger and will go far away with what he stole.",
+   "accept": [
+    [
+     "far",
+     "get away",
+     "escape",
+     "away"
+    ]
+   ]
+  },
+  {
+   "id": "a43",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will my friend be grateful to me?",
+   "answer_span": "H tuus amicus erit tibi tempore gͣtus",
+   "expected": "Yes: your friend will be grateful to you in time.",
+   "accept": [
+    [
+     "grateful",
+     "thank",
+     "gratitude"
+    ]
+   ]
+  },
+  {
+   "id": "a44",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Is the road ahead of me safe?",
+   "answer_span": "Et tuũ prosꝑum uiaq; tuta manet",
+   "expected": "Yes: your prosperity and your road remain safe.",
+   "accept": [
+    [
+     "safe",
+     "secure"
+    ]
+   ]
+  },
+  {
+   "id": "a45",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will the traveller come back soon?",
+   "answer_span": "Pegre profecto non datur cito reuti",
+   "expected": "No: the traveller is not given to return soon.",
+   "accept": [
+    [
+     "not",
+     "no "
+    ]
+   ]
+  },
+  {
+   "id": "a46",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Should I seek honours?",
+   "answer_span": "Cur q̃ris honorem fuge tibi melius eẽt",
+   "expected": "Why seek honour? Flee it: it is better for you.",
+   "accept": [
+    [
+     "flee",
+     "avoid",
+     "better",
+     "should not",
+     "shouldn't",
+     "no"
+    ]
+   ]
+  },
+  {
+   "id": "a47",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will there be a fight?",
+   "answer_span": "Non erit h̃ pugna cessabit altera tͣba",
+   "expected": "No: there will be no fight; the trumpet will cease.",
+   "accept": [
+    [
+     "no ",
+     "no,",
+     "no.",
+     "not",
+     "will cease",
+     "will not"
+    ]
+   ]
+  },
+  {
+   "id": "a48",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will this wife speak modestly?",
+   "answer_span": "Ex hac uxore non erit sermo pudicus",
+   "expected": "No: from this wife the speech will not be chaste.",
+   "accept": [
+    [
+     "not",
+     "no "
+    ]
+   ]
+  },
+  {
+   "id": "a49",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Will I have an heir?",
+   "answer_span": "Generare miserum hedem sidera donant",
+   "expected": "The stars grant you to beget a wretched heir.",
+   "accept": [
+    [
+     "heir",
+     "child",
+     "son"
+    ]
+   ]
+  },
+  {
+   "id": "a50",
+   "page_id": "latin-abaton",
+   "kind": "answerable",
+   "question": "Is fortune on my side right now?",
+   "answer_span": "Fortuna bona tibi es felix temp̃e ur̃o",
+   "expected": "Yes: fortune is good to you; you are happy in your time.",
+   "accept": [
+    [
+     "yes",
+     "good",
+     "fortunate",
+     "happy",
+     "favour",
+     "favor"
+    ]
+   ]
+  },
+  {
+   "id": "a51",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "Who spoke with John?",
+   "answer_span": "uenit\nangelus & locutus est\nmecum",
+   "expected": "An angel came and spoke with him.",
+   "accept": [
+    [
+     "angel"
+    ]
+   ]
+  },
+  {
+   "id": "a52",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "How is the mountain described?",
+   "answer_span": "inmon\ntem magnum & altum.",
+   "expected": "Great and high.",
+   "accept": [
+    [
+     "great",
+     "high",
+     "tall",
+     "lofty"
+    ]
+   ]
+  },
+  {
+   "id": "a53",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "Whose wife is the bride?",
+   "answer_span": "sponsam\nuxorem agni",
+   "expected": "The Lamb's.",
+   "accept": [
+    [
+     "lamb"
+    ]
+   ]
+  },
+  {
+   "id": "a54",
+   "page_id": "latin-apocalypse",
+   "kind": "answerable",
+   "question": "Whose glory did the city have?",
+   "answer_span": "habentem claritatem\ndĩ",
+   "expected": "The glory (brightness) of God.",
+   "accept": [
+    [
+     "god"
+    ]
+   ]
+  },
+  {
+   "id": "a55",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "How did the married couple live together?",
+   "answer_span": "Mez ꝯ amis ⁊ ꝯ amie\nMout men̾ent honeste uie.",
+   "expected": "As lovers (friend and beloved) they led an honest, virtuous life.",
+   "accept": [
+    [
+     "honest",
+     "honou",
+     "virtu",
+     "decent",
+     "good life",
+     "lov"
+    ]
+   ]
+  },
+  {
+   "id": "a56",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "What flaw did the king have in his heart?",
+   "answer_span": "Vne teche en son cuer manoit\nTele que adez li sembloit\nQuil ne pooit tͦp honorer\nLez bonz ne tͦp du suen doun̾.",
+   "expected": "He always felt he could not honour the good enough nor give them enough of his own.",
+   "accept": [
+    [
+     "honou",
+     "give",
+     "generos"
+    ]
+   ]
+  },
+  {
+   "id": "a57",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "What do noble retainers always seek for their lords?",
+   "answer_span": "Lenor ⁊ le preu lor seignors.",
+   "expected": "Their lords' honour and profit.",
+   "accept": [
+    [
+     "honou",
+     "profit",
+     "advantage",
+     "benefit",
+     "welfare"
+    ]
+   ]
+  },
+  {
+   "id": "a58",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "Why is it foolish for a great lord to take advice from commoners?",
+   "answer_span": "Li haut hom ml̾t folem̃t oeure\nQͥ gnͣt conseil vilain descueure",
+   "expected": "A great lord acts very foolishly who reveals great counsel to a commoner.",
+   "accept": [
+    [
+     "reveal",
+     "disclos",
+     "counsel",
+     "secret",
+     "advice",
+     "foolish"
+    ]
+   ]
+  },
+  {
+   "id": "a59",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "What proverb about the wolf is quoted?",
+   "answer_span": "Adez reua le louz au boiz",
+   "expected": "The wolf always goes back to the wood (adez reva le louz au boiz).",
+   "accept": [
+    [
+     "wood",
+     "forest",
+     "boiz"
+    ]
+   ]
+  },
+  {
+   "id": "a60",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "Why did this king rise to great honour?",
+   "answer_span": "Cis roys en gnͣt honeur monta.\nPor cen q̃ lez gentilz ama",
+   "expected": "Because he loved the nobles.",
+   "accept": [
+    [
+     "noble",
+     "gentle",
+     "gentil"
+    ]
+   ]
+  },
+  {
+   "id": "a61",
+   "page_id": "old-french-verse",
+   "kind": "answerable",
+   "question": "What kind of people is it good to have around you?",
+   "answer_span": "Bon fet entor soi auoir gent\nQͥ aiment miex honeur qͣrgent",
+   "expected": "People who love honour more than money.",
+   "accept": [
+    [
+     "honou"
+    ],
+    [
+     "money",
+     "silver",
+     "wealth",
+     "argent"
+    ]
+   ]
+  },
+  {
+   "id": "n00",
+   "page_id": "old-french",
+   "kind": "not_in_sources",
+   "question": "What is the fourth commandment?"
+  },
+  {
+   "id": "n01",
+   "page_id": "old-french",
+   "kind": "not_in_sources",
+   "question": "What penance is prescribed for perjury?"
+  },
+  {
+   "id": "n02",
+   "page_id": "old-french",
+   "kind": "not_in_sources",
+   "question": "Who wrote this treatise?"
+  },
+  {
+   "id": "n03",
+   "page_id": "old-french",
+   "kind": "not_in_sources",
+   "question": "Is stealing a mortal sin?"
+  },
+  {
+   "id": "n04",
+   "page_id": "old-french",
+   "kind": "not_in_sources",
+   "question": "What does the text say about honouring your father and mother?"
+  },
+  {
+   "id": "n05",
+   "page_id": "latin-abaton",
+   "kind": "not_in_sources",
+   "question": "Will my harvest be good this year?"
+  },
+  {
+   "id": "n06",
+   "page_id": "latin-abaton",
+   "kind": "not_in_sources",
+   "question": "Will my ship reach port safely?"
+  },
+  {
+   "id": "n07",
+   "page_id": "latin-abaton",
+   "kind": "not_in_sources",
+   "question": "Is my brother still alive?"
+  },
+  {
+   "id": "n08",
+   "page_id": "latin-abaton",
+   "kind": "not_in_sources",
+   "question": "Will it rain tomorrow?"
+  },
+  {
+   "id": "n09",
+   "page_id": "latin-apocalypse",
+   "kind": "not_in_sources",
+   "question": "How many gates did the city have?"
+  },
+  {
+   "id": "n10",
+   "page_id": "latin-apocalypse",
+   "kind": "not_in_sources",
+   "question": "What names were written on the gates?"
+  },
+  {
+   "id": "n11",
+   "page_id": "latin-apocalypse",
+   "kind": "not_in_sources",
+   "question": "How long was the city wall?"
+  },
+  {
+   "id": "n12",
+   "page_id": "latin-apocalypse",
+   "kind": "not_in_sources",
+   "question": "What did the angel use to measure the city?"
+  },
+  {
+   "id": "n13",
+   "page_id": "old-french-verse",
+   "kind": "not_in_sources",
+   "question": "How many children did Marcadigas have?"
+  },
+  {
+   "id": "n14",
+   "page_id": "old-french-verse",
+   "kind": "not_in_sources",
+   "question": "How did King Caldus die?"
+  },
+  {
+   "id": "n15",
+   "page_id": "old-french-verse",
+   "kind": "not_in_sources",
+   "question": "What colour was the bride's dress?"
+  },
+  {
+   "id": "n16",
+   "page_id": "old-french-verse",
+   "kind": "not_in_sources",
+   "question": "Which battle did Marcadigas win?"
+  }
+ ]
+}
