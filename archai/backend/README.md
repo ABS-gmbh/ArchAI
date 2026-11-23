@@ -119,6 +119,26 @@ expired runs, oldest first, never an annotated one, logging each deletion and a
 summary. The first sweep after startup only logs the runs the next sweep will
 delete.
 
+## Type checking
+
+`pyproject.toml` has a non-strict mypy configuration for `app/` (audit HYG-15).
+It is not a CI check; whether to make it one is still open. From this directory:
+
+```bash
+mypy
+```
+
+Baseline on 2026-11-23 (mypy 2.4, Python 3.10 target): 101 errors in 26 files,
+none of them a confirmed runtime defect. By kind: 49 `arg-type` (mostly a `str`
+passed where a `Literal` is declared: script hints, languages and statuses in
+the OCR schemas), 14 stale `# type: ignore` comments, 11 `assignment`, 10
+`attr-defined` (`object` values iterated, numpy and Pillow stubs), and 17 others.
+By module, leaving the stale comments out: saia_ocr_agent 13, ocr_agent 11,
+rag_store 8, label_analysis_agent 7, ocr_text_parsing 6, ocr_backends 5,
+routers/ocr 5, trace_pipeline 4, ocr_image_prep 4, pipeline_db 3, and 1 or 2
+in each of 15 other modules. Untyped function bodies are not checked, so the
+count covers annotated code only.
+
 ## Test
 
 ```bash
