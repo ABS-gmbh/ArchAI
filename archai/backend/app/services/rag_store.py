@@ -1149,26 +1149,98 @@ def _similarity(distance: float | None, *, missing: Any = None) -> Any:
     return round(1.0 - float(distance), 4)
 
 
+def _merge_overlapping_hits(chunks: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    """Group hits of one run whose text overlaps, ordered by their best-ranked member.
+
+    Retrieval windows overlap by design (rag_chunk_overlap_lines), so two hits
+    from neighbouring windows repeated the shared lines in the prompt. A group
+    holds hits that overlap or touch in the run's text; groups follow the rank
+    of their best hit, and hits inside a group follow the text.
+    """
+    groups: list[list[tuple[int, dict[str, Any]]]] = []
+    by_run: dict[str, list[tuple[int, dict[str, Any]]]] = {}
+    for rank, ch in enumerate(chunks):
+        by_run.setdefault(str(ch.get("run_id") or ""), []).append((rank, ch))
+    for ranked in by_run.values():
+        ranked.sort(key=lambda item: (int(item[1].get("start_offset", 0)), int(item[1].get("end_offset", 0))))
+        current: list[tuple[int, dict[str, Any]]] = []
+        current_end = -1
+        for rank, ch in ranked:
+            start, end = int(ch.get("start_offset", 0)), int(ch.get("end_offset", 0))
+            if current and start <= current_end:
+                current.append((rank, ch))
+                current_end = max(current_end, end)
+            else:
+                if current:
+                    groups.append(current)
+                current, current_end = [(rank, ch)], end
+        if current:
+            groups.append(current)
+    groups.sort(key=lambda group: min(rank for rank, _ in group))
+    return [[ch for _, ch in group] for group in groups]
+
+
+def _merged_text(group: list[dict[str, Any]]) -> str:
+    """The run's text covered by *group*, each character once.
+
+    Every chunk's text is the run's text sliced at its offsets
+    (chunking.build_window_chunks), so a later chunk contributes only what lies
+    past the end already covered.
+    """
+    text = str(group[0].get("text") or "")
+    covered = int(group[0].get("end_offset", 0))
+    for ch in group[1:]:
+        start, end = int(ch.get("start_offset", 0)), int(ch.get("end_offset", 0))
+        if end <= covered:
+            continue
+        text += str(ch.get("text") or "")[covered - start :]
+        covered = end
+    return text
+
+
 def format_evidence_blocks(chunks: list[dict[str, Any]]) -> str:
     """Format retrieved chunks as ``[OCR_CHUNK_EVIDENCE]…[/OCR_CHUNK_EVIDENCE]`` blocks.
 
     This is the exact citation format injected into the LLM system
-    prompt so the model can ground its answers.
+    prompt so the model can ground its answers. Hits whose text overlaps are
+    merged into one block, so a line shared by neighbouring windows is shown
+    once. A merged block lists every chunk id it covers and each one's offsets,
+    so any of them can still be cited. A hit that overlaps no other keeps the
+    single-chunk format.
     """
     if not chunks:
         return ""
 
     blocks: list[str] = []
-    for ch in chunks:
-        block = (
-            "[OCR_CHUNK_EVIDENCE]\n"
-            f"run_id: {ch.get('run_id', '')}\n"
-            f"asset_ref: {ch.get('asset_ref', '')}\n"
-            f"chunk_id: {ch.get('chunk_id', '')}\n"
-            f"offsets: {ch.get('start_offset', 0)}-{ch.get('end_offset', 0)}\n"
-            f"retrieval_score: {_similarity(ch.get('distance', 1.0), missing='n/a')}\n"
-            f"text: {ch.get('text', '')}\n"
-            "[/OCR_CHUNK_EVIDENCE]"
-        )
+    for group in _merge_overlapping_hits(chunks):
+        first = group[0]
+        if len(group) == 1:
+            ch = first
+            block = (
+                "[OCR_CHUNK_EVIDENCE]\n"
+                f"run_id: {ch.get('run_id', '')}\n"
+                f"asset_ref: {ch.get('asset_ref', '')}\n"
+                f"chunk_id: {ch.get('chunk_id', '')}\n"
+                f"offsets: {ch.get('start_offset', 0)}-{ch.get('end_offset', 0)}\n"
+                f"retrieval_score: {_similarity(ch.get('distance', 1.0), missing='n/a')}\n"
+                f"text: {ch.get('text', '')}\n"
+                "[/OCR_CHUNK_EVIDENCE]"
+            )
+        else:
+            chunk_offsets = "; ".join(f"{ch.get('chunk_id', '')}={ch.get('start_offset', 0)}-{ch.get('end_offset', 0)}" for ch in group)
+            scores = [_similarity(ch.get("distance")) for ch in group]
+            scores = [score for score in scores if score is not None]
+            end = max(int(ch.get("end_offset", 0)) for ch in group)
+            block = (
+                "[OCR_CHUNK_EVIDENCE]\n"
+                f"run_id: {first.get('run_id', '')}\n"
+                f"asset_ref: {first.get('asset_ref', '')}\n"
+                f"chunk_id: {', '.join(str(ch.get('chunk_id', '')) for ch in group)}\n"
+                f"offsets: {first.get('start_offset', 0)}-{end}\n"
+                f"chunk_offsets: {chunk_offsets}\n"
+                f"retrieval_score: {max(scores) if scores else 'n/a'}\n"
+                f"text: {_merged_text(group)}\n"
+                "[/OCR_CHUNK_EVIDENCE]"
+            )
         blocks.append(block)
     return "\n\n".join(blocks)
