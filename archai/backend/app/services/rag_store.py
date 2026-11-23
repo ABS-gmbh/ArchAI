@@ -285,46 +285,20 @@ def _purge_run_chunk_vectors(collection: chromadb.Collection, run_id: str) -> in
 
 
 def _load_authority_aliases(entity_ids: Sequence[str]) -> dict[str, list[str]]:
-    entity_ids = [str(entity_id or "").strip() for entity_id in entity_ids if str(entity_id or "").strip()]
-    if not entity_ids:
-        return {}
-    placeholders = ",".join("?" for _ in entity_ids)
-    sql = (
-        f"SELECT entity_id, alias FROM authority_aliases "
-        f"WHERE entity_id IN ({placeholders}) ORDER BY alias ASC"
-    )
-    out: dict[str, list[str]] = {entity_id: [] for entity_id in entity_ids}
-    with pipeline_db._connect() as conn:
-        rows = conn.execute(sql, entity_ids).fetchall()
-    for row in rows:
-        entity_id = str(row["entity_id"] or "")
-        alias = str(row["alias"] or "").strip()
-        if alias:
-            out.setdefault(entity_id, []).append(alias)
-    return out
+    return pipeline_db.list_authority_aliases(entity_ids)
 
 
 def _load_authority_assertions(entity_ids: Sequence[str]) -> dict[str, list[str]]:
-    entity_ids = [str(entity_id or "").strip() for entity_id in entity_ids if str(entity_id or "").strip()]
-    if not entity_ids:
-        return {}
-    placeholders = ",".join("?" for _ in entity_ids)
-    sql = (
-        "SELECT entity_id, source_name, property_name, property_value "
-        f"FROM authority_source_assertions WHERE entity_id IN ({placeholders}) "
-        "ORDER BY source_name ASC, property_name ASC"
-    )
-    out: dict[str, list[str]] = {entity_id: [] for entity_id in entity_ids}
-    with pipeline_db._connect() as conn:
-        rows = conn.execute(sql, entity_ids).fetchall()
-    for row in rows:
-        entity_id = str(row["entity_id"] or "")
-        source_name = str(row["source_name"] or "").strip()
-        property_name = str(row["property_name"] or "").strip()
-        property_value = str(row["property_value"] or "").strip()
-        fact = " ".join(part for part in (source_name, property_name, property_value) if part)
-        if fact:
-            out.setdefault(entity_id, []).append(fact)
+    out: dict[str, list[str]] = {}
+    for entity_id, assertions in pipeline_db.list_authority_source_assertions(entity_ids).items():
+        out[entity_id] = [
+            fact
+            for fact in (
+                " ".join(part for part in (a["source_name"], a["property_name"], a["property_value"]) if part)
+                for a in assertions
+            )
+            if fact
+        ]
     return out
 
 
