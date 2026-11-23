@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   analyzeSegmentLabel,
@@ -8,6 +8,7 @@ import {
   getChatModels,
   type ChatMessagePayload,
 } from "@/lib/api/chat";
+import { ApiError } from "@/lib/api/client";
 import {
   type FullPageLine,
   type RunSnapshot,
@@ -53,6 +54,7 @@ import {
 } from "./workspaceIntents";
 import { BackendStatusBanner } from "./BackendStatusBanner";
 import { ChatPanel } from "./ChatPanel";
+import { DocumentPanel } from "./DocumentPanel";
 import { EntitiesPanel, type LinkingState } from "./EntitiesPanel";
 import { MetadataDialog } from "./MetadataDialog";
 import { PageViewer } from "./PageViewer";
@@ -109,7 +111,7 @@ const SEGMENTATION_LABEL_VOCAB = [
   "Music",
 ];
 
-type WorkspacePane = "page" | "text" | "ask" | "names" | "run";
+type WorkspacePane = "page" | "text" | "ask" | "names" | "run" | "about";
 
 interface PendingUploadDocument {
   baseName: string;
@@ -163,7 +165,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [scrollToLineId, setScrollToLineId] = useState<string | null>(null);
   // Which region is shown where the screen has room for one: the page, its text, or a panel.
   const [pane, setPane] = useState<WorkspacePane>("text");
-  const runFollowersRef = useRef<AbortController[]>([]);
+  const runFollowersRef = useRef<Set<AbortController>>(new Set());
+  // The run each page's latest read reserved: an older run's follower may not write over it.
+  const latestRunByPageRef = useRef<Record<string, string | null>>({});
+  // The control that opened the file picker, to give focus back to when the dialog closes.
+  const dialogOpenerRef = useRef<HTMLElement | null>(null);
   const [showSegmentationOverlay, setShowSegmentationOverlay] = useState(true);
   const [pendingUpload, setPendingUpload] = useState<PendingUploadDocument | null>(null);
   const [metadataDraft, setMetadataDraft] = useState<WorkspaceDocumentMetadata>(EMPTY_DOCUMENT_METADATA);
@@ -199,13 +205,14 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
 
   useEffect(() => {
     if (sending) {
-      wasSendingRef.current = true;
+      // A page read or a region search also sets `sending`; only a chat request ends in a reply.
+      wasSendingRef.current = assistantLoadingLabel !== "Extracting text" && assistantLoadingLabel !== "Segmenting page";
       setReplyAnnouncement("");
     } else if (wasSendingRef.current) {
       wasSendingRef.current = false;
       setReplyAnnouncement(error ? "The request failed." : "Reply ready.");
     }
-  }, [sending, error]);
+  }, [sending, error, assistantLoadingLabel]);
 
   // When the metadata dialog closes, hand focus back to the control that
   // opened it; otherwise it falls to the page body and a keyboard user starts
@@ -215,7 +222,14 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       metadataDialogWasOpenRef.current = true;
     } else if (metadataDialogWasOpenRef.current) {
       metadataDialogWasOpenRef.current = false;
-      uploadInputRef.current?.focus();
+      const opener = dialogOpenerRef.current;
+      dialogOpenerRef.current = null;
+      if (opener && opener.isConnected) {
+        opener.focus();
+      } else {
+        // The opener is gone (the first-run button, once a document is open).
+        document.querySelector<HTMLElement>("[data-open-pages]")?.focus();
+      }
     }
   }, [pendingUpload]);
 
@@ -296,10 +310,20 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
 
     try {
       setOpenError(null);
-      const images = sortedImages(files);
+      // Browsers cannot draw TIFF, so a TIFF page would be a broken image with its line boxes adrift.
+      const all = sortedImages(files);
+      const images = all.filter((file) => !/tiff?$/i.test(file.type) && !/\.tiff?$/i.test(file.name));
+      const skipped = all.length - images.length;
       if (!images.length) {
-        setOpenError("None of those files is an image. Choose PNG, JPEG or TIFF page images.");
+        setOpenError(
+          skipped
+            ? "TIFF images cannot be shown in a browser. Convert the pages to PNG or JPEG and open those."
+            : "None of those files is an image. Choose PNG or JPEG page images.",
+        );
         return;
+      }
+      if (skipped) {
+        setOpenError(`${skipped} TIFF ${skipped === 1 ? "image was" : "images were"} left out: a browser cannot show TIFF. Convert ${skipped === 1 ? "it" : "them"} to PNG or JPEG.`);
       }
 
       const pages: WorkspacePage[] = await Promise.all(
@@ -420,6 +444,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       modelOverride?: string;
       chatStage?: string;
       historyForModel?: WorkspaceChatMessage[];
+      /** What a read that just finished produced; the render's own values are still the old ones. */
+      pageContext?: { transcript: string; runId: string; authorityReport: string };
     },
   ): Promise<{ ok: boolean; error?: string }> => {
     if (!currentDocument || sending) {
@@ -478,11 +504,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       createdAt: Date.now(),
     };
 
-    const priorMessages = [...currentMessages];
-
     setMessagesByDocument((prev) => ({
       ...prev,
-      [currentDocument.id]: [...priorMessages, userMessage, assistantMessage],
+      [currentDocument.id]: [...(prev[currentDocument.id] ?? []), userMessage, assistantMessage],
     }));
     setError(null);
     setAssistantLoadingLabel(options?.loadingLabel || "Thinking");
@@ -520,9 +544,12 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
             filename: currentPage?.name || currentDocument.name,
             current_page_index: currentPageIndex,
             page_count: currentDocument.pages.length,
-            transcript: currentExtractedText || undefined,
-            authority_report: chatStage === "translation" ? undefined : (currentAuthorityReport || undefined),
-            ocr_run_id: currentOcrRunId || undefined,
+            transcript: (options?.pageContext?.transcript ?? currentExtractedText) || undefined,
+            authority_report:
+              chatStage === "translation"
+                ? undefined
+                : (options?.pageContext?.authorityReport ?? currentAuthorityReport) || undefined,
+            ocr_run_id: (options?.pageContext?.runId ?? currentOcrRunId) || undefined,
             document_language: currentMetadata?.language || undefined,
             document_year: currentMetadata?.year || undefined,
             place_or_origin: currentMetadata?.placeOrOrigin || undefined,
@@ -974,6 +1001,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     const patchRead = (patch: Partial<ReadState>) =>
       setReadStateByPageId((prev) => ({ ...prev, [pageId]: { ...(prev[pageId] ?? IDLE_READ_STATE), ...patch } }));
     patchRead({ phase: "reading", progress: null, stage: "Preparing the page", error: null });
+    let follower: AbortController | null = null;
 
     setSending(true);
     setAssistantLoadingLabel("Extracting text");
@@ -989,12 +1017,18 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       } catch {
         reservedRunId = null;
       }
+      latestRunByPageRef.current[pageId] = reservedRunId;
       if (reservedRunId) {
-        const follower = new AbortController();
-        runFollowersRef.current.push(follower);
+        const runId = reservedRunId;
+        const controller = new AbortController();
+        follower = controller;
+        runFollowersRef.current.add(controller);
         void followRun(
-          reservedRunId,
+          runId,
           (snapshot) => {
+            if (latestRunByPageRef.current[pageId] !== runId) {
+              return;
+            }
             setRunSnapshotByPageId((prev) => ({ ...prev, [pageId]: snapshot }));
             const events = snapshot.events ?? [];
             const stage = snapshot.run?.current_stage ?? events[events.length - 1]?.stage ?? null;
@@ -1020,30 +1054,54 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
               };
             });
           },
-          follower.signal,
-        );
+          controller.signal,
+        ).finally(() => runFollowersRef.current.delete(controller));
       }
 
       const ocrHints = resolveOcrPromptHints(userPrompt, currentMetadata);
-      const response = await extractPageText({
-        run_id: reservedRunId ?? undefined,
-        document_id: currentDocumentId,
-        image_id: currentDocumentId,
-        page_id: currentPage.id,
-        image_b64: toBase64(currentPage.dataUrl),
-        script_hint_seed: ocrHints.scriptHintSeed,
-        language_hint: ocrHints.languageHint,
-        ocr_backend: "auto",
-        apply_proofread: false,
-        metadata: currentMetadata ? {
-          language: currentMetadata.language,
-          year: currentMetadata.year,
-          place_or_origin: currentMetadata.placeOrOrigin,
-          script_family: currentMetadata.scriptFamily,
-          document_type: currentMetadata.documentType,
-          notes: currentMetadata.notes,
-        } : undefined,
-      });
+      const requestPage = (runId: string | null) =>
+        extractPageText({
+          run_id: runId ?? undefined,
+          document_id: currentDocumentId,
+          image_id: currentDocumentId,
+          page_id: pageId,
+          image_b64: toBase64(currentPage.dataUrl),
+          script_hint_seed: ocrHints.scriptHintSeed,
+          language_hint: ocrHints.languageHint,
+          ocr_backend: "auto",
+          apply_proofread: false,
+          metadata: currentMetadata
+            ? {
+                language: currentMetadata.language,
+                year: currentMetadata.year,
+                place_or_origin: currentMetadata.placeOrOrigin,
+                script_family: currentMetadata.scriptFamily,
+                document_type: currentMetadata.documentType,
+                notes: currentMetadata.notes,
+              }
+            : undefined,
+        });
+      let response: Awaited<ReturnType<typeof requestPage>>;
+      try {
+        response = await requestPage(reservedRunId);
+      } catch (refusal: unknown) {
+        // The reservation was refused (expired, already used, or unknown after a
+        // backend restart): nothing was read. Read once more without one.
+        const refused = reservedRunId && refusal instanceof ApiError && [404, 409, 410].includes(refusal.status);
+        if (!refused) {
+          throw refusal;
+        }
+        follower?.abort();
+        follower = null;
+        latestRunByPageRef.current[pageId] = null;
+        patchRead({ progress: null, stage: "Reading the page" });
+        response = await requestPage(null);
+      }
+      if (follower && String(response.run_id || "") !== reservedRunId) {
+        // The backend did not use the reserved run, so its stream would never end.
+        follower.abort();
+        follower = null;
+      }
 
       const rawExtractedText = mergeOCRResultText(response);
       const finalText = cleanTranscription(response, rawExtractedText);
@@ -1096,6 +1154,10 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         || "",
       ).trim();
       if (!finalText) {
+        // The page's state follows this read, not the one before it.
+        setOcrTextByPageId((prev) => ({ ...prev, [pageId]: "" }));
+        setOcrRunIdByPageId((prev) => ({ ...prev, [pageId]: runId }));
+        setAuthorityReportByPageId((prev) => ({ ...prev, [pageId]: authorityReport }));
         const status = getExtractionStatus(response);
         setExtractionStatus(
           `Extraction complete (${status}): no readable text detected.`,
@@ -1149,6 +1211,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       const message = err instanceof Error ? err.message : "request failed";
       setExtractionStatus(`Extraction failed: ${message}`);
       patchRead({ phase: "failed", progress: null, stage: null, error: message });
+      // A read that failed may never have claimed its run; its stream would stay open for an hour.
+      follower?.abort();
       if (!silent) {
         setError(message);
       }
@@ -1174,8 +1238,13 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     }
     const userRequest = userText.trim() || "translate to english";
     let sourceText = String(currentExtractedText || "").trim();
+    let pageContext: { transcript: string; runId: string; authorityReport: string } | undefined;
     if (!sourceText) {
-      sourceText = String((await handleExtractTextInChat({ includeDebugOutput: false, silent: true }))?.text || "").trim();
+      const extracted = await handleExtractTextInChat({ includeDebugOutput: false, silent: true });
+      sourceText = String(extracted?.text || "").trim();
+      if (extracted) {
+        pageContext = { transcript: extracted.text, runId: extracted.runId, authorityReport: extracted.authorityReport };
+      }
     }
 
     if (!sourceText) {
@@ -1198,6 +1267,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       modelOverride: taskModels.translation_model,
       chatStage: "translation",
       historyForModel: [],
+      pageContext,
     });
   };
 
@@ -1248,6 +1318,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       loadingLabel: "Checking entities",
       chatStage: "entity_qa",
       historyForModel: [],
+      pageContext: { transcript: sourceText, runId, authorityReport },
     });
   };
 
@@ -1255,7 +1326,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   useEffect(() => {
     const followers = runFollowersRef.current;
     return () => {
-      followers.forEach((follower) => follower.abort());
+      followers.forEach((controller) => controller.abort());
     };
   }, []);
 
@@ -1308,6 +1379,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     }
   }, [pane, currentOcrRunId, linkingByRunId]);
 
+  const choosePages = () => {
+    dialogOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    uploadInputRef.current?.click();
+  };
+
   const readPage = () => {
     if (!currentPage || sending) {
       return;
@@ -1346,7 +1422,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         .filter(Boolean)
         .join(" · ")
     : "";
-  const panel: "ask" | "names" | "run" = pane === "names" || pane === "run" ? pane : "ask";
+  const panel: "ask" | "names" | "run" | "about" = pane === "names" || pane === "run" || pane === "about" ? pane : "ask";
   const namesCount =
     currentLinking.phase === "ready" ? (currentLinking.report.mention_results ?? []).length : null;
   const tabs: { id: WorkspacePane; label: string; only?: string }[] = [
@@ -1355,13 +1431,43 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     { id: "ask", label: "Ask" },
     { id: "names", label: namesCount === null ? "Names" : `Names ${namesCount}` },
     { id: "run", label: "Steps" },
+    { id: "about", label: "Document" },
   ];
-  const tabButton = (tab: { id: WorkspacePane; label: string; only?: string }, selected: boolean) => (
+  const PANE_REGION: Record<WorkspacePane, string> = {
+    page: "pane-page",
+    text: "pane-text",
+    ask: "pane-panel",
+    names: "pane-panel",
+    run: "pane-panel",
+    about: "pane-panel",
+  };
+  // Left and right move between the tabs on show, as the tab pattern expects; only the selected tab is a tab stop.
+  const onTabKey = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft" && event.key !== "Home" && event.key !== "End") {
+      return;
+    }
+    const shown = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')).filter(
+      (tab) => tab.offsetParent !== null,
+    );
+    const at = shown.indexOf(document.activeElement as HTMLButtonElement);
+    if (at === -1 || !shown.length) {
+      return;
+    }
+    event.preventDefault();
+    const next =
+      event.key === "Home" ? 0 : event.key === "End" ? shown.length - 1 : (at + (event.key === "ArrowRight" ? 1 : -1) + shown.length) % shown.length;
+    shown[next].focus();
+    shown[next].click();
+  };
+  const tabButton = (tab: { id: WorkspacePane; label: string; only?: string }, selected: boolean, group: string) => (
     <button
       key={tab.id}
+      id={`${group}-tab-${tab.id}`}
       type="button"
       role="tab"
       aria-selected={selected}
+      aria-controls={PANE_REGION[tab.id]}
+      tabIndex={selected ? 0 : -1}
       onClick={() => setPane(tab.id)}
       className={`relative -mb-px h-11 flex-none whitespace-nowrap border-b-2 px-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand ${
         selected ? "border-ink font-semibold text-ink" : "border-transparent text-ink-muted hover:text-ink"
@@ -1383,9 +1489,18 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         >
           <Icon name="chevron-left" />
         </Button>
-        <span className="px-1 text-sm tabular-nums">
-          Page {currentPageIndex + 1} of {pageCount}
-        </span>
+        <select
+          aria-label="Go to page"
+          value={currentPageIndex}
+          onChange={(event) => updateCurrentPageIndex(Number(event.target.value))}
+          className="h-8 rounded-md bg-transparent px-1 text-sm tabular-nums outline-none hover:bg-active focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          {currentDocument.pages.map((page, index) => (
+            <option key={page.id} value={index}>
+              Page {index + 1} of {pageCount}
+            </option>
+          ))}
+        </select>
         <Button
           variant="quiet"
           className="w-8 px-0"
@@ -1422,7 +1537,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
             aria-label="Switch document"
             value={currentDocument?.id ?? ""}
             onChange={(event) => selectDocument(event.target.value)}
-            className="h-8 max-w-40 rounded-md border border-control bg-sheet px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            className="h-8 max-w-40 rounded-md border border-field bg-sheet px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand"
           >
             {documents.map((doc) => (
               <option key={doc.id} value={doc.id}>
@@ -1435,12 +1550,12 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
 
         <div className="ml-auto flex flex-none items-center gap-2">
           {pageNav ? <div className="hidden sm:block">{pageNav}</div> : null}
-          <Button variant="secondary" onClick={() => uploadInputRef.current?.click()}>
+          <Button variant="secondary" data-open-pages onClick={choosePages}>
             <Icon name="upload" /> <span className="hidden sm:inline">Open pages</span>
             <span className="sr-only sm:hidden">Open pages</span>
           </Button>
           {currentPage ? (
-            <Button variant="primary" onClick={readPage} disabled={sending}>
+            <Button variant="primary" onClick={readPage} disabled={sending} title={sending && !reading ? "Another request is still running" : undefined}>
               {reading ? "Reading" : currentTextLines.length ? "Read again" : "Read page"}
             </Button>
           ) : null}
@@ -1481,7 +1596,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         ) : null}
 
         {/* The page, on a well one step darker than the frame. */}
-        <div className={`min-h-0 min-w-0 flex-1 ${pane === "page" ? "flex" : "hidden"} flex-col md:flex`}>
+        <div id="pane-page" role="group" aria-label="Page" className={`min-h-0 min-w-0 flex-1 ${pane === "page" ? "flex" : "hidden"} flex-col md:flex`}>
           <div className="relative min-h-0 flex-1">
             <PageViewer
               page={currentPage}
@@ -1499,7 +1614,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                 setScrollToLineId(id);
                 setPane((value) => (value === "page" ? "text" : value));
               }}
-              onOpenPages={() => uploadInputRef.current?.click()}
+              onOpenPages={choosePages}
               onDropFiles={(files) => void openFiles(files)}
               openError={openError}
               pageNav={pageNav}
@@ -1525,11 +1640,16 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
             pane === "page" ? "flex-none md:flex-none" : "flex-1 md:flex-none"
           }`}
         >
-          <div role="tablist" aria-label="Workspace" className="flex flex-none gap-5 overflow-x-auto border-b border-line px-6 [scrollbar-width:none] xl:hidden">
-            {tabs.map((tab) => tabButton(tab, pane === tab.id))}
+          <div
+            role="tablist"
+            aria-label="Workspace"
+            onKeyDown={onTabKey}
+            className="flex flex-none gap-5 overflow-x-auto border-b border-line px-6 [scrollbar-width:none] xl:hidden"
+          >
+            {tabs.map((tab) => tabButton(tab, pane === tab.id, "all"))}
           </div>
           <div className={`min-h-0 flex-1 ${pane === "page" ? "hidden md:flex" : "flex"}`}>
-            <div className={`min-h-0 min-w-0 flex-1 ${pane === "text" || pane === "page" ? "flex" : "hidden"} flex-col xl:flex`}>
+            <div id="pane-text" className={`min-h-0 min-w-0 flex-1 ${pane === "text" || pane === "page" ? "flex" : "hidden"} flex-col xl:flex`}>
               <TranscriptionPane
                 pageName={currentPage?.name ?? null}
                 state={currentReadState}
@@ -1546,13 +1666,13 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
             </div>
             <div
               className={`min-h-0 min-w-0 flex-1 flex-col xl:flex xl:w-[360px] xl:flex-none xl:border-l xl:border-line ${
-                pane === "ask" || pane === "names" || pane === "run" ? "flex" : "hidden"
+                pane === "ask" || pane === "names" || pane === "run" || pane === "about" ? "flex" : "hidden"
               }`}
             >
-              <div role="tablist" aria-label="Page panels" className="hidden flex-none gap-5 border-b border-line px-6 xl:flex">
-                {tabs.filter((tab) => !tab.only).map((tab) => tabButton(tab, panel === tab.id))}
+              <div role="tablist" aria-label="Page panels" onKeyDown={onTabKey} className="hidden flex-none gap-5 border-b border-line px-6 xl:flex">
+                {tabs.filter((tab) => !tab.only).map((tab) => tabButton(tab, panel === tab.id, "side"))}
               </div>
-              <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
+              <div id="pane-panel" role="tabpanel" aria-label={tabs.find((tab) => tab.id === panel)?.label} className="min-h-0 flex-1 overflow-y-auto">
                 {panel === "ask" ? (
                   <ChatPanel
                     messages={currentMessages}
@@ -1575,6 +1695,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                     onRetry={() => currentOcrRunId && loadLinking(currentOcrRunId)}
                   />
                 ) : null}
+                {panel === "about" ? <DocumentPanel document={currentDocument} /> : null}
                 {panel === "run" ? (
                   <RunPanel snapshot={currentPageId ? runSnapshotByPageId[currentPageId] ?? null : null} runId={currentOcrRunId || null} />
                 ) : null}

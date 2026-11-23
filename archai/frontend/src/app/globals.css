@@ -14,6 +14,7 @@
   --color-line: var(--aa-line);
   --color-rule: var(--aa-rule);
   --color-control: var(--aa-control);
+  --color-field: var(--aa-field);
   --color-ink: var(--aa-ink);
   --color-ink-muted: var(--aa-ink-muted);
   --color-brand: var(--aa-brand);
@@ -88,6 +89,8 @@
   --aa-line: #e6e5e2;
   --aa-rule: #f0efed;
   --aa-control: #cbcac6;
+  /* The edge of inputs and outlined buttons, their only visible boundary: 3.3:1 on the sheet. */
+  --aa-field: #8e8d89;
   --aa-ink: #131416;
   --aa-ink-muted: #5c5d5f;
   --aa-brand: #1b6c80;

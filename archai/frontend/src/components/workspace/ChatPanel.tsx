@@ -146,7 +146,7 @@ export function ChatPanel({
           rows={3}
           placeholder={disabledReason ?? "Ask a question about this page"}
           disabled={Boolean(disabledReason) || sending}
-          className="w-full resize-none rounded-md border border-control bg-sheet px-3 py-2 text-sm outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-brand disabled:bg-well"
+          className="w-full resize-none rounded-md border border-field bg-sheet px-3 py-2 text-sm outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-brand disabled:bg-well"
         />
         <div className="mt-2 flex items-center justify-between gap-2">
           <Button variant="quiet" onClick={onClear} disabled={!messages.length || sending}>

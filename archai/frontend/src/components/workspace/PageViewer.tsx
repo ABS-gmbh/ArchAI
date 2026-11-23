@@ -82,7 +82,7 @@ export function PageViewer({
           <div>
             <p className="text-base font-semibold">Open a manuscript&apos;s pages</p>
             <p className="mx-auto mt-1 max-w-sm text-sm text-ink-muted">
-              Drop the page images here, or choose them. One image per page, in PNG, JPEG or TIFF; they are sorted by file name.
+              Drop the page images here, or choose them. One image per page, in PNG or JPEG; they are sorted by file name.
             </p>
           </div>
           <Button variant="primary" onClick={onOpenPages}>
@@ -212,7 +212,7 @@ export function PageViewer({
             <span className="sr-only">Zoom </span>
             {percent}%
           </span>
-          <Button variant="quiet" className="w-8 px-0" aria-label="Zoom in" disabled={zoom >= 3} onClick={() => onZoom(zoom + 0.25)}>
+          <Button variant="quiet" className="w-8 px-0" aria-label="Zoom in" disabled={zoom >= 2.5} onClick={() => onZoom(zoom + 0.25)}>
             <Icon name="plus" />
           </Button>
           <span aria-hidden="true" className="h-5 w-px bg-line" />

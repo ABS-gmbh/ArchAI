@@ -8,7 +8,7 @@ type ButtonVariant = "primary" | "secondary" | "quiet";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-ink text-white hover:bg-ink/90 active:bg-ink/80 disabled:bg-control disabled:text-white",
-  secondary: "border border-control bg-sheet text-ink hover:bg-well active:bg-active disabled:text-ink-muted",
+  secondary: "border border-field bg-sheet text-ink hover:bg-well active:bg-active disabled:text-ink-muted",
   quiet: "text-ink hover:bg-active active:bg-control/60 disabled:text-ink-muted",
 };
 
