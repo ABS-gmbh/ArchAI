@@ -74,8 +74,12 @@ def test_the_antitus_run_completes(tmp_path: Path, monkeypatch: Any) -> None:
     """It was left RUNNING at ANALYZE_RUNNING, ungraded and unindexed."""
     monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
     monkeypatch.setattr(pipeline_db, "_DB_READY", False)
-    monkeypatch.setattr(ocr_router, "_run_authority_linking_stage", lambda run_id: None)
-    monkeypatch.setattr(ocr_router, "_auto_index_run", lambda run_id: None)
+    # The full-page pipeline lives in trace_pipeline: patching the router's
+    # re-exported names stubbed nothing, and linking ran for real.
+    from app.services import trace_pipeline
+
+    monkeypatch.setattr(trace_pipeline, "_run_authority_linking_stage", lambda run_id: None)
+    monkeypatch.setattr(trace_pipeline, "_auto_index_run", lambda run_id: None)
     text = ANTITUS["reference"]
     response = SaiaFullPageExtractResponse(
         status="FULL",
