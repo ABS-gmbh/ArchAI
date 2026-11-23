@@ -7,6 +7,7 @@ import re
 from typing import Any, Sequence
 
 from app.agents.ocr_proofreader_agent import OcrProofreaderAgent, check_proofread_delta
+from app.agents._llm_common import chat_completion_preferring_json_object, is_image_too_large_error
 from app.config import settings
 from app.services.lexicon_trust import lexical_trust_adjustment
 from app.services.multiview import generate_variants, pick_retry_variant
@@ -271,12 +272,7 @@ def _extract_base64_payload(value: str) -> str:
 # ---------------------------------------------------------------------------
 
 def _is_image_too_large_error(exc: Exception) -> bool:
-    text = str(exc).lower()
-    return (
-        ("image size" in text and "exceeds limit" in text)
-        or "decompression bomb" in text
-        or ("too large" in text and "pixels" in text)
-    )
+    return is_image_too_large_error(exc)
 
 
 def _compact_error_text(value: str) -> str:
@@ -888,28 +884,15 @@ class SaiaOCRAgent:
         model: str,
         messages: list[dict[str, Any]],
     ) -> dict[str, Any]:
-        try:
-            return self.client.chat_completion(
-                model=model,
-                temperature=self.temperature,
-                top_p=1.0,
-                max_tokens=self.max_tokens,
-                response_format={"type": "json_object"},
-                messages=messages,
-                deterministic=self.deterministic,
-            )
-        except Exception as exc:
-            text = str(exc).lower()
-            if "response_format" not in text and "json_object" not in text:
-                raise
-            return self.client.chat_completion(
-                model=model,
-                temperature=self.temperature,
-                top_p=1.0,
-                max_tokens=self.max_tokens,
-                messages=messages,
-                deterministic=self.deterministic,
-            )
+        return chat_completion_preferring_json_object(
+            self.client,
+            messages=messages,
+            model=model,
+            temperature=self.temperature,
+            top_p=1.0,
+            max_tokens=self.max_tokens,
+            deterministic=self.deterministic,
+        )
 
     @staticmethod
     def _apply_diplomatic_enforcement(

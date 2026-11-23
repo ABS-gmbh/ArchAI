@@ -939,7 +939,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** A model id like 'gemma-3-27b-it' is vision-capable per ocr_agent.choose_models (line 293) but NOT vision-capable per LabelAnalysisAgent._is_vision_model. So when the label agent needs a vision fallback, _choose_retry_model's `if self._is_vision_model(model_id)` scan at line 767 skips it and falls through to the 'any other model' loop at line 769, handing an image payload to a text-only model — which then errors or hallucinates a description of an image it never saw. The two lists drift further with every model the provider adds.
 - **Fix:** Define one is_vision_model in app/services/saia_client.py (or model_router) with a single token list, import it in ocr_agent.py:270, label_analysis_agent.py:449 and chat_ai.py:81, and delete the dead VISION_MODEL_HINTS at saia_ocr_agent.py:55.
 
-### [AG-17] Model-call, JSON-extraction and image-retry helpers are duplicated verbatim across the OCR agents
+### [AG-17] Model-call, JSON-extraction and image-retry helpers are duplicated verbatim across the OCR agents — partly fixed (the two helpers that were identical, the image-size check and the json_object-then-plain chat call, live in app/agents/_llm_common.py; the JSON extractors, downscalers and repair loops differ in behaviour and stay separate)
 
 - **Where:** `vendor:app/agents/ocr_agent.py:854`  
 - **Category:** architecture  

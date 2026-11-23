@@ -13,6 +13,7 @@ from typing import Any, Sequence
 
 from PIL import Image
 
+from app.agents._llm_common import chat_completion_preferring_json_object, is_image_too_large_error
 from app.agents.base import BaseAgent
 from app.agents.crop_agent import crop_page_region, decode_image_bytes, decode_page
 from app.agents.ocr_proofreader_agent import OcrProofreaderAgent
@@ -319,12 +320,7 @@ def _has_script_drift_warning(payload: dict[str, object]) -> bool:
 
 
 def _is_image_too_large_error(exc: Exception) -> bool:
-    text = str(exc).lower()
-    return (
-        ("image size" in text and "exceeds limit" in text)
-        or "decompression bomb" in text
-        or ("too large" in text and "pixels" in text)
-    )
+    return is_image_too_large_error(exc)
 
 
 def _call_ocr_model(
@@ -380,26 +376,14 @@ def _chat_completion_with_optional_json_format(
     model: str,
     messages: list[dict[str, object]],
 ) -> dict[str, object]:
-    try:
-        return client.chat_completion(
-            model=model,
-            temperature=OCR_DECODING_TEMPERATURE,
-            top_p=OCR_DECODING_TOP_P,
-            max_tokens=OCR_DECODING_MAX_TOKENS,
-            response_format={"type": "json_object"},
-            messages=messages,
-        )
-    except Exception as exc:
-        text = str(exc).lower()
-        if "response_format" not in text and "json_object" not in text:
-            raise
-        return client.chat_completion(
-            model=model,
-            temperature=OCR_DECODING_TEMPERATURE,
-            top_p=OCR_DECODING_TOP_P,
-            max_tokens=OCR_DECODING_MAX_TOKENS,
-            messages=messages,
-        )
+    return chat_completion_preferring_json_object(
+        client,
+        messages=messages,
+        model=model,
+        temperature=OCR_DECODING_TEMPERATURE,
+        top_p=OCR_DECODING_TOP_P,
+        max_tokens=OCR_DECODING_MAX_TOKENS,
+    )
 
 
 def build_ocr_messages(tile_b64: str, *, user_prompt: str = PALEO_OCR_USER_PROMPT) -> list[dict[str, object]]:
