@@ -11,6 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from app.body_limit import RequestBodyLimit
 from app.config import settings
 from app.logging_setup import configure_logging
+from app.process_guard import guard_for_database
+from app.db import pipeline_db
 from app.services.file_manager import cleanup_expired_tasks
 from app.services.inference import init_model_pool, shutdown_model_pool
 from app.services.run_retention import RetentionSweeper
@@ -49,6 +51,10 @@ async def _retention_sweep(retention: RetentionSweeper) -> None:
 async def lifespan(app: FastAPI):
     """Initialize model pool on startup, clean up on shutdown."""
     configure_logging(settings.log_level, settings.log_format)
+    # One worker process is supported (docs/deployment.md); a second one using
+    # the same pipeline database is logged as an error, not refused.
+    process_guard = guard_for_database(pipeline_db._db_config().path)
+    process_guard.acquire()
     try:
         mp.set_start_method("spawn", force=True)
     except RuntimeError:
@@ -73,6 +79,7 @@ async def lifespan(app: FastAPI):
         with suppress(asyncio.CancelledError):
             await sweeper
         shutdown_model_pool()
+        process_guard.release()
 
 
 app = FastAPI(

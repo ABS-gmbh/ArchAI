@@ -27,6 +27,12 @@ other workers cannot see:
 | Timers | Each worker runs the task cleanup and, if enabled, the retention sweep every 15 minutes. Both are idempotent, so this is wasteful rather than harmful, but each worker deletes up to `RUN_RETENTION_MAX_PER_SWEEP` runs per sweep. |
 | Rate limits and models | The Wikidata rate limit is per process, so N workers send N times the request rate. Each worker loads its own layout models (and, on Linux, its own pool of `MAX_POOL_WORKERS` model processes), multiplying memory. |
 
+At startup the backend takes an advisory lock on `<database>.lock` beside the
+pipeline database. A second process using the same database logs an ERROR
+("A second backend process is using the data directory ...") and keeps
+running: it is a warning, so check the log after changing how the server is
+started.
+
 The pipeline database itself would cope: SQLite runs in WAL mode with a 10 s
 busy timeout, which lets several processes on one host read while one writes.
 Keep it on a local disk, not a network file system, where WAL locking does not
