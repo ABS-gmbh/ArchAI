@@ -3,7 +3,7 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
@@ -57,13 +57,19 @@ def analytics_login(body: LoginRequest):
     _require_configured_auth()
     # compare_digest keeps the comparison constant-time so a caller cannot infer
     # the credentials one character at a time from response timing.
-    username_ok = secrets.compare_digest(body.username, settings.analytics_username)
-    password_ok = secrets.compare_digest(body.password, settings.analytics_password)
+    # Compared as UTF-8 bytes: compare_digest raises TypeError on a str with
+    # any non-ASCII character, so "opérateur" answered 500 instead of 401.
+    username_ok = secrets.compare_digest(body.username.encode(), settings.analytics_username.encode())
+    password_ok = secrets.compare_digest(body.password.encode(), settings.analytics_password.encode())
     if username_ok and password_ok:
         return LoginResponse(token=_create_token(body.username))
     raise HTTPException(status_code=401, detail="Invalid credentials.")
 
 
 @router.get("/analytics/data")
-def analytics_data(days: int = 30, _user: str = Depends(_verify_token)):
+def analytics_data(
+    # Bounded: a cutoff further back than year 1 overflowed datetime (500).
+    days: int = Query(30, ge=0, le=36500),
+    _user: str = Depends(_verify_token),
+):
     return get_analytics_data(days)
