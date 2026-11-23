@@ -108,3 +108,42 @@ def test_an_embedding_provider_rejecting_the_key_is_a_502(monkeypatch: pytest.Mo
     response = _client(index.router).post(f"/index/run/{pipeline_db.create_run(asset_ref='p')}")
     assert response.status_code == 502
     assert response.json()["detail"] == "The embedding provider rejected the API key."
+
+
+# ──────────────────────────────────────────────────────── authority ──
+
+
+@pytest.mark.parametrize(
+    ("method", "path", "target", "what"),
+    [
+        ("post", "/authority/link/{run}", "run_authority_linking", "Authority linking"),
+        ("get", "/authority/report/{run}", "build_report_from_db", "The linking report"),
+    ],
+)
+def test_authority_routes_keep_exception_text_out_of_the_response(
+    monkeypatch: pytest.MonkeyPatch, method: str, path: str, target: str, what: str
+) -> None:
+    from app.db import pipeline_db
+    from app.routers import authority
+    from app.services import authority_linking
+
+    def boom(*args, **kwargs):
+        raise RuntimeError(LEAKY)
+
+    monkeypatch.setattr(authority_linking, target, boom)
+    response = getattr(_client(authority.router), method)(path.format(run=pipeline_db.create_run(asset_ref="p")))
+    assert response.status_code == 500
+    assert "/srv/archai" not in response.text and "internal.example" not in response.text
+    assert response.json()["detail"] == f"{what} failed on the server. The details are in the server log."
+
+
+def test_the_report_keeps_its_not_found_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.routers import authority
+    from app.services import authority_linking
+
+    def missing(run_id: str):
+        raise ValueError(f"Run not found: {run_id}")
+
+    monkeypatch.setattr(authority_linking, "build_report_from_db", missing)
+    response = _client(authority.router).get("/authority/report/nope")
+    assert (response.status_code, response.json()["detail"]) == (404, "Run not found: nope")
