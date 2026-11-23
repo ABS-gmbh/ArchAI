@@ -125,6 +125,11 @@ def test_create_chat_completion_injects_archai_context(monkeypatch: Any) -> None
     fake = _FakeClient(["meta-llama-3.1-8b-instruct"], completion_text="assistant output")
     monkeypatch.setattr("app.services.chat_ai._create_client", lambda: fake)
     monkeypatch.setattr(settings, "chat_rag_model", "meta-llama-3.1-8b-instruct")
+    from app.services.rag_store import RetrievalResult
+
+    no_run = RetrievalResult(mode="none", notes=["no searchable run in scope"])
+    monkeypatch.setattr("app.services.rag_store.retrieve_chunks", lambda *args, **kwargs: no_run)
+    monkeypatch.setattr("app.services.rag_store.retrieve_entities", lambda *args, **kwargs: no_run)
 
     result = create_chat_completion(
         messages=[{"role": "user", "content": "Summarize this page."}],
@@ -133,7 +138,9 @@ def test_create_chat_completion_injects_archai_context(monkeypatch: Any) -> None
         context={"document_id": "doc-1", "filename": "folio_001.png", "current_page_index": 0},
     )
 
-    assert result["text"] == "assistant output"
+    # doc-1 has no searchable transcription, and the answer says so.
+    assert result["text"].startswith("assistant output\n\n[Retrieval]\nNo searchable transcription")
+    assert result["retrieval"]["status"] == "no_searchable_run"
     assert fake.calls, "Expected completion API call to be issued"
 
     sent = fake.calls[0]

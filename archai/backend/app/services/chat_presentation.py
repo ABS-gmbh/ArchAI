@@ -363,6 +363,53 @@ def _clean_verification_value(value: Any) -> str:
     return text.strip(" -:\n\t")
 
 
+_RETRIEVAL_NOTICES = {
+    "unavailable": "No page text could be searched, so this answer is not grounded in the page.",
+    "no_searchable_run": (
+        "No searchable transcription of this page is available (the OCR quality gate did not allow search), "
+        "so this answer is not grounded in the page text."
+    ),
+}
+# The client sent the page's transcript, which reached the model unsearched: the
+# answer may rest on it, so "not grounded in the page" would be wrong.
+_RETRIEVAL_NOTICES_WITH_TRANSCRIPT = {
+    "unavailable": (
+        "Search over this page failed; the answer can only draw on the transcript sent with the question, "
+        "unsearched."
+    ),
+    "no_searchable_run": (
+        "This page's transcription did not pass the OCR quality gate, so it was not searched; the answer can "
+        "only draw on the transcript sent with the question, which may be unreliable."
+    ),
+}
+
+
+def _format_retrieval_notice(retrieval: dict[str, Any] | None) -> str:
+    """A visible line when retrieval over a page was degraded or could not run; ``""`` otherwise.
+
+    Only for a chat about one page (``run_scoped``): a general chat with no
+    document open has no page to be grounded in.
+    """
+    if not retrieval or not retrieval.get("run_scoped"):
+        return ""
+    status = str(retrieval.get("status") or "")
+    if status == "degraded":
+        mode = str(retrieval.get("chunk_mode") or "")
+        if mode == "lexical":
+            message = "Semantic search was unavailable; evidence was found by keyword match only."
+        elif mode == "dense":
+            message = "Keyword search did not run; evidence comes from semantic search only."
+        else:
+            message = "Part of the search did not run; evidence may be incomplete."
+    elif retrieval.get("transcript_in_context"):
+        message = _RETRIEVAL_NOTICES_WITH_TRANSCRIPT.get(status, "")
+    else:
+        message = _RETRIEVAL_NOTICES.get(status, "")
+    if not message:
+        return ""
+    return "\n\n[Retrieval]\n" + message
+
+
 def _format_verification_appendix(verification: dict[str, Any] | None) -> str:
     if not verification:
         return ""
