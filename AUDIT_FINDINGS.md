@@ -849,7 +849,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** CMYK is routine in archival TIFF scans from digitisation vendors. Feeding one in gets through validate_image_path (which only calls verify()), through YOLO detection, and then dies at the first crop with an OSError. Because OSError is not in the tuple at cli.py:95, it falls to the bare handler at cli.py:98 and the user gets 'Unexpected pipeline failure.' plus a traceback in the JSON log — no hint that the fix is a colour-mode conversion.
 - **Fix:** Convert before saving in crop_regions.py:29-31: `crop = image.crop(box); if crop.mode not in ('L','RGB','RGBA','1','I;16'): crop = crop.convert('RGB')`. Since htr_kraken.py:51 converts to 'L' anyway, converting the crop to 'L' or 'RGB' at write time is lossless for this pipeline.
 
-### [OCR-009] _run_recognition catches TypeError from inside kraken and reports it as a call-signature mismatch
+### [OCR-009] _run_recognition catches TypeError from inside kraken and reports it as a call-signature mismatch — **FIXED** (the call form is chosen with inspect.signature(...).bind, without calling rpred; errors from inside recognition propagate; test_htr_lines.py)
 
 - **Where:** `src/archai_ocr/pipeline/htr_kraken.py:97`  
 - **Category:** correctness  

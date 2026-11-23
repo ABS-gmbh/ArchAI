@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import inspect
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
@@ -243,23 +244,32 @@ def _segment_crop(image: Image.Image, seg_model: Any | None) -> Any:
 
 
 def _run_recognition(rec_model: Any, image: Image.Image, segmentation: Any) -> list[Any]:
-    # kraken is untyped, so these closures are Callable[[], Any]; annotate the
-    # tuple so strict mode does not treat each call as an untyped call.
-    attempts: tuple[Callable[[], list[Any]], ...] = (
-        lambda: list(rpred.rpred(rec_model, image, segmentation)),
-        lambda: list(rpred.rpred(rec_model, image, bounds=segmentation)),
-        lambda: list(rpred.rpred(network=rec_model, im=image, bounds=segmentation)),
+    """Run rpred with the first call form its signature accepts.
+
+    The forms used to be tried by calling each and catching TypeError, which
+    also caught a TypeError raised inside kraken's recognition: a real failure
+    was reported as a call-signature mismatch and recognition ran up to three
+    times. The signature is now checked without calling it, and whatever rpred
+    raises propagates.
+    """
+    candidates: tuple[tuple[tuple[Any, ...], dict[str, Any]], ...] = (
+        ((rec_model, image, segmentation), {}),
+        ((rec_model, image), {"bounds": segmentation}),
+        ((), {"network": rec_model, "im": image, "bounds": segmentation}),
     )
-    last_exc: Exception | None = None
-    for attempt in attempts:
-        try:
-            records: list[Any] = attempt()
-        except TypeError as exc:
-            last_exc = exc
-            continue
-        else:
-            return records
-    raise RuntimeError(f"Unable to run Kraken recognition with available call signatures: {last_exc}")
+    try:
+        signature: inspect.Signature | None = inspect.signature(rpred.rpred)
+    except (TypeError, ValueError):
+        signature = None
+    for args, kwargs in candidates:
+        if signature is not None:
+            try:
+                signature.bind(*args, **kwargs)
+            except TypeError:
+                continue
+        records: list[Any] = list(rpred.rpred(*args, **kwargs))
+        return records
+    raise RuntimeError(f"Kraken's rpred{signature} accepts none of the supported call forms.")
 
 
 def _extract_prediction_text(record: Any, logger: logging.Logger | None = None) -> str:
