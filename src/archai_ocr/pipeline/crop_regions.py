@@ -85,7 +85,7 @@ def crop_region_images(
                     )
                 continue
 
-            crop = image.crop((left, top, right, bottom))
+            crop = _png_writable(image.crop((left, top, right, bottom)))
             crop_path = crops_dir / f"{name_prefix}_{idx:03d}.png"
             crop.save(crop_path, format="PNG")
             crops.append(RegionCrop(index=idx, path=crop_path, box=(left, top, right, bottom)))
@@ -93,6 +93,16 @@ def crop_region_images(
     if skipped and logger is not None:
         logger.warning("crop.regions_skipped", extra={"stage": "crop", "count": skipped})
     return crops
+
+
+# Modes PIL's PNG encoder writes. Anything else - CMYK above all, routine in
+# archival TIFF scans - raised "cannot write mode CMYK as PNG" at the first crop.
+_PNG_MODES = frozenset({"1", "L", "LA", "I", "I;16", "P", "RGB", "RGBA"})
+
+
+def _png_writable(crop: Image.Image) -> Image.Image:
+    """The crop in a mode PNG can hold; recognition converts to greyscale anyway."""
+    return crop if crop.mode in _PNG_MODES else crop.convert("RGB")
 
 
 _EXIF_ORIENTATION = 0x0112
