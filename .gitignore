@@ -32,6 +32,11 @@ output/
 tmp/
 *.db
 *.sqlite3
+# The pipeline database (archai.sqlite, wherever ARCHAI_DB_PATH puts it), its
+# WAL files and the authority cache: covered here, not only under archai/backend/app.
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 
 # ---- Thesis writing workspace (LaTeX sources + build artefacts, ~121 MB) ----
 # Kept outside version control deliberately; the reproducible figure payloads
