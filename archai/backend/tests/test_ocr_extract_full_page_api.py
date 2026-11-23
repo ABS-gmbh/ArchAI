@@ -767,7 +767,8 @@ def test_page_with_trace_answers_422_for_bytes_that_are_not_an_image(monkeypatch
         asyncio.run(ocr_router.ocr_page_with_trace(payload))
 
     assert raised.value.status_code == 422
-    assert "Unreadable image" in str(raised.value.detail)
+    # Said what to do, not PIL's "cannot identify image file <_io.BytesIO ...>".
+    assert raised.value.detail == "The uploaded file is not an image the server can read. Use PNG, JPEG or TIFF."
 
 
 def test_the_full_page_sent_to_glm_is_the_whole_unmasked_page() -> None:

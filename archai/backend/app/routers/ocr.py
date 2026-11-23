@@ -1479,7 +1479,12 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
         with _PILImage.open(io.BytesIO(image_bytes)) as _pil_img:
             img_w, img_h = _pil_img.size
     except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Unreadable image: {exc}") from exc
+        # PIL's text only named an in-memory buffer ("cannot identify image file
+        # <_io.BytesIO object at 0x...>"); this says what to do instead.
+        raise HTTPException(
+            status_code=422,
+            detail="The uploaded file is not an image the server can read. Use PNG, JPEG or TIFF.",
+        ) from exc
 
     asset_ref = (
         str(payload.page_id or "").strip()
