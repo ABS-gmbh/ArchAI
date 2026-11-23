@@ -88,6 +88,28 @@ under `checks` (`database`, `ollama`, `chat_api_key`) has `ok` and a short
 `detail`; the endpoint is unauthenticated, so error text and hosts go to the
 log, not the response. The chat key's presence is checked, not its validity.
 
+## Retention
+
+Pipeline runs accumulate: every analysis of a page adds a run with its chunks,
+mentions, decisions and vectors. `scripts/prune_runs.py` removes runs past a
+window. Without `--apply` it only reports, so run it that way first to preview
+a policy:
+
+```bash
+python scripts/prune_runs.py --older-than-days 180            # what would go, and why the rest stays
+python scripts/prune_runs.py --older-than-days 180 --apply    # delete those runs
+```
+
+A run is kept if it was updated within the window, has not finished, has no
+page identity (no image hash and no asset reference), is its page's newest run,
+newest completed run or the run search serves, has an OCR benchmark reference,
+carries an annotation
+(an evidence span posted to `/api/evidence/spans`; `--include-annotated`
+overrides this) or is named in the thesis showcase bundle. Deleting a run
+removes its vectors first, then the run and everything recorded under it;
+shared authority records stay. `--vacuum` compacts the database afterwards and
+locks it while it runs.
+
 ## Test
 
 ```bash
