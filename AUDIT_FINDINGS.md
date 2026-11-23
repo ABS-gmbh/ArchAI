@@ -865,7 +865,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** Enabling `write_page_xml: true` (config.example.yaml:16) produces one XML per crop whose coordinates are meaningless relative to the source folio and whose imageFilename points at a derived PNG that does not exist outside outputs/<stem>/crops/. Importing these into Transkribus or eScriptorium — the entire reason to emit PAGE XML — fails validation on the missing Metadata and, if it loaded, would place every text line in the top-left corner of the page.
 - **Fix:** Pass the RegionDetection list through to recognize_crops, offset every line bbox by (region.bbox[0] - padding, region.bbox[1] - padding), set imageFilename to the source page filename and imageWidth/Height to the page dimensions, and emit one PAGE XML per page with one TextRegion per region instead of one file per crop. Add a `<Metadata>` element with Creator/Created/LastChange.
 
-### [OCR-016] runtime.kraken_device is never actually applied to segmentation or recognition
+### [OCR-016] runtime.kraken_device is never actually applied to segmentation or recognition — **FIXED** (blla.segment receives the configured device; recognition keeps the model moved with .to(device); a failed move names the device; test_htr_lines.py. Not timed on a GPU: kraken is not installed where this was fixed)
 
 - **Where:** `src/archai_ocr/pipeline/htr_kraken.py:76`  
 - **Category:** performance  
