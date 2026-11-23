@@ -545,7 +545,7 @@ class EffectiveQuality:
 
     Fields:
       label         — "HIGH" | "OK" | "RISKY" | "UNRELIABLE"
-      downstream    — "token_based" | "vision_fallback"
+      downstream    — "token_based" | "token_search_disabled"
       confidence    — 0..1 overall OCR confidence
       ner_allowed   — can downstream NER/chunking run?
       token_search_allowed — can downstream word-search/linking run?
@@ -576,7 +576,7 @@ def build_effective_quality(
     """
     return EffectiveQuality(
         label=report.quality_label,
-        downstream=gate_decisions.get("downstream_mode", "vision_fallback"),
+        downstream=gate_decisions.get("downstream_mode", "token_search_disabled"),
         confidence=confidence,
         ner_allowed=gate_decisions.get("ner_allowed", report.ner_allowed),
         token_search_allowed=gate_decisions.get(

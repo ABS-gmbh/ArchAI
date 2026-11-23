@@ -718,7 +718,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** A typical full-page manuscript transcription is 2 000-4 000 characters, so every stability pass freezes the entire FastAPI event loop for roughly 0.5-2.5 s — all other in-flight requests, health checks, and SSE/progress streams stall. A pathological 20 000-character page would block for ~50 s. `compute_quality_report` and `apply_uncertainty_markers` are called from the same async function on the same line region.
 - **Fix:** Cap the comparison (e.g. compare line-by-line with `difflib.SequenceMatcher.ratio()`, which is C-implemented and linear-ish in practice, or truncate to the first N characters with a documented N), and wrap the whole quality/stability block in `await asyncio.to_thread(...)` at ocr.py:4204 as the OCR calls already are.
 
-### [SVC-18] The vision_fallback downstream mode is reported but no shape-based path exists
+### [SVC-18] The vision_fallback downstream mode is reported but no shape-based path exists — **FIXED** (renamed to token_search_disabled, which is what happens; the two uncalled shape-search helpers are deleted)
 
 - **Where:** `vendor:app/services/pipeline_hardening.py:290`  
 - **Category:** architecture  
