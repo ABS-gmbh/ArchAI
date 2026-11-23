@@ -17,11 +17,11 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
 from app.agents.crop_agent import decode_image_bytes
-from app.agents.ocr_agent import OCRAgentError
 from app.agents.ocr_proofreader_agent import OcrProofreaderAgent
 from app.agents.saia_ocr_agent import SaiaOCRAgent
 from app.agents.segmentation_agent import run_single_segmentation
 from app.core.constants import FINAL_CLASSES
+from app.routers.errors import configuration_message, provider_failure, unexpected_error
 from app.db.pipeline_db import (
     count_chunks,
     count_entity_mentions,
@@ -1067,10 +1067,9 @@ async def ocr_extract(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except SaiaConfigError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except OCRAgentError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"OCR extraction failed: {exc}") from exc
+    except Exception as exc:
+        # OCRAgentError included: it quotes the provider's error.
+        unexpected_error(exc, what="OCR extraction", provider="OCR provider")
 
 
 @router.post("/ocr/saia", response_model=SaiaOCRResponse)
@@ -1116,9 +1115,33 @@ async def ocr_saia(payload: SaiaOCRRequest) -> SaiaOCRResponse:
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except GlmOllamaOcrError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"GLM OCR failed: {exc}") from exc
+        raise _glm_failure(exc) from exc
+    except Exception as exc:
+        unexpected_error(exc, what="GLM-OCR", provider="OCR provider")
+
+
+def _glm_failure(exc: GlmOllamaOcrError) -> HTTPException:
+    """502 for a GLM-OCR failure; its text names the Ollama host, so it goes to the log."""
+    _LOGGER.warning("GLM-OCR failed: %s", exc)
+    return HTTPException(
+        status_code=502,
+        detail="GLM-OCR (Ollama) could not read the page. The details are in the server log.",
+    )
+
+
+def _trace_failure(run_id: str, exc: BaseException) -> HTTPException:
+    """The traced run failed: its error stays in the run record and the log, not the response."""
+    configuration = configuration_message(exc)
+    if configuration is not None:
+        return HTTPException(status_code=500, detail={"run_id": run_id, "error": configuration})
+    known = provider_failure(exc, provider="OCR provider")
+    if known is not None:
+        return HTTPException(status_code=known.status_code, detail={"run_id": run_id, "error": known.detail})
+    _LOGGER.error("Traced OCR run %s failed", run_id, exc_info=exc)
+    return HTTPException(
+        status_code=500,
+        detail={"run_id": run_id, "error": "The OCR run failed on the server. The details are in the server log."},
+    )
 
 
 class _SegmentedPageUnread(Exception):
@@ -1258,9 +1281,9 @@ async def _run_glm_full_page(
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except GlmOllamaOcrError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Full-page OCR failed: {exc}") from exc
+        raise _glm_failure(exc) from exc
+    except Exception as exc:
+        unexpected_error(exc, what="Full-page OCR", provider="OCR provider")
     response = _full_page_response_from_glm_ollama_result(result, payload)
     return response.model_copy(update={"ocr_engine": "glmocr"})
 
@@ -1512,7 +1535,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
             err = str(exc)
             update_run_fields(run_id, status="FAILED", current_stage="FAILED", error=err)
             log_event(run_id, "FAILED", "ERROR", err)
-            raise HTTPException(status_code=500, detail={"run_id": run_id, "error": err}) from exc
+            raise _trace_failure(run_id, exc) from exc
 
     try:
         # ══════════════════════════════════════════════════════════════
@@ -2303,7 +2326,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
         err = str(exc)
         update_run_fields(run_id, status="FAILED", current_stage="FAILED", error=err)
         log_event(run_id, "FAILED", "ERROR", err)
-        raise HTTPException(status_code=500, detail={"run_id": run_id, "error": err}) from exc
+        raise _trace_failure(run_id, exc) from exc
 
 
 @router.get("/ocr/trace/{run_id}")

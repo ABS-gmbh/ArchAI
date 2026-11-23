@@ -189,3 +189,114 @@ def test_rag_debug_still_explains_how_to_enable_it(monkeypatch: pytest.MonkeyPat
     response = _client(rag_debug.router).get("/rag/debug/retrieve?query=arthur")
     assert response.status_code == 404
     assert response.json()["detail"] == "RAG debug endpoint disabled.  Set ARCHAI_DEBUG_RAG=1 to enable."
+
+
+# ────────────────────────────────────────────────────────────── ocr ──
+
+
+def _png_b64() -> str:
+    import base64
+    import io
+
+    from PIL import Image
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (60, 40), "white").save(buffer, format="PNG")
+    return base64.b64encode(buffer.getvalue()).decode("ascii")
+
+
+class _Agent:
+    def __init__(self, exc: BaseException) -> None:
+        self.exc = exc
+
+    def run(self, payload):
+        raise self.exc
+
+
+def _ocr_extract(monkeypatch: pytest.MonkeyPatch, exc: BaseException):
+    from app.routers import ocr
+
+    monkeypatch.setattr(ocr, "_get_ocr_agent", lambda: _Agent(exc))
+    return _client(ocr.router).post("/ocr/extract", json={"image_b64": _png_b64()})
+
+
+def test_ocr_extract_keeps_the_agents_error_text_out(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.agents.ocr_agent import OCRAgentError
+
+    response = _ocr_extract(monkeypatch, OCRAgentError(f"OCR failed on model internvl: {LEAKY}"))
+    assert response.status_code == 500
+    assert "/srv/archai" not in response.text and "internal.example" not in response.text
+    assert response.json()["detail"] == "OCR extraction failed on the server. The details are in the server log."
+
+
+def test_ocr_extract_reports_a_rejected_key_through_the_agents_wrapper(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.agents.ocr_agent import OCRAgentError
+
+    try:
+        try:
+            raise _openai_error(openai.AuthenticationError, 401)
+        except openai.AuthenticationError as inner:
+            raise OCRAgentError(f"OCR failed on model internvl: {inner}") from inner
+    except OCRAgentError as wrapped:
+        response = _ocr_extract(monkeypatch, wrapped)
+    assert (response.status_code, response.json()["detail"]) == (502, "The OCR provider rejected the API key.")
+
+
+def test_ocr_extract_keeps_its_configuration_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.services.saia_client import SaiaConfigError
+
+    message = "Chat API key not configured. Set CHAT_AI_API_KEY (or SAIA_API_KEY) in backend/.env or environment."
+    response = _ocr_extract(monkeypatch, SaiaConfigError(message))
+    assert (response.status_code, response.json()["detail"]) == (422, message)
+
+
+@pytest.mark.parametrize("path", ["/ocr/extract_full_page", "/ocr/saia"])
+def test_glm_failures_keep_the_ollama_host_out(monkeypatch: pytest.MonkeyPatch, path: str) -> None:
+    from app.routers import ocr
+    from app.services.glm_ollama_ocr import GlmOllamaOcrError
+
+    def refuse(*args, **kwargs):
+        raise GlmOllamaOcrError(f"Ollama request failed at http://internal.example:11434/api/chat: {LEAKY}")
+
+    monkeypatch.setattr(ocr, "run_glm_ollama_ocr", refuse)
+    response = _client(ocr.router).post(
+        path, json={"image_b64": _png_b64(), "ocr_backend": "glmocr", "apply_proofread": False}
+    )
+    assert response.status_code == 502
+    assert "internal.example" not in response.text and "/srv/archai" not in response.text
+    assert response.json()["detail"] == "GLM-OCR (Ollama) could not read the page. The details are in the server log."
+
+
+def _trace(monkeypatch: pytest.MonkeyPatch, *, key: str):
+    from app.config import settings
+    from app.routers import ocr
+    from app.services import trace_pipeline
+
+    # Agents are cached per process; one built with a key would hide its absence.
+    monkeypatch.setattr(ocr, "_saia_ocr_agent_instance", None)
+    monkeypatch.setattr(trace_pipeline, "_ocr_agent_instance", None)
+    monkeypatch.setattr(ocr, "run_glm_ollama_ocr", lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError(LEAKY)))
+    for name in ("saia_api_key", "archai_chat_ai_api_key", "archai_saia_api_key"):
+        monkeypatch.setattr(settings, name, "")
+    monkeypatch.setattr(settings, "chat_ai_api_key", key)
+    for name in ("CHAT_AI_API_KEY", "SAIA_API_KEY", "ARCHAI_CHAT_AI_API_KEY", "ARCHAI_SAIA_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    return _client(ocr.router).post(
+        "/ocr/page_with_trace", json={"image_b64": _png_b64(), "ocr_backend": "glmocr", "apply_proofread": False}
+    )
+
+
+def test_a_failed_trace_run_keeps_its_id_and_hides_the_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    response = _trace(monkeypatch, key="test-key")
+    detail = response.json()["detail"]
+    assert response.status_code == 500 and detail["run_id"]
+    assert "/srv/archai" not in response.text and "internal.example" not in response.text
+    assert detail["error"] == "The OCR run failed on the server. The details are in the server log."
+
+
+def test_a_trace_run_without_a_key_still_says_so(monkeypatch: pytest.MonkeyPatch) -> None:
+    response = _trace(monkeypatch, key="")
+    assert response.status_code == 500
+    assert response.json()["detail"]["error"] == (
+        "Chat API key not configured. Set CHAT_AI_API_KEY (or SAIA_API_KEY) in backend/.env or environment."
+    )
