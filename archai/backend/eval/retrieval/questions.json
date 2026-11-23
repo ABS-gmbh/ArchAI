@@ -1,180 +1,464 @@
 {
- "description": "Questions a reader might ask about the reference pages of eval/quality_gate/readings.json, with the span of the reference that answers each. Written before any retriever was run on them. Used by scripts/benchmark_retrieval.py --questions.",
+ "description": "Questions a reader might ask about the reference pages of eval/quality_gate/readings.json, with the span of the reference that answers each. Each set was written by hand before any retriever was run on it: '2026-10' (35 questions) and '2026-11' (27 more). 'not_in_sources' holds questions on the same pages and topics whose answer the page does not contain; they have no answer span. See README.md. Used by scripts/benchmark_retrieval.py --questions.",
  "questions": [
   {
    "page_id": "old-french",
    "question": "What happens to someone who knowingly swears a false oath?",
-   "answer": "se il iure faus\na son esciẽt il se ꝑiure."
+   "answer": "se il iure faus\na son esciẽt il se ꝑiure.",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french",
    "question": "When is swearing only a venial sin?",
-   "answer": "mes legierem̃t ⁊ senz\nblaspheme peche ueni\naument."
+   "answer": "mes legierem̃t ⁊ senz\nblaspheme peche ueni\naument.",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french",
    "question": "Why is the habit of swearing dangerous?",
-   "answer": "la costu\nmance est perilleuse ⁊\npuet bien torner a pechie\nmortel."
+   "answer": "la costu\nmance est perilleuse ⁊\npuet bien torner a pechie\nmortel.",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french",
    "question": "What does the text say about people who swear horribly by God and the saints?",
-   "answer": "Mes cil qui iure horrible\nmẽt de nr̃e seigneur. ou\ndes sainz"
+   "answer": "Mes cil qui iure horrible\nmẽt de nr̃e seigneur. ou\ndes sainz",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french",
    "question": "What is the third commandment?",
-   "answer": "Li tierz ꝯmandemẽz\nest tiex. Garde q̃ tu\nsaintefies le ior dou sa\nmedi."
+   "answer": "Li tierz ꝯmandemẽz\nest tiex. Garde q̃ tu\nsaintefies le ior dou sa\nmedi.",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french",
    "question": "Is it allowed to do your usual work on the Sabbath?",
-   "answer": "tu ne\nferas mie auiour du sa\nmedi tes besoignes"
+   "answer": "tu ne\nferas mie auiour du sa\nmedi tes besoignes",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french",
    "question": "Who rested on the seventh day?",
-   "answer": "teur qui se reposa au sep\ntieme iour"
+   "answer": "teur qui se reposa au sep\ntieme iour",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french",
    "question": "In how many days was the world created?",
-   "answer": "les .vj. iors."
+   "answer": "les .vj. iors.",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-abaton",
    "question": "Will I defeat my opponent?",
-   "answer": "Vinces adũsariũ ⁊ placito hunc suꝑabis"
+   "answer": "Vinces adũsariũ ⁊ placito hunc suꝑabis",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-abaton",
    "question": "Will my sick friend get better?",
-   "answer": "Infirmus ille tuus sanatur tp̃re breui"
+   "answer": "Infirmus ille tuus sanatur tp̃re breui",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-abaton",
    "question": "Will I get back what I lost?",
-   "answer": "Tibi dico c̾tum reddet̾ amissio tua"
+   "answer": "Tibi dico c̾tum reddet̾ amissio tua",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-abaton",
    "question": "Am I going to be poor and in debt?",
-   "answer": "Pauper eris nimis ⁊ manet debito semꝑ"
+   "answer": "Pauper eris nimis ⁊ manet debito semꝑ",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-abaton",
    "question": "Did my dream mean anything?",
-   "answer": "Sopniũ ĩ cͦpula fuit. ⁊ erit uisio uana"
+   "answer": "Sopniũ ĩ cͦpula fuit. ⁊ erit uisio uana",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-abaton",
    "question": "Does she love me?",
-   "answer": "Decipe te uult. ⁊ te non diligit illa"
+   "answer": "Decipe te uult. ⁊ te non diligit illa",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-abaton",
    "question": "Should I buy it?",
-   "answer": "Eme nam est bona ⁊ utilis emys"
+   "answer": "Eme nam est bona ⁊ utilis emys",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-abaton",
    "question": "Will I live a long life?",
-   "answer": "Viues ⁊ non diũ ⁊ mors optata cessabit"
+   "answer": "Viues ⁊ non diũ ⁊ mors optata cessabit",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-abaton",
    "question": "Will God make me rich?",
-   "answer": "Et ť diuicie dabuntur a dño semper"
+   "answer": "Et ť diuicie dabuntur a dño semper",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-abaton",
    "question": "Do I have more enemies than friends?",
-   "answer": "Inimicos multos habes ⁊ plures amicos"
+   "answer": "Inimicos multos habes ⁊ plures amicos",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-apocalypse",
    "question": "Which apostle's revelation is this?",
-   "answer": "beati apostoli\n& euangelistæ iohannis"
+   "answer": "beati apostoli\n& euangelistæ iohannis",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-apocalypse",
    "question": "What did the angel offer to show him?",
-   "answer": "tendam tibi sponsam\nuxorem agni"
+   "answer": "tendam tibi sponsam\nuxorem agni",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-apocalypse",
    "question": "Where was he carried in the spirit?",
-   "answer": "inmon\ntem magnum & altum"
+   "answer": "inmon\ntem magnum & altum",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-apocalypse",
    "question": "Which city came down out of heaven?",
-   "answer": "ciuita\ntem sc̃am hyerusalem"
+   "answer": "ciuita\ntem sc̃am hyerusalem",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-apocalypse",
    "question": "What was the city's light like?",
-   "answer": "lumen eius simile\nlapide pretioso"
+   "answer": "lumen eius simile\nlapide pretioso",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-apocalypse",
    "question": "Which precious stone is it compared to?",
-   "answer": "lapides iaspi\ndes sicut cristallũ"
+   "answer": "lapides iaspi\ndes sicut cristallũ",
+   "set": "2026-10"
   },
   {
    "page_id": "latin-apocalypse",
    "question": "Did the city have a wall?",
-   "answer": "habebat murum mag"
+   "answer": "habebat murum mag",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french-verse",
    "question": "Which king had the marriage arranged for his son?",
-   "answer": "Caldꝰ li roys qui ml̾t fu ber"
+   "answer": "Caldꝰ li roys qui ml̾t fu ber",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french-verse",
    "question": "Whom did Marcadigas marry?",
-   "answer": "Ynabele ⁊ marcadigas."
+   "answer": "Ynabele ⁊ marcadigas.",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french-verse",
    "question": "How grand was the wedding?",
-   "answer": "Mout par furent les nocez gnͣs."
+   "answer": "Mout par furent les nocez gnͣs.",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french-verse",
    "question": "Which people honoured Marcadigas?",
-   "answer": "Cil despaigne ml̾t honorerent"
+   "answer": "Cil despaigne ml̾t honorerent",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french-verse",
    "question": "What qualities did the king have?",
-   "answer": "⁊ douz ⁊ cortoiz ⁊ loiaux\n⁊ du cors hardiz ⁊ vassaux."
+   "answer": "⁊ douz ⁊ cortoiz ⁊ loiaux\n⁊ du cors hardiz ⁊ vassaux.",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french-verse",
    "question": "Whom did the king keep in his company?",
-   "answer": "Ainz i amoit lez ch̾rs\nLez damoiseaux lez escuiers"
+   "answer": "Ainz i amoit lez ch̾rs\nLez damoiseaux lez escuiers",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french-verse",
    "question": "Why did Marcadigas hate low-born people?",
-   "answer": "Por cen mͣrcadigas haoit\nLez vilainz ⁊ gentilz amoit"
+   "answer": "Por cen mͣrcadigas haoit\nLez vilainz ⁊ gentilz amoit",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french-verse",
    "question": "What proverb about roots is quoted?",
-   "answer": "De pute rachine pute h̾be."
+   "answer": "De pute rachine pute h̾be.",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french-verse",
    "question": "Who runs away when the lords die in battle?",
-   "answer": "La ou li uilain sen fuiroient"
+   "answer": "La ou li uilain sen fuiroient",
+   "set": "2026-10"
   },
   {
    "page_id": "old-french-verse",
    "question": "What does a rich commoner care about?",
-   "answer": "Richez vilainz ne ẜuiroit\nIames se son p᷑u ni sauoit"
+   "answer": "Richez vilainz ne ẜuiroit\nIames se son p᷑u ni sauoit",
+   "set": "2026-10"
+  },
+  {
+   "page_id": "old-french",
+   "question": "Under what conditions may one swear an oath?",
+   "answer": "ses. ⁊ honestes ⁊ ꝑfitableᷤ.\nEn autre maniere ne.\nlest mie iurer.",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french",
+   "question": "Why is knowingly swearing falsely a mortal sin?",
+   "answer": "car\nil iure contre sa cõciẽce.",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french",
+   "question": "When is perjury considered deliberate?",
+   "answer": "qnͣt lẽ\nse ꝑiure apenseement\n⁊ a delib̾acion.",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french",
+   "question": "Can anything excuse someone who blasphemes?",
+   "answer": "⁊ ne\npuet auoir reson qui lẽ\npuisse escuser.",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french",
+   "question": "Do people who swear more often sin more?",
+   "answer": "⁊ cil qui\nplus la coustumẽt plus\npechent.",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french",
+   "question": "What should one do on the Sabbath instead of working?",
+   "answer": "mes te reposeras ⁊ feras\npour mieuz entendre a\nprier ⁊ a seruir ton crea\nteur",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french",
+   "question": "What did God do in the six days before he rested?",
+   "answer": "en q̃l fist le mõ\nde ⁊ lordena.",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Will the thief get away with what he stole?",
+   "answer": "Est fur exͣneus cum furto longius ibit",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Will my friend be grateful to me?",
+   "answer": "H tuus amicus erit tibi tempore gͣtus",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Is the road ahead of me safe?",
+   "answer": "Et tuũ prosꝑum uiaq; tuta manet",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Will the traveller come back soon?",
+   "answer": "Pegre profecto non datur cito reuti",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Should I seek honours?",
+   "answer": "Cur q̃ris honorem fuge tibi melius eẽt",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Will there be a fight?",
+   "answer": "Non erit h̃ pugna cessabit altera tͣba",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Will this wife speak modestly?",
+   "answer": "Ex hac uxore non erit sermo pudicus",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Will I have an heir?",
+   "answer": "Generare miserum hedem sidera donant",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Is fortune on my side right now?",
+   "answer": "Fortuna bona tibi es felix temp̃e ur̃o",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-apocalypse",
+   "question": "Who spoke with John?",
+   "answer": "uenit\nangelus & locutus est\nmecum",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-apocalypse",
+   "question": "How is the mountain described?",
+   "answer": "inmon\ntem magnum & altum.",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-apocalypse",
+   "question": "Whose wife is the bride?",
+   "answer": "sponsam\nuxorem agni",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-apocalypse",
+   "question": "Whose glory did the city have?",
+   "answer": "habentem claritatem\ndĩ",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "How did the married couple live together?",
+   "answer": "Mez ꝯ amis ⁊ ꝯ amie\nMout men̾ent honeste uie.",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "What flaw did the king have in his heart?",
+   "answer": "Vne teche en son cuer manoit\nTele que adez li sembloit\nQuil ne pooit tͦp honorer\nLez bonz ne tͦp du suen doun̾.",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "What do noble retainers always seek for their lords?",
+   "answer": "Lenor ⁊ le preu lor seignors.",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "Why is it foolish for a great lord to take advice from commoners?",
+   "answer": "Li haut hom ml̾t folem̃t oeure\nQͥ gnͣt conseil vilain descueure",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "What proverb about the wolf is quoted?",
+   "answer": "Adez reua le louz au boiz",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "Why did this king rise to great honour?",
+   "answer": "Cis roys en gnͣt honeur monta.\nPor cen q̃ lez gentilz ama",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "What kind of people is it good to have around you?",
+   "answer": "Bon fet entor soi auoir gent\nQͥ aiment miex honeur qͣrgent",
+   "set": "2026-11"
+  }
+ ],
+ "not_in_sources": [
+  {
+   "page_id": "old-french",
+   "question": "What is the fourth commandment?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french",
+   "question": "What penance is prescribed for perjury?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french",
+   "question": "Who wrote this treatise?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french",
+   "question": "Is stealing a mortal sin?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french",
+   "question": "What does the text say about honouring your father and mother?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Will my harvest be good this year?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Will my ship reach port safely?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Is my brother still alive?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-abaton",
+   "question": "Will it rain tomorrow?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-apocalypse",
+   "question": "How many gates did the city have?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-apocalypse",
+   "question": "What names were written on the gates?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-apocalypse",
+   "question": "How long was the city wall?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "latin-apocalypse",
+   "question": "What did the angel use to measure the city?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "How many children did Marcadigas have?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "How did King Caldus die?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "What colour was the bride's dress?",
+   "set": "2026-11"
+  },
+  {
+   "page_id": "old-french-verse",
+   "question": "Which battle did Marcadigas win?",
+   "set": "2026-11"
   }
  ]
 }

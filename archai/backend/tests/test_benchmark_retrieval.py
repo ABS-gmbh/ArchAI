@@ -167,6 +167,45 @@ def test_every_question_answer_is_in_its_reference_once() -> None:
         assert pages[q["page_id"]].count(q["answer"]) == 1, q
 
 
+def test_every_question_belongs_to_a_set_and_no_question_is_asked_twice() -> None:
+    import json
+
+    data = json.loads((BACKEND / "eval/retrieval/questions.json").read_text(encoding="utf-8"))
+    pages = {p["page_id"] for p in json.loads((BACKEND / "eval/quality_gate/readings.json").read_text())["pages"]}
+    asked = [(q["page_id"], q["question"]) for q in data["questions"] + data["not_in_sources"]]
+    assert len(asked) == len(set(asked))
+    assert {q["set"] for q in data["questions"]} == {"2026-10", "2026-11"}
+    assert sum(q["set"] == "2026-10" for q in data["questions"]) == 35  # the set earlier results were measured on
+    for q in data["not_in_sources"]:
+        assert q["page_id"] in pages and "answer" not in q, q
+
+
+def test_question_set_selects_the_questions_measured(bench, tmp_path: Path, monkeypatch, capsys) -> None:
+    import json
+
+    page = _page(1, lines=30)
+    readings = _readings_file(tmp_path / "readings.json", {"a": {"reference": page, "kraken": _reread(page, 0.15, seed=4)}})
+    lines = page.splitlines()
+    questions = tmp_path / "questions.json"
+    questions.write_text(
+        json.dumps(
+            {
+                "questions": [
+                    {"page_id": "a", "question": "first?", "answer": "\n".join(lines[2:4]), "set": "old"},
+                    {"page_id": "a", "question": "second?", "answer": "\n".join(lines[20:22]), "set": "new"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(bench, "_embedder", lambda kind: lambda batch: [[float(len(t)), 1.0] for t in batch])
+    args = ["--readings", str(readings), "--questions", str(questions), "--json"]
+    assert bench.main(args + ["--question-set", "new"]) == 0
+    assert json.loads(capsys.readouterr().out)["meta"]["queries"] == 2  # one question, two readings
+    assert bench.main(args) == 0
+    assert json.loads(capsys.readouterr().out)["meta"]["queries"] == 4
+
+
 def test_a_question_is_relevant_where_its_answer_is_in_each_reading(bench, tmp_path: Path) -> None:
     page = _page(1, lines=30)
     reread = _reread(page, 0.15, seed=4)
