@@ -916,7 +916,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** Any image the Next.js frontend or the backend test suite needs must be added with `git add -f` or it vanishes from a clone, with no error — the developer sees a working tree and CI/a colleague sees a missing asset. The rule was written to keep sample manuscript scans out of the repo but is scoped to the whole vendored app rather than to the scan directories.
 - **Fix:** Narrow the rules to the directories that actually hold scans (e.g. `backend/data/**/*.png`, `CVAT_download/**`) and add negations for asset paths: `!frontend/public/**` and `!backend/tests/**/*.png`.
 
-### [AG-15] Unbounded, undelimited user question is appended as the final line of the model prompt
+### [AG-15] Unbounded, undelimited user question is appended as the final line of the model prompt — **FIXED** (question capped at 2,000 and OCR text at 8,000 characters, both fenced as data; test_label_prompt_fencing.py)
 
 - **Where:** `vendor:app/agents/label_analysis_agent.py:382`  
 - **Category:** security  
