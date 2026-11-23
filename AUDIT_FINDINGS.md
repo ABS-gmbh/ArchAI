@@ -971,7 +971,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** Setting SAIA_OCR_MODELS=qwen3-vl-30b-a3b-instruct (the model_router default vision model, services/model_router.py:37) produces prefs == [] and the agent silently falls back to the hardcoded InternVL defaults. The operator sees no warning, and every run reports model_used=internvl* while the config file says otherwise. Also blocks passing a test double via SaiaOCRAgent(model_prefs=[...]).
 - **Fix:** Remove _filter_internvl_models from the explicit-config paths (lines 1874 and 1881) — an operator naming a model has already made the choice. Keep the filter only as the discovery heuristic in _select_candidate_models (line 1932), and log a warning when a configured preference is not present in client.list_models().
 
-### [AG-18] Dead branches and mis-reported metadata in the agent hot paths
+### [AG-18] Dead branches and mis-reported metadata in the agent hot paths — partly fixed ((a) the unreachable EMPTY_MODEL_RESPONSE branch and (c) VISION_MODEL_HINTS are deleted; (b) is left: summing per-region timeout budgets, which are each the time remaining, would report more than the wall clock)
 
 - **Where:** `vendor:app/agents/saia_ocr_agent.py:2625`  
 - **Category:** hygiene  

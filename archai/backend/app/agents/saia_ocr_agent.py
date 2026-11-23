@@ -80,7 +80,6 @@ OLD_ENGLISH_MARKERS_RE = re.compile(r"[þðƿÞÐǷ]")
 ARABIC_RE = re.compile(r"[\u0600-\u06FF]")
 HEBREW_RE = re.compile(r"[\u0590-\u05FF]")
 LATIN_TOKEN_RE = re.compile(r"^[A-Za-zÀ-ÖØ-öø-ÿĀ-žſƀ-ɏ]+$")
-VISION_MODEL_HINTS = ("vl", "vision", "internvl", "gemma", "mistral", "omni")
 INTERNVL_MODEL_HINT = "internvl"
 REQUIRED_JSON_KEYS = ("lines", "text", "script_hint", "detected_language", "confidence", "warnings")
 FRENCH_STRONG_ANCHORS = {
@@ -1541,10 +1540,6 @@ class SaiaOCRAgent:
                 err = "MODEL_NOT_FOUND" if is_model_not_found_error(exc) else str(exc)
                 fallbacks.append(SaiaOCRFallback(model=model, error=err))
                 continue
-            if parsed is None:
-                fallbacks.append(SaiaOCRFallback(model=model, error="EMPTY_MODEL_RESPONSE"))
-                continue
-
             lines = [str(line) for line in parsed["lines"] if str(line).strip()]
             text = str(parsed["text"] or "").strip()
             script_hint = str(parsed["script_hint"] or "unknown").lower()
