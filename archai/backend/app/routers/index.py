@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+
+from app.db import pipeline_db
 
 from app.services import rag_store
 
@@ -25,6 +27,9 @@ def index_run(run_id: str) -> dict[str, Any]:
 @router.get("/index/run/{run_id}/status")
 def index_status(run_id: str) -> dict[str, Any]:
     """Check whether *run_id* has been indexed."""
+    # An unknown run reported zero chunks, indexed or not, with 200.
+    if pipeline_db.get_run(run_id) is None:
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
     try:
         return rag_store.is_run_indexed(run_id)
     except Exception as exc:  # pragma: no cover
@@ -43,8 +48,10 @@ def delete_index(run_id: str) -> dict[str, Any]:
 
 @router.post("/index/search")
 def search_index(
-    query: str,
-    top_k: int | None = None,
+    query: str = Query(..., min_length=1),
+    # Bounded like /rag/debug/retrieve: a negative or huge top_k reached the
+    # vector store as n_results.
+    top_k: int | None = Query(None, ge=1, le=50),
     run_id: str | None = None,
     asset_ref: str | None = None,
 ) -> dict[str, Any]:

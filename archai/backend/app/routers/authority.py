@@ -15,8 +15,13 @@ router = APIRouter(tags=["authority-linking"])
 @router.post("/authority/link/{run_id}")
 def link_run(run_id: str, force_refresh: bool = False) -> dict[str, Any]:
     """Run authority linking (Wikidata search + scoring) for all mentions in *run_id*."""
+    from app.db import pipeline_db
     from app.services.authority_linking import run_authority_linking
 
+    # run_authority_linking answers an unknown run with an empty result, so the
+    # route returned 200 "no mentions found" for a run that does not exist.
+    if pipeline_db.get_run(run_id) is None:
+        raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
     try:
         return run_authority_linking(run_id, force_refresh=force_refresh)
     except ValueError as exc:
