@@ -754,7 +754,7 @@ return ("model not found" in text or "unknown model" in text or "does not exist"
 - **Impact:** Send a crop that exceeds the vision model's image-size or context limit and the client reports MODEL_NOT_FOUND, drops that model from the candidate list, and retries the identical oversized payload against every remaining model — all of which fail the same way. The real cause never reaches the logs or the run record, and the fallback chain is consumed for nothing, so the region ends up attributed to whichever backend happened to be last.
 - **Fix:** Inspect the structured error instead of the string: match on `openai.NotFoundError` / HTTP status 404 together with an error `code` of `model_not_found`, and drop the bare `"404"` and `"invalid_request_error"` substring tests. Surface non-model errors verbatim rather than folding them into the fallback path.
 
-### [HYG-09] Production module named test_ocr_overrides.py lives inside the shipped package and is swept up by pytest collection
+### [HYG-09] Production module named test_ocr_overrides.py lives inside the shipped package and is swept up by pytest collection — **FIXED** (renamed app/services/ocr_test_fixtures.py, classes OcrOverrideFixture and SemanticMentionFixture; imports in routers/ocr.py and services/trace_pipeline.py updated)
 
 - **Where:** `vendor:app/services/test_ocr_overrides.py:16`  
 - **Category:** testing  

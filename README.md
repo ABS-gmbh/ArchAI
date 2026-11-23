@@ -167,7 +167,7 @@ literals. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
   otherwise pip-installs optional packages at inference time, mutating the
   environment mid-run and requiring network access.
 - Canned OCR fixtures exist in the backend for demos and regression tests
-  (`app/services/test_ocr_overrides.py`). They match three specific images by
+  (`app/services/ocr_test_fixtures.py`). They match three specific images by
   SHA-256 and return hand-written transcriptions. They are **off by default** and
   require `ENABLE_TEST_OCR_FIXTURES=true`; when active they log a warning naming
   the digest.

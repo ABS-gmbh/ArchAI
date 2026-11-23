@@ -16,7 +16,7 @@ _FIXTURE_WAIT_SECONDS = 5.0
 
 
 @dataclass(frozen=True)
-class TestSemanticMention:
+class SemanticMentionFixture:
     surface: str
     canonical_label: str
     ent_type: str
@@ -26,24 +26,24 @@ class TestSemanticMention:
 
 
 @dataclass(frozen=True)
-class TestOcrOverride:
+class OcrOverrideFixture:
     sha256: str
     text: str
     model_used: str = "glm-ocr:latest"
     wait_seconds: float = _FIXTURE_WAIT_SECONDS
-    semantic_mentions: tuple[TestSemanticMention, ...] = ()
+    semantic_mentions: tuple[SemanticMentionFixture, ...] = ()
 
 
-_FIXTURE_OVERRIDES: dict[str, TestOcrOverride] = {}
+_FIXTURE_OVERRIDES: dict[str, OcrOverrideFixture] = {}
 
 
 def _register_fixture(
     sha256: str,
     text: str,
     *,
-    semantic_mentions: tuple[TestSemanticMention, ...] = (),
+    semantic_mentions: tuple[SemanticMentionFixture, ...] = (),
 ) -> None:
-    _FIXTURE_OVERRIDES[sha256] = TestOcrOverride(
+    _FIXTURE_OVERRIDES[sha256] = OcrOverrideFixture(
         sha256=sha256,
         text=text.strip(),
         semantic_mentions=semantic_mentions,
@@ -77,133 +77,133 @@ ces. þu loerist. docet. hȩ larð. Et płr . do
 cemus pecaecað. docłtis getcecað. do
 """,
     semantic_mentions=(
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="c̃ionctioni",
             canonical_label="coniunctioni",
             ent_type="GRAMMATICAL_TERM",
             reason="curated semantic concept for old english fixture; grammatical terminology",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="coniugatio",
             canonical_label="coniugatio",
             ent_type="GRAMMATICAL_TERM",
             reason="curated semantic concept for old english fixture; grammatical terminology",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="amaui",
             canonical_label="amaui",
             ent_type="VERB_PARADIGM_EXAMPLE",
             reason="curated semantic concept for old english fixture; verb paradigm example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="amauisti",
             canonical_label="amauisti",
             ent_type="VERB_PARADIGM_EXAMPLE",
             reason="curated semantic concept for old english fixture; verb paradigm example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="amartis",
             canonical_label="amastis",
             ent_type="VERB_PARADIGM_EXAMPLE",
             reason="curated semantic concept for old english fixture; verb paradigm example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="amaufriunt",
             canonical_label="amauerunt",
             ent_type="VERB_PARADIGM_EXAMPLE",
             reason="curated semantic concept for old english fixture; verb paradigm example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="noui",
             canonical_label="noui",
             ent_type="VERB_PARADIGM_EXAMPLE",
             reason="curated semantic concept for old english fixture; verb paradigm example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="neuisti",
             canonical_label="neuisti",
             ent_type="VERB_PARADIGM_EXAMPLE",
             reason="curated semantic concept for old english fixture; verb paradigm example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="doceo",
             canonical_label="doceo",
             ent_type="VERB_PARADIGM_EXAMPLE",
             reason="curated semantic concept for old english fixture; verb paradigm example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="do\nces",
             canonical_label="doces",
             ent_type="VERB_PARADIGM_EXAMPLE",
             reason="curated semantic concept for old english fixture; verb paradigm example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="docet",
             canonical_label="docet",
             ent_type="VERB_PARADIGM_EXAMPLE",
             reason="curated semantic concept for old english fixture; verb paradigm example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="do\ncemus",
             canonical_label="docemus",
             ent_type="VERB_PARADIGM_EXAMPLE",
             reason="curated semantic concept for old english fixture; verb paradigm example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="ic",
             canonical_label="ic",
             ent_type="GLOSSING_LANGUAGE_ELEMENT",
             reason="curated semantic concept for old english fixture; glossing language element",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="þu",
             canonical_label="þu",
             ent_type="GLOSSING_LANGUAGE_ELEMENT",
             reason="curated semantic concept for old english fixture; glossing language element",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="hȩ",
             canonical_label="he",
             ent_type="GLOSSING_LANGUAGE_ELEMENT",
             reason="curated semantic concept for old english fixture; glossing language element",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="hi",
             canonical_label="hi",
             ent_type="GLOSSING_LANGUAGE_ELEMENT",
             reason="curated semantic concept for old english fixture; glossing language element",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="oxan",
             canonical_label="oxan",
             ent_type="LEXICAL_EXAMPLE",
             reason="curated semantic concept for old english fixture; lexical example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="mancipiũ",
             canonical_label="mancipium",
             ent_type="LEXICAL_EXAMPLE",
             reason="curated semantic concept for old english fixture; lexical example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="mulissi",
             canonical_label="mulieris",
             ent_type="LEXICAL_EXAMPLE",
             reason="curated semantic concept for old english fixture; lexical example",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="fruman",
             canonical_label="fruman",
             ent_type="MORPHOLOGICAL_EXPLANATION",
             reason="curated semantic concept for old english fixture; morphological explanation term",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="oðrũ hade",
             canonical_label="oðrum hade",
             ent_type="MORPHOLOGICAL_EXPLANATION",
             reason="curated semantic concept for old english fixture; morphological explanation term",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="geðeodnysse",
             canonical_label="bilingual glossing",
             ent_type="PEDAGOGICAL_FUNCTION",
@@ -271,49 +271,49 @@ de ⁊ordena. ¶Ce ꝯman
 dement acomplist esꝑi
 """,
     semantic_mentions=(
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="nr̃e seigneur",
             canonical_label="nostre seigneur",
             ent_type="RELIGIOUS_TITLE",
             reason="curated semantic concept for french fixture; non-linkable title",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="sainz",
             canonical_label="sainz",
             ent_type="RELIGIOUS_GROUP",
             reason="curated semantic concept for french fixture; non-linkable religious group",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="sa\nmecli",
             canonical_label="samedi",
             ent_type="TEMPORAL_LITURGICAL_TERM",
             reason="curated semantic concept for french fixture; non-linkable temporal-liturgical term",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="blaspheme",
             canonical_label="blaspheme",
             ent_type="THEOLOGICAL_CONCEPT",
             reason="curated semantic concept for french fixture; non-linkable theological concept",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="peche",
             canonical_label="peche",
             ent_type="THEOLOGICAL_CONCEPT",
             reason="curated semantic concept for french fixture; non-linkable theological concept",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="sacõciẽce",
             canonical_label="conscience",
             ent_type="THEOLOGICAL_CONCEPT",
             reason="curated semantic concept for french fixture; non-linkable theological concept",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="nire faus",
             canonical_label="iurer faus",
             ent_type="MORAL_ACTION",
             reason="curated semantic concept for french fixture; non-linkable moral action",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="aseruir ton crea\nteur",
             canonical_label="seruir ton createur",
             ent_type="MORAL_ACTION",
@@ -328,91 +328,91 @@ _register_fixture(
 enit qui compedes diuina potñcia soluit E & hac uxore non erit sermo pudieus Inmicos multos habes ⁊ plures amicos Q sperat celat differtur pey omnia secla Pͭ ꝑter tuũ lucrõ iram pacieris amaram Fortuna bona tibi es felix temꝑe ur̃o Gencrare miserum hedem si dera donant Ninces adu̾sariũ ⁊ placito hunc suꝑabis Sopniũ ĩ cͣpula fuit. ⁊ erit uisio uana Eme nam est bona ⁊ utilis emys Est fur exͣneus cum furto longius ibit H tuns amicus erit tibi tempore gͣtus Et tuũ prosꝑum uiaq tuta manet Deciꝑe te uult. ⁊ te non diligit illa ꝑ egre profecto non datur cito reu̾ti Imfirmus ille tiuis sanatur tp̃re breui Tibi dico c̾tum reddet᷑ amissio tisa P auper cris nimis ⁊ manẽs debito semii T u tela tͥ data non est: tim̾e nec eẽt U iues ⁊ non diu ⁊ mors optata cessabit E difica plenam herit mansio tua A superis datam doctnam suscipe tuam Utilis est tibi fcã mutacio per nos C ur q̃ris honorem fug̾e tibi melius eẽt Quod optas properat festina susciꝑe uenit Et tͥ diuicie dabuntur a dño semper Huestis maliuolis tibi reddec ppołm Non erit ħ pugna cessabit altera tͣba Abaton: necosse ÷ 25 28 P rA 20 25
 """,
     semantic_mentions=(
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="Fortuna",
             canonical_label="fortuna",
             ent_type="ABSTRACT_CONCEPT",
             reason="curated semantic concept for latin fixture; abstract concept",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="honorem",
             canonical_label="honor",
             ent_type="ABSTRACT_CONCEPT",
             reason="curated semantic concept for latin fixture; abstract concept",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="doctnam",
             canonical_label="doctrina",
             ent_type="ABSTRACT_CONCEPT",
             reason="curated semantic concept for latin fixture; abstract concept",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="mors",
             canonical_label="mors",
             ent_type="ABSTRACT_CONCEPT",
             reason="curated semantic concept for latin fixture; abstract concept",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="uxore",
             canonical_label="uxor",
             ent_type="SOCIAL_ROLE",
             reason="curated semantic concept for latin fixture; social role",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="amicus",
             canonical_label="amicus",
             ent_type="SOCIAL_ROLE",
             reason="curated semantic concept for latin fixture; social role",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="Inmicos",
             canonical_label="inimicus",
             ent_type="SOCIAL_ROLE",
             reason="curated semantic concept for latin fixture; social relation",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="dño",
             canonical_label="domino",
             ent_type="RELIGIOUS_REFERENCE",
             reason="curated semantic concept for latin fixture; religious reference",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="debito",
             canonical_label="debitum",
             ent_type="MORAL_PRACTICAL_CONCEPT",
             reason="curated semantic concept for latin fixture; moral-practical concept",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="furto",
             canonical_label="furtum",
             ent_type="MORAL_PRACTICAL_CONCEPT",
             reason="curated semantic concept for latin fixture; moral-practical concept",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="pugna",
             canonical_label="pugna",
             ent_type="MORAL_PRACTICAL_CONCEPT",
             reason="curated semantic concept for latin fixture; moral-practical concept",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="prosꝑum",
             canonical_label="prosperum",
             ent_type="STATE_OR_FORTUNE",
             reason="curated semantic concept for latin fixture; state or fortune marker",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="felix",
             canonical_label="felix",
             ent_type="STATE_OR_FORTUNE",
             reason="curated semantic concept for latin fixture; state or fortune marker",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="festina",
             canonical_label="festina",
             ent_type="ACTION_OR_WARNING",
             reason="curated semantic concept for latin fixture; advisory action or warning",
         ),
-        TestSemanticMention(
+        SemanticMentionFixture(
             surface="susciꝑe",
             canonical_label="suscipe",
             ent_type="ACTION_OR_WARNING",
@@ -422,7 +422,7 @@ enit qui compedes diuina potñcia soluit E & hac uxore non erit sermo pudieus I
 )
 
 
-def get_test_ocr_fixture(image_bytes: bytes) -> TestOcrOverride | None:
+def get_test_ocr_fixture(image_bytes: bytes) -> OcrOverrideFixture | None:
     """Look up a canned transcription for this exact image, if fixtures are enabled.
 
     Returns None unless settings.enable_test_ocr_fixtures is explicitly true.
