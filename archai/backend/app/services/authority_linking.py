@@ -33,6 +33,7 @@ import threading
 import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as LookupTimeout
 from typing import Any
 
 from app.db import pipeline_db
@@ -107,6 +108,29 @@ def _fetch_viaf_profile(viaf_id: str) -> dict[str, Any]:
         "name_type": str(payload.get("nameType") or "").strip(),
         "titles": payload.get("titles"),
     }
+
+
+def _viaf_profile_for(selected: dict[str, Any]) -> dict[str, Any]:
+    """The VIAF profile of a selected candidate, without fetching what search_viaf already fetched.
+
+    A VIAF candidate from search_viaf (or from its cache, which keeps only
+    complete answers) carries the record's aliases, name type and titles, so
+    fetching the same record again to rebuild them doubled the VIAF requests
+    for every linked VIAF entity (audit AL-03). A Wikidata candidate that only
+    names a VIAF id, or a VIAF candidate whose record fetch failed (partial),
+    still needs the fetch.
+    """
+    from app.services.authority_sources import VIAF_BASE_URL
+
+    viaf_id = str(selected.get("viaf_id") or "").strip()
+    if str(selected.get("source") or "").lower() == "viaf" and viaf_id and not selected.get("partial"):
+        return {
+            "aliases": list(selected.get("aliases") or []),
+            "source_url": f"{VIAF_BASE_URL}/{viaf_id}",
+            "name_type": str(selected.get("name_type") or "").strip(),
+            "titles": selected.get("titles"),
+        }
+    return _fetch_viaf_profile(viaf_id)
 
 
 def _clear_structured_links_for_run(run_id: str) -> None:
@@ -327,6 +351,25 @@ def _selected_entity_id(selected: dict[str, Any] | None) -> str | None:
     return f"{source}:{authority_id}"
 
 
+# Seconds one lookup may take, from the timeouts its requests already carry:
+# Wikidata one search request (15 s); VIAF an AutoSuggest request and one
+# record request per hit, 10 s each, made one after another; GeoNames one
+# request at GEONAMES_TIMEOUT_SECONDS. Plus a little slack for the Wikidata
+# rate limiter and connection setup.
+_LOOKUP_SLACK_SECONDS = 2.0
+
+
+def _lookup_deadline_seconds(sources: set[str] | list[str], top_k: int) -> float:
+    from app.config import settings
+
+    budgets = {
+        "wikidata": 15.0,
+        "viaf": 10.0 * (1 + max(0, int(top_k))),
+        "geonames": float(settings.geonames_timeout_seconds or 10),
+    }
+    return max((budgets.get(source, 15.0) for source in sources), default=0.0) + _LOOKUP_SLACK_SECONDS
+
+
 def _search_all_sources_for_query(
     query: str,
     *,
@@ -335,11 +378,19 @@ def _search_all_sources_for_query(
     wikidata_mode: str,
     allow_viaf: bool = True,
     allow_geonames: bool = True,
+    timed_out: list[str] | None = None,
 ) -> tuple[dict[str, list[dict[str, Any]]], int, int, int]:
     """Search every source that serves `ent_type`; returns results and the API calls made.
 
     VIAF and GeoNames answers are cached like Wikidata's (complete, non-empty
     ones only) and served from the cache even when their budget is spent.
+
+    The lookups run in parallel and share one deadline, the longest time any
+    of them may take by its own request timeouts (_lookup_deadline_seconds).
+    A source that has not answered by then is skipped for this query, with
+    no results, and its name is appended to *timed_out*. as_completed had no
+    timeout and the executor's exit waited for every future, so one lookup
+    that never returned held the whole linking run (audit AL-03).
     """
     results: dict[str, list[dict[str, Any]]] = {"wikidata": [], "viaf": [], "geonames": []}
     api_calls_search = 0
@@ -362,7 +413,10 @@ def _search_all_sources_for_query(
             results[name] = cached[:top_k]
             del other_sources[name]
 
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    # Not a with block: leaving one waits for every future, which is the hang
+    # the deadline exists to avoid. Unfinished lookups are abandoned instead.
+    executor = ThreadPoolExecutor(max_workers=3)
+    try:
         futures: dict[Any, str] = {}
         if wikidata_mode == "api":
             futures[executor.submit(search_wikidata, query, k=top_k, force_refresh=True)] = "wikidata"
@@ -370,25 +424,33 @@ def _search_all_sources_for_query(
             if allowed:
                 futures[executor.submit(search, query, k=top_k, ent_type=ent_type)] = name
 
-        for future in as_completed(futures):
-            source = futures[future]
-            try:
-                payload = future.result() or []
-            except Exception as exc:  # noqa: BLE001
-                log.debug("authority source %s failed for %r: %s", source, query, exc)
-                payload = []
-            if source == "wikidata":
-                results["wikidata"] = payload
-                if wikidata_mode == "api":
-                    api_calls_search += 1
-            else:
-                results[source] = payload
-                if source == "viaf":
-                    api_calls_viaf += 1
+        try:
+            for future in as_completed(futures, timeout=_lookup_deadline_seconds(list(futures.values()), top_k)):
+                source = futures[future]
+                try:
+                    payload = future.result() or []
+                except Exception as exc:  # noqa: BLE001
+                    log.debug("authority source %s failed for %r: %s", source, query, exc)
+                    payload = []
+                if source == "wikidata":
+                    results["wikidata"] = payload
+                    if wikidata_mode == "api":
+                        api_calls_search += 1
                 else:
-                    api_calls_geonames += 1
-                if payload and not any(item.get("partial") for item in payload):
-                    cache_put(source, cache_keys[source], payload)
+                    results[source] = payload
+                    if source == "viaf":
+                        api_calls_viaf += 1
+                    else:
+                        api_calls_geonames += 1
+                    if payload and not any(item.get("partial") for item in payload):
+                        cache_put(source, cache_keys[source], payload)
+        except LookupTimeout:
+            late = sorted(futures[future] for future in futures if not future.done())
+            log.warning("authority lookup for %r: no answer in time from %s; skipped", query, ", ".join(late))
+            if timed_out is not None:
+                timed_out.extend(late)
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
     return results, api_calls_search, api_calls_viaf, api_calls_geonames
 
@@ -506,7 +568,7 @@ def _persist_selected_entity(
     viaf_profile: dict[str, Any] = {}
     if selected.get("viaf_id") and ent_type in {"person", "work"}:
         try:
-            viaf_profile = _fetch_viaf_profile(str(selected.get("viaf_id") or ""))
+            viaf_profile = _viaf_profile_for(selected)
         except Exception as exc:  # noqa: BLE001
             log.debug("viaf profile fetch failed for %s: %s", selected.get("viaf_id"), exc)
             viaf_profile = {}
@@ -823,6 +885,7 @@ def _run_authority_linking(
     api_calls_search = 0
     api_calls_viaf = 0
     api_calls_geonames = 0
+    timed_out_sources: list[str] = []
     api_calls_get = 0
     cache_hits = 0
     type_mismatch_count = 0
@@ -1189,6 +1252,7 @@ def _run_authority_linking(
                 wikidata_mode=wikidata_mode,
                 allow_viaf=allow_viaf,
                 allow_geonames=allow_geonames,
+                timed_out=timed_out_sources,
             )
             api_calls_search += search_calls
             api_calls_viaf += viaf_calls
@@ -1429,6 +1493,15 @@ def _run_authority_linking(
     ambiguous_total = sum(1 for r in mention_results if r["status"] == "ambiguous")
     skipped_total = sum(1 for r in mention_results if r["status"] == "skipped")
 
+    if timed_out_sources:
+        late = ", ".join(f"{name} x{count}" for name, count in sorted(Counter(timed_out_sources).items()))
+        pipeline_db.log_event(
+            run_id,
+            "AUTHORITY_LINKING",
+            "WARN",
+            f"Sources that did not answer in time; those lookups were skipped: {late}",
+        )
+
     log.info(
         "authority linking summary run_id=%s mentions=%d candidates=%d linked=%d unresolved=%d ambiguous=%d skipped=%d sources=%s api_calls_search=%d api_calls_viaf=%d api_calls_geonames=%d api_calls_get=%d took_ms=%d",
         run_id,
@@ -1466,6 +1539,9 @@ def _run_authority_linking(
         "api_calls_geonames": api_calls_geonames,
         "api_calls_get": api_calls_get,
         "api_calls": api_calls_search + api_calls_viaf + api_calls_geonames + api_calls_get,
+        # Lookups skipped because the source did not answer within the
+        # deadline, per source (audit AL-03). Empty when every source answered.
+        "source_timeouts": dict(sorted(Counter(timed_out_sources).items())),
         "cache_hits": cache_hits,
         "took_ms": elapsed_ms,
         "ocr_quality": ocr_quality,
@@ -1949,6 +2025,12 @@ def build_linking_report(result: dict[str, Any]) -> str:
     source_counts = result.get("source_counts", {}) or {}
     if source_counts:
         L.append("sources: " + ", ".join(f"{k}={v}" for k, v in sorted(source_counts.items()) if v))
+    source_timeouts = result.get("source_timeouts") or {}
+    if source_timeouts:
+        L.append(
+            "sources that did not answer in time (lookups skipped): "
+            + ", ".join(f"{k}={v}" for k, v in sorted(source_timeouts.items()))
+        )
     L.append("")
 
     linked = [r for r in mention_results if r.get("status") == "linked"]
