@@ -2,6 +2,7 @@ import logging
 import os
 import secrets
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 _EPHEMERAL_JWT_SECRET: str | None = None
@@ -66,6 +67,18 @@ class Settings(BaseSettings):
     archai_chat_ai_model: str = "qwen3-30b-a3b-instruct-2507"
     chat_rag_model: str = "qwen3-30b-a3b-instruct-2507"
     translation_model: str = "llama-3.3-70b-instruct"
+    # Per-request timeout of the chat client (chat, translation, model list).
+    # Without one the OpenAI SDK waits 600 s, and retries twice, before a
+    # non-streaming completion gives up. A streamed answer only needs each
+    # chunk within this time; a non-streamed one needs the whole answer.
+    chat_ai_timeout_seconds: float = 180
+
+    @field_validator("chat_ai_timeout_seconds")
+    @classmethod
+    def _positive_chat_timeout(cls, value: float) -> float:
+        if value <= 0:
+            raise ValueError(f"CHAT_AI_TIMEOUT_SECONDS must be greater than 0, got {value}")
+        return value
 
     # SAIA OCR Agent configuration
     saia_api_key: str = ""
