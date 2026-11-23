@@ -1099,8 +1099,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background text-foreground">
-      <aside className="flex w-[320px] shrink-0 flex-col border-r bg-muted/30">
+    <div className="flex min-h-screen flex-col bg-background text-foreground md:h-screen md:flex-row md:overflow-hidden">
+      <aside className="flex w-full shrink-0 flex-col border-b bg-muted/30 md:w-[320px] md:border-r md:border-b-0">
         <div className="border-b p-4">
           <h1 className="text-lg font-semibold">ArchAI Workspace</h1>
           <p className="mt-1 text-sm text-muted-foreground">Upload page images and chat with model context.</p>
@@ -1189,7 +1189,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                 </span>
               </div>
 
-              <div className="mb-2 flex-1 overflow-auto rounded-md border bg-background p-2">
+              <div className="mb-2 max-h-[45vh] flex-1 overflow-auto rounded-md border bg-background p-2 md:max-h-none">
                 <Image
                   src={showSegmentationOverlay && currentSegmentedPreview ? currentSegmentedPreview : currentPage.dataUrl}
                   alt={showSegmentationOverlay && currentSegmentedPreview ? `${currentPage.name} segmented` : currentPage.name}
@@ -1280,7 +1280,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         </div>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col">
+      <section className="flex min-h-[70vh] min-w-0 flex-1 flex-col md:min-h-0">
         <div className="flex items-center gap-3 border-b px-4 py-3">
           <div>
             <p className="text-sm font-medium">Chat</p>
@@ -1320,8 +1320,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                   key={message.id}
                   className={`rounded-lg px-4 py-3 text-sm leading-relaxed ${
                     message.role === "user"
-                      ? "ml-12 bg-primary text-primary-foreground"
-                      : "mr-12 border bg-card"
+                      ? "ml-6 bg-primary text-primary-foreground sm:ml-12"
+                      : "mr-6 border bg-card sm:mr-12"
                   }`}
                 >
                   <p className="mb-1 text-xs uppercase opacity-70">{message.role}</p>
