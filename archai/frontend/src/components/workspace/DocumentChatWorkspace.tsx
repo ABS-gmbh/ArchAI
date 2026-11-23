@@ -49,7 +49,10 @@ import {
 } from "./workspaceIntents";
 import { BackendStatusBanner } from "./BackendStatusBanner";
 import { RetrievalBadges } from "./RetrievalBadges";
+import { ExtractionBadges } from "./ExtractionBadges";
 import {
+  type ExtractionBadge,
+  describeExtraction,
   getExtractionStatus,
   removeTextUncertainties,
 } from "./workspaceExtraction";
@@ -913,7 +916,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       }));
     }
 
-    const setExtractionStatus = (content: string) => {
+    const setExtractionStatus = (content: string, extractionBadges?: ExtractionBadge[]) => {
       if (silent) {
         return;
       }
@@ -923,7 +926,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         if (index === -1) {
           return prev;
         }
-        list[index] = { ...list[index], content };
+        list[index] = { ...list[index], content, extractionBadges };
         return { ...prev, [currentDocumentId]: list };
       });
     };
@@ -971,7 +974,10 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       ).trim();
       if (!finalText) {
         const status = getExtractionStatus(response);
-        setExtractionStatus(`Extraction complete (${status}): no readable text detected.`);
+        setExtractionStatus(
+          `Extraction complete (${status}): no readable text detected.`,
+          describeExtraction(response, rawExtractedText),
+        );
         if (!silent) {
           setMessagesByDocument((prev) => {
             const list = [...(prev[currentDocumentId] ?? [])];
@@ -1010,6 +1016,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         pipelineBits.length
           ? `Extraction complete (${status}).${readBy} Knowledge pipeline: ${pipelineBits.join(", ")}.`
           : `Extraction complete (${status}).${readBy}`,
+        describeExtraction(response, rawExtractedText),
       );
       return { text: storedText, runId, authorityReport };
     } catch (err: unknown) {
@@ -1370,6 +1377,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                       </span>
                     </div>
                   ) : null}
+                  {message.extractionBadges?.length ? <ExtractionBadges badges={message.extractionBadges} /> : null}
                   {message.role === "assistant" && message.retrieval ? (
                     <RetrievalBadges retrieval={message.retrieval} />
                   ) : null}
