@@ -138,3 +138,49 @@ def test_thresholds_outside_zero_to_one_are_a_422(client, monkeypatch, field: st
     assert (single.status_code, batch.status_code) == (422, 422)
     assert field in single.text
     assert calls == []
+
+
+def _png() -> bytes:
+    from PIL import Image
+
+    page = io.BytesIO()
+    Image.new("RGB", (40, 40), "white").save(page, format="PNG")
+    return page.getvalue()
+
+
+@pytest.mark.parametrize(
+    "upload", [b"", b"definitely not an image"], ids=["empty", "not-an-image"]
+)
+def test_a_refused_upload_leaves_no_task_behind(client, tmp_path, upload: bytes) -> None:
+    """The task directory, with the bytes, and the store entry stayed until the TTL sweep."""
+    response = client.post("/predict/single", files={"image": ("p.png", upload, "image/png")})
+    assert response.status_code == 422
+    tasks = tmp_path / "tasks"
+    assert not tasks.exists() or list(tasks.iterdir()) == []
+    assert not any((tasks / task_id).exists() for task_id in file_manager._task_store)
+
+
+def test_an_unreadable_image_does_not_reveal_server_paths(client, tmp_path) -> None:
+    response = client.post("/predict/single", files={"image": ("p.png", b"not an image", "image/png")})
+    assert response.status_code == 422
+    assert str(tmp_path) not in response.text
+    assert response.json()["detail"] == "The uploaded file is not an image the server can read. Use PNG, JPEG or TIFF."
+
+
+def test_a_refused_zip_leaves_no_task_behind(client, tmp_path) -> None:
+    response = client.post("/predict/batch", files={"zip_file": ("b.zip", b"", "application/zip")})
+    assert response.status_code == 422
+    tasks = tmp_path / "tasks"
+    assert not tasks.exists() or list(tasks.iterdir()) == []
+
+
+def test_a_segmentation_failure_is_a_clear_500_and_cleans_up(client, tmp_path, monkeypatch) -> None:
+    def segment(path, **kwargs):
+        raise RuntimeError("CUDA out of memory at /opt/models/yolo.pt")
+
+    monkeypatch.setattr(predict, "run_single_segmentation", segment)
+    response = client.post("/predict/single", files={"image": ("p.png", _png(), "image/png")})
+    assert response.status_code == 500
+    assert response.json()["detail"].startswith("Layout segmentation failed on the server")
+    assert "/opt/models" not in response.text
+    assert _uploads(tmp_path) == []

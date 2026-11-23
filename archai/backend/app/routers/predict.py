@@ -21,7 +21,7 @@ from app.agents.segmentation_agent import run_single_segmentation
 from app.config import settings
 from app.core.model_runner import combine_and_filter_predictions
 from app.services.coco_utils import filter_coco_by_classes, merge_coco_list, stats_from_coco
-from app.services.file_manager import TaskState, create_task, get_task, get_task_dir, save_task_state
+from app.services.file_manager import TaskState, create_task, discard_task, get_task, get_task_dir, save_task_state
 from app.services.inference import run_models_parallel
 from app.services.visualization import draw_coco_on_image
 
@@ -225,7 +225,13 @@ def _prepare_image_for_segmentation(image_path: str) -> PreparedImage:
             working.save(normalized_path, format="JPEG", quality=95)
             return PreparedImage(normalized_path, True, scale)
     except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Uploaded file is not a valid image: {exc}") from exc
+        # The exception text names the file's path on the server; the UI shows
+        # this detail verbatim, so it says what is wrong, not where.
+        _LOGGER.info("Refused an upload that is not a readable image: %s", exc)
+        raise HTTPException(
+            status_code=422,
+            detail="The uploaded file is not an image the server can read. Use PNG, JPEG or TIFF.",
+        ) from exc
 
 
 def _is_valid_image_file(image_path: str) -> bool:
@@ -255,12 +261,17 @@ async def predict_single(
     safe_name = _secure_filename(image.filename or "upload.jpg")
     img_path = os.path.join(task_dir, safe_name)
 
-    await _save_upload(image, img_path, empty_detail="Empty upload.")
+    try:
+        await _save_upload(image, img_path, empty_detail="Empty upload.")
 
-    # Validate + normalize to RGB and safe size for model inference. In a
-    # worker thread: decoding and resizing a page of up to 85 megapixels took
-    # seconds on the event loop, stalling every other request (audit PRED-003).
-    prepared = await asyncio.to_thread(_prepare_image_for_segmentation, img_path)
+        # Validate + normalize to RGB and safe size for model inference. In a
+        # worker thread: decoding and resizing a page of up to 85 megapixels took
+        # seconds on the event loop, stalling every other request (audit PRED-003).
+        prepared = await asyncio.to_thread(_prepare_image_for_segmentation, img_path)
+    except HTTPException:
+        # Refused before anything was produced: nothing to keep for download.
+        discard_task(task.task_id)
+        raise
     prepared_img_path, prepared_changed = prepared.path, prepared.changed
 
     annotated_path = os.path.join(task_dir, "annotated.jpg")
@@ -273,6 +284,13 @@ async def predict_single(
             selected_classes=selected_classes,
             annotated_output_path=annotated_path,
         )
+    except Exception as exc:
+        _LOGGER.exception("Layout segmentation failed for task %s", task.task_id)
+        discard_task(task.task_id)
+        raise HTTPException(
+            status_code=500,
+            detail="Layout segmentation failed on the server. The details are in the server log.",
+        ) from exc
     finally:
         if prepared_changed and prepared_img_path.endswith(".seg.jpg"):
             try:
@@ -409,7 +427,11 @@ async def predict_batch(
     task_dir = get_task_dir(task.task_id)
 
     zip_path = os.path.join(task_dir, "upload.zip")
-    await _save_upload(zip_file, zip_path, empty_detail="Empty ZIP upload.")
+    try:
+        await _save_upload(zip_file, zip_path, empty_detail="Empty ZIP upload.")
+    except HTTPException:
+        discard_task(task.task_id)
+        raise
 
     background_tasks.add_task(_process_batch, task, zip_path, confidence, iou, selected_classes)
 
