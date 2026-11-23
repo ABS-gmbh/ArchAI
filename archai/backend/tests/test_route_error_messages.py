@@ -147,3 +147,45 @@ def test_the_report_keeps_its_not_found_message(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(authority_linking, "build_report_from_db", missing)
     response = _client(authority.router).get("/authority/report/nope")
     assert (response.status_code, response.json()["detail"]) == (404, "Run not found: nope")
+
+
+# ──────────────────────────────────────────────────────── rag_debug ──
+
+
+@pytest.mark.parametrize(
+    ("path", "module", "target", "what"),
+    [
+        ("/rag/debug/retrieve?query=arthur", "app.services.rag_store", "retrieve_debug", "Retrieval"),
+        (
+            "/rag/debug/evidence-preview?query=arthur&run_id=r1",
+            "app.services.chat_ai",
+            "build_rag_evidence_for_debug",
+            "The evidence preview",
+        ),
+    ],
+)
+def test_rag_debug_routes_keep_exception_text_out_of_the_response(
+    monkeypatch: pytest.MonkeyPatch, path: str, module: str, target: str, what: str
+) -> None:
+    import importlib
+
+    from app.routers import rag_debug
+
+    def boom(*args, **kwargs):
+        raise RuntimeError(LEAKY)
+
+    monkeypatch.setenv("ARCHAI_DEBUG_RAG", "1")
+    monkeypatch.setattr(importlib.import_module(module), target, boom)
+    response = _client(rag_debug.router).get(path)
+    assert response.status_code == 500
+    assert "/srv/archai" not in response.text and "internal.example" not in response.text
+    assert response.json()["detail"] == f"{what} failed on the server. The details are in the server log."
+
+
+def test_rag_debug_still_explains_how_to_enable_it(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.routers import rag_debug
+
+    monkeypatch.delenv("ARCHAI_DEBUG_RAG", raising=False)
+    response = _client(rag_debug.router).get("/rag/debug/retrieve?query=arthur")
+    assert response.status_code == 404
+    assert response.json()["detail"] == "RAG debug endpoint disabled.  Set ARCHAI_DEBUG_RAG=1 to enable."

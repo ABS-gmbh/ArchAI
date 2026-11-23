@@ -10,6 +10,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
+from app.routers.errors import unexpected_error
 from app.services.rag_debug import is_rag_debug_enabled
 from app.services import rag_store
 
@@ -36,8 +37,8 @@ def rag_debug_retrieve(
         return rag_store.retrieve_debug(
             query, k=k, run_id=run_id, asset_ref=asset_ref,
         )
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Retrieve failed: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="Retrieval", provider="embedding provider")
 
 
 @router.get("/rag/debug/evidence-preview")
@@ -58,5 +59,5 @@ def rag_debug_evidence_preview(
     try:
         from app.services.chat_ai import build_rag_evidence_for_debug
         return build_rag_evidence_for_debug(query, run_id, k=k)
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Evidence preview failed: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="The evidence preview", provider="embedding provider")
