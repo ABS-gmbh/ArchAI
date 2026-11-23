@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.body_limit import RequestBodyLimit
 from app.config import settings
 from app.logging_setup import configure_logging
 from app.services.file_manager import cleanup_expired_tasks
@@ -80,6 +81,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Added first so it sits inside CORS: a 413 still carries the CORS headers the
+# browser needs to read it.
+app.add_middleware(RequestBodyLimit)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
