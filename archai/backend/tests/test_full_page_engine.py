@@ -223,8 +223,12 @@ class _LineAgent:
         self.reads = reads
         self.requests: list[Any] = []
 
-    def run(self, payload: Any) -> OCRExtractResponse:
+    def run(self, payload: Any, *, progress: Any = None) -> OCRExtractResponse:
         self.requests.append(payload)
+        self.progress_given = progress is not None
+        for done in range(1, len(payload.regions) + 1):
+            if progress is not None:
+                progress(done, len(payload.regions))
         lines = [f"line {region.region_id}" for region in payload.regions] if self.reads else []
         text = "\n".join(lines)
         return OCRExtractResponse(
@@ -385,8 +389,8 @@ def test_a_pinned_kraken_backend_is_passed_to_the_agent(route: dict[str, Any], m
 class _PunctuatedAgent(_LineAgent):
     """Reads lines holding a question mark and an ellipsis, as a recogniser can."""
 
-    def run(self, payload: Any) -> OCRExtractResponse:
-        result = super().run(payload)
+    def run(self, payload: Any, *, progress: Any = None) -> OCRExtractResponse:
+        result = super().run(payload, progress=progress)
         text = "\n".join(f"Que diras tu? {region.region_id} … e" for region in payload.regions)
         return result.model_copy(update={"text": text, "final_text": text})
 
@@ -420,8 +424,8 @@ class _BoxAgent(_LineAgent):
         self.texts = texts or {}
         self.proofread = proofread
 
-    def run(self, payload: Any) -> OCRExtractResponse:
-        result = super().run(payload)
+    def run(self, payload: Any, *, progress: Any = None) -> OCRExtractResponse:
+        result = super().run(payload, progress=progress)
         regions = [
             OCRRegionResult(
                 region_id=region.region_id,
@@ -536,8 +540,12 @@ def test_a_reserved_run_carries_the_request_trace_from_the_start(route: dict[str
 
     result = _extract(run_id=run_id)
 
+    assert result.ocr_engine == "segmented"
     assert result.run_id == run_id and calls[0]["run_id"] == run_id
-    assert _events(db, run_id) == [("RECEIVED", "START"), ("OCR_RUNNING", "START"), ("OCR_DONE", "END"), ("DONE", "END")]
+    assert _events(db, run_id) == [
+        ("RECEIVED", "START"), ("OCR_RUNNING", "START"), ("OCR_RUNNING", "INFO"), ("OCR_DONE", "END"), ("DONE", "END"),
+    ]
+    assert db.list_events(run_id)[2]["message"] == "lines 2/2"
     assert db.get_run(run_id)["status"] == "COMPLETED"
     assert db.get_run(run_id)["asset_ref"] == "page-1"
 
@@ -678,3 +686,47 @@ def test_retention_keeps_a_reserved_run_as_not_finished(db: Any) -> None:
     _age_reservation(db, reserved, 400 * 24 * 3600)
     plan = plan_retention(180, protected=set())
     assert reserved in plan.kept.get("not_finished", []) and reserved not in plan.expired
+
+
+# ------------------------------------------------------------ line progress --
+
+
+def test_line_progress_is_throttled_to_every_five_lines_or_one_second(db: Any) -> None:
+    run_id = db.create_run(asset_ref="page", asset_sha256=None)
+    now = [0.0]
+    events = ocr_router._LineProgressEvents(run_id, clock=lambda: now[0])
+    for done in range(1, 13):
+        now[0] += 0.1  # fast lines: only every fifth, and the last
+        events(done, 12)
+    slow = ocr_router._LineProgressEvents(run_id, clock=lambda: now[0])
+    for done in range(1, 4):
+        now[0] += 1.5  # slow lines: each one
+        slow(done, 3)
+    assert [e["message"] for e in db.list_events(run_id)] == ["lines 5/12", "lines 10/12", "lines 12/12", "lines 1/3", "lines 2/3", "lines 3/3"]
+
+
+def test_a_five_line_page_streams_line_counts_into_its_reserved_run(route: dict[str, Any], db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, *[_line(150 + 100 * i) for i in range(5)]))
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", lambda *a, **k: {"run_id": k["run_id"]})
+    ticks = iter(range(100))
+    monkeypatch.setattr(ocr_router.time, "monotonic", lambda: float(next(ticks)) * 1.1)  # each line takes ~1 s
+    run_id = asyncio.run(ocr_router.ocr_reserve_run())["run_id"]
+
+    _extract(run_id=run_id)
+
+    assert [(e["stage"], e["event"], e["message"]) for e in db.list_events(run_id)] == [
+        ("RECEIVED", "START", "Full-page OCR request received."),
+        ("OCR_RUNNING", "START", "Full-page OCR running."),
+        ("OCR_RUNNING", "INFO", "lines 1/5"),
+        ("OCR_RUNNING", "INFO", "lines 2/5"),
+        ("OCR_RUNNING", "INFO", "lines 3/5"),
+        ("OCR_RUNNING", "INFO", "lines 4/5"),
+        ("OCR_RUNNING", "INFO", "lines 5/5"),
+        ("OCR_DONE", "END", "Full-page OCR done (segmented)."),
+    ]
+
+
+def test_without_a_reserved_run_the_agent_gets_no_progress(route: dict[str, Any], db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150), _line(250)))
+    result = _extract()
+    assert result.ocr_engine == "segmented" and route["agent"].progress_given is False

@@ -1251,9 +1251,32 @@ def _full_page_lines(regions: list[OCRRegionResult], text: str | None, *, lane: 
     return lines
 
 
+class _LineProgressEvents:
+    """Logs ``OCR_RUNNING INFO "lines <done>/<total>"`` into a run, at most every 5 lines or 1 s.
+
+    The last line is always logged, so a follower sees the count reach the
+    total. Used only when the client reserved the run to follow it.
+    """
+
+    def __init__(self, run_id: str, *, every: int = 5, min_interval: float = 1.0, clock: Any = None) -> None:
+        self.run_id = run_id
+        self.every = every
+        self.min_interval = min_interval
+        self.clock = clock or (lambda: time.monotonic())
+        self._last_done = 0
+        self._last_time = self.clock()
+
+    def __call__(self, done: int, total: int) -> None:
+        now = self.clock()
+        if done == total or done - self._last_done >= self.every or now - self._last_time >= self.min_interval:
+            log_event(self.run_id, "OCR_RUNNING", "INFO", f"lines {done}/{total}")
+            self._last_done, self._last_time = done, now
+
+
 def _run_segmented_full_page(
     payload: SaiaFullPageExtractRequest,
     image_bytes: bytes,
+    progress: Any = None,
 ) -> tuple[SaiaFullPageExtractResponse, str]:
     """Read a page line by line: layout segmentation, then the OCR agent's plan.
 
@@ -1269,7 +1292,9 @@ def _run_segmented_full_page(
         raise _SegmentedPageUnread("no_text_regions")
 
     agent = _get_ocr_agent()
-    result = agent.run(_build_segmented_extract_request(payload, body))
+    body_request = _build_segmented_extract_request(payload, body)
+    # Only the body lane reports progress: it is the page being read.
+    result = agent.run(body_request, progress=progress) if progress is not None else agent.run(body_request)
     if not isinstance(result, OCRExtractResponse) or not str(result.final_text or result.text or "").strip():
         raise _SegmentedPageUnread("no_text")
     backend = str(result.ocr_backend or payload.ocr_backend or "auto")
@@ -1448,7 +1473,8 @@ async def _extract_full_page(
     # A canned fixture is a GLM-OCR result; it never goes through segmentation.
     if fixture is None and _full_page_engine(payload) == "segmented":
         try:
-            response, ocr_backend = await asyncio.to_thread(_run_segmented_full_page, payload, image_bytes)
+            progress = _LineProgressEvents(run_id) if run_id is not None else None
+            response, ocr_backend = await asyncio.to_thread(_run_segmented_full_page, payload, image_bytes, progress)
         except _SegmentedPageUnread as exc:
             fallback_warnings.append(f"OCR_ENGINE_FALLBACK:{exc}")
         except Exception as exc:

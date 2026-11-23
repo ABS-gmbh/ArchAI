@@ -442,3 +442,30 @@ def test_a_page_read_by_the_first_backend_alone_gets_no_fallback_warning(monkeyp
     result = ocr_agent.run_ocr_extraction(_request(OCRExtractOptions(language_hint="old_french", apply_proofread=False)), client=_DummyClient())
     assert result.text == "Linea una"
     assert not any(w.startswith("LINES_READ_BY_FALLBACK") for w in result.warnings)
+
+
+def test_the_agent_reports_each_line_and_reads_the_same_with_or_without_progress(monkeypatch: Any) -> None:
+    lines = {f"line-{i}": f"Linea {i}" for i in range(1, 6)}
+    outputs = {k: ((v, 0.9, None) if k != "line-3" else ("", 0.0, None)) for k, v in lines.items()}
+
+    def runtime(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        return {
+            "kraken_catmus": _FakeBackend("kraken_catmus", "CATMuS Medieval", outputs),
+            "kraken_cremma_medieval": _FailingBackend("kraken_cremma_medieval", "missing"),
+            "kraken_mccatmus": _FailingBackend("kraken_mccatmus", "missing"),
+        }
+
+    monkeypatch.setattr(ocr_agent, "build_backend_runtime", runtime)
+    request = OCRExtractRequest(
+        page_id="page-1",
+        image_b64=SAMPLE_B64,
+        regions=[OCRRegionInput(region_id=k, bbox_xyxy=[0, 0, 1, 1], reading_order=i) for i, k in enumerate(lines)],
+        options=OCRExtractOptions(language_hint="old_french", apply_proofread=False),
+    )
+    reported: list[tuple[int, int]] = []
+    with_progress = ocr_agent.run_ocr_extraction(request, client=_DummyClient(), progress=lambda d, t: reported.append((d, t)))
+    without = ocr_agent.run_ocr_extraction(request, client=_DummyClient())
+
+    assert reported == [(1, 5), (2, 5), (3, 5), (4, 5), (5, 5)]  # the unread line 3 is reported too
+    assert with_progress.text == without.text == "Linea 1\nLinea 2\nLinea 4\nLinea 5"
+    assert with_progress.warnings == without.warnings
