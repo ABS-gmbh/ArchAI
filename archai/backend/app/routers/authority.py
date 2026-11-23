@@ -6,6 +6,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
+from app.routers.errors import unexpected_error
+
 router = APIRouter(tags=["authority-linking"])
 
 
@@ -26,8 +28,8 @@ def link_run(run_id: str, force_refresh: bool = False) -> dict[str, Any]:
         return run_authority_linking(run_id, force_refresh=force_refresh)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Authority linking failed: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="Authority linking")
 
 
 @router.get("/authority/report/{run_id}")
@@ -42,5 +44,5 @@ def linking_report(run_id: str) -> dict[str, Any]:
         return build_report_from_db(run_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Report failed: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="The linking report")
