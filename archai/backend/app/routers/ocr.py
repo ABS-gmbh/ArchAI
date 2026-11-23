@@ -46,8 +46,10 @@ from app.db.pipeline_db import (
 from app.routers.predict import _prepare_image_for_segmentation, rescale_coco_to_original
 from app.schemas.agents_ocr import OCRComparisonSummary, OCRExtractAnyResponse, OCRExtractOptions, OCRExtractRequest
 from app.schemas.agents_ocr import (
+    FullPageLine,
     OCRExtractResponse,
     OCRRegionInput,
+    OCRRegionResult,
     SaiaFullPageExtractRequest,
     SaiaFullPageExtractResponse,
     SaiaOCRLocationSuggestion,
@@ -1209,6 +1211,42 @@ def _secondary_lines(result: OCRExtractAnyResponse) -> list[str]:
     return _strip_uncertainty_lines(str(result.final_text or result.text or "").splitlines(), strip_markers=False)
 
 
+def _full_page_lines(regions: list[OCRRegionResult], text: str | None, *, lane: str) -> list[FullPageLine]:
+    """*regions* as response lines, each tied to its span of *text* when *text* is given.
+
+    A region's text is cleaned as the response text is (runs of spaces
+    collapsed, empty lines dropped) and found in *text* from where the previous
+    region ended, so ``text[char_start:char_end]`` is the region's text. A
+    region not found verbatim (a proofread rewrote it) gets no offsets.
+    """
+    lines: list[FullPageLine] = []
+    cursor = 0
+    for index, region in enumerate(regions):
+        cleaned = "\n".join(_strip_uncertainty_lines(str(region.text or "").splitlines(), strip_markers=False))
+        start: int | None = None
+        end: int | None = None
+        if text is not None and cleaned:
+            found = text.find(cleaned, cursor)
+            if found >= 0:
+                start, end = found, found + len(cleaned)
+                cursor = end
+        lines.append(
+            FullPageLine(
+                region_id=region.region_id,
+                lane=lane,  # type: ignore[arg-type]
+                reading_order=region.reading_order if region.reading_order is not None else index,
+                text=cleaned,
+                char_start=start,
+                char_end=end,
+                bbox_xyxy=region.bbox_xyxy,
+                polygon=region.polygon,
+                confidence=region.confidence,
+                backend_name=region.backend_name,
+            )
+        )
+    return lines
+
+
 def _run_segmented_full_page(
     payload: SaiaFullPageExtractRequest,
     image_bytes: bytes,
@@ -1234,11 +1272,15 @@ def _run_segmented_full_page(
 
     warnings: list[str] = []
     secondary: list[str] = []
+    secondary_regions: list[OCRRegionResult] = []
     if outside:
         # Pinned to the body's backend, so both lanes are read by one model.
         pinned = payload.model_copy(update={"ocr_backend": backend, "compare_backends": []})
         try:
-            secondary = _secondary_lines(agent.run(_build_segmented_extract_request(pinned, outside)))
+            secondary_result = agent.run(_build_segmented_extract_request(pinned, outside))
+            secondary = _secondary_lines(secondary_result)
+            if isinstance(secondary_result, OCRExtractResponse):
+                secondary_regions = list(secondary_result.regions)
         except Exception as exc:
             warnings.append(f"SECONDARY_TEXT_FAILED:{exc}")
 
@@ -1253,6 +1295,10 @@ def _run_segmented_full_page(
                 "ocr_engine": "segmented",
                 "warnings": list(dict.fromkeys([*response.warnings, *warnings])),
                 "secondary_lines": secondary,
+                "line_regions": [
+                    *_full_page_lines(result.regions, response.text, lane="body"),
+                    *_full_page_lines(secondary_regions, None, lane="secondary"),
+                ],
                 "comparison_runs": _build_comparison_runs(result, str(payload.ocr_backend or "auto")),
                 "original_image_size_bytes": len(image_bytes),
                 "original_image_width": width,
