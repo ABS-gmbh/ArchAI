@@ -17,7 +17,7 @@ router = APIRouter(tags=["download"])
 
 
 @router.get("/download/{task_id}/coco_json")
-async def download_coco_json(task_id: str):
+def download_coco_json(task_id: str):
     """Download COCO JSON annotations for a task."""
     task = get_task(task_id)
     if task is None or task.coco_json is None:
@@ -32,7 +32,7 @@ async def download_coco_json(task_id: str):
 
 
 @router.get("/download/{task_id}/annotated_image")
-async def download_annotated_image(task_id: str):
+def download_annotated_image(task_id: str):
     """Download the annotated image for a single-image task."""
     task = get_task(task_id)
     if task is None or task.annotated_image_path is None:
@@ -49,7 +49,7 @@ async def download_annotated_image(task_id: str):
 
 
 @router.get("/download/{task_id}/annotated/{index}")
-async def download_batch_annotated(task_id: str, index: int):
+def download_batch_annotated(task_id: str, index: int):
     """Download a specific annotated image from a batch task."""
     task = get_task(task_id)
     if task is None:

@@ -9,8 +9,11 @@ from fastapi import APIRouter, HTTPException
 router = APIRouter(tags=["authority-linking"])
 
 
+# Plain ``def`` handlers, so FastAPI runs them in its threadpool: linking makes
+# blocking Wikidata/VIAF/GeoNames requests with multi-second timeouts, and as
+# ``async def`` it froze every other request on the process while it ran.
 @router.post("/authority/link/{run_id}")
-async def link_run(run_id: str, force_refresh: bool = False) -> dict[str, Any]:
+def link_run(run_id: str, force_refresh: bool = False) -> dict[str, Any]:
     """Run authority linking (Wikidata search + scoring) for all mentions in *run_id*."""
     from app.services.authority_linking import run_authority_linking
 
@@ -23,7 +26,7 @@ async def link_run(run_id: str, force_refresh: bool = False) -> dict[str, Any]:
 
 
 @router.get("/authority/report/{run_id}")
-async def linking_report(run_id: str) -> dict[str, Any]:
+def linking_report(run_id: str) -> dict[str, Any]:
     """Return a pre-built linking report for *run_id*.
 
     Reads existing candidates from the DB (does NOT re-run linking).

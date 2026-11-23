@@ -12,7 +12,7 @@ router = APIRouter(tags=["index"])
 
 
 @router.post("/index/run/{run_id}")
-async def index_run(run_id: str) -> dict[str, Any]:
+def index_run(run_id: str) -> dict[str, Any]:
     """Embed all chunks for *run_id* and upsert into the vector store."""
     try:
         return rag_store.index_run(run_id)
@@ -23,7 +23,7 @@ async def index_run(run_id: str) -> dict[str, Any]:
 
 
 @router.get("/index/run/{run_id}/status")
-async def index_status(run_id: str) -> dict[str, Any]:
+def index_status(run_id: str) -> dict[str, Any]:
     """Check whether *run_id* has been indexed."""
     try:
         return rag_store.is_run_indexed(run_id)
@@ -32,7 +32,7 @@ async def index_status(run_id: str) -> dict[str, Any]:
 
 
 @router.delete("/index/run/{run_id}")
-async def delete_index(run_id: str) -> dict[str, Any]:
+def delete_index(run_id: str) -> dict[str, Any]:
     """Remove all vectors for *run_id* from the store."""
     try:
         deleted = rag_store.delete_run(run_id)
@@ -42,7 +42,7 @@ async def delete_index(run_id: str) -> dict[str, Any]:
 
 
 @router.post("/index/search")
-async def search_index(
+def search_index(
     query: str,
     top_k: int | None = None,
     run_id: str | None = None,

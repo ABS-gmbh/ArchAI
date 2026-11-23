@@ -422,7 +422,8 @@ async def predict_batch(
 @router.get("/predict/batch/{task_id}/progress")
 async def batch_progress(task_id: str):
     """SSE endpoint streaming batch processing progress."""
-    task = get_task(task_id)
+    # get_task may read the task's saved state from disk.
+    task = await asyncio.to_thread(get_task, task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Task not found.")
 
@@ -453,7 +454,7 @@ async def batch_progress(task_id: str):
 
 
 @router.get("/predict/batch/{task_id}/results")
-async def batch_results(task_id: str):
+def batch_results(task_id: str):
     """Get final results for a completed batch task."""
     task = get_task(task_id)
     if task is None:
