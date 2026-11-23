@@ -1535,6 +1535,22 @@ def _empty_result(run_id: str, reason: str) -> dict[str, Any]:
     }
 
 
+def _candidate_meta(candidate: dict[str, Any]) -> dict[str, Any]:
+    meta = candidate.get("meta_json") or {}
+    if isinstance(meta, str):
+        try:
+            meta = json.loads(meta)
+        except Exception:
+            meta = {}
+    return meta if isinstance(meta, dict) else {}
+
+
+def _score_breakdown(meta: dict[str, Any] | None) -> dict[str, Any] | None:
+    """A candidate's stored score components (label/alias similarity, context, ...), or None."""
+    breakdown = (meta or {}).get("score_breakdown")
+    return breakdown if isinstance(breakdown, dict) else None
+
+
 def _build_result_from_structured_rows(
     *,
     run_id: str,
@@ -1600,14 +1616,18 @@ def _build_result_from_structured_rows(
                 "type_compatible": link_row.get("type_compatible"),
             }
 
+        candidate_metas = [_candidate_meta(candidate) for candidate in candidate_rows_by_mention.get(mid, [])]
+        if selected is not None:
+            # The components that produced the linked score, from the stored
+            # candidate the linker selected (or, failing a flag, the same id).
+            chosen = next((meta for meta in candidate_metas if meta.get("is_selected")), None) or next(
+                (meta for meta in candidate_metas if str(meta.get("authority_id") or "") == selected["authority_id"] and selected["authority_id"]),
+                None,
+            )
+            selected["score_breakdown"] = _score_breakdown(chosen)
+
         top_candidates = []
-        for candidate in candidate_rows_by_mention.get(mid, [])[:3]:
-            meta = candidate.get("meta_json") or {}
-            if isinstance(meta, str):
-                try:
-                    meta = json.loads(meta)
-                except Exception:
-                    meta = {}
+        for candidate, meta in list(zip(candidate_rows_by_mention.get(mid, []), candidate_metas))[:3]:
             top_candidates.append(
                 {
                     "source": meta.get("source", candidate.get("source", "")),
@@ -1616,6 +1636,7 @@ def _build_result_from_structured_rows(
                     "label": meta.get("label", ""),
                     "score": float(candidate.get("score", 0.0)),
                     "type_compatible": meta.get("type_compatible", True),
+                    "score_breakdown": _score_breakdown(meta),
                 }
             )
 
