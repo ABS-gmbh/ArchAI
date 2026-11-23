@@ -105,8 +105,14 @@ server-side `/api` proxy add it.
   127.0.0.1. If the proxy runs on another address, add
   `--forwarded-allow-ips=<proxy address>` so the access log shows the client's
   address.
-- **Rate limiting** (at the proxy): `/api/analytics/login` has no lockout, and
-  the OCR and chat routes are expensive.
+- **Rate limiting:** the backend refuses analytics logins from an address
+  with 429 after `ANALYTICS_LOGIN_MAX_FAILURES` (5) failures within
+  `ANALYTICS_LOGIN_WINDOW_SECONDS` (900). It keys on the client address it
+  sees, so behind a proxy uvicorn must trust the proxy's `X-Forwarded-For`
+  (see client addresses above); otherwise every client shares the proxy's
+  address, and one guesser locks everyone out. If that cannot be arranged,
+  limit at the proxy instead. The OCR and chat routes are expensive and have
+  no limit of their own; limit them at the proxy.
 
 ### The frontend
 

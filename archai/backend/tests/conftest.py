@@ -151,3 +151,17 @@ def _stores_stay_redirected(_live_stores_outside_the_checkout: dict[str, str | N
     }
     if changed:
         pytest.fail(f"test left store paths pointing elsewhere: {changed}")
+
+
+@pytest.fixture(autouse=True)
+def _fresh_login_limiter():
+    """Each test starts with no failed analytics logins on record.
+
+    Assigned directly rather than through monkeypatch: requesting monkeypatch
+    here would change the order in which the store-path guard is torn down.
+    """
+    from app.routers import analytics
+    from app.services.login_limiter import FailedLoginLimiter
+
+    analytics._login_limiter = FailedLoginLimiter()
+    yield
