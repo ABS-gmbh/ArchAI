@@ -184,3 +184,20 @@ def test_a_segmentation_failure_is_a_clear_500_and_cleans_up(client, tmp_path, m
     assert response.json()["detail"].startswith("Layout segmentation failed on the server")
     assert "/opt/models" not in response.text
     assert _uploads(tmp_path) == []
+
+
+@pytest.mark.parametrize("name", ["..", ".", "x" * 300 + ".png", "state.json", "annotated.jpg"])
+def test_any_client_file_name_is_stored_safely(client, tmp_path, monkeypatch, name: str) -> None:
+    """"." and ".." named the task directory and a 300-character name was too long (500s);
+    state.json and annotated.jpg were overwritten by the task's own files."""
+    seen: list[str] = []
+
+    def segment(path, **kwargs):
+        seen.append(path)
+        return {"images": [{"id": 1, "file_name": Path(path).name, "width": 40, "height": 40}], "annotations": [], "categories": []}, {}
+
+    monkeypatch.setattr(predict, "run_single_segmentation", segment)
+    response = client.post("/predict/single", files={"image": (name, _png(), "image/png")})
+    assert response.status_code == 200
+    assert Path(seen[0]).name.startswith("upload.")
+    assert response.json()["coco_json"]["images"][0]["file_name"] == name[:255]
