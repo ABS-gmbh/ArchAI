@@ -12,6 +12,7 @@ from app.config import settings
 from app.logging_setup import configure_logging
 from app.services.file_manager import cleanup_expired_tasks
 from app.services.inference import init_model_pool, shutdown_model_pool
+from app.services.run_retention import RetentionSweeper
 from app.routers import health, classes, predict, download, analytics, chat, agents_ocr, ocr, evidence, index, rag_debug, authority
 
 
@@ -19,8 +20,8 @@ from app.routers import health, classes, predict, download, analytics, chat, age
 _TASK_CLEANUP_INTERVAL_SECONDS = 15 * 60
 
 
-async def _periodic_task_cleanup() -> None:
-    """Sweep expired task directories on a timer for long-running processes."""
+async def _periodic_task_cleanup(retention: RetentionSweeper) -> None:
+    """Sweep expired task directories, and expired runs if retention is on, on a timer."""
     while True:
         await asyncio.sleep(_TASK_CLEANUP_INTERVAL_SECONDS)
         try:
@@ -30,6 +31,17 @@ async def _periodic_task_cleanup() -> None:
             raise
         except Exception:
             logging.getLogger(__name__).exception("Periodic task cleanup failed.")
+        await _retention_sweep(retention)
+
+
+async def _retention_sweep(retention: RetentionSweeper) -> None:
+    """Off unless RUN_RETENTION_DAYS > 0; see app/services/run_retention.py."""
+    try:
+        await asyncio.to_thread(retention.sweep)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        logging.getLogger(__name__).exception("Run retention sweep failed.")
 
 
 @asynccontextmanager
@@ -49,7 +61,10 @@ async def lifespan(app: FastAPI):
     # 60-minute TTL. Startup is the important one: it is the only moment the
     # orphans left by a previous process are guaranteed to be swept.
     cleanup_expired_tasks()
-    sweeper = asyncio.create_task(_periodic_task_cleanup())
+    # With retention on, the first sweep only logs what the next one deletes.
+    retention = RetentionSweeper()
+    await _retention_sweep(retention)
+    sweeper = asyncio.create_task(_periodic_task_cleanup(retention))
     try:
         yield
     finally:

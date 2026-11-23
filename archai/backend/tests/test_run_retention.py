@@ -255,3 +255,119 @@ def test_the_script_requires_a_window() -> None:
     with pytest.raises(SystemExit) as exit_info:
         _prune_runs().main(["--apply"])
     assert exit_info.value.code == 2
+
+
+# ───────────────────────────────────────────── the scheduled sweep ──
+
+
+@pytest.fixture
+def no_vectors(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.services import rag_store
+
+    monkeypatch.setattr(rag_store, "delete_run", lambda run_id: 0)
+
+
+def test_the_default_configuration_deletes_nothing(no_vectors: None) -> None:
+    from app.config import Settings
+
+    assert Settings(_env_file=None).run_retention_days == 0
+    old = _ancient_superseded_run()
+    sweeper = run_retention.RetentionSweeper()
+    assert sweeper.sweep(now=NOW) is None
+    assert sweeper.sweep(now=NOW) is None
+    assert pipeline_db.get_run(old) is not None
+
+
+def test_the_first_sweep_only_previews(
+    no_vectors: None, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "run_retention_days", 30)
+    monkeypatch.setattr(run_retention, "showcase_run_ids", lambda: set())
+    old = _run("p1", days_old=90)
+    _run("p1", days_old=60)
+    sweeper = run_retention.RetentionSweeper()
+    with caplog.at_level("INFO"):
+        first = sweeper.sweep(now=NOW)
+        assert first is not None and first["runs"] == 0 and first["previewed"] == 1
+        assert pipeline_db.get_run(old) is not None
+        assert f"run {old} (page sha-p1, last updated 90 days ago)" in caplog.text
+        second = sweeper.sweep(now=NOW)
+    assert second is not None and second["runs"] == 1
+    assert pipeline_db.get_run(old) is None
+    assert f"Retention: deleted run {old}" in caplog.text
+    assert "Retention sweep: deleted 1 runs" in caplog.text
+
+
+def test_a_sweep_deletes_at_most_the_cap_oldest_first(no_vectors: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "run_retention_days", 30)
+    monkeypatch.setattr(settings, "run_retention_max_per_sweep", 2)
+    monkeypatch.setattr(run_retention, "showcase_run_ids", lambda: set())
+    oldest, older, old = _run("p1", days_old=300), _run("p1", days_old=200), _run("p1", days_old=100)
+    _run("p1", days_old=1)
+    sweeper = run_retention.RetentionSweeper()
+    sweeper.sweep(now=NOW)
+    assert sweeper.sweep(now=NOW)["runs"] == 2
+    assert [pipeline_db.get_run(r) is None for r in (oldest, older, old)] == [True, True, False]
+
+
+def test_the_sweep_never_deletes_an_annotated_run(no_vectors: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "run_retention_days", 30)
+    monkeypatch.setattr(run_retention, "showcase_run_ids", lambda: set())
+    annotated = _run("p1", days_old=90)
+    _run("p1", days_old=60)
+    _span(annotated, None)
+    sweeper = run_retention.RetentionSweeper()
+    sweeper.sweep(now=NOW)
+    sweeper.sweep(now=NOW)
+    assert pipeline_db.get_run(annotated) is not None
+
+
+@pytest.mark.parametrize(
+    ("name", "value", "message"),
+    [
+        ("RUN_RETENTION_DAYS", "-1", "RUN_RETENTION_DAYS must be 0"),
+        ("RUN_RETENTION_MAX_PER_SWEEP", "0", "RUN_RETENTION_MAX_PER_SWEEP must be at least 1"),
+    ],
+)
+def test_bad_retention_settings_are_refused_by_name(
+    monkeypatch: pytest.MonkeyPatch, name: str, value: str, message: str
+) -> None:
+    from pydantic import ValidationError
+
+    from app.config import Settings
+
+    monkeypatch.setenv(name, value)
+    with pytest.raises(ValidationError, match=message):
+        Settings(_env_file=None)
+
+
+def test_startup_runs_the_preview_sweep(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The sweep is wired into the lifespan; with the default setting it does nothing."""
+    import asyncio
+
+    import app.main as main
+
+    calls: list[str] = []
+
+    class Sweeper:
+        def sweep(self) -> None:
+            calls.append("sweep")
+
+    monkeypatch.setattr(main, "init_model_pool", lambda: None)
+    monkeypatch.setattr(main, "shutdown_model_pool", lambda: None)
+    monkeypatch.setattr(main, "cleanup_expired_tasks", lambda: {})
+    monkeypatch.setattr(main, "configure_logging", lambda *args, **kwargs: None)
+    monkeypatch.setattr(main, "RetentionSweeper", Sweeper)
+
+    async def start_and_stop() -> None:
+        async with main.lifespan(main.app):
+            pass
+
+    asyncio.run(start_and_stop())
+    assert calls == ["sweep"]
