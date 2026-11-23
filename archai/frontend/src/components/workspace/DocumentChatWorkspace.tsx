@@ -47,6 +47,7 @@ import {
   isLabelAnalysisPrompt,
   resolveOcrPromptHints,
 } from "./workspaceIntents";
+import { BackendStatusBanner } from "./BackendStatusBanner";
 import { RetrievalBadges } from "./RetrievalBadges";
 import {
   getExtractionStatus,
@@ -1291,6 +1292,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       </aside>
 
       <section className="flex min-h-[70vh] min-w-0 flex-1 flex-col md:min-h-0">
+        <BackendStatusBanner />
         <div className="flex items-center gap-3 border-b px-4 py-3">
           <div>
             <p className="text-sm font-medium">Chat</p>
