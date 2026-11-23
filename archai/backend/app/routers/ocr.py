@@ -1135,6 +1135,22 @@ def _full_page_engine(payload: SaiaFullPageExtractRequest) -> str:
     return "segmented"
 
 
+def _require_readable_image(image_bytes: bytes) -> None:
+    """Refuse bytes PIL cannot identify (a PDF, a text file) with 422.
+
+    They used to go through segmentation, fail there, fall back to GLM-OCR and
+    come back as 502 "Unreadable image payload." - reported as an upstream
+    failure though the input was at fault. Only the header is read.
+    """
+    from PIL import Image, UnidentifiedImageError
+
+    try:
+        with Image.open(io.BytesIO(image_bytes)):
+            pass
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail="The uploaded file is not an image the server can read. Use PNG, JPEG or TIFF.") from exc
+
+
 def _upright_page_bytes(image_bytes: bytes) -> bytes:
     """Apply an EXIF orientation, so layout boxes and line crops share one frame.
 
@@ -1256,6 +1272,8 @@ async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFull
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"Invalid image_b64 payload: {exc}") from exc
     fixture = get_test_ocr_fixture(image_bytes)
+    if fixture is None:
+        _require_readable_image(image_bytes)
     if fixture is not None and fixture.wait_seconds > 0:
         await asyncio.sleep(float(fixture.wait_seconds))
 
