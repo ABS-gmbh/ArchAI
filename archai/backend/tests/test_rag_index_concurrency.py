@@ -88,3 +88,32 @@ def test_different_runs_still_index_in_parallel(slow_store: list[int]) -> None:
     _concurrently(next_run, n=2)
     assert slow_store == [3, 3]
     assert time.perf_counter() - started < 0.55  # not serialised behind one lock
+
+
+def test_delete_waits_for_an_index_of_the_same_run_in_flight(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """DELETE /index/run/{id} during indexing used to leave the vectors the index upserted after it."""
+    embedding = threading.Event()
+
+    def slow_embed(texts: list[str]) -> list[list[float]]:
+        embedding.set()
+        time.sleep(0.3)
+        return _embed(texts)
+
+    monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
+    monkeypatch.setattr(pipeline_db, "_DB_READY", False)
+    monkeypatch.setattr(settings, "chroma_persist_dir", str(tmp_path / "chroma"))
+    monkeypatch.setattr(rag_store, "_CLIENT", None)
+    monkeypatch.setattr(settings, "rag_embedding_model", "test-embedder")
+    monkeypatch.setattr(rag_store, "_embed", slow_embed)
+    monkeypatch.setattr(rag_store, "_build_entity_index_payload", lambda _run_id, _run: ([], [], [], 0))
+    run_id = _run("page", sha="sha-p", allowed=True)
+
+    indexer = threading.Thread(target=rag_store.index_run, args=(run_id,))
+    indexer.start()
+    assert embedding.wait(timeout=5)
+    deleted = rag_store.delete_run(run_id)  # arrives while the chunks are being embedded
+    indexer.join(timeout=10)
+
+    assert deleted == 3
+    chunks = rag_store._collection(backend_key=rag_store._space_key())
+    assert chunks.get(where={"run_id": run_id}, include=[])["ids"] == []
