@@ -978,8 +978,14 @@ class GlmOcrBackend(OCRBackend):
 
             # GLM-OCR accepts file paths; write to temp file
             with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-                processed.save(tmp, format="PNG")
                 tmp_path = tmp.name
+                try:
+                    processed.save(tmp, format="PNG")
+                except BaseException:
+                    # delete=False: a failed save left the file in the temp
+                    # directory, since the cleanup below only covers recognition.
+                    Path(tmp_path).unlink(missing_ok=True)
+                    raise
 
             try:
                 cuda_devices = str(settings.glmocr_device or "0").strip() or "0"
