@@ -2291,7 +2291,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
 
 
 @router.get("/ocr/trace/{run_id}")
-async def ocr_trace_snapshot(run_id: str) -> dict[str, Any]:
+def ocr_trace_snapshot(run_id: str) -> dict[str, Any]:
     snapshot = _build_trace_snapshot(run_id)
     if snapshot is None:
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
@@ -2308,7 +2308,7 @@ _TRACE_STREAM_MAX_SECONDS = 60 * 60
 
 @router.get("/ocr/trace/stream/{run_id}")
 async def ocr_trace_stream(run_id: str) -> StreamingResponse:
-    if get_run(run_id) is None:
+    if await asyncio.to_thread(get_run, run_id) is None:
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
 
     async def event_stream():
@@ -2349,7 +2349,7 @@ async def ocr_trace_stream(run_id: str) -> StreamingResponse:
 
 
 @router.get("/ocr/trace/{run_id}/tables")
-async def ocr_trace_tables(run_id: str) -> dict[str, Any]:
+def ocr_trace_tables(run_id: str) -> dict[str, Any]:
     if get_run(run_id) is None:
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
     return {

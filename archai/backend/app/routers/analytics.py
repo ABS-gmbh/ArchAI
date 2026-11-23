@@ -53,7 +53,7 @@ def _verify_token(credentials: HTTPAuthorizationCredentials = Depends(security))
 
 
 @router.post("/analytics/login")
-async def analytics_login(body: LoginRequest):
+def analytics_login(body: LoginRequest):
     _require_configured_auth()
     # compare_digest keeps the comparison constant-time so a caller cannot infer
     # the credentials one character at a time from response timing.
@@ -65,5 +65,5 @@ async def analytics_login(body: LoginRequest):
 
 
 @router.get("/analytics/data")
-async def analytics_data(days: int = 30, _user: str = Depends(_verify_token)):
+def analytics_data(days: int = 30, _user: str = Depends(_verify_token)):
     return get_analytics_data(days)

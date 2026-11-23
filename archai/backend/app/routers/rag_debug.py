@@ -17,7 +17,7 @@ router = APIRouter(tags=["rag-debug"])
 
 
 @router.get("/rag/debug/retrieve")
-async def rag_debug_retrieve(
+def rag_debug_retrieve(
     query: str = Query(..., description="Free-text search query"),
     k: int = Query(5, ge=1, le=50, description="Top-k results"),
     run_id: str | None = Query(None, description="Filter by run_id"),
@@ -41,7 +41,7 @@ async def rag_debug_retrieve(
 
 
 @router.get("/rag/debug/evidence-preview")
-async def rag_debug_evidence_preview(
+def rag_debug_evidence_preview(
     query: str = Query(..., description="Free-text search query"),
     run_id: str = Query(..., description="Run ID to scope retrieval"),
     k: int = Query(8, ge=1, le=50, description="Top-k results"),
