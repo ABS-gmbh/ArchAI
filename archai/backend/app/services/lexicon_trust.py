@@ -32,64 +32,67 @@ from typing import Sequence
 from app.services.medieval_text import build_search_key, fold_orthography, rejoin_line_breaks
 
 # ── Trigram frequency profiles ───────────────────────────────────────
-# Each profile is a set of the ~120 most frequent character trigrams for
-# the language, derived from representative medieval corpora.  Membership
-# in this set is the cheapest useful signal; full frequency weights are
-# not needed for the trust-gate use-case.
+# Each profile is a hand-picked set of frequent character trigrams for the
+# language: 95 for Latin, 94 Old French, 102 Middle French, 73 French after
+# folding (audit AL-14 found the literals padded with repeats that the
+# frozenset collapsed; they are listed once now, which changes no set).
+# Membership is the cheapest useful signal; full frequency weights are not
+# needed for the trust-gate use-case. The sizes differ, so one profile's hit
+# rate is not comparable to another's; the quality gate does not compare them:
+# it takes the best fit over all four (best_fit_plausibility), so a language
+# label flipping between French varieties cannot flip it.
 
 _TRIGRAM_PROFILES: dict[str, frozenset[str]] = {
     "latin": frozenset({
         "ent", "ter", "ion", "tio", "ati", "nis", "est", "unt", "tis",
         "que", "per", "tur", "ita", "oru", "rum", "ere", "iss", "sti",
-        "con", "ant", "tur", "mus", "qui", "ius", "ine", "eri", "min",
-        "men", "ali", "tes", "pro", "tra", "str", "bus", "ita", "ris",
-        "dem", "cum", "nos", "ter", "dom", "ndo", "tus", "ium", "omi",
-        "ect", "unt", "tat", "atu", "sec", "nes", "ver", "tan", "pot",
-        "ens", "mit", "pra", "end", "ost", "pon", "aut", "quo", "tem",
-        "und", "int", "unt", "rat", "cit", "ect", "dit", "ere", "ibu",
-        "tri", "ati", "non", "nti", "ere", "nte", "sed", "tis", "ras",
-        "ris", "ica", "rea", "ore", "mis", "nos", "mni", "lla", "pri",
-        "lib", "nim", "eri", "uri", "eni", "san", "ern", "ist", "acc",
-        "pre", "nat", "cre", "gen", "gra", "mul", "ple", "sem", "spi",
+        "con", "ant", "mus", "qui", "ius", "ine", "eri", "min", "men",
+        "ali", "tes", "pro", "tra", "str", "bus", "ris", "dem", "cum",
+        "nos", "dom", "ndo", "tus", "ium", "omi", "ect", "tat", "atu",
+        "sec", "nes", "ver", "tan", "pot", "ens", "mit", "pra", "end",
+        "ost", "pon", "aut", "quo", "tem", "und", "int", "rat", "cit",
+        "dit", "ibu", "tri", "non", "nti", "nte", "sed", "ras", "ica",
+        "rea", "ore", "mis", "mni", "lla", "pri", "lib", "nim", "uri",
+        "eni", "san", "ern", "ist", "acc", "pre", "nat", "cre", "gen",
+        "gra", "mul", "ple", "sem", "spi",
     }),
     "old_french": frozenset({
-        "ent", "les", "est", "ant", "oit", "ois", "oit", "que", "ous",
-        "ure", "des", "ont", "aut", "par", "ain", "ien", "ter", "our",
-        "ort", "com", "con", "ere", "ier", "ion", "ais", "ame", "oie",
-        "roi", "ors", "ois", "ver", "ali", "oit", "nes", "mes", "lor",
-        "ent", "art", "ard", "ort", "ure", "ust", "ren", "out", "tot",
-        "poi", "hom", "gra", "ran", "ble", "res", "nce", "ele", "ien",
-        "rou", "uss", "eur", "ais", "ort", "der", "sen", "ten", "gen",
-        "ave", "oir", "oir", "vil", "ail", "ner", "rei", "erm", "ard",
-        "sem", "pre", "pro", "soi", "ign", "age", "ail", "onn", "rie",
-        "anc", "ari", "noi", "moi", "doi", "voi", "nui", "tos", "uel",
-        "cor", "don", "mon", "hon", "bon", "fon", "pon", "lon", "son",
-        "enc", "emp", "ens", "erl", "ble", "ain", "ein", "oin", "uin",
+        "ent", "les", "est", "ant", "oit", "ois", "que", "ous", "ure",
+        "des", "ont", "aut", "par", "ain", "ien", "ter", "our", "ort",
+        "com", "con", "ere", "ier", "ion", "ais", "ame", "oie", "roi",
+        "ors", "ver", "ali", "nes", "mes", "lor", "art", "ard", "ust",
+        "ren", "out", "tot", "poi", "hom", "gra", "ran", "ble", "res",
+        "nce", "ele", "rou", "uss", "eur", "der", "sen", "ten", "gen",
+        "ave", "oir", "vil", "ail", "ner", "rei", "erm", "sem", "pre",
+        "pro", "soi", "ign", "age", "onn", "rie", "anc", "ari", "noi",
+        "moi", "doi", "voi", "nui", "tos", "uel", "cor", "don", "mon",
+        "hon", "bon", "fon", "pon", "lon", "son", "enc", "emp", "ens",
+        "erl", "ein", "oin", "uin",
     }),
     "middle_french": frozenset({
         "ent", "les", "est", "que", "ant", "des", "ous", "our", "ion",
         "con", "par", "ois", "com", "ait", "ure", "ont", "ter", "aut",
-        "ain", "ien", "ere", "res", "ier", "ois", "nce", "ble", "eur",
-        "ais", "ort", "ren", "mes", "ver", "ali", "ois", "art", "ard",
-        "pre", "pro", "sen", "ten", "gen", "age", "onn", "rie", "ave",
-        "enc", "emp", "ens", "erl", "ain", "ein", "oin", "uin", "oir",
-        "deu", "ieu", "ieu", "roy", "mon", "don", "hon", "bon", "pon",
-        "tre", "ell", "omm", "app", "aue", "lle", "iss", "ans", "oir",
-        "pri", "che", "cha", "chi", "cho", "chu", "ran", "san", "man",
-        "dis", "mis", "fai", "mai", "lai", "pai", "rai", "sai", "tai",
-        "ign", "gne", "ner", "mer", "per", "der", "ser", "ler", "rer",
-        "nte", "ntr", "str", "cti", "iqu", "eme", "ess", "ass", "oss",
+        "ain", "ien", "ere", "res", "ier", "nce", "ble", "eur", "ais",
+        "ort", "ren", "mes", "ver", "ali", "art", "ard", "pre", "pro",
+        "sen", "ten", "gen", "age", "onn", "rie", "ave", "enc", "emp",
+        "ens", "erl", "ein", "oin", "uin", "oir", "deu", "ieu", "roy",
+        "mon", "don", "hon", "bon", "pon", "tre", "ell", "omm", "app",
+        "aue", "lle", "iss", "ans", "pri", "che", "cha", "chi", "cho",
+        "chu", "ran", "san", "man", "dis", "mis", "fai", "mai", "lai",
+        "pai", "rai", "sai", "tai", "ign", "gne", "ner", "mer", "per",
+        "der", "ser", "ler", "rer", "nte", "ntr", "str", "cti", "iqu",
+        "eme", "ess", "ass", "oss",
     }),
     "french": frozenset({
         "les", "ent", "des", "que", "ion", "est", "ait", "ons", "ant",
         "ous", "our", "con", "par", "com", "eur", "ois", "ure", "ier",
         "ter", "res", "nce", "ble", "men", "ais", "oir", "ort", "pre",
-        "pro", "age", "ell", "omm", "app", "lle", "iss", "ans", "oir",
-        "tre", "ain", "ein", "oin", "enc", "emp", "ens", "che", "cha",
-        "ran", "san", "man", "dis", "mis", "fai", "mai", "rai", "tai",
-        "nte", "ntr", "str", "iqu", "eme", "ess", "ass", "iti", "ali",
-        "ens", "ell", "lle", "eau", "aux", "eux", "ieu", "oeu", "ail",
-        "eil", "ouv", "ouv", "cha", "chi", "cho", "chu", "cha", "gne",
+        "pro", "age", "ell", "omm", "app", "lle", "iss", "ans", "tre",
+        "ain", "ein", "oin", "enc", "emp", "ens", "che", "cha", "ran",
+        "san", "man", "dis", "mis", "fai", "mai", "rai", "tai", "nte",
+        "ntr", "str", "iqu", "eme", "ess", "ass", "iti", "ali", "eau",
+        "aux", "eux", "ieu", "oeu", "ail", "eil", "ouv", "chi", "cho",
+        "chu", "gne",
     }),
     "unknown": frozenset(),   # no profile → neutral score
 }
