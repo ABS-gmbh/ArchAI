@@ -86,8 +86,7 @@ _OCR_CONFUSION_MAP: list[tuple[str, str]] = [
     # Long-s / f confusion
     ("ſ", "s"),
     # u / v interchange (common in medieval texts)
-    ("vn", "un"),
-    ("vne", "une"),
+    ("vn", "un"),  # also turns "vne" into "une"
     # i / j / y interchange
     ("ieh", "jeh"),
     # Common ligature artifacts

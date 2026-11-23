@@ -9,10 +9,8 @@ if str(_backend_src.parent) not in sys.path:
     sys.path.insert(0, str(_backend_src.parent))
 
 from app.services.lexicon_trust import (  # type: ignore[import-untyped]
-    agreement_score,
     lexical_plausibility,
     lexical_trust_adjustment,
-    line_length_mismatch_ratio,
 )
 
 
@@ -72,35 +70,3 @@ def test_trust_adjustment_stable_for_good_text() -> None:
 def test_trust_adjustment_clamped() -> None:
     adj_conf, _ = lexical_trust_adjustment(0.01, "qjxvvbbx cccnnn", "latin")
     assert adj_conf >= 0.05  # clamped minimum
-
-
-# ── agreement_score ───────────────────────────────────────────────────
-
-
-def test_agreement_identical_texts() -> None:
-    assert agreement_score(["hello world", "hello world"]) == 1.0
-
-
-def test_agreement_different_texts() -> None:
-    score = agreement_score(["hello world", "qjxvvbbx cccnnn"])
-    assert score < 0.5
-
-
-def test_agreement_single_text() -> None:
-    assert agreement_score(["only one"]) == 1.0
-
-
-# ── line_length_mismatch_ratio ────────────────────────────────────────
-
-
-def test_mismatch_none_expected() -> None:
-    assert line_length_mismatch_ratio(["a", "b", "c"], None) == 0.0
-
-
-def test_mismatch_exact_match() -> None:
-    assert line_length_mismatch_ratio(["a", "b", "c"], 3) == 0.0
-
-
-def test_mismatch_off_by_one() -> None:
-    ratio = line_length_mismatch_ratio(["a", "b", "c"], 4)
-    assert 0 < ratio < 0.5

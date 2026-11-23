@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import random
 import re
-from collections import Counter
 from dataclasses import dataclass
 from typing import Sequence
 
@@ -272,48 +271,6 @@ def lexical_trust_adjustment(
         adjusted = confidence
 
     return max(0.05, min(0.95, adjusted)), warnings
-
-
-def agreement_score(texts: Sequence[str]) -> float:
-    """Compute pairwise agreement among multiple OCR outputs.
-
-    Returns 0-1 where 1.0 = all texts identical.
-    Uses character-level Jaccard similarity on trigram bags.
-    """
-    if len(texts) < 2:
-        return 1.0
-
-    trigram_sets = [set(_extract_trigrams(t)) for t in texts]
-    scores: list[float] = []
-    for i in range(len(trigram_sets)):
-        for j in range(i + 1, len(trigram_sets)):
-            a, b = trigram_sets[i], trigram_sets[j]
-            if not a and not b:
-                scores.append(1.0)
-                continue
-            inter = len(a & b)
-            union = len(a | b)
-            scores.append(inter / max(union, 1))
-
-    return sum(scores) / max(len(scores), 1)
-
-
-def line_length_mismatch_ratio(
-    lines: Sequence[str],
-    expected_line_count: int | None = None,
-) -> float:
-    """Detect mismatch between segmentation geometry and recognized lines.
-
-    If expected_line_count is provided, returns abs(actual - expected) / max(actual, expected).
-    Otherwise returns 0.0 (no signal).
-    """
-    if expected_line_count is None or expected_line_count <= 0:
-        return 0.0
-    actual = len([ln for ln in lines if ln.strip()])
-    if actual == 0 and expected_line_count == 0:
-        return 0.0
-    diff = abs(actual - expected_line_count)
-    return diff / max(actual, expected_line_count, 1)
 
 
 # ── Internals ────────────────────────────────────────────────────────
