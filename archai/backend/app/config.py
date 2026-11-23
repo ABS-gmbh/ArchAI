@@ -148,7 +148,8 @@ class Settings(BaseSettings):
     # Hit@1 +0.056 [+0.011, +0.099]; 222 passage lookups (--readings) MRR
     # +0.040 [+0.019, +0.063], Hit@1 +0.068 [+0.029, +0.105]. Weight 3 was no
     # better on passages. The e5 space keeps rag_lexical_weight until e5 is
-    # measured on the larger question set.
+    # measured on the larger question set. In the local space rag_lexical_weight
+    # is not read: set this one (RAG_LEXICAL_WEIGHT_LOCAL) to change the weight.
     rag_lexical_weight_local: float = 2.0
     # Candidates each ranker contributes to the fusion.
     rag_fusion_pool: int = 50

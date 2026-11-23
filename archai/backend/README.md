@@ -186,7 +186,8 @@ in the fusion (the dense ranking's is 1); `--lexical-weight` and `--rrf-k` try
 other settings on the benchmark. At 2, passage lookup gains (MRR 0.863 to
 0.903) but questions with e5 do not (MRR -0.011, Hit@5 -0.007), so it stays 1.
 With ChromaDB's default model (no `RAG_EMBEDDING_MODEL`), BM25 weighs 2
-instead (`RAG_LEXICAL_WEIGHT_LOCAL`). Against weight 1 on that model, MRR rises
+instead (`RAG_LEXICAL_WEIGHT_LOCAL`); in that configuration `RAG_LEXICAL_WEIGHT`
+is not read, so set `RAG_LEXICAL_WEIGHT_LOCAL` to change it. Against weight 1 on that model, MRR rises
 +0.037 [+0.011, +0.063] over 270 question lookups (both question sets, see
 `eval/retrieval/README.md`) and +0.040 [+0.019, +0.063] over 222 passage lookups.
 latin-apocalypse has four chunks, so every ranker puts its answer in the top
