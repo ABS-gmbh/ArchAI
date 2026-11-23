@@ -28,7 +28,10 @@ export function BackendStatusBanner() {
     controllerRef.current = controller;
     setChecking(true);
     try {
-      setHealth(await getBackendHealth(controller.signal));
+      const result = await getBackendHealth(controller.signal);
+      if (!controller.signal.aborted) {
+        setHealth(result);
+      }
     } catch {
       // Aborted by a newer check or by unmount.
     } finally {
@@ -53,14 +56,14 @@ export function BackendStatusBanner() {
   const severe = health.status !== "degraded";
   return (
     <div
-      role="status"
       className={`flex flex-wrap items-start gap-x-3 gap-y-1 border-b px-4 py-2 text-sm ${
         severe
           ? "border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100"
           : "border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
       }`}
     >
-      <div className="min-w-0 flex-1">
+      {/* Only the message is a live region: the button's label changes on every check. */}
+      <div role="status" className="min-w-0 flex-1">
         <p className="font-medium">{HEADLINES[health.status]}</p>
         {health.problems.length ? (
           <ul className="mt-0.5 list-inside list-disc text-xs">

@@ -145,6 +145,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
   const chatScrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const [replyAnnouncement, setReplyAnnouncement] = useState("");
+  const wasSendingRef = useRef(false);
   const metadataDialogWasOpenRef = useRef(false);
 
   const currentDocument = useMemo(
@@ -181,6 +183,16 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   useEffect(() => {
     setClientReady(true);
   }, []);
+
+  useEffect(() => {
+    if (sending) {
+      wasSendingRef.current = true;
+      setReplyAnnouncement("");
+    } else if (wasSendingRef.current) {
+      wasSendingRef.current = false;
+      setReplyAnnouncement(error ? "The request failed." : "Reply ready.");
+    }
+  }, [sending, error]);
 
   // When the metadata dialog closes, hand focus back to the control that
   // opened it; otherwise it falls to the page body and a keyboard user starts
@@ -524,9 +536,21 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           if (index === -1) {
             return prev;
           }
-          list[index] = { ...list[index], content: result.text, retrieval: result.retrieval ?? null };
+          list[index] = {
+            ...list[index],
+            content: result.incomplete
+              ? `${result.text}\n\n[Incomplete answer: the connection closed before the answer finished. It was not verified.]`
+              : result.text,
+            retrieval: result.retrieval ?? null,
+          };
           return { ...prev, [currentDocument.id]: list };
         });
+      }
+      if (result.incomplete) {
+        setError("The answer was cut off before it finished. Ask again to get the full answer.");
+        if (!result.text) {
+          throw new Error("The connection closed before any answer arrived.");
+        }
       }
       return { ok: true };
     } catch (err: unknown) {
@@ -1132,7 +1156,10 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground md:h-screen md:flex-row md:overflow-hidden">
-      <aside className="flex w-full shrink-0 flex-col border-b bg-muted/30 md:w-[320px] md:border-r md:border-b-0">
+      <aside
+        inert={pendingUpload ? true : undefined}
+        className="flex w-full shrink-0 flex-col border-b bg-muted/30 md:w-[320px] md:border-r md:border-b-0"
+      >
         <div className="border-b p-4">
           <h1 className="text-lg font-semibold">ArchAI Workspace</h1>
           <p className="mt-1 text-sm text-muted-foreground">Upload page images and chat with model context.</p>
@@ -1217,7 +1244,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                 >
                   100%
                 </button>
-                <span className="ml-auto text-muted-foreground" aria-live="polite" aria-label={`Zoom ${Math.round(currentZoom * 100)} percent`}>
+                <span className="ml-auto text-muted-foreground" aria-live="polite">
+                  <span className="sr-only">Zoom </span>
                   {Math.round(currentZoom * 100)}%
                 </span>
               </div>
@@ -1313,7 +1341,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         </div>
       </aside>
 
-      <section className="flex min-h-[70vh] min-w-0 flex-1 flex-col md:min-h-0">
+      <section inert={pendingUpload ? true : undefined} className="flex min-h-[70vh] min-w-0 flex-1 flex-col md:min-h-0">
         <BackendStatusBanner />
         <div className="flex items-center gap-3 border-b px-4 py-3">
           <div>
@@ -1339,7 +1367,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           ref={chatScrollContainerRef}
           role="log"
           aria-label="Conversation"
-          aria-live="polite"
+          aria-live={sending ? "off" : "polite"}
           aria-busy={sending}
           className="min-h-0 flex-1 overflow-y-auto px-4 py-4"
         >
@@ -1400,6 +1428,10 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           )}
         </div>
 
+        {/* Streamed tokens are not announced one by one; this says once that the reply is there. */}
+        <p role="status" className="sr-only">
+          {replyAnnouncement}
+        </p>
         <div className="border-t p-4">
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
             {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
