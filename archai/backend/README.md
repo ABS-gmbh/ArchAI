@@ -46,6 +46,9 @@ pip install -e .
 
 ## Configure
 
+For a server, see [`docs/deployment.md`](../../docs/deployment.md): run one
+worker, what to set, what to put in front, what to back up.
+
 ```bash
 cd archai/backend
 cp .env.example .env

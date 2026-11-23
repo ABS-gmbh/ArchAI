@@ -12,7 +12,7 @@ which parts are active, experimental, or runtime-only.
 | `tests/` | Tests of `src/archai_ocr` | Tests |
 | `scripts/` | Kraken model setup and sanity check, demo run, zone coverage, thesis artifact builds | Active code |
 | `artifacts/thesis_showcase/` | Thesis figures, manifests and payloads | Curated artifacts |
-| `docs/` | Model setup and this map | Documentation |
+| `docs/` | Model setup, deployment and this map | Documentation |
 | `AUDIT_FINDINGS.md`, `ACCURACY_ROADMAP.md` | Audit of the codebase and the accuracy backlog, with fixed items marked | Documentation |
 | `.github/workflows/ci.yml` | CI: `src/archai_ocr` lint, types and tests; the backend's test suite; secret scan | Config |
 | `pyproject.toml` | Package metadata for `src/archai_ocr` (`archai`, `archai-ocr` commands) | Build config |
