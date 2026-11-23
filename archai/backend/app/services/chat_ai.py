@@ -23,6 +23,7 @@ from app.services.chat_presentation import (
     _format_rag_debug_markdown,
     _format_rag_presentation_markdown,
     _format_unresolved_mention_evidence,
+    _format_retrieval_notice,
     _format_verification_appendix,
     _normalize_translation_output,
     _short_text,
@@ -388,10 +389,143 @@ _RAG_INSTRUCTION = (
     "Use LINKED_ENTITY_EVIDENCE for canonical identity, authority IDs, "
     "and concise entity summaries. Use UNRESOLVED_MENTION_EVIDENCE to "
     "state uncertainty plainly instead of inventing identifications. "
-    "Do not invent quotes outside the evidence.  If none of the "
-    "evidence is relevant, say so explicitly and answer from general "
-    "knowledge."
+    "Do not invent quotes outside the evidence.  If the evidence does "
+    "not answer the question, say plainly that the sources for this page "
+    "do not contain the answer; do not supply page content, quotations, "
+    "names or readings from general knowledge.  Background that is not in "
+    "the evidence must be labelled as not coming from the page."
 )
+
+# Retrieval ran over this page and found nothing to cite. Without a word to the
+# model, the old instruction never appeared at all and the answer described the
+# page from general knowledge.
+_NO_EVIDENCE_INSTRUCTION = (
+    "\n\nNo passage of this page's transcription was retrieved for this "
+    "question.  Say that the sources for this page do not contain the answer "
+    "instead of describing page content; any general background must be "
+    "labelled as not coming from the page."
+)
+
+# The same situation, but the client sent the page's transcript, which the
+# context block puts in the prompt as transcript_snippet. That snippet is page
+# text the model may use; telling it the sources hold nothing contradicted the
+# prompt and refused "what does the first line say?" on a gate-refused page.
+_NO_EVIDENCE_WITH_TRANSCRIPT_INSTRUCTION = (
+    "\n\nSearch retrieved no passage of this page for this question.  The only "
+    "page text available is the transcript_snippet in the document context: it "
+    "was not searched, and it may be unreliable{gate}.  Answer from that snippet "
+    "alone if it holds the answer; if it does not, say that the sources for this "
+    "page do not contain the answer.  Do not add page content, quotations, names "
+    "or readings from general knowledge; any general background must be labelled "
+    "as not coming from the page."
+)
+_GATE_CLAUSE = " (the OCR quality gate did not allow search on this transcription)"
+
+
+def _transcript_in_context(context: dict[str, Any] | None) -> bool:
+    return bool(str((context or {}).get("transcript") or "").strip())
+
+
+def _client_note(note: str) -> str:
+    """A retrieval note without the exception text behind it.
+
+    rag_store's notes end with the exception message ("dense ranking
+    unavailable: <model>: <error>"), which can carry URLs, paths or request
+    details; the client gets the reason, the log keeps the detail.
+    """
+    return str(note).split(":", 1)[0].strip()
+
+
+class RetrievedEvidence(str):
+    """Evidence text for the prompt, plus how retrieval went (``.retrieval``).
+
+    A ``str`` so existing callers keep working; ``retrieval`` is the dict
+    returned to clients under the ``retrieval`` key (see :func:`_retrieval_status`).
+    """
+
+    retrieval: dict[str, Any]
+
+    def __new__(cls, text: str, retrieval: dict[str, Any]) -> "RetrievedEvidence":
+        obj = super().__new__(cls, text)
+        obj.retrieval = retrieval
+        return obj
+
+
+def _retrieval_status(
+    *,
+    chunk_mode: str,
+    chunk_notes: Sequence[str],
+    chunk_hits: int,
+    entity_mode: str,
+    entity_notes: Sequence[str],
+    entity_hits: int,
+    run_scoped: bool,
+) -> dict[str, Any]:
+    """The client-facing summary of one retrieval.
+
+    ``status`` is one of:
+
+    - ``ok``: every configured ranker ran.
+    - ``degraded``: evidence was ranked, but a ranker was unavailable or failed
+      (typically lexical-only because the embedding provider is down).
+    - ``unavailable``: nothing could be searched (both rankers failed, or the
+      retrieval raised).
+    - ``no_searchable_run``: no run in scope is searchable (the OCR quality
+      gate did not allow search, or there is no run).
+    - ``not_used``: retrieval did not run (translation stage, empty question).
+
+    ``chunk_mode`` is ``hybrid``, ``dense``, ``lexical``, ``none`` or ``error``;
+    ``entity_mode`` is ``dense``, ``none`` or ``error``.
+    """
+    notes = [_client_note(note) for note in chunk_notes] + [f"entities: {_client_note(note)}" for note in entity_notes]
+    if chunk_mode == "error":
+        status = "unavailable"
+    elif chunk_mode == "none":
+        status = "no_searchable_run" if list(chunk_notes) == ["no searchable run in scope"] else "unavailable"
+    elif chunk_notes:
+        status = "degraded"
+    else:
+        status = "ok"
+    return {
+        "status": status,
+        "chunk_mode": chunk_mode,
+        "entity_mode": entity_mode,
+        "chunk_hits": chunk_hits,
+        "entity_hits": entity_hits,
+        "run_scoped": run_scoped,
+        "notes": notes,
+    }
+
+
+_RETRIEVAL_NOT_USED: dict[str, Any] = {
+    "status": "not_used",
+    "chunk_mode": "none",
+    "entity_mode": "none",
+    "chunk_hits": 0,
+    "entity_hits": 0,
+    "run_scoped": False,
+    "notes": [],
+}
+
+
+def _verifier_status(verification: dict[str, Any] | None) -> str:
+    """``ran``, ``unavailable`` (it failed), ``skipped`` (nothing to check) or ``disabled``."""
+    if verification is not None:
+        return "unavailable" if str(verification.get("assessment") or "") == "unavailable" else "ran"
+    if not bool(settings.paleography_verification_enabled):
+        return "disabled"
+    return "skipped"
+
+
+def _retrieval_payload(
+    evidence_text: str, verification: dict[str, Any] | None, context: dict[str, Any] | None
+) -> dict[str, Any]:
+    """``.retrieval`` of the evidence plus ``verifier``: ``ran``, ``unavailable``, ``skipped`` or ``disabled``."""
+    retrieval = dict(getattr(evidence_text, "retrieval", None) or _RETRIEVAL_NOT_USED)
+    retrieval["notes"] = list(retrieval.get("notes") or [])
+    retrieval["verifier"] = _verifier_status(verification)
+    retrieval["transcript_in_context"] = _transcript_in_context(context)
+    return retrieval
 
 _RAG_INSPECTION_RE = re.compile(
     r"\b(print|show|display|inspect)\b.*\b(rag|retrieval|evidence)\b|\bwhat did you retrieve\b",
@@ -742,15 +876,19 @@ def _retrieve_evidence(
     """
     try:
         from app.services.rag_store import retrieve_chunks, retrieve_entities, format_evidence_blocks
-    except Exception:  # noqa: BLE001
-        return ""
+    except Exception as exc:  # noqa: BLE001
+        log.warning("RAG retrieval unavailable: %s", exc)
+        return RetrievedEvidence(
+            "",
+            {**_RETRIEVAL_NOT_USED, "status": "unavailable", "chunk_mode": "error", "notes": [f"retrieval import failed ({type(exc).__name__})"]},
+        )
 
     if chat_stage_from_context(context) == "translation":
-        return ""
+        return RetrievedEvidence("", dict(_RETRIEVAL_NOT_USED))
 
     query = _latest_user_query(messages)
     if not query:
-        return ""
+        return RetrievedEvidence("", dict(_RETRIEVAL_NOT_USED))
 
     run_ids: list[str] | None = None
     if context:
@@ -760,14 +898,31 @@ def _retrieve_evidence(
 
     hits: list[dict[str, Any]] = []
     entity_hits: list[dict[str, Any]] = []
+    chunk_mode, chunk_notes = "none", []
+    entity_mode, entity_notes = "none", []
     try:
         hits = retrieve_chunks(query, run_ids=run_ids)
-    except Exception:  # noqa: BLE001
-        hits = []
+        chunk_mode = str(getattr(hits, "mode", "hybrid" if hits else "none"))
+        chunk_notes = list(getattr(hits, "notes", []))
+    except Exception as exc:  # noqa: BLE001 - reported to the client, not raised
+        log.warning("Chunk retrieval failed: %s", exc)
+        hits, chunk_mode, chunk_notes = [], "error", [f"chunk retrieval failed ({type(exc).__name__})"]
     try:
         entity_hits = retrieve_entities(query, run_ids=run_ids)
-    except Exception:  # noqa: BLE001
-        entity_hits = []
+        entity_mode = str(getattr(entity_hits, "mode", "dense" if entity_hits else "none"))
+        entity_notes = list(getattr(entity_hits, "notes", []))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Entity retrieval failed: %s", exc)
+        entity_hits, entity_mode, entity_notes = [], "error", [f"entity retrieval failed ({type(exc).__name__})"]
+    retrieval = _retrieval_status(
+        chunk_mode=chunk_mode,
+        chunk_notes=chunk_notes,
+        chunk_hits=len(hits),
+        entity_mode=entity_mode,
+        entity_notes=entity_notes,
+        entity_hits=len(entity_hits),
+        run_scoped=bool(run_ids),
+    )
 
     evidence_parts: list[str] = []
     if hits:
@@ -835,7 +990,7 @@ def _retrieve_evidence(
             len(entity_hits),
         )
 
-    return "\n\n".join(part for part in evidence_parts if part)
+    return RetrievedEvidence("\n\n".join(part for part in evidence_parts if part), retrieval)
 
 
 def build_rag_evidence_for_debug(
@@ -1008,6 +1163,14 @@ def _prepare_messages(
     evidence = _retrieve_evidence(prepared, context)
     if evidence:
         system_prompt += _RAG_INSTRUCTION + "\n\n" + evidence
+    elif (getattr(evidence, "retrieval", None) or {}).get("run_scoped"):
+        if _transcript_in_context(context):
+            status = (getattr(evidence, "retrieval", None) or {}).get("status")
+            system_prompt += _NO_EVIDENCE_WITH_TRANSCRIPT_INSTRUCTION.format(
+                gate=_GATE_CLAUSE if status == "no_searchable_run" else ""
+            )
+        else:
+            system_prompt += _NO_EVIDENCE_INSTRUCTION
 
     return [{"role": "system", "content": system_prompt}, *prepared], evidence
 
@@ -1210,7 +1373,8 @@ def create_chat_completion(
         context=context,
         evidence_text=evidence_text,
     )
-    text = draft_text + _format_verification_appendix(verification)
+    retrieval = _retrieval_payload(evidence_text, verification, context)
+    text = draft_text + _format_verification_appendix(verification) + _format_retrieval_notice(retrieval)
     duration_ms = (time.perf_counter() - started_at) * 1000
     stage_metadata = _build_stage_metadata(
         stage_name=stage,
@@ -1248,6 +1412,7 @@ def create_chat_completion(
         "stage_metadata": stage_metadata,
         "inspection": inspection_payload,
         "verification": verification,
+        "retrieval": retrieval,
     }
 
 
@@ -1333,7 +1498,8 @@ def stream_chat_completion(
         context=context,
         evidence_text=evidence_text,
     )
-    appendix = _format_verification_appendix(verification)
+    retrieval = _retrieval_payload(evidence_text, verification, context)
+    appendix = _format_verification_appendix(verification) + _format_retrieval_notice(retrieval)
     if appendix:
         full_text += appendix
         yield {"type": "delta", "delta": appendix}
@@ -1377,4 +1543,5 @@ def stream_chat_completion(
         "stage_metadata": stage_metadata,
         "inspection": inspection_payload,
         "verification": verification,
+        "retrieval": retrieval,
     }
