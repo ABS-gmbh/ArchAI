@@ -263,3 +263,14 @@ def test_coco_gives_each_zone_class_its_own_category(tmp_path: Path, page_image:
         (3, "StampZone", "layout"),
     ]
     assert [a["category_id"] for a in payload["annotations"]] == [1, 2, 3]
+
+
+@pytest.mark.parametrize("mode", ["CMYK", "YCbCr", "LAB"])
+def test_crop_of_a_page_png_cannot_hold_is_written_as_rgb(tmp_path: Path, mode: str) -> None:
+    """A CMYK TIFF raised "cannot write mode CMYK as PNG" at the first crop."""
+    page = tmp_path / "page.tif"
+    Image.new(mode, (300, 200)).save(page)
+    paths = crop_regions(page, [region(10, 10, 200, 100)], tmp_path / "c")
+    with Image.open(paths[0]) as crop:
+        assert crop.mode == "RGB"
+        assert crop.size == (200, 100)

@@ -841,7 +841,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** `--log-level DEBUG`, the natural thing to type when the empty-output bug in OCR-001 strikes, emits thousands of PIL.PngImagePlugin, matplotlib.font_manager, and torch DEBUG records wrapped in JSON, burying the three archai_ocr records the user actually needs. The handlers.clear() at line 35 also destroys any handler configuration an embedding application had set up, so importing archai_ocr as a library and calling main() silently hijacks the host's logging.
 - **Fix:** Set the level on the package logger, not root: `logging.getLogger('archai_ocr').setLevel(level.upper())`, attach the handler there, set `propagate = False`, and leave the root logger's level and handlers alone (or pin third-party loggers to WARNING explicitly).
 
-### [OCR-013] CMYK TIFF crops crash the pipeline with an unhandled OSError from PIL's PNG encoder
+### [OCR-013] CMYK TIFF crops crash the pipeline with an unhandled OSError from PIL's PNG encoder — **FIXED** (crops in a mode PNG cannot hold are written as RGB; test_pipeline_io.py::test_crop_of_a_page_png_cannot_hold_is_written_as_rgb)
 
 - **Where:** `src/archai_ocr/pipeline/crop_regions.py:31`  
 - **Category:** correctness  
