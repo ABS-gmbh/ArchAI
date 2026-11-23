@@ -52,6 +52,14 @@ async def _retention_sweep(retention: RetentionSweeper) -> None:
 async def lifespan(app: FastAPI):
     """Initialize model pool on startup, clean up on shutdown."""
     configure_logging(settings.log_level, settings.log_format)
+    if settings.analytics_auth_configured and not settings.jwt_secret:
+        # Not a refusal: analytics still works, with sessions that end at the
+        # next restart, and a server that starts today keeps starting.
+        logging.getLogger(__name__).error(
+            "JWT_SECRET is not set while analytics login is configured: analytics tokens are signed "
+            "with a random secret made at startup, so every login ends when the process restarts, "
+            "and a second worker would reject the first one's tokens. Set JWT_SECRET to a long random value."
+        )
     if not settings.api_token:
         logging.getLogger(__name__).warning(
             "API_TOKEN is not set: the API is unauthenticated and must only be reachable from "
