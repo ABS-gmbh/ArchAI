@@ -35,9 +35,15 @@ SEGMENTATION_MAX_LONG_EDGE = int(os.getenv("SEGMENTATION_MAX_LONG_EDGE", "12000"
 
 
 def _secure_filename(name: str) -> str:
-    # Prevent path traversal and keep filenames sane
-    name = os.path.basename(name or "")
-    return name if name else "upload.jpg"
+    """The name the upload is stored under in its task directory: "upload" and a known image suffix.
+
+    The client's name was used as given after basename(): "." and ".." named
+    the directory itself and a 300-character name exceeded the file system's
+    limit, each a 500; "state.json" and "annotated.jpg" were overwritten by the
+    task's own files. Only the suffix is kept, and only a known one.
+    """
+    suffix = os.path.splitext(os.path.basename(name or ""))[1].lower()
+    return f"upload{suffix if suffix in IMAGE_EXTENSIONS else '.img'}"
 
 
 def _parse_classes(classes: Optional[str]) -> list[str]:
@@ -301,6 +307,11 @@ async def predict_single(
     # Segmentation ran on a possibly downscaled copy; return coordinates in the
     # original page's space so callers can crop the upload directly.
     filtered_coco = rescale_coco_to_original(filtered_coco, prepared.scale)
+    # The file is stored as upload.<ext>; the annotations name the page as the
+    # client did. Data only: it never becomes a path.
+    display_name = os.path.basename(image.filename or "")[:255] or safe_name
+    for entry in filtered_coco.get("images") or []:
+        entry["file_name"] = display_name
 
     # Store results
     task.status = "completed"
