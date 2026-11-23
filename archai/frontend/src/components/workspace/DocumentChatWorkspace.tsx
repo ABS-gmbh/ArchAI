@@ -47,6 +47,7 @@ import {
   isLabelAnalysisPrompt,
   resolveOcrPromptHints,
 } from "./workspaceIntents";
+import { RetrievalBadges } from "./RetrievalBadges";
 import {
   getExtractionStatus,
   removeTextUncertainties,
@@ -505,7 +506,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           if (index === -1) {
             return prev;
           }
-          list[index] = { ...list[index], content: result.text };
+          list[index] = { ...list[index], content: result.text, retrieval: result.retrieval ?? null };
           return { ...prev, [currentDocument.id]: list };
         });
       }
@@ -1342,6 +1343,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                         />
                       </span>
                     </div>
+                  ) : null}
+                  {message.role === "assistant" && message.retrieval ? (
+                    <RetrievalBadges retrieval={message.retrieval} />
                   ) : null}
                   {message.imageUrl ? (
                     <div className="mt-3 overflow-hidden rounded-md border bg-background">

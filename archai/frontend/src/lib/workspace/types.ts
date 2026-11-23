@@ -1,3 +1,5 @@
+import type { ChatRetrievalStatus } from "@/lib/api/chat";
+
 export type ChatRole = "user" | "assistant" | "system";
 
 export interface WorkspacePage {
@@ -31,6 +33,7 @@ export interface WorkspaceChatMessage {
   createdAt: number;
   imageUrl?: string;
   imageAlt?: string;
+  retrieval?: ChatRetrievalStatus | null;
 }
 
 export interface WorkspacePersistedState {

@@ -34,8 +34,23 @@ export interface ChatCompletionPayload {
   context?: Record<string, unknown>;
 }
 
+/** How the answer's evidence was retrieved; field names are a stable backend contract. */
+export interface ChatRetrievalStatus {
+  status: "ok" | "degraded" | "unavailable" | "no_searchable_run" | "not_used";
+  chunk_mode: "hybrid" | "dense" | "lexical" | "none" | "error";
+  entity_mode: "dense" | "none" | "error";
+  chunk_hits: number;
+  entity_hits: number;
+  run_scoped: boolean;
+  /** The prompt carried an excerpt of the page's transcript even though search found nothing. */
+  transcript_in_context?: boolean;
+  notes: string[];
+  verifier: "ran" | "unavailable" | "skipped" | "disabled";
+}
+
 export interface ChatCompletionResult {
   text: string;
+  retrieval?: ChatRetrievalStatus | null;
   model?: string;
   stage_metadata?: {
     stage_name: string;
@@ -108,6 +123,7 @@ interface StreamDone {
   stage_metadata?: ChatCompletionResult["stage_metadata"];
   inspection?: ChatCompletionResult["inspection"];
   verification?: ChatCompletionResult["verification"];
+  retrieval?: ChatCompletionResult["retrieval"];
 }
 
 interface StreamError {
@@ -174,6 +190,7 @@ export async function createChatCompletion(
   let stageMetadata: ChatCompletionResult["stage_metadata"] | undefined;
   let inspection: ChatCompletionResult["inspection"] | undefined;
   let verification: ChatCompletionResult["verification"] | undefined;
+  let retrieval: ChatCompletionResult["retrieval"] | undefined;
 
   while (true) {
     const { value, done } = await reader.read();
@@ -208,6 +225,7 @@ export async function createChatCompletion(
           stageMetadata = event.stage_metadata;
           inspection = event.inspection;
           verification = event.verification;
+          retrieval = event.retrieval;
         } else if (event.type === "error") {
           throw new Error(event.error || "Streaming completion failed.");
         }
@@ -217,7 +235,7 @@ export async function createChatCompletion(
     }
   }
 
-  return { text, model, stage_metadata: stageMetadata, inspection, verification };
+  return { text, model, stage_metadata: stageMetadata, inspection, verification, retrieval };
 }
 
 export async function analyzeSegmentLabel(
