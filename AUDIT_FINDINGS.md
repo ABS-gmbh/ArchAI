@@ -12,19 +12,17 @@ evidence. "Open" says why it was left and what the next step would be.
 |---|---:|---:|---:|---:|---:|
 | Critical | 5 | 5 | 0 | 0 | 0 |
 | High | 33 | 30 | 2 | 0 | 1 |
-| Medium | 60 | 46 | 9 | 1 | 4 |
-| Low | 32 | 25 | 5 | 0 | 2 |
-| **All** | **130** | **106** | **16** | **1** | **7** |
+| Medium | 60 | 46 | 10 | 1 | 3 |
+| Low | 32 | 26 | 5 | 0 | 1 |
+| **All** | **130** | **107** | **17** | **1** | **5** |
 
 Counted from the headings. SVC-24 ("not changed as proposed": the
 measurement favoured the code, and the docstring was corrected) is counted as
 fixed; AG-16 ("not changed", pending the model policy) as open.
 
-The seven open findings: SVC-09, SVC-12, SVC-13 and SVC-16 change OCR quality
+The five open findings: SVC-09, SVC-12, SVC-13 and SVC-16 change OCR quality
 scoring and need a measurement on real pages, which needs readable models.
-AG-16 waits for the user's decision on the model policy. HYG-15 (type checking
-of the backend) and OCR-011 (three copies of the downstream pipeline) are
-simply not done yet; their headings give the next step.
+AG-16 waits for the user's decision on the model policy.
 
 > Caveat on confidence: adversarial verification completed for the OCR router, the agents
 > and the DB/state layer. The verifier passes for services-linking, services-ocr,
@@ -820,7 +818,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** A new test that imports app.db.pipeline_db and forgets either line writes into the developer's real 32 MB archai/vendor/layout/backend/app/archai.sqlite, corrupting live pipeline_runs rows; and because `_DB_READY` is a module global, forgetting only the setattr silently reuses the previously-initialised connection path, so the failure is order-dependent and will not reproduce when the file is run alone. The duplicated sys.path block also means tests only work when invoked with the right cwd and cannot be moved.
 - **Fix:** Add archai/vendor/layout/backend/conftest.py containing the sys.path insert once, plus an `@pytest.fixture(autouse=True)` that sets ARCHAI_DB_PATH to tmp_path and resets pipeline_db._DB_READY, then strip the 18 duplicated blocks and the 9 duplicated pairs. Add `[tool.pytest.ini_options] testpaths = ["tests"]` to archai/vendor/layout/backend/pyproject.toml so the suite has a defined rootdir instead of inheriting the repo-root one.
 
-### [HYG-15] mypy is configured to check 858 of the repo's 29,210 lines and skip the entire real backend — open (not done: archai/backend has no mypy configuration. Next step: a non-strict [tool.mypy] for app/ with warn_unused_ignores, a baseline of the current errors, then a decision whether CI gates on it)
+### [HYG-15] mypy is configured to check 858 of the repo's 29,210 lines and skip the entire real backend — partly fixed (archai/backend/pyproject.toml has a non-strict [tool.mypy] for app/ with warn_unused_ignores; baseline 89 errors, none a confirmed runtime defect, listed in the backend README; 12 stale ignores removed. Whether CI gates on it is the user's decision)
 
 - **Where:** `pyproject.toml:95`  
 - **Category:** hygiene  
@@ -1042,7 +1040,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** Best attempt = 0 (label OK), attempts 1 and 2 both degrade to UNRELIABLE. The persisted `runs.warnings_json.quality_label` for the run reads UNRELIABLE while `ocr_text`, `confidence` and `quality_label_v2` all describe attempt 0's OK output. Anything reading the stored legacy label — the trace UI, `table_view_for_run` — reports a quality that does not match the text it is shown next to.
 - **Fix:** Read the label off the selected payload instead of the loop variable: replace `quality_label` at ocr.py:4263 with `ocr_payload.get("quality_label")` (it is populated for every attempt at ocr.py:3942), and do the same at ocr.py:4305/4602 so the leaked name can be deleted.
 
-### [OCR-011] The downstream half of the pipeline exists in three near-identical copies that have already drifted — open (not done: the copies now sit in trace_pipeline._full_page_post_ocr_stages, trace_pipeline._run_segmented_trace_pipeline and ocr_page_with_trace, and both trace paths still drop authority_report. Next step: one shared downstream function returning one key set, checked by the existing characterisation tests)
+### [OCR-011] The downstream half of the pipeline exists in three near-identical copies that have already drifted — **FIXED** (one trace_pipeline.run_downstream_stages, called by the full-page post-OCR stages, the segmented trace pipeline and ocr_page_with_trace; the real differences are parameters; both trace responses now also carry authority_report; tests/test_downstream_stages.py, test_event_loop_blocking.py)
 
 - **Where:** `vendor:app/routers/ocr.py:4448`  
 - **Category:** architecture  
