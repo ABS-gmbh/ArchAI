@@ -483,7 +483,13 @@ async def batch_progress(task_id: str):
 
             await asyncio.sleep(0.5)
 
-    return StreamingResponse(event_stream(), media_type="text/event-stream")
+    # Not cached or buffered on the way: a buffering reverse proxy (nginx) held
+    # the progress events back until the batch had finished.
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/predict/batch/{task_id}/results")
