@@ -34,6 +34,8 @@ export interface WorkspaceChatMessage {
   imageUrl?: string;
   imageAlt?: string;
   retrieval?: ChatRetrievalStatus | null;
+  /** Quality badges of a finished extraction, on its status message. */
+  extractionBadges?: { tone: "ok" | "warn" | "error" | "neutral"; label: string; detail: string }[];
 }
 
 export interface WorkspacePersistedState {
