@@ -39,7 +39,8 @@ class ChatMessage(BaseModel):
 class ChatCompletionRequest(BaseModel):
     messages: list[ChatMessage]
     model: str | None = None
-    temperature: float = 0.2
+    # The OpenAI-compatible range; outside it SAIA refused the call and the route answered 500.
+    temperature: float = Field(default=0.2, ge=0.0, le=2.0)
     stream: bool = True
     context: dict[str, Any] | None = None
 
