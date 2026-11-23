@@ -576,7 +576,11 @@ def uncertainty_density(text: str) -> float:
     """
     if not text:
         return 0.0
-    markers = text.count("?") + text.count("…") + text.count("[…]") * 3
+    # A "[…]" span is three characters and counts as three. Its "…" was counted
+    # once more by the second term, so one span added 4 and the density could
+    # exceed 1 (audit SVC-17).
+    spans = text.count("[…]")
+    markers = text.count("?") + (text.count("…") - spans) + spans * 3
     return markers / max(len(text), 1)
 
 
