@@ -10,6 +10,7 @@ chunks holding it.
 ```bash
 python scripts/benchmark_retrieval.py --questions eval/retrieval/questions.json
 python scripts/benchmark_retrieval.py --questions eval/retrieval/questions.json --question-set 2026-10
+python scripts/benchmark_retrieval.py --questions eval/retrieval/questions.json --separation
 ```
 
 ## How it was built
@@ -45,6 +46,29 @@ A question becomes one lookup per reading of its page in which the answer
 could be aligned. The benchmark prints the lookups per page. With the local
 embedder, the 2026-10 set gives 151 lookups, the 2026-11 set 119, and both
 together 270.
+
+## Relevance floor
+
+`--separation` asks whether a floor could work. For each lookup it takes the
+score of the top hit on three signals: dense cosine, that cosine as a z-score
+over the page's chunks, and BM25. It then reports the AUC of answerable
+lookups against not-in-sources ones (0.5 is chance), with a 95% interval
+resampled over readings. With the local embedder (ChromaDB's MiniLM):
+
+| Signal | AUC (270 answerable vs 77 not-in-sources lookups) |
+|---|---|
+| top dense cosine | 0.439 [0.368, 0.515] |
+| top dense z-score | 0.471 [0.403, 0.536] |
+| top BM25 score | 0.506 [0.447, 0.566] |
+
+None of the three separates them, so no floor is set: a floor that removed
+the hits of an unanswerable question would remove the answer to an
+answerable one just as often. A cosine floor of 0.20 empties 80% of
+not-in-sources lookups but keeps the relevant chunk in only 3% of answerable
+ones. The production embedder (multilingual-e5-large-instruct through the
+provider) has not been measured. Rerun with `--embedder provider` or
+`--embedder e5-local` before considering a floor for it. Not answering from
+irrelevant evidence is left to the chat instruction instead.
 
 ## Caveats
 
