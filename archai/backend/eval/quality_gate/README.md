@@ -80,6 +80,31 @@ the 72. The database holds users' transcriptions and is not committed.
   13-character reading of `latin-apocalypse` is graded HIGH.
 - Trigram profiles exist for Latin and French only. German, English and other
   languages are not judged lexically.
+- Measured on the calibration set with langdetect seeded (59 rows,
+  2026-11-23). No reading at CER <= 10% is blocked, and 4 readings at
+  CER >= 25% are allowed:
+
+  | Label | n | allowed | CER range |
+  |---|---|---|---|
+  | HIGH | 24 | 24 | 0.0% - 97.9% |
+  | OK | 7 | 7 | 6.7% - 34.3% |
+  | RISKY | 10 | 0 | 17.3% - 82.0% |
+  | UNRELIABLE | 18 | 0 | 35.4% - 1376% |
+
+  The four allowed at CER >= 25%: old-french kraken_mccatmus (34.3%, OK),
+  middle-french-antitus kraken_mccatmus (40.0%, HIGH), old-french-verse
+  kraken_mccatmus (35.4%, HIGH), and latin-apocalypse glmocr (97.9%, HIGH,
+  the 13-character reading above). On the verse page McCATMuS scores *cleaner*
+  than the correct readings on gibberish (0.0009 vs 0.006-0.009) and
+  non-wordlike tokens (0.004 vs 0.04-0.06). Its lexical contrast (3.80 vs
+  4.25-4.73) and plausibility (0.44 vs 0.57-0.58) are lower, but still above
+  the HIGH and floor limits. No single signal separates the four from the 27
+  correctly allowed readings without blocking a low-CER one, except at
+  thresholds fitted to these rows (see "Tried, not shipped"). Production
+  routing puts CATMuS Medieval first under every language hint
+  (`select_backend_plan`; backend election is off). McCATMuS reads a line
+  there only when every earlier backend fails, or when it is asked for
+  explicitly.
 - Five pages in two languages, transcribed by non-specialists, are enough to
   show that the old gate was inverted and to place the thresholds. They do not
   give a corpus-level error rate.
@@ -101,4 +126,22 @@ the 72. The database holds users' transcriptions and is not committed.
   need their own profiles. Separately, an Old English passage, also typed
   from memory, was detected as Latin and scored 1.54, under the UNRELIABLE
   limit. That needs a real Old English reading to confirm.
+- **A threshold on a single existing signal against the McCATMuS readings**
+  (2026-11-23). Over the 31 allowed rows, two signals catch 3 of the 4 false
+  allows without blocking a reading at CER <= 10%, and both are fitted:
+  - `char_entropy` < 4.153: 30 of the 31 allowed rows lie within 10% of the
+    threshold.
+  - `trailing_fragment_ratio` > 0: it is non-zero only on readings at
+    CER >= 22.9% here. But "any trailing fragment at all" is the most fitted
+    threshold possible. The signal is computed on whole-page text, where the
+    code deliberately ignores line-edge fragments, since medieval lines break
+    words without hyphens. And it carries the Latin-vowel bias of audit
+    SVC-16.
+  Neither was shipped. Telling McCATMuS's French-looking strings from French
+  needs a word list, or held-out pages to test the fragment signal on.
+- **The uncertainty-density double count (SVC-17), shipped.** For the record,
+  scripts/calibrate_uncertainty_markers.py builds a synthetic marked set from
+  these readings. Across 29 marked pairs the fix changes no verdict and
+  lowers every density by about a quarter. None of the 59 real readings
+  contains a marker.
 
