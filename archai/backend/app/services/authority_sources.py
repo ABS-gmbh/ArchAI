@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any
 from urllib.parse import quote_plus
 
@@ -53,16 +54,20 @@ def _http_json(
 VIAF_BASE_URL = "https://viaf.org/viaf"
 
 
+_VIAF_NS_PREFIX = re.compile(r"^ns\d+:")
+
+
 def _strip_viaf_namespace(value: Any) -> Any:
-    """The cluster JSON with its ``ns1:`` key prefixes removed.
+    """The cluster JSON with its namespace key prefixes (``ns1:``, ``ns2:``...) removed.
 
     The documented JSON is a namespaced rendering of the XML record
     (``{"ns1:VIAFCluster": {"ns1:mainHeadings": {"ns1:data": ...}}}``); without
-    the prefixes it has the shape the retired viaf.json had.
+    the prefixes it has the shape the retired viaf.json had. The prefix number
+    is the serializer's choice, so any ``nsN:`` is stripped, not only ``ns1:``.
     """
     if isinstance(value, dict):
         return {
-            (key.split(":", 1)[1] if key.startswith("ns1:") else key): _strip_viaf_namespace(item)
+            _VIAF_NS_PREFIX.sub("", key): _strip_viaf_namespace(item)
             for key, item in value.items()
             if not key.startswith("xmlns")
         }
