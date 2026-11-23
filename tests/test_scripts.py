@@ -159,3 +159,16 @@ def test_region_ocr_availability_is_checked_not_assumed(monkeypatch: pytest.Monk
     assert script.missing_region_ocr_packages() == ["calamari region OCR unavailable: package not installed"]
     installed.add("calamari_ocr")
     assert script.missing_region_ocr_packages() == []
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="needs git")
+@pytest.mark.parametrize(
+    "path",
+    ["archai.sqlite", "data/archai.sqlite-wal", "archai/backend/.cache/cache.sqlite", "runs/pipeline.db"],
+)
+def test_sqlite_databases_are_ignored_anywhere(path: str) -> None:
+    """Audit HYG-18: only archai/backend/app/archai.sqlite was ignored, by the backend's own .gitignore."""
+    result = subprocess.run(
+        ["git", "check-ignore", "--no-index", "-q", path], cwd=REPO_ROOT, capture_output=True, check=False
+    )
+    assert result.returncode == 0, f"{path} is not ignored"

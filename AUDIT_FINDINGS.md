@@ -892,7 +892,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 
 ## LOW (32)
 
-### [HYG-18] Stale .gitignore path for the pipeline database and project URL pointing at the wrong GitHub org
+### [HYG-18] Stale .gitignore path for the pipeline database and project URL pointing at the wrong GitHub org — **FIXED** (root .gitignore ignores *.sqlite and its WAL/SHM files anywhere; the stale archai.db line was already gone, and the project URL is right now that origin is ABS-gmbh/ArchAI; tests/test_scripts.py)
 
 - **Where:** `.gitignore:28`  
 - **Category:** hygiene  
