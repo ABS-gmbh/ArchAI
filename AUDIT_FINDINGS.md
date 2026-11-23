@@ -1077,7 +1077,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** No `timeout=` is set on the OpenAI client, so a hung provider connection blocks the calling thread indefinitely — and for :603/:650 that thread is reached synchronously from the chat/retrieval path. A large run posts its entire chunk set in one request, which fails wholesale on the provider's payload or token limit and is then converted by the `except Exception` at :126 into the silent local-backend fallback of RAG-01, so the size failure masquerades as "provider unavailable". Rebuilding the httpx client and TLS session on every single query also adds a connection handshake per retrieval.
 - **Fix:** Hoist the OpenAI client into a module-level lazily-initialised singleton guarded by the existing _LOCK, pass an explicit `timeout=`, and chunk `texts` into fixed-size batches (e.g. 64) inside _provider_embed, concatenating the results.
 
-### [RAG-03] Auto-indexing runs unlocked inside the retrieval hot path, so concurrent queries for the same run duplicate the entire embedding job
+### [RAG-03] Auto-indexing runs unlocked inside the retrieval hot path, so concurrent queries for the same run duplicate the entire embedding job — **FIXED** (a per-run lock around check-then-index; test_rag_index_concurrency.py)
 
 - **Where:** `vendor:app/services/rag_store.py:551`  
 - **Category:** performance  
