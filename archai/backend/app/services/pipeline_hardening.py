@@ -11,8 +11,9 @@ Architecture:
   4. Pick best pass; set final quality_label
   5. If final quality RISKY/UNRELIABLE:
        - Block token-based NER (switch to high-recall extractor)
-       - Block token-based ligature search (switch to shape/layout)
-       - Set downstream_mode = "vision_fallback"
+       - Block token-based ligature search and linking (nothing runs instead:
+         there is no shape/layout search, audit SVC-18)
+       - Set downstream_mode = "token_search_disabled"
   6. Proofreading guard: reject if quality worsens
   7. Mention recall check: if too few, trigger high-recall extraction
 
@@ -49,14 +50,18 @@ from app.services.ocr_quality import (
 # ═══════════════════════════════════════════════════════════════════════
 
 DOWNSTREAM_TOKEN = "token_based"      # normal: NER + word search from OCR text
-DOWNSTREAM_FALLBACK = "vision_fallback"  # shape/layout-only: no token search
+# Token-based stages are skipped and nothing replaces them. This used to read
+# "vision_fallback", promising a shape/layout path that never existed: nothing
+# branched on the value, and the shape-search helpers had no callers (audit
+# SVC-18). Runs stored before the rename still carry the old value.
+DOWNSTREAM_FALLBACK = "token_search_disabled"
 
 
 def decide_downstream_mode(quality_label: str) -> str:
-    """Decide whether downstream processing should use tokens or vision fallback.
+    """Decide whether token-based downstream stages may run.
 
-    Token-based mode is only allowed for HIGH and OK quality.
-    Everything else forces vision/shape fallback.
+    Token-based mode is only allowed for HIGH and OK quality. Everything else
+    disables token search; no other search runs in its place.
     """
     if quality_label in ("HIGH", "OK"):
         return DOWNSTREAM_TOKEN
@@ -325,129 +330,6 @@ def extract_high_recall_mentions(
 
 
 # ═══════════════════════════════════════════════════════════════════════
-# Ligature / word search fallback
-# ═══════════════════════════════════════════════════════════════════════
-
-def should_use_shape_based_search(quality_label: str) -> bool:
-    """Whether ligature/word search should use shape/layout instead of OCR tokens.
-
-    Returns True when OCR quality is too low for reliable token matching.
-    """
-    return quality_label in ("RISKY", "UNRELIABLE")
-
-
-def generate_shape_based_candidates(
-    layout_boxes: list[dict[str, Any]],
-    *,
-    min_width: int = 10,
-    max_aspect_ratio: float = 8.0,
-) -> list[dict[str, Any]]:
-    """Generate ligature candidates from layout/shape cues.
-
-    Criteria for a candidate:
-      - Touching or overlapping component pairs
-      - Abnormal kerning (gap < avg_gap * 0.3)
-      - Aspect ratio suggesting fused characters
-      - Narrow width components (possible components of a ligature)
-
-    Args:
-        layout_boxes: List of detected character/word boxes from the vision model.
-                     Each box: {x, y, width, height, label, confidence}
-        min_width: Minimum box width to consider.
-        max_aspect_ratio: Maximum width/height ratio for single-char boxes.
-
-    Returns:
-        List of candidate regions: {x, y, width, height, reason, confidence}
-    """
-    candidates: list[dict[str, Any]] = []
-    if not layout_boxes:
-        return candidates
-
-    # Sort by x position (reading order)
-    sorted_boxes = sorted(layout_boxes, key=lambda b: (b.get("y", 0), b.get("x", 0)))
-
-    # Compute average gap between consecutive boxes on same line
-    gaps: list[int] = []
-    for i in range(len(sorted_boxes) - 1):
-        b1 = sorted_boxes[i]
-        b2 = sorted_boxes[i + 1]
-        # Same line check: vertical overlap
-        y_overlap = min(
-            b1.get("y", 0) + b1.get("height", 0),
-            b2.get("y", 0) + b2.get("height", 0),
-        ) - max(b1.get("y", 0), b2.get("y", 0))
-        if y_overlap > 0:
-            gap = b2.get("x", 0) - (b1.get("x", 0) + b1.get("width", 0))
-            gaps.append(gap)
-
-    avg_gap = sum(gaps) / max(len(gaps), 1) if gaps else 5
-
-    # Detect candidates
-    for i in range(len(sorted_boxes) - 1):
-        b1 = sorted_boxes[i]
-        b2 = sorted_boxes[i + 1]
-
-        # Same line check
-        y_overlap = min(
-            b1.get("y", 0) + b1.get("height", 0),
-            b2.get("y", 0) + b2.get("height", 0),
-        ) - max(b1.get("y", 0), b2.get("y", 0))
-        if y_overlap <= 0:
-            continue
-
-        gap = b2.get("x", 0) - (b1.get("x", 0) + b1.get("width", 0))
-
-        # Touching or overlapping components
-        if gap <= 0:
-            candidates.append({
-                "x": min(b1.get("x", 0), b2.get("x", 0)),
-                "y": min(b1.get("y", 0), b2.get("y", 0)),
-                "width": max(
-                    b1.get("x", 0) + b1.get("width", 0),
-                    b2.get("x", 0) + b2.get("width", 0),
-                ) - min(b1.get("x", 0), b2.get("x", 0)),
-                "height": max(
-                    b1.get("y", 0) + b1.get("height", 0),
-                    b2.get("y", 0) + b2.get("height", 0),
-                ) - min(b1.get("y", 0), b2.get("y", 0)),
-                "reason": "touching_components",
-                "confidence": 0.7,
-            })
-
-        # Abnormally close (fused stroke)
-        elif gap < avg_gap * 0.3 and avg_gap > 2:
-            candidates.append({
-                "x": b1.get("x", 0),
-                "y": min(b1.get("y", 0), b2.get("y", 0)),
-                "width": (b2.get("x", 0) + b2.get("width", 0)) - b1.get("x", 0),
-                "height": max(
-                    b1.get("y", 0) + b1.get("height", 0),
-                    b2.get("y", 0) + b2.get("height", 0),
-                ) - min(b1.get("y", 0), b2.get("y", 0)),
-                "reason": "abnormal_kerning",
-                "confidence": 0.5,
-            })
-
-    # Single-box ligature candidates: unusually wide for their height
-    for box in sorted_boxes:
-        w = box.get("width", 0)
-        h = box.get("height", 1)
-        if w >= min_width and h > 0:
-            aspect = w / h
-            if aspect > max_aspect_ratio:
-                candidates.append({
-                    "x": box.get("x", 0),
-                    "y": box.get("y", 0),
-                    "width": w,
-                    "height": h,
-                    "reason": "wide_aspect_ratio",
-                    "confidence": 0.4,
-                })
-
-    return candidates
-
-
-# ═══════════════════════════════════════════════════════════════════════
 # Pipeline gate enforcement
 # ═══════════════════════════════════════════════════════════════════════
 
@@ -461,7 +343,7 @@ def enforce_quality_gates(
 
     Returns a dict with:
       - quality_label: final label
-      - downstream_mode: "token_based" | "vision_fallback"
+      - downstream_mode: "token_based" | "token_search_disabled"
       - gates: dict of {gate_name: {passed: bool, value: ..., threshold: ...}}
       - blocked_stages: list of stages that are blocked
     """
