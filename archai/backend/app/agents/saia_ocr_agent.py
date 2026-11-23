@@ -752,9 +752,19 @@ class SaiaOCRAgent:
         model_prefs: Sequence[str] | None = None,
     ) -> None:
         self.client = client or SaiaClient()
+        configured = list(model_prefs) if model_prefs is not None else self._configured_model_prefs()
         self.model_prefs = (
             _filter_internvl_models(model_prefs) if model_prefs is not None else self._resolve_model_prefs()
         )
+        # The agent reads with InternVL only, a policy the strict xfails in
+        # test_saia_ocr_agent.py record. A configured non-InternVL model used to
+        # vanish without a word (audit AG-08); it is still not used, but logged
+        # once here and named in every response's warnings.
+        self.ignored_model_prefs = [model for model in dict.fromkeys(configured) if model not in self.model_prefs]
+        if self.ignored_model_prefs:
+            _logging.getLogger(__name__).warning(
+                "Configured OCR models ignored (InternVL only): %s", ", ".join(self.ignored_model_prefs)
+            )
         self.temperature = self._resolve_temperature()
         self.max_tokens = self._resolve_max_tokens()
         # At temperature 0 the reading must not depend on the draw: ask for
@@ -764,18 +774,26 @@ class SaiaOCRAgent:
         self.deterministic = self.temperature == 0.0
 
     @staticmethod
-    def _resolve_model_prefs() -> list[str]:
-        prefs = _filter_internvl_models(
-            _parse_csv_or_json_list(
+    def _configured_model_prefs() -> list[str]:
+        return _parse_csv_or_json_list(
             settings.saia_ocr_models
             or os.getenv("SAIA_OCR_MODELS", "")
             or settings.saia_ocr_model_prefs
             or os.getenv("SAIA_OCR_MODEL_PREFS", "")
             or settings.saia_ocr_model_preferences
             or DEFAULT_MODEL_PREFS_CSV
-            )
         )
+
+    @staticmethod
+    def _resolve_model_prefs() -> list[str]:
+        prefs = _filter_internvl_models(SaiaOCRAgent._configured_model_prefs())
         return prefs or _filter_internvl_models(DEFAULT_SAIA_OCR_MODEL_PREFS)
+
+    def _with_ignored_model_warnings(self, response: SaiaOCRResponse | None) -> SaiaOCRResponse | None:
+        if response is None or not self.ignored_model_prefs:
+            return response
+        ignored = [f"OCR_MODEL_PREFERENCE_IGNORED:{model}" for model in self.ignored_model_prefs]
+        return response.model_copy(update={"warnings": list(dict.fromkeys([*response.warnings, *ignored]))})
 
     @staticmethod
     def _resolve_temperature() -> float:
@@ -1116,7 +1134,11 @@ class SaiaOCRAgent:
             raw_json={"column_split": True, "columns": 2},
         )
 
-    def extract_tiles(
+    def extract_tiles(self, **kwargs: Any) -> SaiaOCRResponse | None:
+        """Tile-based OCR; see :meth:`_extract_tiles`. Names ignored configured models in the warnings."""
+        return self._with_ignored_model_warnings(self._extract_tiles(**kwargs))
+
+    def _extract_tiles(
         self,
         *,
         image_b64: str,
@@ -1399,6 +1421,12 @@ class SaiaOCRAgent:
         )
 
     def extract(self, payload: SaiaOCRRequest) -> SaiaOCRResponse:
+        """OCR one page; see :meth:`_extract`. Names ignored configured models in the warnings."""
+        response = self._with_ignored_model_warnings(self._extract(payload))
+        assert response is not None
+        return response
+
+    def _extract(self, payload: SaiaOCRRequest) -> SaiaOCRResponse:
         image_b64 = _extract_base64_payload(payload.image_b64 or "")
         image_b64, preprocess_warnings = _prepare_image_for_ocr(image_b64)
         available_models = self.client.list_models()

@@ -424,7 +424,7 @@ _crop_regions (line 1096) does, every call: base64-decode the full page (decode_
 - **Impact:** A page with many initial regions (each region costs a crop, a JPEG re-encode, and an 8s-budget VLM call against a 30s total deadline) will exhaust the deadline partway through. The exception unwinds the whole loop, so the letters already identified for regions 1..k are thrown away and routers/chat.py:135 returns HTTP 422 'Label analysis exceeded its total deadline'. The user gets nothing instead of a partial reading, and every VLM call already paid for is wasted.
 - **Fix:** Catch LabelAnalysisAgentError around the per-region call at line 970: on deadline expiry, break out of the loop, append a `LABEL_ANALYSIS_TRUNCATED:{index}/{len(ordered_regions)}` warning, and return the lines gathered so far. Also cap ordered_regions to a sane maximum before the loop and warn when regions are dropped.
 
-### [AG-07] resolve_model_preferences discards the caller's model_preference, prefer_model, and max_fallbacks
+### [AG-07] resolve_model_preferences discards the caller's model_preference, prefer_model, and max_fallbacks — partly fixed (made visible: a logged warning and a response warning name what was ignored; which models run is unchanged, pending the user's decision on the model policy)
 
 - **Where:** `vendor:app/agents/ocr_agent.py:262`  
 - **Category:** correctness  
@@ -960,7 +960,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** A typical dense manuscript page yields 3,000-5,000 characters. 4,000 x 4,000 is 16 million interpreted inner iterations — roughly 8-15 seconds of pure CPU, holding the GIL, per page, purely to decide whether to accept a proofread. On a multi-page batch this dominates non-model wall time and blocks other threads in the same process.
 - **Fix:** Short-circuit on length: if abs(la-lb)/max(la,lb) already exceeds _MAX_CHAR_EDIT_RATIO, return that ratio without the DP. Cap the DP input (e.g. compare only the first 1,500 chars, or run it per line and average). Best: use difflib.SequenceMatcher(None, a, b).quick_ratio() as a cheap pre-filter and only fall through to the exact DP when quick_ratio lands near the 0.40 threshold.
 
-### [AG-08] _filter_internvl_models silently drops any operator-configured non-InternVL OCR model
+### [AG-08] _filter_internvl_models silently drops any operator-configured non-InternVL OCR model — partly fixed (made visible: a logged warning and a response warning name what was ignored; which models run is unchanged, pending the user's decision on the model policy)
 
 - **Where:** `vendor:app/agents/saia_ocr_agent.py:1880`  
 - **Category:** correctness  

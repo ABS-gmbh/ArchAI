@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
 import json
+import logging
 import os
 import re
 from typing import Any, Sequence
@@ -66,6 +67,7 @@ from app.agents.ocr_text_parsing import (
 AGENT_VERSION = "5.0.0"
 OCR_PROMPT_VERSION = "paleo_ocr_tiled_v1"
 LOCKED_OCR_MODEL = "internvl3.5-30b-a3b"
+log = logging.getLogger(__name__)
 PIPELINE_VERSION = str(
     os.getenv("ARCHAI_PIPELINE_VERSION")
     or os.getenv("ARCHAI_GIT_SHA")
@@ -226,9 +228,42 @@ def _parse_preference_env(raw: str) -> list[str]:
 
 
 def resolve_model_preferences(explicit: Sequence[str] | None = None, prefer_model: str | None = None) -> list[str]:
+    """The OCR models to try: the locked model only, whatever the caller asked for.
+
+    Which models run is a policy decision (see the strict xfails on Qwen in
+    test_saia_ocr_agent.py); :func:`ignored_model_requests` reports what this
+    discards, so a caller is no longer silently overridden (audit AG-07).
+    """
     _ = explicit
     _ = prefer_model
     return [LOCKED_OCR_MODEL]
+
+
+def ignored_model_requests(payload: OCRExtractRequest) -> list[str]:
+    """Warnings naming each model-selection request the locked policy does not honour.
+
+    ``prefer_model`` and ``options.model_preference`` name models other than
+    LOCKED_OCR_MODEL, and ``options.max_fallbacks`` asks for fallbacks a single
+    locked model cannot give. Each was accepted by the schema and ignored.
+    """
+    locked = LOCKED_OCR_MODEL.lower()
+    requested = [payload.prefer_model or "", *(payload.options.model_preference or [])]
+    warnings = [
+        f"MODEL_PREFERENCE_IGNORED:{model}"
+        for model in dict.fromkeys(str(m).strip() for m in requested)
+        if model and model.lower() != locked
+    ]
+    # Only a value the caller set: the schema default (2) is on every request.
+    # The segmented route does use it (its backend runtime), so it is ignored
+    # only on the whole-page route, which reads with the one locked model.
+    if (
+        "max_fallbacks" in payload.options.model_fields_set
+        and payload.options.max_fallbacks > 0
+        and len(resolve_model_preferences()) < 2
+        and not _iter_region_inputs(payload)
+    ):
+        warnings.append(f"MAX_FALLBACKS_IGNORED:{payload.options.max_fallbacks}")
+    return warnings
 
 
 def is_vision_model(model_id: str) -> bool:
@@ -1077,6 +1112,21 @@ def _map_tiles(read: Callable[[Any], Any], tiles: Sequence[Any]) -> list[Any]:
 
 
 def run_ocr_extraction(
+    payload: OCRExtractRequest,
+    *,
+    client: SaiaClient | None = None,
+    upscale_factor: int = 2,
+) -> OCRExtractAnyResponse:
+    ignored = ignored_model_requests(payload)
+    if ignored:
+        log.warning("OCR request settings ignored by the locked model policy (%s): %s", LOCKED_OCR_MODEL, ", ".join(ignored))
+    result = _run_ocr_extraction(payload, client=client, upscale_factor=upscale_factor)
+    if ignored and isinstance(result, OCRExtractResponse):
+        result.warnings = list(dict.fromkeys([*result.warnings, *ignored]))
+    return result
+
+
+def _run_ocr_extraction(
     payload: OCRExtractRequest,
     *,
     client: SaiaClient | None = None,
