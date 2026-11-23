@@ -19,6 +19,29 @@ export function removeTextUncertainties(text: string): string {
     .trim();
 }
 
+/**
+ * Whether the text can carry the pipeline's own uncertainty marks ("[…]", "…", "?").
+ *
+ * The segmented engine never inserts them: there, a question mark or an
+ * ellipsis is something the recogniser read on the page (a punctus
+ * interrogativus, for one), and removing it would alter the transcription.
+ */
+export function carriesUncertaintyMarks(result: Pick<OCRExtractResponse, "ocr_engine">): boolean {
+  return result.ocr_engine !== "segmented";
+}
+
+/** The transcription as shown and stored: uncertainty marks removed only where the engine inserts them. */
+export function cleanTranscription(result: Pick<OCRExtractResponse, "ocr_engine">, text: string): string {
+  if (carriesUncertaintyMarks(result)) {
+    return removeTextUncertainties(text);
+  }
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .join("\n")
+    .trim();
+}
+
 export function getExtractionStatus(result: OCRExtractResponse): "FULL" | "PARTIAL" | "EMPTY" {
   return result.status;
 }
@@ -86,7 +109,7 @@ export function describeExtraction(result: OCRExtractResponse, rawText: string):
       detail: "The recogniser's own confidence in its reading, averaged over the page. It is not an accuracy measurement.",
     });
   }
-  const uncertain = countUncertainties(rawText);
+  const uncertain = carriesUncertaintyMarks(result) ? countUncertainties(rawText) : 0;
   if (uncertain > 0) {
     badges.push({
       tone: "warn",

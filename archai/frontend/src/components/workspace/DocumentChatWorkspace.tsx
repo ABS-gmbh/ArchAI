@@ -54,7 +54,7 @@ import {
   type ExtractionBadge,
   describeExtraction,
   getExtractionStatus,
-  removeTextUncertainties,
+  cleanTranscription,
 } from "./workspaceExtraction";
 
 interface DocumentChatWorkspaceProps {
@@ -981,11 +981,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       });
 
       const rawExtractedText = mergeOCRResultText(response);
-      const finalText = removeTextUncertainties(rawExtractedText);
+      const finalText = cleanTranscription(response, rawExtractedText);
       const storedText = finalText || "";
       // Marginalia, folio numbers and stamps are shown, but kept out of the text
       // that chat, search and entity extraction work from.
-      const secondaryText = removeTextUncertainties((response.secondary_lines ?? []).join("\n"));
+      const secondaryText = cleanTranscription(response, (response.secondary_lines ?? []).join("\n"));
       const displayText = secondaryText
         ? `${finalText}\n\nOutside the text columns:\n${secondaryText}`
         : finalText;
