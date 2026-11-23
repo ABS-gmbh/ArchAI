@@ -1,4 +1,4 @@
-import { apiUrl } from "./client";
+import { fetchBackend } from "./client";
 
 export interface PredictSingleResponse {
   task_id: string;
@@ -34,7 +34,7 @@ export async function predictSinglePage(
 
   let response: Response;
   try {
-    response = await fetch(apiUrl("/predict/single"), {
+    response = await fetchBackend("/predict/single", {
       method: "POST",
       body: form,
       signal: controller.signal,
