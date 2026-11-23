@@ -78,3 +78,38 @@ def test_existing_fields_are_unchanged(report: dict[str, Any]) -> None:
     assert set(selected) - {"score_breakdown"} == {
         "source", "authority_id", "qid", "label", "description", "score", "viaf_id", "geonames_id", "type_compatible",
     }
+
+
+def test_each_mention_carries_its_link_trace_and_the_placeholders_are_filled(report: dict[str, Any]) -> None:
+    satyre = _mention(report, "La satyre megere")
+    trace = satyre["link_trace"]
+    assert trace["status"] == "linked" and trace["reason"].startswith("best score = 0.894")
+    assert [q["query"] for q in trace["query_details"]] == ["La satyre megere", "satyre megere"]
+    first = trace["query_details"][0]
+    assert first["source_hit_counts"]["wikidata"] == 1 and first["raw_hits"][0]["qid"] == "Q135111996"
+    assert "raw_hits_by_source" not in first
+    # These were [] and None although the trace held them.
+    assert satyre["query_details"] == trace["query_details"]
+    assert satyre["queries_attempted"] == ["La satyre megere", "satyre megere"]
+    assert satyre["name_likeness"] == trace["name_likeness"] is not None
+
+
+def test_the_trace_is_capped(report: dict[str, Any]) -> None:
+    from app.services.authority_linking import _trimmed_link_trace
+
+    stored = {
+        "status": "unresolved",
+        "query_details": [
+            {"query": f"q{i}", "raw_hits": [{"qid": f"Q{j}", "label": "x", "extra": "dropped"} for j in range(12)], "raw_hits_by_source": {"wikidata": []}}
+            for i in range(14)
+        ],
+        "top_candidates": [{"qid": f"Q{i}"} for i in range(9)],
+    }
+    trimmed = _trimmed_link_trace(stored)
+    assert len(trimmed["query_details"]) == 10
+    assert all(len(q["raw_hits"]) == 5 and q["raw_hits_total"] == 12 for q in trimmed["query_details"])
+    assert all("extra" not in hit for q in trimmed["query_details"] for hit in q["raw_hits"])
+    assert len(trimmed["top_candidates"]) == 5
+    assert _trimmed_link_trace(None) is None and _trimmed_link_trace("garbage") is None
+    for mention in report["mention_results"]:
+        assert len(json.dumps(mention["link_trace"] or {})) < 20_000
