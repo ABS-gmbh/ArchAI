@@ -607,3 +607,74 @@ def test_an_empty_reading_still_ends_the_reserved_run(db: Any) -> None:
     assert trace_pipeline._run_full_page_post_ocr_pipeline(payload, empty, PAGE, ocr_backend="kraken_catmus", run_id=run_id) == {"run_id": run_id}
     assert db.get_run(run_id)["status"] == "COMPLETED"
     assert trace_pipeline._run_full_page_post_ocr_pipeline(payload, empty, PAGE, ocr_backend="kraken_catmus") == {}
+
+
+# --------------------------------------------------- reservation bounds --
+
+
+def _age_reservation(db: Any, run_id: str, seconds: int) -> None:
+    from datetime import datetime, timedelta, timezone
+
+    created = (datetime.now(timezone.utc) - timedelta(seconds=seconds)).isoformat()
+    with db._connect() as conn:
+        conn.execute("UPDATE pipeline_runs SET created_at=?, updated_at=? WHERE run_id=?", (created, created, run_id))
+        conn.commit()
+
+
+def test_an_expired_reservation_is_refused_and_removed(route: dict[str, Any], db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    from fastapi import HTTPException
+
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "ocr_run_reservation_ttl_seconds", 3600)
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150)))
+    stale = asyncio.run(ocr_router.ocr_reserve_run())["run_id"]
+    _age_reservation(db, stale, 2 * 3600)
+    with pytest.raises(HTTPException) as refused:
+        _extract(run_id=stale)
+    assert refused.value.status_code == 410 and "expired" in refused.value.detail
+    assert db.get_run(stale)["status"] == "RESERVED"  # refusing does not claim it
+
+    fresh = asyncio.run(ocr_router.ocr_reserve_run())["run_id"]  # the next reservation sweeps
+    assert db.get_run(stale) is None
+    assert db.get_run(fresh)["status"] == "RESERVED"
+
+
+def test_the_sweep_never_touches_a_claimed_or_finished_run(db: Any) -> None:
+    claimed = db.reserve_run()
+    assert db.claim_reserved_run(claimed, asset_ref="page", asset_sha256=None) == "claimed"
+    ordinary = db.create_run(asset_ref="other", asset_sha256=None)
+    db.update_run_fields(ordinary, status="COMPLETED")
+    for run_id in (claimed, ordinary):
+        _age_reservation(db, run_id, 10 * 24 * 3600)
+    old_reserved = db.reserve_run()
+    _age_reservation(db, old_reserved, 10 * 24 * 3600)
+
+    from datetime import datetime, timezone
+
+    assert db.delete_expired_reservations(created_before=datetime.now(timezone.utc).isoformat()) == 1
+    assert db.get_run(old_reserved) is None
+    assert db.get_run(claimed)["status"] == "RUNNING" and db.get_run(ordinary)["status"] == "COMPLETED"
+
+
+def test_too_many_waiting_reservations_answer_429(db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    from fastapi import HTTPException
+
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "ocr_run_reservation_max_live", 3)
+    for _ in range(3):
+        asyncio.run(ocr_router.ocr_reserve_run())
+    with pytest.raises(HTTPException) as capped:
+        asyncio.run(ocr_router.ocr_reserve_run())
+    assert capped.value.status_code == 429 and "Too many reserved runs" in capped.value.detail
+    assert db.count_reserved_runs() == 3
+
+
+def test_retention_keeps_a_reserved_run_as_not_finished(db: Any) -> None:
+    from app.services.run_retention import plan_retention
+
+    reserved = db.reserve_run()
+    _age_reservation(db, reserved, 400 * 24 * 3600)
+    plan = plan_retention(180, protected=set())
+    assert reserved in plan.kept.get("not_finished", []) and reserved not in plan.expired

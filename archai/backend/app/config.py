@@ -247,6 +247,12 @@ class Settings(BaseSettings):
     # to 8.6%. Off, the plan order decides, and a later backend reads a line only
     # when every earlier one fails or reads nothing.
     ocr_backend_election: bool = False
+    # Runs reserved with POST /ocr/runs for a client to follow. The route is
+    # unauthenticated, so reservations are bounded: one not used within the TTL
+    # can no longer be claimed and is deleted by the next reservation, and no
+    # more than the cap may wait at once (beyond it the route answers 429).
+    ocr_run_reservation_ttl_seconds: int = 3600
+    ocr_run_reservation_max_live: int = 100
 
     # Kraken recognition
     kraken_device: str = "cpu"
