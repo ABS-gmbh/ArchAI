@@ -57,7 +57,14 @@ def _score_candidate(
     aliases_raw = list(candidate.get("aliases", []) or [])
     alias_values = [str(item.get("value") or "").strip() for item in aliases_raw if isinstance(item, dict)]
     alias_values = [value for value in alias_values if value]
-    alias_match_quality = max((string_similarity(compare_surface, alias) for alias in alias_values), default=0.0)
+    # A candidate without aliases is judged on its label. Scoring its missing
+    # alias as a 0.0 match capped it near 0.75, under every auto-select
+    # threshold, while a candidate whose only alias repeats its label got the
+    # full 0.25: the same evidence scored differently depending on whether
+    # Wikidata happens to list an alias.
+    alias_match_quality = max(
+        (string_similarity(compare_surface, alias) for alias in alias_values), default=label_similarity
+    )
 
     description_parts = [
         str(candidate.get("description") or ""),

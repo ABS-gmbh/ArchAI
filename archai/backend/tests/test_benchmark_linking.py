@@ -93,7 +93,7 @@ def test_the_committed_cache_replays_the_reported_numbers_offline(bl) -> None:
     result = bl.run()
     assert result["cache_misses"] == [] and result["live_requests"] == 0
     assert result["n"] == 13
-    assert result["totals"] == {"correct": 6, "wrong": 0, "abstained": 2, "missed-mention": 5}
+    assert result["totals"] == {"correct": 7, "wrong": 0, "abstained": 1, "missed-mention": 5}
     lausanne = next(row for row in result["pages"]["middle-french-antitus"] if row["surface"] == "lausanne")
     assert (lausanne["outcome"], lausanne["linked_to"]) == ("correct", "Q807")
 
