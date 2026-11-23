@@ -38,6 +38,7 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     for name in ("CHAT_AI_API_KEY", "SAIA_API_KEY", "ARCHAI_CHAT_AI_API_KEY", "ARCHAI_SAIA_API_KEY"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(settings, "glmocr_ollama_host", "http://127.0.0.1:11434")
+    monkeypatch.setattr(health, "_last_ok", {})
     monkeypatch.setattr(health.requests, "get", lambda url, timeout: _Response({"version": "0.6.0"}))
     app = FastAPI()
     app.include_router(health.router, prefix="/api")
@@ -117,3 +118,22 @@ def test_every_check_has_the_fields_the_frontend_reads(client: TestClient) -> No
     assert body["status"] in {"ok", "degraded", "unavailable"}
     for check in body["checks"].values():
         assert isinstance(check["ok"], bool) and isinstance(check["detail"], str) and check["detail"]
+
+
+def test_a_dependency_that_stays_down_is_logged_once(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The UI polls /health; a warning per poll while Ollama was down filled the log."""
+
+    def refuse(url: str, timeout: float) -> Any:
+        raise requests.ConnectionError("connection refused")
+
+    monkeypatch.setattr(health.requests, "get", refuse)
+    with caplog.at_level("INFO", logger="app.routers.health"):
+        for _ in range(5):
+            client.get("/api/health")
+        monkeypatch.setattr(health.requests, "get", lambda url, timeout: _Response({"version": "0.6.0"}))
+        client.get("/api/health")
+    warnings = [r for r in caplog.records if r.levelname == "WARNING" and "Ollama" in r.getMessage()]
+    assert len(warnings) == 1
+    assert any("ollama is back" in r.getMessage() for r in caplog.records)

@@ -37,15 +37,32 @@ _LOGGER = logging.getLogger(__name__)
 
 _OLLAMA_TIMEOUT_SECONDS = 2.0
 
+# The last state logged for each check. The UI polls this endpoint, and a
+# warning on every poll while Ollama is down filled the log; now a check logs
+# when it goes down and when it comes back.
+_last_ok: dict[str, bool] = {}
+
+
+def _log_transition(name: str, ok: bool, message: str, *args: object) -> None:
+    previous = _last_ok.get(name)
+    _last_ok[name] = ok
+    if ok and previous is False:
+        _LOGGER.info("Health check: %s is back.", name)
+    elif not ok and previous is not False:
+        _LOGGER.warning(message, *args)
+    elif not ok:
+        _LOGGER.debug(message, *args)
+
 
 def _check_database() -> dict[str, Any]:
     try:
         pipeline_db._init_db_if_needed()
         with pipeline_db._connect() as conn:
             conn.execute("SELECT 1").fetchone()
-    except (sqlite3.Error, OSError):
-        _LOGGER.exception("Health check: the pipeline database is unavailable")
+    except (sqlite3.Error, OSError) as exc:
+        _log_transition("database", False, "Health check: the pipeline database is unavailable: %s: %s", type(exc).__name__, exc)
         return {"ok": False, "detail": "The pipeline database is unavailable."}
+    _log_transition("database", True, "")
     return {"ok": True, "detail": "The pipeline database answers."}
 
 
@@ -58,8 +75,9 @@ def _check_ollama() -> dict[str, Any]:
         response.raise_for_status()
         version = response.json().get("version")
     except (requests.RequestException, ValueError, AttributeError) as exc:
-        _LOGGER.warning("Health check: Ollama at %s is not reachable: %s: %s", host, type(exc).__name__, exc)
+        _log_transition("ollama", False, "Health check: Ollama at %s is not reachable: %s: %s", host, type(exc).__name__, exc)
         return {"ok": False, "detail": "Ollama is not reachable; GLM-OCR is unavailable."}
+    _log_transition("ollama", True, "")
     return {"ok": True, "detail": "Ollama answers.", "version": version}
 
 
