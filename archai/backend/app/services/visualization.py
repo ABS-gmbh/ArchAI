@@ -69,8 +69,18 @@ def draw_coco_on_image(
     coco_filtered = filter_coco_by_classes(coco_json, allowed_classes)
     id_to_name = {c["id"]: c["name"] for c in coco_filtered["categories"]}
 
-    img = Image.open(image_path).convert("RGB")
+    with Image.open(image_path) as opened:
+        img = opened.convert("RGB")
     fig, ax = plt.subplots(1, 1, figsize=(10, 14))
+    # Closed on every path: pyplot keeps each open figure in a process-wide
+    # registry, so one left open by an exception stayed in memory for good.
+    try:
+        return _draw_annotations(fig, ax, img, coco_filtered, id_to_name, output_path)
+    finally:
+        plt.close(fig)
+
+
+def _draw_annotations(fig, ax, img, coco_filtered: dict, id_to_name: dict, output_path: str | None) -> str:
     ax.imshow(img)
     ax.axis("off")
 
@@ -78,7 +88,6 @@ def draw_coco_on_image(
         if output_path is None:
             output_path = os.path.join(tempfile.gettempdir(), "annotated.png")
         fig.savefig(output_path, dpi=150, bbox_inches="tight")
-        plt.close(fig)
         return output_path
 
     img_info = coco_filtered["images"][0]
@@ -159,5 +168,4 @@ def draw_coco_on_image(
     if output_path is None:
         output_path = os.path.join(tempfile.gettempdir(), "annotated.png")
     fig.savefig(output_path, dpi=150, bbox_inches="tight")
-    plt.close(fig)
     return output_path
