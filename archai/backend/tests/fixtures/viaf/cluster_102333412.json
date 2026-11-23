@@ -1,0 +1,51 @@
+{
+ "ns1:VIAFCluster": {
+  "xmlns:ns1": "http://viaf.org/viaf/terms#",
+  "ns1:viafID": 102333412,
+  "ns1:nameType": "Personal",
+  "ns1:mainHeadings": {
+   "ns1:data": [
+    {
+     "ns1:sources": {
+      "ns1:s": [
+       "BNCHL",
+       "SZ",
+       "ERRR"
+      ],
+      "ns1:sid": [
+       "BNCHL|10000000000000000007429",
+       "SZ|118505173",
+       "ERRR|a1112555x"
+      ]
+     },
+     "ns1:text": "Austen, Jane, 1775-1817."
+    },
+    {
+     "ns1:sources": {
+      "ns1:s": [
+       "NII",
+       "ICCU",
+       "ISNI"
+      ],
+      "ns1:sid": [
+       "NII|DA00467633",
+       "ICCU|CFIV017136",
+       "ISNI|000000012283635X"
+      ]
+     },
+     "ns1:text": "Austen, Jane"
+    }
+   ]
+  },
+  "ns1:titles": {
+   "ns1:work": [
+    {
+     "ns1:title": "Anna Elliotová"
+    },
+    {
+     "ns1:title": "Anne Elliot Roman"
+    }
+   ]
+  }
+ }
+}
