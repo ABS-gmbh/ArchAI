@@ -11,10 +11,15 @@ no OCR run can be recorded without it.
 - ``chat_api_key`` (optional): a SAIA / Chat AI key is configured. Whether it
   is valid is not checked - that would cost a request per probe - and the key
   itself is never returned.
+
+The endpoint is unauthenticated, so each check returns only ``ok``, a fixed
+``detail`` and, for Ollama, the version. Exception text (a SQLite error can
+carry the database path) and the Ollama host go to the log instead.
 """
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 from typing import Any
 
@@ -28,6 +33,7 @@ from app.services import inference
 from app.services.saia_client import SaiaClient, SaiaConfigError
 
 router = APIRouter(tags=["health"])
+_LOGGER = logging.getLogger(__name__)
 
 _OLLAMA_TIMEOUT_SECONDS = 2.0
 
@@ -37,30 +43,32 @@ def _check_database() -> dict[str, Any]:
         pipeline_db._init_db_if_needed()
         with pipeline_db._connect() as conn:
             conn.execute("SELECT 1").fetchone()
-    except (sqlite3.Error, OSError) as exc:
-        return {"ok": False, "detail": f"Pipeline database unavailable: {type(exc).__name__}: {exc}"}
-    return {"ok": True}
+    except (sqlite3.Error, OSError):
+        _LOGGER.exception("Health check: the pipeline database is unavailable")
+        return {"ok": False, "detail": "The pipeline database is unavailable."}
+    return {"ok": True, "detail": "The pipeline database answers."}
 
 
 def _check_ollama() -> dict[str, Any]:
     host = str(settings.glmocr_ollama_host or "").rstrip("/")
     if not host:
-        return {"ok": False, "detail": "GLMOCR_OLLAMA_HOST is not set."}
+        return {"ok": False, "detail": "No Ollama host is configured (GLMOCR_OLLAMA_HOST)."}
     try:
         response = requests.get(f"{host}/api/version", timeout=_OLLAMA_TIMEOUT_SECONDS)
         response.raise_for_status()
         version = response.json().get("version")
     except (requests.RequestException, ValueError, AttributeError) as exc:
-        return {"ok": False, "host": host, "detail": f"Ollama not reachable: {type(exc).__name__}"}
-    return {"ok": True, "host": host, "version": version}
+        _LOGGER.warning("Health check: Ollama at %s is not reachable: %s: %s", host, type(exc).__name__, exc)
+        return {"ok": False, "detail": "Ollama is not reachable; GLM-OCR is unavailable."}
+    return {"ok": True, "detail": "Ollama answers.", "version": version}
 
 
 def _check_chat_api_key() -> dict[str, Any]:
     try:
         SaiaClient._resolve_api_key()
     except SaiaConfigError:
-        return {"ok": False, "detail": "No chat API key configured (CHAT_AI_API_KEY or SAIA_API_KEY)."}
-    return {"ok": True, "detail": "A key is configured; it is not validated here."}
+        return {"ok": False, "detail": "No chat API key is configured; chat and translation are unavailable."}
+    return {"ok": True, "detail": "A chat API key is configured; it is not validated here."}
 
 
 # A plain def: the checks are a SQLite query and an HTTP request, which FastAPI

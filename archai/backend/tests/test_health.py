@@ -89,4 +89,31 @@ def test_an_unusable_database_is_503(client: TestClient, monkeypatch: pytest.Mon
     response = client.get("/api/health")
     assert response.status_code == 503
     assert response.json()["status"] == "unavailable"
-    assert "unable to open database file" in response.json()["checks"]["database"]["detail"]
+    assert response.json()["checks"]["database"]["detail"] == "The pipeline database is unavailable."
+
+
+def test_errors_and_the_host_go_to_the_log_not_the_response(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The endpoint is unauthenticated; a SQLite error can name the database path."""
+
+    def broken() -> Any:
+        raise sqlite3.OperationalError("unable to open database file /srv/archai/private/archai.sqlite")
+
+    def refuse(url: str, timeout: float) -> Any:
+        raise requests.ConnectionError("connection refused")
+
+    monkeypatch.setattr(health.pipeline_db, "_connect", broken)
+    monkeypatch.setattr(health.requests, "get", refuse)
+    with caplog.at_level("WARNING"):
+        response = client.get("/api/health")
+    assert "/srv/archai" not in response.text and "11434" not in response.text
+    assert "/srv/archai/private/archai.sqlite" in caplog.text
+    assert "127.0.0.1:11434" in caplog.text
+
+
+def test_every_check_has_the_fields_the_frontend_reads(client: TestClient) -> None:
+    body = client.get("/api/health").json()
+    assert body["status"] in {"ok", "degraded", "unavailable"}
+    for check in body["checks"].values():
+        assert isinstance(check["ok"], bool) and isinstance(check["detail"], str) and check["detail"]
