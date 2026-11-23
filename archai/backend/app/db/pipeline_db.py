@@ -39,10 +39,27 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+class _ClosingConnection(sqlite3.Connection):
+    """A connection that closes when its ``with`` block ends.
+
+    sqlite3.Connection's own __exit__ commits or rolls back and leaves the
+    connection open. Every caller here uses ``with _connect() as conn``, and the
+    connections lingered until the cyclic garbage collector found them: 900
+    reads with collection paused left 902 connections and 1,800 descriptors
+    (database and WAL) open. Same defect as audit AL-11, in the pipeline DB.
+    """
+
+    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> Any:
+        try:
+            return super().__exit__(exc_type, exc, tb)
+        finally:
+            self.close()
+
+
 def _connect() -> sqlite3.Connection:
     cfg = _db_config()
     cfg.path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(cfg.path), check_same_thread=False)
+    conn = sqlite3.connect(str(cfg.path), check_same_thread=False, factory=_ClosingConnection)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys=ON")
     # OCR runs write from worker threads while trace streams poll. In the
