@@ -1101,7 +1101,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** The caller reasonably believes it is influencing strategy selection — e.g. escalating past `grid_shift` when the previous attempt already produced identical text with different boxes. It is not; the chain always restarts at `grid_shift`, so an attempt-2 retry can pick a strategy that already failed to change the text at attempt 1.
 - **Fix:** Either use it — skip to the next strategy in `_STRATEGY_CHAIN` when `prev_text_sha256` matches the text produced by the strategy that generated `prev_plan` — or remove the parameter and the two caller arguments. Delete the unused config constant.
 
-### [AL-15] Dead and self-cancelling normalization rules: a no-op 'ii'->'ii' regex, an unreachable ('vne','une') mapping, and three never-called public functions
+### [AL-15] Dead and self-cancelling normalization rules: a no-op 'ii'->'ii' regex, an unreachable ('vne','une') mapping, and three never-called public functions — **FIXED** (the no-op 'ii' rule and ocr_aware_similarity were already gone; the unreachable ('vne','une') entry and the uncalled agreement_score and line_length_mismatch_ratio are deleted)
 
 - **Where:** `vendor:app/services/text_normalization.py:115`  
 - **Category:** hygiene  
