@@ -788,3 +788,20 @@ def test_the_full_page_sent_to_glm_is_the_whole_unmasked_page() -> None:
         assert sent.mode == "RGB" and sent.size == (30, 20)
         assert sent.tobytes() == page.tobytes()
     assert not hasattr(ocr_router, "_build_masked_text_page_b64")
+
+
+@pytest.mark.parametrize("path", ["/api/ocr/extract_full_page", "/api/ocr/saia"])
+def test_bytes_that_are_not_an_image_are_a_422(path: str) -> None:
+    """They fell through to GLM-OCR and came back 502, an upstream failure."""
+    import base64
+
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    app = FastAPI()
+    app.include_router(ocr_router.router, prefix="/api")
+    client = TestClient(app, raise_server_exceptions=False)
+    payload = {"image_b64": base64.b64encode(b"%PDF-1.4 not an image").decode("ascii"), "apply_proofread": False}
+    response = client.post(path, json=payload)
+    assert response.status_code == 422
+    assert "not an image" in response.json()["detail"]
