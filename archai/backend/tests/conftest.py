@@ -85,3 +85,69 @@ def _authority_cache_outside_the_checkout(tmp_path_factory: pytest.TempPathFacto
     else:
         os.environ["ARCHAI_WIKIDATA_CACHE"] = real
     wikidata_client._CACHE_READY = False
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _live_stores_outside_the_checkout(tmp_path_factory: pytest.TempPathFactory):
+    """Point the pipeline DB, the Chroma store and the task directory at temp paths.
+
+    Their defaults are app/archai.sqlite, .data/chroma and .tasks in the
+    backend directory - the live data of whoever runs the suite from their
+    checkout. Tests that need a store set their own path; any test that forgot
+    to (test_chat_api.py and test_entity_decision_spans.py did) wrote into the
+    live database and vector store.
+    """
+    import os
+
+    from app.db import pipeline_db
+    from app.services import file_manager
+
+    root = tmp_path_factory.mktemp("stores")
+    real_db = os.environ.get("ARCHAI_DB_PATH")
+    real_chroma = settings.chroma_persist_dir
+    real_tasks = file_manager.TASK_BASE_DIR
+
+    os.environ["ARCHAI_DB_PATH"] = str(root / "archai.sqlite")
+    pipeline_db._DB_READY = False
+    settings.chroma_persist_dir = str(root / "chroma")
+    file_manager.TASK_BASE_DIR = str(root / "tasks")
+    yield _store_paths()
+    if real_db is None:
+        os.environ.pop("ARCHAI_DB_PATH", None)
+    else:
+        os.environ["ARCHAI_DB_PATH"] = real_db
+    pipeline_db._DB_READY = False
+    settings.chroma_persist_dir = real_chroma
+    file_manager.TASK_BASE_DIR = real_tasks
+    rag_store = sys.modules.get("app.services.rag_store")
+    if rag_store is not None:
+        rag_store._CLIENT = None
+
+
+def _store_paths() -> dict[str, str | None]:
+    import os
+
+    from app.services import file_manager
+
+    return {
+        "ARCHAI_DB_PATH": os.environ.get("ARCHAI_DB_PATH"),
+        "settings.chroma_persist_dir": settings.chroma_persist_dir,
+        "file_manager.TASK_BASE_DIR": file_manager.TASK_BASE_DIR,
+    }
+
+
+@pytest.fixture(autouse=True)
+def _stores_stay_redirected(_live_stores_outside_the_checkout: dict[str, str | None]):
+    """Fail the test that leaves a store path changed, rather than the ones after it.
+
+    characterise_ocr_router.py removed ARCHAI_DB_PATH when it finished, and
+    every later test went back to the live app/archai.sqlite.
+    """
+    yield
+    changed = {
+        name: value
+        for name, value in _store_paths().items()
+        if value != _live_stores_outside_the_checkout[name]
+    }
+    if changed:
+        pytest.fail(f"test left store paths pointing elsewhere: {changed}")

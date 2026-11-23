@@ -782,7 +782,9 @@ It is also packaged into distributions: archai/vendor/layout/backend/pyproject.t
 - **Impact:** `pip install -e . -e archai/vendor/layout/backend` into one environment is not resolvable in general (numpy<2.0 vs whatever kraken 5.3 requires), and the >=3.10 vs >=3.11 split means the vendor package advertises support for a Python the other two reject. There is no documented statement of which package is canonical, so a contributor cannot tell whether `pip install -e .` at the root (README.md:37) is supposed to give them a working system — it does not; it gives them the 858-LOC CLI only.
 - **Fix:** Raise archai/vendor/layout/backend/pyproject.toml:12 to `requires-python = ">=3.11"` to match the other two, delete archai-backend (see HYG-07), and state in README.md:12-27 that root `archai` and `manuscript-layout-api` are separate environments that are not co-installable, or unify them behind one pyproject with extras.
 
-### [HYG-10] No conftest.py anywhere: the sys.path bootstrap is copy-pasted into 18 test files and DB isolation is a hand-repeated 2-line ritual
+### [HYG-10] No conftest.py anywhere: the sys.path bootstrap is copy-pasted into 18 test files and DB isolation is a hand-repeated 2-line ritual — partly fixed (tests/conftest.py now points the pipeline DB, the Chroma store and the task directory at session temp paths and fails any test that leaves them changed; the per-file sys.path blocks remain, redundant but harmless)
+
+- **Status (2026-11-23):** the hazard was live. test_chat_api.py created app/archai.sqlite and test_entity_decision_spans.py created .data/chroma in the checkout, and characterise_ocr_router.py removed ARCHAI_DB_PATH when it finished, so every later test used the default path. Run from the main checkout, those are the live database and vector store. A full run in a clean worktree now leaves neither file, nor .tasks. Pinned by test_suite_isolation.py and the per-test guard in conftest.py.
 
 - **Where:** `archai/vendor/layout/backend/tests/test_chat_api.py:8`  
 - **Category:** testing  

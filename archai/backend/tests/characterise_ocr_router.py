@@ -74,6 +74,9 @@ def record() -> dict[str, Any]:
     from langdetect import DetectorFactory
 
     out: dict[str, Any] = {}
+    # Restored afterwards, not removed: under pytest it is the session's temp
+    # database, and removing it sent every later test to app/archai.sqlite.
+    previous_db = os.environ.get("ARCHAI_DB_PATH")
     for name, text in _texts().items():
         DetectorFactory.seed = 0
         with tempfile.TemporaryDirectory() as tmp:
@@ -102,7 +105,10 @@ def record() -> dict[str, Any]:
                     report=report.replace(run_id, "<run>"),
                 )
             out[name] = _clean(record)
-    os.environ.pop("ARCHAI_DB_PATH", None)
+    if previous_db is None:
+        os.environ.pop("ARCHAI_DB_PATH", None)
+    else:
+        os.environ["ARCHAI_DB_PATH"] = previous_db
     pipeline_db._DB_READY = False
     return out
 
