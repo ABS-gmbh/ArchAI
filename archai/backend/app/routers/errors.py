@@ -89,3 +89,16 @@ def unexpected_error(exc: BaseException, *, what: str, provider: str | None = No
             raise known from exc
     _LOGGER.error("%s failed", what, exc_info=exc)
     raise HTTPException(status_code=500, detail=f"{what} failed on the server. The details are in the server log.") from exc
+
+
+def stream_error_message(exc: BaseException, *, provider: str = "chat provider") -> str:
+    """The sentence for an error inside a response that is already streaming."""
+    configuration = configuration_message(exc)
+    if configuration is not None:
+        return configuration
+    known = provider_failure(exc, provider=provider)
+    if known is not None:
+        _LOGGER.warning("Streamed chat failed: %s: %s", type(exc).__name__, exc)
+        return str(known.detail)
+    _LOGGER.error("Streamed chat failed", exc_info=exc)
+    return "The chat answer failed on the server. The details are in the server log."

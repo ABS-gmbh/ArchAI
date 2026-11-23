@@ -300,3 +300,77 @@ def test_a_trace_run_without_a_key_still_says_so(monkeypatch: pytest.MonkeyPatch
     assert response.json()["detail"]["error"] == (
         "Chat API key not configured. Set CHAT_AI_API_KEY (or SAIA_API_KEY) in backend/.env or environment."
     )
+
+
+# ───────────────────────────────────────────────────────────── chat ──
+
+
+def _raise(exc: BaseException):
+    def raiser(*args, **kwargs):
+        raise exc
+
+    return raiser
+
+
+MESSAGES = {"messages": [{"role": "user", "content": "hi"}]}
+
+
+@pytest.mark.parametrize(
+    ("call", "target", "what"),
+    [
+        (lambda c: c.get("/chat/models"), "list_available_models", "Listing the chat models"),
+        (lambda c: c.post("/chat/completions", json={**MESSAGES, "stream": False}), "create_chat_completion", "The chat completion"),
+    ],
+)
+def test_chat_routes_keep_exception_text_out(monkeypatch: pytest.MonkeyPatch, call, target: str, what: str) -> None:
+    from app.routers import chat
+
+    monkeypatch.setattr(chat, target, _raise(RuntimeError(LEAKY)))
+    response = call(_client(chat.router))
+    assert response.status_code == 500
+    assert "/srv/archai" not in response.text and "internal.example" not in response.text
+    assert response.json()["detail"] == f"{what} failed on the server. The details are in the server log."
+
+
+def test_label_analysis_keeps_exception_text_out(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.routers import chat
+
+    monkeypatch.setattr(chat, "_get_label_analysis_agent", lambda: _Agent(RuntimeError(LEAKY)))
+    response = _client(chat.router).post(
+        "/chat/label-analysis", json={"question": "q", "label_name": "MainZone", "image_b64": _png_b64()}
+    )
+    assert response.status_code == 500
+    assert "/srv/archai" not in response.text
+    assert response.json()["detail"] == "The label analysis failed on the server. The details are in the server log."
+
+
+def test_a_rejected_chat_key_is_a_502(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.routers import chat
+
+    monkeypatch.setattr(chat, "create_chat_completion", _raise(_openai_error(openai.AuthenticationError, 401)))
+    response = _client(chat.router).post("/chat/completions", json={**MESSAGES, "stream": False})
+    assert (response.status_code, response.json()["detail"]) == (502, "The chat provider rejected the API key.")
+
+
+def test_the_chat_configuration_message_is_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.routers import chat
+    from app.services.chat_ai import ChatConfigError
+
+    message = "Chat API key not configured. Set CHAT_AI_API_KEY (or SAIA_API_KEY) in backend/.env or environment."
+    monkeypatch.setattr(chat, "list_available_models", _raise(ChatConfigError(message)))
+    response = _client(chat.router).get("/chat/models")
+    assert (response.status_code, response.json()["detail"]) == (422, message)
+
+
+def test_a_streamed_failure_keeps_exception_text_out(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.routers import chat
+
+    def failing_stream(**kwargs):
+        yield {"type": "delta", "delta": "In"}
+        raise RuntimeError(LEAKY)
+
+    monkeypatch.setattr(chat, "stream_chat_completion", failing_stream)
+    response = _client(chat.router).post("/chat/completions", json={**MESSAGES, "stream": True})
+    assert response.status_code == 200
+    assert "/srv/archai" not in response.text and "internal.example" not in response.text
+    assert "The chat answer failed on the server. The details are in the server log." in response.text

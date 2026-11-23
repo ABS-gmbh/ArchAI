@@ -12,6 +12,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.agents.label_analysis_agent import LabelAnalysisAgent, LabelAnalysisAgentError
+from app.routers.errors import stream_error_message, unexpected_error
 from app.services.chat_ai import (
     ChatConfigError,
     create_chat_completion,
@@ -84,8 +85,8 @@ async def chat_models() -> dict[str, Any]:
         return await asyncio.to_thread(list_available_models)
     except ChatConfigError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Failed to list chat models: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="Listing the chat models", provider="chat provider")
 
 
 def _sse_events(payload: ChatCompletionRequest) -> Iterator[str]:
@@ -98,7 +99,9 @@ def _sse_events(payload: ChatCompletionRequest) -> Iterator[str]:
         ):
             yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
     except Exception as exc:
-        error_event = {"type": "error", "error": str(exc)}
+        # The stream has started, so the error travels as an event, not a status;
+        # it says what a person can act on and leaves the rest to the log.
+        error_event = {"type": "error", "error": stream_error_message(exc)}
         yield f"data: {json.dumps(error_event, ensure_ascii=False)}\n\n"
 
 
@@ -129,8 +132,8 @@ async def chat_completions(payload: ChatCompletionRequest) -> Any:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except HTTPException:
         raise
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Chat completion failed: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="The chat completion", provider="chat provider")
 
 
 @router.post("/chat/label-analysis", response_model=LabelAnalysisResponse)
@@ -145,5 +148,5 @@ async def chat_label_analysis(payload: LabelAnalysisRequest) -> LabelAnalysisRes
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except HTTPException:
         raise
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Label analysis failed: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="The label analysis", provider="chat provider")
