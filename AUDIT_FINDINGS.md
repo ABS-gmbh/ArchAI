@@ -437,7 +437,7 @@ Both arguments are bound to `_` and thrown away. run_ocr_extraction (line 1656-1
 - **Impact:** Three public request fields are silently inert: OCRExtractRequest.prefer_model, OCRExtractOptions.model_preference, and OCRExtractOptions.max_fallbacks (schemas/agents_ocr.py:99, 73, 74 — the latter validated ge=0 le=4, implying it works). A client requesting a specific model gets internvl3.5-30b-a3b and no error. More seriously, selected_models always has length 1, so in _ocr_tile_with_model_candidates the `if idx + 1 < len(selected_models)` fallback branch (line 1543) is never taken: a single transient error on ONE tile raises OCRAgentError (line 1548) and fails the entire page with no model fallback whatsoever.
 - **Fix:** Either honour the inputs (order prefer_model first, then explicit, then LOCKED_OCR_MODEL) or, if the model lock is deliberate policy, delete the two dead parameters, stop threading them from run_ocr_extraction, mark the three schema fields deprecated in schemas/agents_ocr.py, and reject requests that set prefer_model/model_preference with a 422 instead of silently ignoring them.
 
-### [AG-11] Independent per-tile VLM calls run strictly sequentially with no concurrency
+### [AG-11] Independent per-tile VLM calls run strictly sequentially with no concurrency — partly fixed (ocr_agent.run_ocr_extraction reads tiles concurrently, OCR_TILE_CONCURRENCY=2 by default; SaiaOCRAgent.extract_tiles and the wall-clock deadline are not done)
 
 - **Where:** `vendor:app/agents/ocr_agent.py:1675`  
 - **Category:** performance  

@@ -98,6 +98,12 @@ class Settings(BaseSettings):
     ocr_max_long_edge: int = 12000
     ocr_image_size_retry_limit: int = 2
     ocr_image_retry_shrink: float = 0.82
+    # Tiles of one page read by the VLM at once (ocr_agent.run_ocr_extraction).
+    # Each tile is an independent blocking request; one after another, a page of
+    # 17 tiles took 17 round trips end to end (audit AG-11). 2 is a cautious
+    # default: the provider's rate limits are not known, and the speed-up on it
+    # has not been measured. 1 restores the sequential loop.
+    ocr_tile_concurrency: int = 2
 
     # Backward-compatible SAIA key names (legacy config)
     archai_saia_api_key: str = ""
