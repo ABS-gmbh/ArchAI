@@ -379,3 +379,30 @@ def test_a_pinned_kraken_backend_is_passed_to_the_agent(route: dict[str, Any], m
     monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150)))
     _extract(ocr_backend="kraken_cremma_medieval")
     assert route["agent"].requests[0].options.backend == "kraken_cremma_medieval"
+
+
+class _PunctuatedAgent(_LineAgent):
+    """Reads lines holding a question mark and an ellipsis, as a recogniser can."""
+
+    def run(self, payload: Any) -> OCRExtractResponse:
+        result = super().run(payload)
+        text = "\n".join(f"Que diras tu? {region.region_id} … e" for region in payload.regions)
+        return result.model_copy(update={"text": text, "final_text": text})
+
+
+def test_the_segmented_route_keeps_question_marks_and_ellipses(route: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    """Nothing on this route inserts uncertainty marks: a "?" is the manuscript's punctuation."""
+    coco = _coco(COLUMN, _line(150), _line(250), ("Main script black", 300.0, 1250.0, 400.0, 40.0))
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: coco)
+    route["agent"] = _PunctuatedAgent()
+
+    result = _extract()
+
+    assert result.lines == ["Que diras tu? a1 … e", "Que diras tu? a2 … e"]
+    assert result.text == "Que diras tu? a1 … e\nQue diras tu? a2 … e"
+    assert result.secondary_lines == ["Que diras tu? a3 … e"]
+
+
+def test_the_marker_stripping_used_by_the_other_paths_is_unchanged() -> None:
+    assert ocr_router._strip_uncertainty_lines(["Que [ ]a? b […] c…", "  ", "x  y"]) == ["Que [ ]a b c", "x y"]
+    assert ocr_router._strip_uncertainty_lines(["a?  b"], strip_markers=False) == ["a? b"]

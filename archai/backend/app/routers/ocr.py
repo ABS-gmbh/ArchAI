@@ -658,10 +658,11 @@ def _strip_uncertainty_markers(text: str) -> str:
     )
 
 
-def _strip_uncertainty_lines(lines: list[str]) -> list[str]:
+def _strip_uncertainty_lines(lines: list[str], *, strip_markers: bool = True) -> list[str]:
+    """Lines with runs of spaces collapsed and empty lines dropped; uncertainty marks removed unless told not to."""
     cleaned: list[str] = []
     for line in lines:
-        value = re.sub(r"\s{2,}", " ", _strip_uncertainty_markers(line)).strip()
+        value = re.sub(r"\s{2,}", " ", _strip_uncertainty_markers(line) if strip_markers else line).strip()
         if value:
             cleaned.append(value)
     return cleaned
@@ -1022,9 +1023,15 @@ def _build_comparison_runs(result: OCRExtractResponse, requested_backend: str) -
 
 
 def _full_page_response_from_extract(result: OCRExtractResponse) -> SaiaFullPageExtractResponse:
+    """The full-page response for the segmented (line-by-line Kraken) route.
+
+    Nothing on this route inserts uncertainty marks, so "?", "…" and "[…]" in
+    the text are what the recogniser read - a question mark is punctuation of
+    the manuscript. They used to be stripped here, as on the SAIA tile path that
+    does insert marks, which deleted every genuine question mark.
+    """
     text_value = str(result.final_text or result.text or "")
-    text_value = _strip_uncertainty_markers(text_value)
-    lines_value = _strip_uncertainty_lines([line for line in text_value.splitlines() if line.strip()])
+    lines_value = _strip_uncertainty_lines([line for line in text_value.splitlines() if line.strip()], strip_markers=False)
     text_value = "\n".join(lines_value).strip()
     detected_language, language_confidence = _detect_language_metadata(text_value)
     confidence_value = None
@@ -1198,7 +1205,7 @@ def _upright_page_bytes(image_bytes: bytes) -> bytes:
 def _secondary_lines(result: OCRExtractAnyResponse) -> list[str]:
     if not isinstance(result, OCRExtractResponse):
         return []
-    return _strip_uncertainty_lines(str(result.final_text or result.text or "").splitlines())
+    return _strip_uncertainty_lines(str(result.final_text or result.text or "").splitlines(), strip_markers=False)
 
 
 def _run_segmented_full_page(
