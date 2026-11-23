@@ -187,3 +187,24 @@ The VIAF fix (fetching clusters from the documented endpoint) changes
 nothing here. The code before it gives the same 13 outcomes; its 5 record
 fetches went to the retired viaf.json URL. Thirteen entities on three pages
 is not a corpus-level score.
+
+### Tried, not shipped
+
+- **Trigger-free query variant** (2026-11-23). For a mention extracted by a
+  trigger rule, search the bare name first, dropping a leading trigger word
+  such as *euangelistae*, *sanctus*, *beati* or *roys*. On the five pages, 3
+  mentions come from trigger rules, and the variant changes the queries of 2.
+  It added 10 candidates, all for *euangelistæ iohannis* via the query
+  "iohannis", and all wrong: Jan Hus, Leo Africanus, John Scotus Eriugena,
+  Iohannes Caesariensis, Homann, Johann Müller, Linschoten, a Latin epic,
+  a surname item, a Swiss village. The best scored 0.672, 0.13 under the
+  0.80 threshold. No link changed and the right John never appeared:
+  Wikidata's search for the Latin genitive does not reach Q328804 or Q44015.
+  Risk without gain. What *iohannis* needs is Latin case normalisation
+  (genitive to nominative, *Iohannes* / *John*), which waits for a held-out
+  split.
+- **Rules for the other misses** (*hyerusalem*, *Antitus*, *Ynabele*: no
+  rule proposes them; *Ame de monfalcon*: a name split across lines;
+  *despaigne*: d' written fused). Each would be written for these pages. They
+  wait for held-out pages with ground truth, which do not exist under eval/
+  yet.

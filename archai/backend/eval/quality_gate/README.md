@@ -83,3 +83,22 @@ the 72. The database holds users' transcriptions and is not committed.
 - Five pages in two languages, transcribed by non-specialists, are enough to
   show that the old gate was inverted and to place the thresholds. They do not
   give a corpus-level error rate.
+
+## Tried, not shipped
+
+- **Lexical contrast for languages without a profile** (2026-11-23).
+  `ocr_text_metrics.lexical_contrast` returns nothing for a detected language
+  with no trigram profile (German, Dutch, ...), so such a page skips the
+  lexical gates. The idea was to measure it as the best fit over the four
+  profiles instead. On this set it changes 0 of 59 verdicts: with langdetect
+  seeded, no reading here is detected as a language without a profile. The
+  one that once was, latin-apocalypse at 51.8% CER detected as Dutch and
+  graded HIGH, came from unseeded randomness, which seeding removed. Outside
+  the set, a Middle High German passage typed from memory, so only
+  indicative, scored a best-fit contrast of 2.93. That would keep the page
+  allowed but cost it HIGH (which needs 3.0). No gain was measured, and real
+  German pages would be downgraded, so it was not shipped. Germanic pages
+  need their own profiles. Separately, an Old English passage, also typed
+  from memory, was detected as Latin and scored 1.54, under the UNRELIABLE
+  limit. That needs a real Old English reading to confirm.
+
