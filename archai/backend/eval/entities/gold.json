@@ -1,5 +1,5 @@
 {
-  "description": "Named entities in the five reference transcriptions of eval/quality_gate/readings.json, for scripts/benchmark_entities.py.",
+  "description": "Named entities in the five reference transcriptions of eval/quality_gate/readings.json, for scripts/benchmark_entities.py. Each entity's 'authority' gives the Wikidata QIDs and VIAF ids a correct link may name, for scripts/benchmark_linking.py (looked up 2026-11-23, see README.md).",
   "types": [
     "person",
     "place",
@@ -21,12 +21,36 @@
         {
           "surface": "iohannis",
           "type": "person",
-          "note": "John the Evangelist"
+          "note": "John the Evangelist",
+          "authority": {
+            "status": "linkable",
+            "qids": [
+              "Q328804",
+              "Q44015"
+            ],
+            "viaf": [
+              "40648922",
+              "101370748",
+              "33149542580900300446"
+            ],
+            "how": "wbsearchentities 'John the Evangelist' / 'John the Apostle'; the text says 'apostle and evangelist John', so either item is right; VIAF ids are the P214 values of both items"
+          }
         },
         {
           "surface": "hyerusalem",
           "type": "place",
-          "note": "Jerusalem"
+          "note": "Jerusalem",
+          "authority": {
+            "status": "linkable",
+            "qids": [
+              "Q1218",
+              "Q567888"
+            ],
+            "viaf": [
+              "131280745"
+            ],
+            "how": "Q1218 Jerusalem (P214 131280745); Q567888 New Jerusalem is also accepted, since Rev 21:10 describes the holy city coming down from heaven. Unsure which one a specialist would choose"
+          }
         }
       ]
     },
@@ -35,25 +59,70 @@
       "entities": [
         {
           "surface": "La satyre megere",
-          "type": "work"
+          "type": "work",
+          "authority": {
+            "status": "linkable",
+            "qids": [
+              "Q135111996"
+            ],
+            "viaf": [],
+            "how": "wbsearchentities 'La Satyre Megere': the item for the work by Antitus Faure (P50 Q30729001); VIAF AutoSuggest found no record"
+          }
         },
         {
           "surface": "Ame\nde monfalcon",
           "type": "person",
-          "note": "Aymon de Montfalcon, bishop of Lausanne"
+          "note": "Aymon de Montfalcon, bishop of Lausanne",
+          "authority": {
+            "status": "linkable",
+            "qids": [
+              "Q678290"
+            ],
+            "viaf": [
+              "58154739800452991157"
+            ],
+            "how": "Q678290 Aymon de Montfalcon, 1443-1517, P39 includes bishop; VIAF cluster 'Aymon de Montfalcon, 1443-1517 / Bischof von Lausanne' = the item's P214"
+          }
         },
         {
           "surface": "lausanne",
-          "type": "place"
+          "type": "place",
+          "authority": {
+            "status": "linkable",
+            "qids": [
+              "Q807"
+            ],
+            "viaf": [
+              "147349797"
+            ],
+            "how": "Q807 Lausanne, the city (P214 147349797, VIAF geographic record)"
+          }
         },
         {
           "surface": "Antitus",
           "type": "person",
-          "note": "the author"
+          "note": "the author",
+          "authority": {
+            "status": "linkable",
+            "qids": [
+              "Q30729001"
+            ],
+            "viaf": [
+              "234901669",
+              "68994987"
+            ],
+            "how": "Q30729001 Antitus Faure, author of La satyre megere (P214 234901669). VIAF also has 'Antitus, -approximately 1501' (68994987), probably the same person; accepted, but unsure"
+          }
         },
         {
           "surface": "lan de grace Mille cinq cens",
-          "type": "date"
+          "type": "date",
+          "authority": {
+            "status": "n/a",
+            "qids": [],
+            "viaf": [],
+            "how": "a date (1500): no authority record applies; not scored for linking"
+          }
         }
       ]
     },
@@ -62,34 +131,82 @@
       "entities": [
         {
           "surface": "Caldꝰ",
-          "type": "person"
+          "type": "person",
+          "authority": {
+            "status": "none",
+            "qids": [],
+            "viaf": [],
+            "how": "a king in an Old French romance; Wikidata 'Caldus' finds only a Roman cognomen and a Roman soldier, VIAF nothing: the right answer is no link"
+          }
         },
         {
           "surface": "Marcadigas",
-          "type": "person"
+          "type": "person",
+          "authority": {
+            "status": "none",
+            "qids": [],
+            "viaf": [],
+            "how": "romance character; no Wikidata or VIAF result for 'Marcadigas' (en and fr search)"
+          }
         },
         {
           "surface": "marcadigas",
-          "type": "person"
+          "type": "person",
+          "authority": {
+            "status": "none",
+            "qids": [],
+            "viaf": [],
+            "how": "as above"
+          }
         },
         {
           "surface": "mͣrcadigas",
           "type": "person",
-          "occurrence": 1
+          "occurrence": 1,
+          "authority": {
+            "status": "none",
+            "qids": [],
+            "viaf": [],
+            "how": "as above"
+          }
         },
         {
           "surface": "mͣrcadigas",
           "type": "person",
-          "occurrence": 2
+          "occurrence": 2,
+          "authority": {
+            "status": "none",
+            "qids": [],
+            "viaf": [],
+            "how": "as above"
+          }
         },
         {
           "surface": "Ynabele",
-          "type": "person"
+          "type": "person",
+          "authority": {
+            "status": "none",
+            "qids": [],
+            "viaf": [],
+            "how": "romance character; no Wikidata or VIAF result"
+          }
         },
         {
           "surface": "despaigne",
           "type": "place",
-          "note": "d'Espaigne, Spain"
+          "note": "d'Espaigne, Spain",
+          "authority": {
+            "status": "linkable",
+            "qids": [
+              "Q29",
+              "Q12837"
+            ],
+            "viaf": [
+              "133609710",
+              "238991012"
+            ],
+            "how": "'d'Espaigne', Spain: Q29 Spain or Q12837 Iberian Peninsula (medieval Espaigne is closer to the peninsula); both accepted, with their P214 values"
+          }
         }
       ]
     }
