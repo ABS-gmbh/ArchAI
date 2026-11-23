@@ -86,8 +86,9 @@ use `X-API-Token`, because their session token travels as `Authorization:
 Bearer`. The two event streams a browser opens with EventSource
 (`GET /api/ocr/trace/stream/{run_id}`, `GET /api/predict/batch/{id}/progress`)
 also accept it as `?token=`, and uvicorn's access log shows that value as
-`[redacted]`. A browser should not hold the token: let the frontend's
-server-side `/api` proxy add it.
+`[redacted]`. A browser should not hold the token: set `BACKEND_API_TOKEN` on
+the frontend's server and its `/api` proxy adds it (see
+[the frontend](#the-frontend)).
 
 - **Bind to localhost** (`--host 127.0.0.1`, as above) and put a reverse proxy
   in front that terminates TLS.
@@ -120,12 +121,37 @@ server-side `/api` proxy add it.
 
 `archai/frontend` is a Next.js app: `npm ci`, `npm run build`, `npm start`
 (Node 20.9 or newer). On a server hostname the browser sends its requests to
-the frontend's own `/api/...`, which Next forwards to `BACKEND_URL` (default
-`http://127.0.0.1:8010`). So the browser needs no direct access to the
-backend, and `CORS_ORIGINS` does not have to list the frontend. Set
-`BACKEND_URL` before `npm run build`, since Next records its rewrites at build
-time. `NEXT_PUBLIC_BACKEND_URL` instead makes the browser call the backend
-directly; it is also fixed at build time.
+the frontend's own `/api/...`. A route handler in the Next server
+(`src/app/api/[...path]/route.ts`) forwards them to the backend, streaming
+uploads and server-sent events through without buffering them. So the browser
+needs no direct access to the backend, and `CORS_ORIGINS` does not have to
+list the frontend. Two variables of the Next server configure it, read when
+it starts (`npm start`), not at build time:
+
+| Variable | Meaning |
+|---|---|
+| `BACKEND_URL` | Where the backend listens. Default `http://127.0.0.1:8010`. |
+| `BACKEND_API_TOKEN` | The backend's `API_TOKEN`. The proxy adds it to every request as `X-API-Token`; it is never sent to the browser. Leave unset if the backend has no token. |
+
+Never name it `NEXT_PUBLIC_BACKEND_API_TOKEN`: a `NEXT_PUBLIC_` variable is
+copied into the JavaScript every browser downloads. The build and `npm start`
+refuse to run with that variable set.
+
+With `BACKEND_API_TOKEN` set, **the frontend must itself sit behind the
+deployment's own login** (single sign-on, basic auth at the reverse proxy, a
+VPN), since anyone who can reach the frontend can use the backend through it.
+The token then only keeps the backend from being used without the frontend.
+
+The proxy passes `X-Forwarded-For` on as it receives it. If the frontend is
+reachable without a reverse proxy in front, a client can set that header and
+the backend logs and rate-limits that address instead of its own. Put a
+reverse proxy in front that replaces the header (nginx:
+`proxy_set_header X-Forwarded-For $remote_addr;`).
+
+`NEXT_PUBLIC_BACKEND_URL` instead makes the browser call the backend
+directly; it is fixed at build time. Against a backend with `API_TOKEN` set,
+the browser's direct requests are refused with 401, and it falls back to the
+`/api` proxy.
 
 ## Data to back up
 

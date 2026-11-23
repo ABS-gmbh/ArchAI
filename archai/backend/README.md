@@ -80,7 +80,7 @@ cd archai/backend
 uvicorn app.main:app --host 127.0.0.1 --port 8010 --reload
 ```
 
-The frontend expects the backend at 127.0.0.1:8010; `NEXT_PUBLIC_BACKEND_URL` (the browser's direct URL) and `BACKEND_URL` (the dev server's `/api` proxy) override it.
+The frontend expects the backend at 127.0.0.1:8010; `NEXT_PUBLIC_BACKEND_URL` (the browser's direct URL) and `BACKEND_URL` (the Next server's `/api` proxy) override it; `BACKEND_API_TOKEN` gives that proxy the backend's `API_TOKEN`.
 
 Health endpoint:
 

@@ -31,16 +31,53 @@ function isReadOnly(init?: RequestInit): boolean {
   return method === "GET" || method === "HEAD";
 }
 
-/** A fetch through one route; a proxy that cannot reach the backend counts as a network failure. */
+/**
+ * The direct route reached a backend that requires API_TOKEN, which the
+ * browser does not hold. The backend refused before doing anything, so the
+ * request may be sent again through the proxy, which adds the token.
+ */
+class DirectRouteNeedsToken extends Error {
+  constructor() {
+    super("the backend requires an API token; use the proxy");
+    this.name = "DirectRouteNeedsToken";
+  }
+}
+
+/** The backend's answer to a missing API token (app/auth.py), as opposed to an analytics 401. */
+async function isApiTokenRefusal(res: Response): Promise<boolean> {
+  if (res.status !== 401) {
+    return false;
+  }
+  if (/realm="archai"/i.test(res.headers.get("www-authenticate") || "")) {
+    return true;
+  }
+  // Cross-origin the browser hides WWW-Authenticate (the backend's CORS
+  // exposes only Content-Disposition), so fall back to the detail it sends.
+  const detail = await readErrorDetail(res.clone()).catch(() => "");
+  return detail.startsWith("Authentication required");
+}
+
+/**
+ * A fetch through one route. A proxy that cannot reach the backend counts as a
+ * network failure; a direct route refused for want of the API token throws
+ * DirectRouteNeedsToken.
+ */
 async function fetchVia(transport: Transport, path: string, init?: RequestInit): Promise<Response> {
   const direct = apiUrl(path);
   const proxied = `/api${path}`;
   if (transport === "direct") {
-    return fetch(direct, init);
+    const res = await fetch(direct, init);
+    if (direct !== proxied && (await isApiTokenRefusal(res))) {
+      throw new DirectRouteNeedsToken();
+    }
+    return res;
   }
   const res = await fetch(proxied, init);
-  if (direct !== proxied && res.status >= 500 && !isJsonResponse(res)) {
-    // Next answers a plain-text 5xx when its rewrite cannot reach the backend.
+  if (
+    direct !== proxied &&
+    (res.headers.get("x-archai-proxy") === "backend-unreachable" || (res.status >= 500 && !isJsonResponse(res)))
+  ) {
+    // src/app/api/[...path]/route.ts marks its own 503; a plain-text 5xx comes from Next itself.
     throw new TypeError("proxy could not reach the backend");
   }
   return res;
@@ -56,6 +93,12 @@ async function fetchVia(transport: Transport, path: string, init?: RequestInit):
  * would start a second OCR run or a second paid completion. So a request that
  * changes something goes once, down the route that last worked; when no route
  * is known yet, /health is probed first to find one.
+ *
+ * A backend with API_TOKEN set answers the direct route 401: the browser does
+ * not hold the token. That request is sent again through the proxy, which
+ * adds the token - a POST too, since a 401 means the backend did nothing with
+ * it - and the proxy is used from then on. (Request bodies here are strings or
+ * FormData, which can be sent twice; a ReadableStream body could not.)
  *
  * When the backend cannot be reached, this throws ApiError(503) saying so,
  * instead of "Failed to fetch". Aborts are re-thrown unchanged.
@@ -91,11 +134,17 @@ export async function fetchBackend(path: string, init?: RequestInit): Promise<Re
       throw unreachable();
     }
   }
+  const transport: Transport = knownTransport ?? "direct";
   try {
-    return await fetchVia(knownTransport ?? "direct", path, init);
+    return await fetchVia(transport, path, init);
   } catch (err) {
     if (isAbortError(err)) {
       throw err;
+    }
+    if (err instanceof DirectRouteNeedsToken) {
+      // Refused before any work was done, so sending it once more is safe.
+      knownTransport = "proxy";
+      return fetchBackend(path, init);
     }
     // Not retried: the request may have been received. The next request probes again.
     knownTransport = null;
