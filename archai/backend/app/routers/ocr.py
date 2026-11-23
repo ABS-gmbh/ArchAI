@@ -61,7 +61,7 @@ from app.services.glm_ollama_ocr import (
     build_glm_ocr_prompt,
     run_glm_ollama_ocr,
 )
-from app.services.test_ocr_overrides import get_test_ocr_fixture, get_test_ocr_override
+from app.services.ocr_test_fixtures import get_test_ocr_fixture, get_test_ocr_override
 from app.services.saia_client import SaiaConfigError
 from app.services.lexicon_trust import best_fit_plausibility as _lexical_plausibility
 from app.services.ocr_quality import (

@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     jwt_secret: str = ""
     jwt_expiry_minutes: int = 60
 
-    # Canned OCR fixtures (app/services/test_ocr_overrides.py) bypass the real
+    # Canned OCR fixtures (app/services/ocr_test_fixtures.py) bypass the real
     # OCR pipeline for four specific images matched by SHA-256. They exist for
     # demos and regression tests and MUST stay off by default: with them enabled,
     # an endpoint can return hand-written transcriptions indistinguishable from

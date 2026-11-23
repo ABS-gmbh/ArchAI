@@ -38,7 +38,7 @@ from app.services.lexicon_trust import best_fit_plausibility as _lexical_plausib
 from app.services.medieval_text import build_search_key, rejoin_line_breaks
 from app.services.ocr_quality import build_effective_quality, check_mention_recall, compute_quality_report
 from app.services.pipeline_hardening import decide_downstream_mode, enforce_quality_gates, extract_high_recall_mentions
-from app.services.test_ocr_overrides import get_test_ocr_fixture
+from app.services.ocr_test_fixtures import get_test_ocr_fixture
 from app.services.language_detection import (
     _detect_language_metadata,
     _normalize_detected_language,
