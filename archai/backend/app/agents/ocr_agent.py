@@ -579,6 +579,7 @@ def _run_segmented_ocr_extraction(
     confidences: list[float] = []
     selected_backend_names: list[str] = []
     selected_model_names: list[str] = []
+    line_backend_ids: list[str] = []
     final_model = plan.primary_backend
     backend_repeat_counts: dict[str, Counter[str]] = defaultdict(Counter)
 
@@ -754,6 +755,8 @@ def _run_segmented_ocr_extraction(
 
         final_model = selected_result.model_name
         selected_backend_names.append(selected_result.backend_name)
+        if selected_backend_id is not None:
+            line_backend_ids.append(selected_backend_id)
         selected_model_names.append(selected_result.model_name)
         if selected_result.script_hint:
             script_hints.append(selected_result.script_hint)
@@ -829,6 +832,13 @@ def _run_segmented_ocr_extraction(
                     raw_metadata=dict(backend_result.raw_metadata or {}),
                 )
             )
+
+    # A later backend reads a line only when the earlier ones failed or read
+    # nothing, so a page can mix models (McCATMuS lines in a CATMuS page) without
+    # the page-level quality gate seeing it. Say how many lines each one read;
+    # each region result names its own backend_name.
+    for backend_id, count in Counter(b for b in line_backend_ids if b != plan.attempt_backends[0]).items():
+        warnings.append(f"LINES_READ_BY_FALLBACK:{backend_id}:{count}")
 
     merged_text = "\n".join(merged_lines).strip()
     merged_confidence = round((sum(confidences) / len(confidences)) if confidences else 0.0, 4)

@@ -401,3 +401,44 @@ def test_resolve_model_path_finds_project_root_weights(tmp_path: Path, monkeypat
     path = _resolve_model_path("weights/kraken_models/catmus_medieval.mlmodel")
 
     assert path == weights.resolve()
+
+
+def test_lines_read_by_a_later_backend_are_counted_and_named(monkeypatch: Any) -> None:
+    """A page can mix models line by line; the response says which and how many (no change to the text)."""
+    lines = {f"line-{i}": f"Linea {i}" for i in range(1, 6)}
+    fake_runtime = {
+        # CATMuS reads nothing on lines 2 and 4; CREMMA fails; McCATMuS fills those in.
+        "kraken_catmus": _FakeBackend(
+            "kraken_catmus", "CATMuS Medieval", {k: ((v, 0.9, None) if k not in {"line-2", "line-4"} else ("", 0.05, None)) for k, v in lines.items()}
+        ),
+        "kraken_cremma_medieval": _FailingBackend("kraken_cremma_medieval", "model file missing"),
+        "kraken_mccatmus": _FakeBackend("kraken_mccatmus", "McCATMuS", {"line-2": ("Lineb 2", 0.8, None), "line-4": ("Lineb 4", 0.8, None)}),
+    }
+    monkeypatch.setattr(ocr_agent, "build_backend_runtime", lambda *args, **kwargs: fake_runtime)
+    request = OCRExtractRequest(
+        page_id="page-1",
+        image_b64=SAMPLE_B64,
+        regions=[OCRRegionInput(region_id=k, bbox_xyxy=[0, 0, 1, 1], reading_order=i) for i, k in enumerate(lines)],
+        options=OCRExtractOptions(language_hint="old_french", apply_proofread=False),
+    )
+
+    result = ocr_agent.run_ocr_extraction(request, client=_DummyClient())
+
+    assert result.text == "Linea 1\nLineb 2\nLinea 3\nLineb 4\nLinea 5"
+    assert [region.backend_name for region in result.regions] == [
+        "kraken_catmus", "kraken_mccatmus", "kraken_catmus", "kraken_mccatmus", "kraken_catmus",
+    ]
+    assert "LINES_READ_BY_FALLBACK:kraken_mccatmus:2" in result.warnings
+    assert not any(w.startswith("LINES_READ_BY_FALLBACK:kraken_catmus") for w in result.warnings)
+
+
+def test_a_page_read_by_the_first_backend_alone_gets_no_fallback_warning(monkeypatch: Any) -> None:
+    fake_runtime = {
+        "kraken_catmus": _FakeBackend("kraken_catmus", "CATMuS Medieval", {"line-1": ("Linea una", 0.9, None)}),
+        "kraken_cremma_medieval": _FailingBackend("kraken_cremma_medieval", "unused"),
+        "kraken_mccatmus": _FailingBackend("kraken_mccatmus", "unused"),
+    }
+    monkeypatch.setattr(ocr_agent, "build_backend_runtime", lambda *args, **kwargs: fake_runtime)
+    result = ocr_agent.run_ocr_extraction(_request(OCRExtractOptions(language_hint="old_french", apply_proofread=False)), client=_DummyClient())
+    assert result.text == "Linea una"
+    assert not any(w.startswith("LINES_READ_BY_FALLBACK") for w in result.warnings)
