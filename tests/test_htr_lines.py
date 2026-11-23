@@ -156,3 +156,44 @@ def test_a_broken_recognition_model_is_reported_with_its_path(
     with pytest.raises(RuntimeError, match="broken.mlmodel"):
         htr_kraken._recognition_model(model_path, "")
     htr_kraken._load_recognition_model.cache_clear()
+
+
+def _fake_rpred(monkeypatch: pytest.MonkeyPatch, rpred: Any) -> None:
+    import types
+
+    monkeypatch.setattr(htr_kraken, "rpred", types.SimpleNamespace(rpred=rpred))
+
+
+def test_a_type_error_inside_recognition_propagates_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
+    """It was reported as a call-signature mismatch, after three recognition runs."""
+    calls: list[int] = []
+
+    def rpred(network: Any, im: Any, bounds: Any, pad: int = 16) -> Any:
+        calls.append(1)
+        raise TypeError("expected Segmentation, got NoneType")
+
+    _fake_rpred(monkeypatch, rpred)
+    with pytest.raises(TypeError, match="expected Segmentation"):
+        htr_kraken._run_recognition("model", "image", None)
+    assert len(calls) == 1
+
+
+def test_the_first_call_form_the_signature_accepts_is_used(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: list[dict[str, Any]] = []
+
+    def rpred(*, network: Any, im: Any, bounds: Any) -> Any:
+        seen.append({"network": network, "im": im, "bounds": bounds})
+        return iter(["record"])
+
+    _fake_rpred(monkeypatch, rpred)
+    assert htr_kraken._run_recognition("model", "image", "seg") == ["record"]
+    assert seen == [{"network": "model", "im": "image", "bounds": "seg"}]
+
+
+def test_an_rpred_that_fits_no_form_is_named_in_the_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    def rpred(model: Any) -> Any:  # pragma: no cover - never called
+        raise AssertionError
+
+    _fake_rpred(monkeypatch, rpred)
+    with pytest.raises(RuntimeError, match="accepts none of the supported call forms"):
+        htr_kraken._run_recognition("model", "image", "seg")
