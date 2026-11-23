@@ -629,13 +629,14 @@ def _run_full_page_post_ocr_pipeline(
         or "inline:image_b64"
     )
     asset_sha256 = hashlib.sha256(image_bytes).hexdigest()
+    ocr_logged = run_id is not None
     if run_id is None:
         run_id = create_run(asset_ref=asset_ref, asset_sha256=asset_sha256)
     # A failure past this point used to leave the run mid-stage with no FAILED
     # marker, and the router reported the request as complete (audit OCR-005).
     try:
         return _full_page_post_ocr_stages(
-            run_id, payload, response, image_bytes, text_value, asset_ref, ocr_backend=ocr_backend
+            run_id, payload, response, image_bytes, text_value, asset_ref, ocr_backend=ocr_backend, ocr_logged=ocr_logged
         )
     except Exception as exc:
         err = f"Post-OCR pipeline failed: {type(exc).__name__}: {exc}"
@@ -839,9 +840,14 @@ def _full_page_post_ocr_stages(
     asset_ref: str,
     *,
     ocr_backend: str,
+    ocr_logged: bool = False,
 ) -> dict[str, Any]:
-    log_event(run_id, "RECEIVED", "START", f"Full-page OCR run received ({ocr_backend}).")
-    log_event(run_id, "OCR_RUNNING", "START", "Running the full-page post-OCR pipeline.")
+    # A run the client reserved already carries RECEIVED, OCR_RUNNING (with its
+    # line counts) and OCR_DONE from the router; logging them again here sent a
+    # follower's stage back to RECEIVED after OCR had finished.
+    if not ocr_logged:
+        log_event(run_id, "RECEIVED", "START", f"Full-page OCR run received ({ocr_backend}).")
+        log_event(run_id, "OCR_RUNNING", "START", "Running the full-page post-OCR pipeline.")
     update_run_fields(run_id, status="RUNNING", current_stage="OCR_RUNNING")
 
     confidence_value = float(response.confidence or 0.0)
@@ -877,7 +883,8 @@ def _full_page_post_ocr_stages(
         ocr_text=text_value,
         proofread_text=text_value,
     )
-    log_event(run_id, "OCR_DONE", "END", "Full-page OCR text stored.")
+    if not ocr_logged:
+        log_event(run_id, "OCR_DONE", "END", "Full-page OCR text stored.")
 
     downstream = run_downstream_stages(
         run_id,

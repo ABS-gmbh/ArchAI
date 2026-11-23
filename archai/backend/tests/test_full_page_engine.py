@@ -730,3 +730,24 @@ def test_without_a_reserved_run_the_agent_gets_no_progress(route: dict[str, Any]
     monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150), _line(250)))
     result = _extract()
     assert result.ocr_engine == "segmented" and route["agent"].progress_given is False
+
+
+def test_a_reserved_run_logs_ocr_once_through_the_real_post_ocr_stages(route: dict[str, Any], db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The downstream stages must not log RECEIVED/OCR_RUNNING/OCR_DONE again into a reserved run."""
+    from app.services import trace_pipeline
+
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150), _line(250)))
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", trace_pipeline._run_full_page_post_ocr_pipeline)
+    monkeypatch.setattr(trace_pipeline, "_run_trace_analysis", lambda run_id, text: ([], [], [], {"skipped": True}))
+    monkeypatch.setattr(trace_pipeline, "_run_authority_linking_stage", lambda run_id: None)
+    monkeypatch.setattr(trace_pipeline, "_auto_index_run", lambda run_id: None)
+    monkeypatch.setattr(trace_pipeline, "_build_mention_extraction_report", lambda *a, **k: None)
+    monkeypatch.setattr(trace_pipeline, "_build_consolidated_report", lambda *a, **k: None)
+    run_id = asyncio.run(ocr_router.ocr_reserve_run())["run_id"]
+
+    _extract(run_id=run_id)
+
+    stages = [(e["stage"], e["event"]) for e in db.list_events(run_id)]
+    assert stages[:5] == [("RECEIVED", "START"), ("OCR_RUNNING", "START"), ("OCR_RUNNING", "INFO"), ("OCR_DONE", "END"), ("ANALYZE_RUNNING", "START")]
+    assert stages.count(("RECEIVED", "START")) == 1 and stages.count(("OCR_DONE", "END")) == 1
+    assert stages[-1] == ("DONE", "END") and db.get_run(run_id)["status"] == "COMPLETED"
