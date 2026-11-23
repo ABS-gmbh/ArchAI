@@ -221,3 +221,29 @@ def test_a_question_is_relevant_where_its_answer_is_in_each_reading(bench, tmp_p
         # Rereading keeps every offset, so the same chunks hold the answer in both.
         assert q.relevant == frozenset(holding)
         assert q.text == "where?"
+
+
+def test_auc_is_chance_for_identical_scores_and_one_for_perfect_separation(bench) -> None:
+    assert bench._auc([0.5, 0.5], [0.5]) == 0.5
+    assert bench._auc([0.9, 0.8], [0.1, 0.2]) == 1.0
+    assert bench._auc([0.1], [0.9]) == 0.0
+
+
+def test_separation_report_finds_a_score_that_separates(bench, tmp_path: Path) -> None:
+    """Answerable questions quote the page; unanswerable ones share nothing with it."""
+    page = _page(1, lines=30)
+    readings = _readings_file(tmp_path / "readings.json", {"a": {"reference": page, "kraken": _reread(page, 0.05, seed=4)}})
+    texts, groups = bench.load_readings(readings)
+    lines = page.splitlines()
+    answerable = [{"page_id": "a", "question": lines[i], "answer": lines[i]} for i in (3, 12, 25)]
+    queries, chunks = bench.build_question_benchmark(texts, groups, answerable)
+    unanswerable = bench.not_in_sources_lookups(chunks, groups, [{"page_id": "a", "question": "zzzz qqqq"}])
+    assert [q.target for q in unanswerable] == ["a:reference", "a:kraken"]
+    assert all(not q.relevant for q in unanswerable)
+
+    def embed(batch):  # bag of letters: quoting the page scores high, "zzzz qqqq" low
+        return [[float(t.lower().count(ch)) + 1e-3 for ch in "abcdefghijklmnopqrstuvwxyz"] for t in batch]
+
+    report = bench.separation_report(queries, unanswerable, chunks, embed, lambda text: text, seed=1)
+    assert report["top BM25 score"]["auc"] == 1.0
+    assert report["top dense cosine"]["auc"] == 1.0

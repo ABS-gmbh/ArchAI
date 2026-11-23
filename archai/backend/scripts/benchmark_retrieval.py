@@ -321,6 +321,71 @@ def fused_rankings(*runs: dict[str, list[str]], k: int = 60, weights: Sequence[f
     }
 
 
+# ── relevance floor ────────────────────────────────────────────────────
+
+
+def not_in_sources_lookups(chunks: dict[str, list[dict]], groups: list[list[str]], questions: list[dict]) -> list[Query]:
+    """One lookup per not-in-sources question per reading of its page; nothing is relevant."""
+    page_keys = {group[0].split(":")[0]: group for group in groups}
+    return [
+        Query(f"n{n}@{key}", "not_in_sources", key, question["question"], frozenset())
+        for n, question in enumerate(questions)
+        for key in page_keys[question["page_id"]]
+        if len(chunks[key]) >= MIN_TARGET_CHUNKS
+    ]
+
+
+def _auc(positive: Sequence[float], negative: Sequence[float]) -> float:
+    """P(a random answerable score > a random not-in-sources score), ties counted half."""
+    pos, neg = np.asarray(positive, dtype=float)[:, None], np.asarray(negative, dtype=float)[None, :]
+    return float((pos > neg).mean() + 0.5 * (pos == neg).mean())
+
+
+def separation_report(answerable: Sequence[Query], unanswerable: Sequence[Query], chunks, embed, query_input, *, seed: int):
+    """How well each score a floor could use tells answerable lookups from not-in-sources ones.
+
+    A relevance floor drops hits scoring below a threshold. It can only help if
+    the top hit of a question the page cannot answer scores lower than the top
+    hit of one it can; the AUC measures that (0.5 is chance). The signals are
+    the top dense cosine, that cosine as a z-score over the page's chunks (a
+    scale-free version that could carry across models), and the top BM25 score.
+    """
+    documents = _vectors([c["text"] for cs in chunks.values() for c in cs], embed)
+    queries = list(answerable) + list(unanswerable)
+    query_vectors = _vectors([query_input(q.text) for q in queries], embed)
+    indexes = {t: LexicalIndex((_cid(t, c), c["text"]) for c in cs) for t, cs in chunks.items()}
+    signals: dict[str, dict[str, float]] = {}
+    for q in queries:
+        sims = np.stack([documents[c["text"]] for c in chunks[q.target]]) @ query_vectors[query_input(q.text)]
+        lexical = indexes[q.target].search(q.text, limit=1)
+        signals[q.qid] = {
+            "top dense cosine": float(sims.max()),
+            "top dense z-score": float((sims.max() - sims.mean()) / (sims.std() or 1.0)),
+            "top BM25 score": float(lexical[0][1]) if lexical else 0.0,
+        }
+    by_target: dict[str, list[Query]] = {}
+    for q in queries:
+        by_target.setdefault(q.target, []).append(q)
+    clusters = list(by_target.values())
+    report = {}
+    for name in ("top dense cosine", "top dense z-score", "top BM25 score"):
+
+        def auc(sample, name=name) -> float:
+            picked = [q for cluster in sample for q in cluster]
+            pos = [signals[q.qid][name] for q in picked if q.relevant]
+            neg = [signals[q.qid][name] for q in picked if not q.relevant]
+            return _auc(pos, neg) if pos and neg else float("nan")
+
+        low, high = bootstrap_ci(clusters, auc, n_resamples=1000, seed=seed)
+        report[name] = {
+            "auc": auc(clusters),
+            "ci": [low, high],
+            "median_answerable": float(np.median([signals[q.qid][name] for q in answerable])),
+            "median_not_in_sources": float(np.median([signals[q.qid][name] for q in unanswerable])),
+        }
+    return report
+
+
 # ── scoring ────────────────────────────────────────────────────────────
 
 
@@ -403,6 +468,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--pairs", type=int, default=260, help="reading pairs to draw passages from")
     parser.add_argument("--seed", type=int, default=20260924)
+    parser.add_argument(
+        "--separation",
+        action="store_true",
+        help="with --questions, also report how well scores separate answerable from not-in-sources questions",
+    )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
@@ -417,9 +487,12 @@ def main(argv: list[str] | None = None) -> int:
     else:
         texts = load_transcriptions(args.db)
     if args.questions:
-        questions = json.loads(args.questions.read_text(encoding="utf-8"))["questions"]
+        question_file = json.loads(args.questions.read_text(encoding="utf-8"))
+        questions = question_file["questions"]
+        unanswerable_questions = question_file.get("not_in_sources", [])
         if args.question_set:
             questions = [q for q in questions if q.get("set") in args.question_set]
+            unanswerable_questions = [q for q in unanswerable_questions if q.get("set") in args.question_set]
         queries, chunks = build_question_benchmark(texts, known_groups, questions)
         groups, pair_cers = known_groups, []
     else:
@@ -429,7 +502,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     query_input = _query_input(args)
-    dense = dense_rankings(queries, chunks, _embedder(args.embedder), query_input)
+    embed = _embedder(args.embedder)
+    dense = dense_rankings(queries, chunks, embed, query_input)
     lexical = lexical_rankings(queries, chunks)
     runs = {
         "dense": dense,
@@ -461,8 +535,14 @@ def main(argv: list[str] | None = None) -> int:
         "rrf_k": args.rrf_k,
         "lexical_weight": args.lexical_weight,
     }
+    separation = None
+    if args.separation and args.questions:
+        unanswerable = not_in_sources_lookups(chunks, groups, unanswerable_questions)
+        if unanswerable:
+            separation = separation_report(queries, unanswerable, chunks, embed, query_input, seed=args.seed)
+            meta["not_in_sources_lookups"] = len(unanswerable)
     if args.json:
-        print(json.dumps({"meta": meta, "results": report}, indent=2))
+        print(json.dumps({"meta": meta, "results": report, **({"separation": separation} if separation else {})}, indent=2))
         return 0
 
     if args.questions:
@@ -493,6 +573,16 @@ def main(argv: list[str] | None = None) -> int:
         deltas = [metrics[metric]["delta_vs_dense"] for metric in ("mrr", "hit@1", "hit@5")]
         cells = [f"{d['mean']:+.3f} [{d['ci'][0]:+.3f}, {d['ci'][1]:+.3f}]" for d in deltas]
         print(f"{name:<14}" + "".join(f"{cell:>26}" for cell in cells))
+    if separation:
+        print(
+            f"\nanswerable ({meta['queries']} lookups) vs not in the sources ({meta['not_in_sources_lookups']} lookups):"
+            " AUC of the top hit's score, 0.5 = chance"
+        )
+        for name, entry in separation.items():
+            print(
+                f"{name:<20} AUC {entry['auc']:.3f} [{entry['ci'][0]:.3f}, {entry['ci'][1]:.3f}]"
+                f"  median answerable {entry['median_answerable']:.3f}, not in sources {entry['median_not_in_sources']:.3f}"
+            )
     return 0
 
 
