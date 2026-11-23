@@ -71,3 +71,18 @@ def test_evidence_store_agent_persists_spans_in_sqlite(tmp_path: Path, monkeypat
     assert rows[0].span_id == created.span_id
     assert rows[0].raw_text == "Arthur"
     assert rows[0].bbox_xyxy == [10.0, 20.0, 30.0, 40.0]
+
+
+def test_a_span_for_an_unknown_run_is_a_422_not_a_500() -> None:
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.routers import evidence
+
+    app = FastAPI()
+    app.include_router(evidence.router)
+    client = TestClient(app, raise_server_exceptions=False)
+    assert client.post("/evidence/spans", json={}).status_code == 422
+    response = client.post("/evidence/spans", json={"run_id": "no-such-run", "text": "Arthur"})
+    assert response.status_code == 422
+    assert "run_id" in response.json()["detail"]
