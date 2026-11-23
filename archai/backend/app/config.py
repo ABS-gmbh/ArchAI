@@ -38,6 +38,18 @@ class Settings(BaseSettings):
             raise ValueError(f"LOG_FORMAT must be text or json, got {value!r}")
         return normalized
 
+    # Bearer token for the whole API except /api/health (app/auth.py). Empty, the
+    # default, leaves the API open, which is only safe on localhost.
+    api_token: str = ""
+
+    @field_validator("api_token")
+    @classmethod
+    def _long_enough_token(cls, value: str) -> str:
+        value = str(value or "").strip()
+        if value and len(value) < 24:
+            raise ValueError(f"API_TOKEN must be at least 24 characters, got {len(value)}")
+        return value
+
     # Retention of pipeline runs (app/services/run_retention.py). 0 disables the
     # scheduled sweep, and is the default: nothing is deleted unless an operator
     # sets a window. scripts/prune_runs.py previews a window without deleting.
