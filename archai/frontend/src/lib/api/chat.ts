@@ -1,4 +1,4 @@
-import { apiUrl } from "./client";
+import { fetchBackend } from "./client";
 
 export interface ChatModelListResponse {
   models: string[];
@@ -146,7 +146,7 @@ function parseErrorText(status: number, raw: string): string {
 }
 
 export async function getChatModels(): Promise<ChatModelListResponse> {
-  const res = await fetch(apiUrl("/chat/models"));
+  const res = await fetchBackend("/chat/models");
   if (!res.ok) {
     const raw = await res.text();
     throw new Error(parseErrorText(res.status, raw));
@@ -159,7 +159,7 @@ export async function createChatCompletion(
   onDelta?: (delta: string) => void,
 ): Promise<ChatCompletionResult> {
   const useStream = payload.stream !== false;
-  const res = await fetch(apiUrl("/chat/completions"), {
+  const res = await fetchBackend("/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...payload, stream: useStream }),
@@ -245,7 +245,7 @@ export async function analyzeSegmentLabel(
   const timeoutId = window.setTimeout(() => controller.abort(), 85_000);
   let res: Response;
   try {
-    res = await fetch(apiUrl("/chat/label-analysis"), {
+    res = await fetchBackend("/chat/label-analysis", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

@@ -1001,6 +1001,15 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       const message = err instanceof Error ? err.message : "request failed";
       setExtractionStatus(`Extraction failed: ${message}`);
       setError(message);
+      if (!silent) {
+        // The status message carries the failure; drop the empty answer bubble.
+        setMessagesByDocument((prev) => ({
+          ...prev,
+          [currentDocumentId]: (prev[currentDocumentId] ?? []).filter(
+            (msg) => msg.id !== assistantMessageId || msg.content,
+          ),
+        }));
+      }
       return null;
     } finally {
       setSending(false);
