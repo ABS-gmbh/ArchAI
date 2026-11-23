@@ -622,7 +622,17 @@ def index_run(run_id: str) -> dict[str, Any]:
 
 
 def delete_run(run_id: str) -> int:
-    """Remove all chunk and entity vectors belonging to *run_id* from the vector store."""
+    """Remove all chunk and entity vectors belonging to *run_id* from the vector store.
+
+    Takes the run's indexing locks first: an index of the same run in flight
+    upserted its vectors after the delete had run, leaving the run indexed.
+    Chunks before entities, the only order any path holds both in.
+    """
+    with _run_lock("chunks", str(run_id)), _run_lock("entities", str(run_id)):
+        return _delete_run_locked(str(run_id))
+
+
+def _delete_run_locked(run_id: str) -> int:
     deleted_total = 0
     collection_names = _existing_collection_names(settings.rag_collection_name) + _existing_collection_names(settings.rag_entity_collection_name)
     for name in list(dict.fromkeys(collection_names)):
