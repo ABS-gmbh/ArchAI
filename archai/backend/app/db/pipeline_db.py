@@ -1161,6 +1161,57 @@ def replace_authority_source_assertions(entity_id: str, rows: list[dict[str, Any
     return inserted
 
 
+def list_authority_aliases(entity_ids: Sequence[str]) -> dict[str, list[str]]:
+    """Every alias of each of *entity_ids*, alphabetically; an id without aliases maps to []."""
+    _init_db_if_needed()
+    wanted = list(dict.fromkeys(str(entity_id or "").strip() for entity_id in entity_ids))
+    wanted = [entity_id for entity_id in wanted if entity_id]
+    out: dict[str, list[str]] = {entity_id: [] for entity_id in wanted}
+    with _connect() as conn:
+        for start in range(0, len(wanted), _IN_BATCH):
+            batch = wanted[start : start + _IN_BATCH]
+            placeholders = ",".join("?" for _ in batch)
+            rows = conn.execute(
+                f"SELECT entity_id, alias FROM authority_aliases WHERE entity_id IN ({placeholders}) ORDER BY alias ASC",
+                batch,
+            ).fetchall()
+            for row in rows:
+                alias = str(row["alias"] or "").strip()
+                if alias:
+                    out.setdefault(str(row["entity_id"] or ""), []).append(alias)
+    return out
+
+
+def list_authority_source_assertions(entity_ids: Sequence[str]) -> dict[str, list[dict[str, str]]]:
+    """Each of *entity_ids*' source assertions as ``source_name``/``property_name``/``property_value`` dicts.
+
+    Ordered by source then property; an id without assertions maps to [].
+    """
+    _init_db_if_needed()
+    wanted = list(dict.fromkeys(str(entity_id or "").strip() for entity_id in entity_ids))
+    wanted = [entity_id for entity_id in wanted if entity_id]
+    out: dict[str, list[dict[str, str]]] = {entity_id: [] for entity_id in wanted}
+    with _connect() as conn:
+        for start in range(0, len(wanted), _IN_BATCH):
+            batch = wanted[start : start + _IN_BATCH]
+            placeholders = ",".join("?" for _ in batch)
+            rows = conn.execute(
+                "SELECT entity_id, source_name, property_name, property_value "
+                f"FROM authority_source_assertions WHERE entity_id IN ({placeholders}) "
+                "ORDER BY source_name ASC, property_name ASC",
+                batch,
+            ).fetchall()
+            for row in rows:
+                out.setdefault(str(row["entity_id"] or ""), []).append(
+                    {
+                        "source_name": str(row["source_name"] or "").strip(),
+                        "property_name": str(row["property_name"] or "").strip(),
+                        "property_value": str(row["property_value"] or "").strip(),
+                    }
+                )
+    return out
+
+
 def upsert_evidence_span(row: dict[str, Any]) -> dict[str, Any]:
     _init_db_if_needed()
     ts = now_iso()

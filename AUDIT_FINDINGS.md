@@ -1085,7 +1085,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** The check at _collection_has_run and the upsert at _index_chunks_for_run are not atomic. Two chat requests arriving for the same freshly finished run — the normal case, since settings.rag_auto_index defaults to True (config.py:72) — both observe the run as unindexed and both embed and upsert every chunk. The data ends up correct because Chroma upserts by id, but the embedding API cost and the user-visible latency are paid twice, on the request path, with no timeout (RAG-02).
 - **Fix:** Guard the ensure-indexed step with a per-run lock (a dict of threading.Lock keyed by run_id, created under _LOCK), and re-check _collection_has_run after acquiring it.
 
-### [RAG-04] rag_store reaches into pipeline_db's private _connect(), bypassing schema initialisation and any future connection policy
+### [RAG-04] rag_store reaches into pipeline_db's private _connect(), bypassing schema initialisation and any future connection policy — **FIXED** (pipeline_db.list_authority_aliases and list_authority_source_assertions; test_authority_alias_listing.py)
 
 - **Where:** `vendor:app/services/rag_store.py:184`  
 - **Category:** hygiene  
