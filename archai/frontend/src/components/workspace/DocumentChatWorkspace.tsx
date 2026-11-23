@@ -1104,26 +1104,27 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         <div className="border-b p-4">
           <h1 className="text-lg font-semibold">ArchAI Workspace</h1>
           <p className="mt-1 text-sm text-muted-foreground">Upload page images and chat with model context.</p>
-          <label className="mt-3 inline-flex cursor-pointer rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          <label className="mt-3 inline-flex cursor-pointer rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2">
             Open Document Pages
             <input
               type="file"
               accept="image/*"
               multiple
-              className="hidden"
+              className="sr-only"
               onChange={handleUpload}
             />
           </label>
         </div>
 
         <div className="border-b p-3">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Documents</p>
-          <div className="max-h-32 space-y-1 overflow-auto">
+          <p id="workspace-documents-heading" className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Documents</p>
+          <div role="group" aria-labelledby="workspace-documents-heading" className="max-h-32 space-y-1 overflow-auto">
             {documents.map((doc) => (
               <button
                 key={doc.id}
                 type="button"
                 onClick={() => selectDocument(doc.id)}
+                aria-current={doc.id === currentDocument?.id ? "true" : undefined}
                 className={`w-full rounded-md px-2 py-1.5 text-left text-sm ${
                   doc.id === currentDocument?.id ? "bg-primary/10 text-primary" : "hover:bg-accent"
                 }`}
@@ -1156,6 +1157,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                 <button
                   type="button"
                   onClick={() => updateZoom(currentZoom - 0.1)}
+                  aria-label="Zoom out"
                   className="rounded border px-2 py-1 hover:bg-accent"
                 >
                   -
@@ -1163,6 +1165,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                 <button
                   type="button"
                   onClick={() => updateZoom(currentZoom + 0.1)}
+                  aria-label="Zoom in"
                   className="rounded border px-2 py-1 hover:bg-accent"
                 >
                   +
@@ -1181,7 +1184,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                 >
                   100%
                 </button>
-                <span className="ml-auto text-muted-foreground">{Math.round(currentZoom * 100)}%</span>
+                <span className="ml-auto text-muted-foreground" aria-live="polite" aria-label={`Zoom ${Math.round(currentZoom * 100)} percent`}>
+                  {Math.round(currentZoom * 100)}%
+                </span>
               </div>
 
               <div className="mb-2 flex-1 overflow-auto rounded-md border bg-background p-2">
@@ -1207,10 +1212,10 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                   Show segmentation overlay
                 </label>
                 {currentSegmentedPreview && (
-                  <p className="text-xs text-emerald-700">Segmented preview ready.</p>
+                  <p role="status" className="text-xs text-emerald-700">Segmented preview ready.</p>
                 )}
                 {currentSegmentationError && (
-                  <p className="text-xs text-red-600">{currentSegmentationError}</p>
+                  <p role="alert" className="text-xs text-red-600">{currentSegmentationError}</p>
                 )}
               </div>
 
@@ -1219,11 +1224,13 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                   type="button"
                   onClick={() => updateCurrentPageIndex(currentPageIndex - 1)}
                   disabled={currentPageIndex <= 0}
+                  aria-label="Previous page"
                   className="rounded border px-2 py-1 disabled:opacity-40"
                 >
                   Prev
                 </button>
                 <select
+                  aria-label="Page"
                   value={currentPageIndex}
                   onChange={(event) => updateCurrentPageIndex(Number(event.target.value))}
                   className="min-w-0 flex-1 rounded border bg-background px-2 py-1"
@@ -1238,23 +1245,26 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                   type="button"
                   onClick={() => updateCurrentPageIndex(currentPageIndex + 1)}
                   disabled={Boolean(currentDocument && currentPageIndex >= currentDocument.pages.length - 1)}
+                  aria-label="Next page"
                   className="rounded border px-2 py-1 disabled:opacity-40"
                 >
                   Next
                 </button>
               </div>
 
-              <div className="grid max-h-28 grid-cols-5 gap-1 overflow-auto">
+              <div role="group" aria-label="Page thumbnails" className="grid max-h-28 grid-cols-5 gap-1 overflow-auto">
                 {currentDocument?.pages.map((page, index) => (
                   <button
                     key={page.id}
                     type="button"
                     onClick={() => updateCurrentPageIndex(index)}
+                    aria-label={`Page ${index + 1}: ${page.name}`}
+                    aria-current={index === currentPageIndex ? "page" : undefined}
                     className={`overflow-hidden rounded border ${index === currentPageIndex ? "ring-2 ring-primary" : ""}`}
                   >
                     <Image
                       src={page.dataUrl}
-                      alt={page.name}
+                      alt=""
                       width={120}
                       height={56}
                       unoptimized
@@ -1291,7 +1301,14 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           </div>
         </div>
 
-        <div ref={chatScrollContainerRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+        <div
+          ref={chatScrollContainerRef}
+          role="log"
+          aria-label="Conversation"
+          aria-live="polite"
+          aria-busy={sending}
+          className="min-h-0 flex-1 overflow-y-auto px-4 py-4"
+        >
           {!currentMessages.length ? (
             <p className="mx-auto mt-8 max-w-xl text-center text-sm text-muted-foreground">
               Ask questions about this page, or type `segment this page` / `extract text` to run the pipeline directly in chat.
@@ -1311,9 +1328,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                   {message.content ? (
                     <p className="whitespace-pre-wrap">{message.content}</p>
                   ) : sending && message.role === "assistant" ? (
-                    <div className="flex items-center gap-2 text-muted-foreground">
+                    <div role="status" className="flex items-center gap-2 text-muted-foreground">
                       <span className="text-sm">{assistantLoadingLabel}</span>
-                      <span className="inline-flex items-center gap-1">
+                      <span aria-hidden="true" className="inline-flex items-center gap-1">
                         <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
                         <span
                           className="h-1.5 w-1.5 animate-bounce rounded-full bg-current"
@@ -1347,7 +1364,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
 
         <div className="border-t p-4">
           <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
             <textarea
               value={input}
               onChange={(event) => setInput(event.target.value)}
@@ -1358,6 +1375,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                 }
               }}
               rows={4}
+              aria-label="Message to ArchAI"
               placeholder="Ask ArchAI about this page..."
               className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
               disabled={!currentDocument || sending}
@@ -1377,15 +1395,31 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       </section>
       {pendingUpload ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-2xl rounded-xl border bg-background p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold">Document metadata</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="metadata-dialog-title"
+            aria-describedby="metadata-dialog-description"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.stopPropagation();
+                cancelPendingUpload();
+              }
+            }}
+            className="max-h-full w-full max-w-2xl overflow-y-auto rounded-xl border bg-background p-6 shadow-2xl"
+          >
+            <h2 id="metadata-dialog-title" className="text-lg font-semibold">Document metadata</h2>
+            <p id="metadata-dialog-description" className="mt-1 text-sm text-muted-foreground">
               Language and year are required. These values will guide Kraken routing now and stay with the document for later retrieval and entity work.
             </p>
             <div className="mt-4 grid gap-4 md:grid-cols-2">
               <label className="text-sm">
                 <span className="mb-1 block font-medium">Language</span>
                 <input
+                  autoFocus
+                  required
+                  aria-required="true"
+                  aria-invalid={Boolean(metadataError) && !metadataDraft.language.trim()}
                   value={metadataDraft.language}
                   onChange={(event) => setMetadataDraft((prev) => ({ ...prev, language: event.target.value }))}
                   placeholder="latin, middle_french, anglo_norman..."
@@ -1395,6 +1429,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
               <label className="text-sm">
                 <span className="mb-1 block font-medium">Year</span>
                 <input
+                  required
+                  aria-required="true"
+                  aria-invalid={Boolean(metadataError) && !metadataDraft.year.trim()}
                   value={metadataDraft.year}
                   onChange={(event) => setMetadataDraft((prev) => ({ ...prev, year: event.target.value }))}
                   placeholder="e.g. 1248 or c. 1250"
@@ -1439,7 +1476,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                 />
               </label>
             </div>
-            {metadataError ? <p className="mt-3 text-sm text-red-600">{metadataError}</p> : null}
+            {metadataError ? <p role="alert" className="mt-3 text-sm text-red-600">{metadataError}</p> : null}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 type="button"
