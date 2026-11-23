@@ -10,9 +10,17 @@ from __future__ import annotations
 
 import re
 
-from langdetect import detect_langs
+from langdetect import DetectorFactory, detect_langs
 
 from app.services.lexicon_trust import reads_as_latin
+
+# langdetect samples at random unless seeded. On the same text two calls could
+# name different languages, and on corrupted text that changed the quality
+# verdict: a reading at 52% CER came out UNRELIABLE, or HIGH and allowed
+# whenever it happened to be detected as "dutch", which has no trigram profile
+# (scripts/calibrate_quality_gate.py, repeated runs). Seeded, a page always gets
+# the same answer.
+DetectorFactory.seed = 0
 
 
 _ALLOWED_DETECTED_LANGUAGES = {
