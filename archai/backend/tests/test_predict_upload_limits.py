@@ -113,3 +113,28 @@ def test_a_single_page_is_prepared_off_the_event_loop(client, monkeypatch):
 
     assert response.status_code == 200
     assert threads["prepare"] != threads["loop"]
+
+
+@pytest.mark.parametrize(("field", "value"), [("confidence", "1.5"), ("confidence", "-0.1"), ("iou", "2"), ("iou", "-1")])
+def test_thresholds_outside_zero_to_one_are_a_422(client, monkeypatch, field: str, value: str) -> None:
+    """A confidence of 1.5 silently found nothing; a negative IoU went on to ultralytics."""
+    from PIL import Image
+
+    calls: list[dict] = []
+
+    def segment(path, **kwargs):  # pragma: no cover - reached only on the old code
+        calls.append(kwargs)
+        return {"images": [], "annotations": [], "categories": []}, {}
+
+    monkeypatch.setattr(predict, "run_single_segmentation", segment)
+    page = io.BytesIO()
+    Image.new("RGB", (40, 40), "white").save(page, format="PNG")
+    single = client.post(
+        "/predict/single", files={"image": ("p.png", page.getvalue(), "image/png")}, data={field: value}
+    )
+    batch = client.post(
+        "/predict/batch", files={"zip_file": ("b.zip", b"PK\x05\x06" + b"\0" * 18, "application/zip")}, data={field: value}
+    )
+    assert (single.status_code, batch.status_code) == (422, 422)
+    assert field in single.text
+    assert calls == []

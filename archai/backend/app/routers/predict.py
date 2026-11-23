@@ -241,8 +241,8 @@ def _is_valid_image_file(image_path: str) -> bool:
 @router.post("/predict/single")
 async def predict_single(
     image: UploadFile = File(...),
-    confidence: float = Form(0.25),
-    iou: float = Form(0.3),
+    confidence: float = Form(0.25, ge=0.0, le=1.0),
+    iou: float = Form(0.3, ge=0.0, le=1.0),
     classes: Optional[str] = Form(None),
 ):
     """Run 3 YOLO models on a single image and return combined COCO JSON."""
@@ -398,8 +398,8 @@ def _run_batch(task: TaskState, zip_path: str, conf: float, iou: float, selected
 async def predict_batch(
     background_tasks: BackgroundTasks,
     zip_file: UploadFile = File(...),
-    confidence: float = Form(0.25),
-    iou: float = Form(0.3),
+    confidence: float = Form(0.25, ge=0.0, le=1.0),
+    iou: float = Form(0.3, ge=0.0, le=1.0),
     classes: Optional[str] = Form(None),
 ):
     """Start batch processing of a ZIP archive."""
