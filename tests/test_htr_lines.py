@@ -73,7 +73,13 @@ def fake_kraken(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     monkeypatch.setattr(htr_kraken, "KRAKEN_AVAILABLE", True)
     monkeypatch.setattr(htr_kraken, "_recognition_model", lambda _path, _device: object())
     monkeypatch.setattr(htr_kraken, "_segmentation_model", lambda _path, _device, _logger: object())
-    monkeypatch.setattr(htr_kraken, "_segment_crop", lambda _image, _model: "segmentation")
+    state["devices"] = []
+
+    def segment(_image: Any, _model: Any, *, device: str = "cpu") -> str:
+        state["devices"].append(device)
+        return "segmentation"
+
+    monkeypatch.setattr(htr_kraken, "_segment_crop", segment)
 
     calls = iter(range(100))
 
@@ -197,3 +203,50 @@ def test_an_rpred_that_fits_no_form_is_named_in_the_error(monkeypatch: pytest.Mo
     _fake_rpred(monkeypatch, rpred)
     with pytest.raises(RuntimeError, match="accepts none of the supported call forms"):
         htr_kraken._run_recognition("model", "image", "seg")
+
+
+def test_segmentation_runs_on_the_configured_device(
+    config_file: Path, crops: list[Path], fake_kraken: dict[str, Any]
+) -> None:
+    """Audit OCR-016: kraken_device was applied to the model, then undone by blla."""
+    config = load_config(config_file, overrides={"runtime.kraken_device": "mps"})
+    recognize_crop_lines(crops[:2], config, logging.getLogger("test"))
+    assert fake_kraken["devices"] == ["mps", "mps"]
+
+
+def test_blla_receives_the_device(monkeypatch: pytest.MonkeyPatch) -> None:
+    import types
+
+    seen: dict[str, Any] = {}
+
+    def segment(
+        im: Any, text_direction: str = "horizontal-lr", model: Any = None, device: str = "cpu"
+    ) -> str:
+        seen.update(model=model, device=device)
+        return "segmentation"
+
+    monkeypatch.setattr(htr_kraken, "blla", types.SimpleNamespace(segment=segment))
+    assert htr_kraken._segment_crop(Image.new("L", (10, 10)), "seg-model", device="cuda:1") == "segmentation"
+    assert seen == {"model": "seg-model", "device": "cuda:1"}
+
+
+def test_an_old_blla_without_a_device_argument_still_segments(monkeypatch: pytest.MonkeyPatch) -> None:
+    import types
+
+    def segment(im: Any, segmentation_model: Any = None) -> str:
+        return f"segmented with {segmentation_model}"
+
+    monkeypatch.setattr(htr_kraken, "blla", types.SimpleNamespace(segment=segment))
+    image = Image.new("L", (10, 10))
+    assert htr_kraken._segment_crop(image, "seg-model", device="cuda") == "segmented with seg-model"
+
+
+def test_a_failed_device_move_names_the_device(caplog: pytest.LogCaptureFixture) -> None:
+    class Model:
+        def to(self, device: str) -> None:
+            raise RuntimeError("no such device")
+
+    logger = logging.getLogger("test.device")
+    with caplog.at_level(logging.WARNING, logger="test.device"):
+        htr_kraken._try_move_to_device(Model(), "cuda:3", logger)
+    assert "'cuda:3'" in caplog.text

@@ -91,7 +91,7 @@ def recognize_crop_lines(
             if segmenter == "zone":
                 segmentation = _zone_segmentation(crop_img)
             else:
-                segmentation = _segment_crop(crop_img, seg_model)
+                segmentation = _segment_crop(crop_img, seg_model, device=device)
             records = _run_recognition(rec_model, crop_img, segmentation)
         except Exception:
             # One unreadable region must not discard the rest of the page.
@@ -229,18 +229,31 @@ def _zone_segmentation(image: Image.Image) -> Any:
     )
 
 
-def _segment_crop(image: Image.Image, seg_model: Any | None) -> Any:
+def _segment_crop(image: Image.Image, seg_model: Any | None, *, device: str = "cpu") -> Any:
     if seg_model is not None:
+        # blla.segment moves the model to its own device argument, default
+        # "cpu", so without it kraken_device: cuda left segmentation on the CPU.
+        kwargs: dict[str, Any] = {"model": seg_model}
+        if device and "device" in _parameters(blla.segment):
+            kwargs["device"] = device
         try:
-            return blla.segment(image, model=seg_model)
+            return blla.segment(image, **kwargs)
         except TypeError:
-            return blla.segment(image, segmentation_model=seg_model)
+            kwargs["segmentation_model"] = kwargs.pop("model")
+            return blla.segment(image, **kwargs)
 
     bin_img = binarization.nlbin(image)
     try:
         return pageseg.segment(bin_img)
     except TypeError:
         return pageseg.segment(bin_img, text_direction="horizontal-lr")
+
+
+def _parameters(function: Any) -> frozenset[str]:
+    try:
+        return frozenset(inspect.signature(function).parameters)
+    except (TypeError, ValueError):
+        return frozenset()
 
 
 def _run_recognition(rec_model: Any, image: Image.Image, segmentation: Any) -> list[Any]:
@@ -312,6 +325,7 @@ def _try_move_to_device(model: Any, device: str, logger: logging.Logger) -> None
             model.to(device)
         except Exception:
             logger.warning(
-                "Unable to move model to device; continuing with framework default.",
-                extra={"stage": "htr"},
+                "Unable to move the Kraken model to device %r; it stays on the framework default.",
+                device,
+                extra={"stage": "htr", "device": device},
             )
