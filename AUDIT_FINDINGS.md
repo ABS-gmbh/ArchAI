@@ -1053,7 +1053,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** Hit rate scales with profile size, so the identical Old French passage scores materially lower when the detector labels it 'french' (74 trigrams) than when it labels it 'middle_french' (103). Since the score is compared against a single cross-language hard limit of 0.20 in services/pipeline_hardening.py:477-480, a language-detection flip between two near-synonymous labels can flip the `token_search` gate and disable authority linking for the page. The aliasing at lexicon_trust.py:96-98 compounds this — Italian, Spanish and Portuguese are all scored against the LATIN profile, so genuine Romance-vernacular text is judged by Latin statistics.
 - **Fix:** De-duplicate the literals and pad each profile to a uniform count (the documented ~120), or normalize the hit ratio by profile size — `ratio / (0.55 * len(profile) / _REFERENCE_PROFILE_SIZE)` — so the 0.20 hard limit in pipeline_hardening.py means the same thing for every language. Add a module-level assertion that all non-'unknown' profiles have equal length.
 
-### [SVC-23] Threshold literals scattered through code that the config module declares as its exclusive responsibility
+### [SVC-23] Threshold literals scattered through code that the config module declares as its exclusive responsibility — **FIXED** (the nine literals of _derive_quality_label are named constants in ocr_quality_config, values unchanged; _LEXICAL_HARD_LIMIT was already gone)
 
 - **Where:** `vendor:app/services/ocr_quality.py:888`  
 - **Category:** hygiene  
