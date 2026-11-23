@@ -239,10 +239,16 @@ def extract_high_recall_mentions(
 
     Strategies:
       1. Broader trigger word set (all medieval titles/roles/context markers)
-      2. Capitalization-independent: scan ALL tokens ≥ 4 chars as candidates
-         (when casing is absent or noisy)
+      2. Capitalised tokens of 5 or more characters as candidate names
       3. Multi-token windows: check 2-3 token sequences as potential names
       4. Named-entity context patterns: "X de Y", "X le Y", etc.
+
+    Strategy 2 requires a capital deliberately (audit SVC-24 proposed dropping
+    it). The caller runs this only on pages graded HIGH or OK, where casing is
+    reliable. On the gold pages (scripts/benchmark_entities.py, 14 entities)
+    the two pages that trigger it have no entities: with the capital it adds
+    22 false positives, and scanning every token of 4+ characters adds 246,
+    with no entity found either way.
 
     Returns candidate mentions (un-verified). Each has method="high_recall:*".
     """

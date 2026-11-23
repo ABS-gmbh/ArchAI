@@ -17,6 +17,10 @@ scored.
 The extractor's anchors were written for one page, ``middle-french-antitus``
 (Lausanne, "pere", "prince", "euesque"), so totals are also reported without
 it. Two pages contain no named entity at all: there, every mention is wrong.
+
+``--with-high-recall`` scores what the pipeline stores instead. When the
+standard extractor finds fewer mentions than ``check_mention_recall`` expects
+(on a page graded OK), the pipeline adds ``extract_high_recall_mentions``.
 """
 
 from __future__ import annotations
@@ -35,10 +39,24 @@ READINGS = ROOT / "eval" / "quality_gate" / "readings.json"
 TUNED_ON = "middle-french-antitus"
 
 
-def _extractor() -> Any:
+def _extractor(*, with_high_recall: bool = False) -> Any:
     from app.services.mention_extraction import _extract_mentions_from_text
 
-    return _extract_mentions_from_text
+    if not with_high_recall:
+        return _extract_mentions_from_text
+    from app.services.ocr_quality import check_mention_recall
+    from app.services.pipeline_hardening import extract_high_recall_mentions
+
+    def extract(text: str) -> Any:
+        # As trace_pipeline does after the standard pass, for a page graded OK.
+        mentions, candidates, debug = _extract_mentions_from_text(text)
+        if check_mention_recall(text, len(mentions), "OK").get("trigger_high_recall"):
+            spans = {(m.get("start_offset"), m.get("end_offset")) for m in mentions}
+            extra = [m for m in extract_high_recall_mentions(text) if (m.get("start_offset"), m.get("end_offset")) not in spans]
+            mentions = [*mentions, *extra]
+        return mentions, candidates, debug
+
+    return extract
 
 
 def gold_spans(text: str, entities: list[dict[str, Any]]) -> list[tuple[int, int, str, str]]:
@@ -84,11 +102,11 @@ def _prf(tp: int, fp: int, fn: int) -> dict[str, float]:
     return {"precision": round(precision, 3), "recall": round(recall, 3), "f1": round(f1, 3)}
 
 
-def run() -> dict[str, Any]:
+def run(*, with_high_recall: bool = False) -> dict[str, Any]:
     gold = json.loads(GOLD.read_text(encoding="utf-8"))
     texts = {page["page_id"]: page["reference"] for page in json.loads(READINGS.read_text(encoding="utf-8"))["pages"]}
     types = set(gold["types"])
-    extract = _extractor()
+    extract = _extractor(with_high_recall=with_high_recall)
     pages = {page["page_id"]: score_page(texts[page["page_id"]], page["entities"], types, extract) for page in gold["pages"]}
 
     def total(keep: Any) -> dict[str, Any]:
@@ -117,8 +135,11 @@ def _render(result: dict[str, Any]) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--with-high-recall", action="store_true", help="add the high-recall pass where the pipeline would run it"
+    )
     args = parser.parse_args(argv)
-    result = run()
+    result = run(with_high_recall=args.with_high_recall)
     print(json.dumps(result, ensure_ascii=False, indent=2) if args.json else _render(result))
     return 0
 
