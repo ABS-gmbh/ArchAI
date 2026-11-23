@@ -1,0 +1,86 @@
+# Chat answer evaluation
+
+`answers.json` holds 79 hand-labelled chat questions about the reference
+pages of `eval/quality_gate/readings.json`. `scripts/evaluate_chat_answers.py`
+asks them through the chat path, with one gate-approved run per page as
+context, and scores the result.
+
+```bash
+python scripts/evaluate_chat_answers.py                                  # retrieval only, no chat model
+python scripts/evaluate_chat_answers.py --live --out /tmp/answers.jsonl  # ask the configured chat model
+python scripts/evaluate_chat_answers.py --score /tmp/answers.jsonl       # re-score saved answers
+```
+
+## Items
+
+- **62 answerable** (`a00`-`a61`): the questions of
+  `eval/retrieval/questions.json`, in the same order. Each item carries:
+  - `answer_span`: the reference text that answers it;
+  - `expected`: a short English answer written by hand from that span;
+  - `accept`: groups of lower-case terms. A correct answer contains at least
+    one term of every group (e.g. `[["sabbath", "saturday"], ["holy",
+    "sanctif", "hallow"]]` for the third commandment).
+- **17 not in the sources** (`n00`-`n16`): the `not_in_sources` questions of
+  the same file. The page does not answer them, so the right answer says so.
+
+| page_id | answerable | not in sources |
+|---|---|---|
+| `old-french` | 15 | 5 |
+| `latin-abaton` | 19 | 4 |
+| `latin-apocalypse` | 11 | 4 |
+| `old-french-verse` | 17 | 4 |
+
+## How it was built
+
+Every `expected` answer and `accept` list was written by hand from the
+reference, before any chat model had answered the question. The readings of
+the Latin oracle lines (*sortes*) and the Old French follow the literal sense
+of the reference. No specialist has checked them.
+
+## What is scored
+
+Each page is loaded into a throwaway pipeline DB and vector store in a
+temporary directory (never `app/archai.sqlite`), chunked as the pipeline
+chunks. Questions go through `chat_ai._prepare_messages`, so retrieval, the
+evidence blocks and the grounding instructions are the production ones. The
+context carries the run only, not a transcript, so the answer must come from
+search.
+
+- **Without `--live`** no chat model is called. Per item, the report says
+  whether the evidence put in the prompt holds a chunk containing the answer
+  span (`evidence_holds_answer`), the retrieval status, and whether the
+  "not in the sources" instruction is present.
+- **With `--live`** the configured chat model answers. Verification is off,
+  so the draft answer itself is scored. Every answer is saved to `--out`.
+  - Answerable items are `correct` (every accept group matches), `abstained`
+    (says the sources do not contain it, and the terms do not match) or
+    `wrong`. They are `cited` if the answer names the chunk_id of a chunk
+    holding the span.
+  - Not-in-sources items are `abstained` or `answered`.
+
+The report gives counts as k/n per kind and per page, with no headline rate.
+
+## Results
+
+Retrieval only, local embedder (ChromaDB's MiniLM), BM25 weight 2:
+
+| | n | evidence holds the answer | instruction present |
+|---|---|---|---|
+| answerable | 62 | 53 | 62 |
+| not in sources | 17 | (no answer) | 17 |
+
+By page, the evidence holds the answer for: old-french 11/15,
+latin-abaton 17/19, latin-apocalypse 11/11, old-french-verse 14/17.
+
+No live answers have been scored yet: the chat provider key returns 401.
+
+## Caveats
+
+- Term matching is a heuristic. A polarity answer ("no") can match by
+  accident, and a correct paraphrase can miss every term. Read the saved
+  answers before quoting a number.
+- The abstention pattern (`ABSTAIN_RE`) recognises common English phrasings
+  ("does not mention", "not in the sources", "no information"). Others are
+  scored as `answered` or `wrong`.
+- Seventeen not-in-sources items, over four pages, is a small sample.
+- One annotator, no second check.
