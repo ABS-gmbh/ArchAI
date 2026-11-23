@@ -19,7 +19,9 @@ log = logging.getLogger("archai.authority_sources")
 _USER_AGENT = "Archai-OCR-Pipeline/1.0 (research; mailto:archai@example.com)"
 
 
-def _http_json(url: str, params: dict[str, Any], *, timeout: int = 10) -> dict[str, Any]:
+def _http_json(
+    url: str, params: dict[str, Any], *, timeout: int = 10, headers: dict[str, str] | None = None
+) -> dict[str, Any]:
     import urllib.error
     import urllib.request
 
@@ -28,7 +30,9 @@ def _http_json(url: str, params: dict[str, Any], *, timeout: int = 10) -> dict[s
         for key, value in params.items()
         if value is not None and str(value) != ""
     )
-    request = urllib.request.Request(f"{url}?{query}", headers={"User-Agent": _USER_AGENT})
+    request = urllib.request.Request(
+        f"{url}?{query}" if query else url, headers={"User-Agent": _USER_AGENT, **(headers or {})}
+    )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.loads(response.read().decode("utf-8"))
@@ -40,20 +44,55 @@ def _http_json(url: str, params: dict[str, Any], *, timeout: int = 10) -> dict[s
         return {}
 
 
+# VIAF API as documented by OCLC (OpenAPI "VIAF API" 1.22.1,
+# https://developer.api.oclc.org/viaf-api, docs/viaf/openapi-external-prod.yaml,
+# checked 2026-11-23): an authority cluster is GET https://viaf.org/viaf/{id}
+# with an Accept header naming the format; anonymous access is allowed. The
+# old https://viaf.org/viaf/{id}/viaf.json is not in that document and answered
+# 403 on the same day, so every record fetch had been failing.
+VIAF_BASE_URL = "https://viaf.org/viaf"
+
+
+def _strip_viaf_namespace(value: Any) -> Any:
+    """The cluster JSON with its ``ns1:`` key prefixes removed.
+
+    The documented JSON is a namespaced rendering of the XML record
+    (``{"ns1:VIAFCluster": {"ns1:mainHeadings": {"ns1:data": ...}}}``); without
+    the prefixes it has the shape the retired viaf.json had.
+    """
+    if isinstance(value, dict):
+        return {
+            (key.split(":", 1)[1] if key.startswith("ns1:") else key): _strip_viaf_namespace(item)
+            for key, item in value.items()
+            if not key.startswith("xmlns")
+        }
+    if isinstance(value, list):
+        return [_strip_viaf_namespace(item) for item in value]
+    return value
+
+
 def _fetch_viaf_record(viaf_id: str) -> dict[str, Any]:
+    """One VIAF authority cluster as a plain dict (``mainHeadings``, ``nameType``, ``titles``...), or {}."""
     viaf_id = str(viaf_id or "").strip()
     if not viaf_id:
         return {}
-    return _http_json(f"https://viaf.org/viaf/{viaf_id}/viaf.json", {}, timeout=10)
+    payload = _http_json(f"{VIAF_BASE_URL}/{quote_plus(viaf_id)}", {}, timeout=10, headers={"Accept": "application/json"})
+    record = _strip_viaf_namespace(payload)
+    if isinstance(record, dict) and isinstance(record.get("VIAFCluster"), dict):
+        record = record["VIAFCluster"]
+    return record if isinstance(record, dict) else {}
 
 
 def search_viaf(query: str, *, k: int = 5, ent_type: str = "") -> list[dict[str, Any]]:
     if ent_type not in {"person", "work"}:
         return []
+    # AutoSuggest is documented at the same place and still answers with
+    # {"result": [{"viafid", "term", "nametype", ...}]}.
     payload = _http_json(
-        "https://viaf.org/viaf/AutoSuggest",
+        f"{VIAF_BASE_URL}/AutoSuggest",
         {"query": query},
         timeout=10,
+        headers={"Accept": "application/json"},
     )
     rows = payload.get("result") or []
     if not isinstance(rows, list):

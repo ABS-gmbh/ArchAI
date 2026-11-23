@@ -73,23 +73,16 @@ from app.services.authority_scoring import (
 log = logging.getLogger("archai.authority_linking")
 
 def _fetch_viaf_profile(viaf_id: str) -> dict[str, Any]:
+    """Aliases, name type and titles of the selected VIAF cluster, from the documented endpoint."""
+    from app.services.authority_sources import VIAF_BASE_URL, _fetch_viaf_record
+
     viaf_id = str(viaf_id or "").strip()
     if not viaf_id:
         return {"aliases": [], "source_url": ""}
-
-    import urllib.error
-    import urllib.request
-
-    source_url = f"https://viaf.org/viaf/{viaf_id}/viaf.json"
-    request = urllib.request.Request(source_url, headers={"User-Agent": "Archai-OCR-Pipeline/1.0"})
-    try:
-        with urllib.request.urlopen(request, timeout=10) as response:
-            payload = json.loads(response.read().decode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        log.debug("VIAF HTTP error for %s: %s", viaf_id, exc)
-        return {"aliases": [], "source_url": source_url}
-    except Exception as exc:  # noqa: BLE001
-        log.debug("VIAF lookup failed for %s: %s", viaf_id, exc)
+    source_url = f"{VIAF_BASE_URL}/{viaf_id}"
+    payload = _fetch_viaf_record(viaf_id)
+    if not payload:
+        log.debug("VIAF lookup returned nothing for %s", viaf_id)
         return {"aliases": [], "source_url": source_url}
 
     aliases: list[dict[str, str]] = []
@@ -108,7 +101,6 @@ def _fetch_viaf_profile(viaf_id: str) -> dict[str, Any]:
             continue
         seen.add(key)
         aliases.append({"lang": "", "value": value})
-
     return {
         "aliases": aliases,
         "source_url": source_url,

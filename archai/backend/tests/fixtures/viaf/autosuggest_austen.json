@@ -1,0 +1,25 @@
+{
+ "query": "austen",
+ "result": [
+  {
+   "term": "Austen, Jane, 1775-1817",
+   "displayForm": "Austen, Jane, 1775-1817",
+   "nametype": "personal",
+   "lc": "n79032879",
+   "dnb": "118505173",
+   "viafid": "102333412",
+   "score": "22262",
+   "recordID": "102333412"
+  },
+  {
+   "term": "Austen Henry Layard, 1817-1894",
+   "displayForm": "Austen Henry Layard, 1817-1894",
+   "nametype": "personal",
+   "lc": "n50039774",
+   "dnb": "118570390",
+   "viafid": "9943394",
+   "score": "5915",
+   "recordID": "9943394"
+  }
+ ]
+}

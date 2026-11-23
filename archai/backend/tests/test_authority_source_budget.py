@@ -67,16 +67,16 @@ def test_past_its_budget_a_source_is_not_called_but_its_cache_is_read(monkeypatc
 
 
 def test_search_viaf_marks_answers_whose_records_failed(monkeypatch: Any) -> None:
-    def http_json(url: str, params: dict[str, Any], *, timeout: int = 10) -> dict[str, Any]:
+    def http_json(url: str, params: dict[str, Any], *, timeout: int = 10, headers: Any = None) -> dict[str, Any]:
         if "AutoSuggest" in url:
             return {"result": [{"viafid": "1", "term": "Merlin"}, {"viafid": "2", "term": "Merlinus"}]}
-        return {"nameType": "Personal"} if url.endswith("/1/viaf.json") else {}
+        return {"ns1:VIAFCluster": {"ns1:nameType": "Personal"}} if url.endswith("/viaf/1") else {}
 
     monkeypatch.setattr(authority_sources, "_http_json", http_json)
     assert all(item.get("partial") for item in authority_sources.search_viaf("Merlin", ent_type="person"))
 
-    monkeypatch.setattr(authority_sources, "_http_json", lambda url, params, timeout=10: (
-        {"result": [{"viafid": "1", "term": "Merlin"}]} if "AutoSuggest" in url else {"nameType": "Personal"}))
+    monkeypatch.setattr(authority_sources, "_http_json", lambda url, params, timeout=10, headers=None: (
+        {"result": [{"viafid": "1", "term": "Merlin"}]} if "AutoSuggest" in url else {"ns1:VIAFCluster": {"ns1:nameType": "Personal"}}))
     assert not any(item.get("partial") for item in authority_sources.search_viaf("Merlin", ent_type="person"))
 
 
