@@ -1125,7 +1125,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** `pip install -e .` pulls ~60MB of OpenCV that nothing uses, and still fails to run scripts/build_thesis_showcase_payloads.py because requests and openai are absent — the README.md:78 command dies on ImportError immediately after a nominally successful install.
 - **Fix:** Remove opencv-python-headless from pyproject.toml:15. Add a `[project.optional-dependencies]` group such as `scripts = ["requests", "openai"]` (and `dev = ["pytest", "chromadb"]` if test_packages.py is kept) so the script's real dependencies are installable.
 
-### [OCR-022] build_thesis_showcase_payloads.py hardcodes 'kraken/calamari unavailable: package not installed' into thesis artifacts without checking
+### [OCR-022] build_thesis_showcase_payloads.py hardcodes 'kraken/calamari unavailable: package not installed' into thesis artifacts without checking — **FIXED** (missing_region_ocr_packages checks importlib.util.find_spec for kraken and calamari_ocr; the committed manifest still carries the old claim until the bundle is regenerated; tests/test_scripts.py)
 
 - **Where:** `scripts/build_thesis_showcase_payloads.py:688`  
 - **Category:** ocr-quality  
