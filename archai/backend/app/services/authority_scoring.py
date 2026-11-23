@@ -19,6 +19,26 @@ from app.services.text_normalization import normalize_for_search, token_quality_
 log = logging.getLogger("archai.authority_linking")
 
 
+def _title_texts(titles: Any) -> list[str]:
+    """The title strings of a candidate's ``titles``, in order.
+
+    A VIAF cluster gives ``{"work": [{"title": ...}, ...]}`` (a single work is
+    a dict, not a list). Read as ``list(titles)``, that dict gave only its key,
+    so the context text held the word "work" and never a title.
+    """
+    if titles is None:
+        return []
+    if isinstance(titles, str):
+        return [titles] if titles.strip() else []
+    if isinstance(titles, dict):
+        if "title" in titles or "text" in titles:
+            return _title_texts(titles.get("title", titles.get("text")))
+        return [text for value in titles.values() for text in _title_texts(value)]
+    if isinstance(titles, (list, tuple)):
+        return [text for item in titles for text in _title_texts(item)]
+    return [str(titles)]
+
+
 def _score_candidate(
     *,
     mention: dict[str, Any],
@@ -43,7 +63,7 @@ def _score_candidate(
         str(candidate.get("description") or ""),
         str(candidate.get("canonical_description") or ""),
         str(candidate.get("parent_location") or ""),
-        " ".join(str(item) for item in list(candidate.get("titles") or [])[:5]),
+        " ".join(_title_texts(candidate.get("titles"))[:5]),
     ]
     description_text = " ".join(part for part in description_parts if part).strip()
     # Reported for auditing. It is already folded into base_score below via
