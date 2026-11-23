@@ -98,10 +98,15 @@ async def lifespan(app: FastAPI):
         process_guard.release()
 
 
+# ENABLE_API_DOCS=false removes /docs, /redoc and /openapi.json.
+_docs = settings.enable_api_docs
 app = FastAPI(
     title="Manuscript Layout Analysis API",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url="/docs" if _docs else None,
+    redoc_url="/redoc" if _docs else None,
+    openapi_url="/openapi.json" if _docs else None,
 )
 
 # Added first so it sits inside CORS: a 413 still carries the CORS headers the

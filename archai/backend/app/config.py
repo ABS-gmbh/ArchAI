@@ -50,6 +50,10 @@ class Settings(BaseSettings):
             raise ValueError(f"{info.field_name.upper()} must be at least 1, got {value}")
         return value
 
+    # /docs, /redoc and /openapi.json. On by default; a server should switch them
+    # off (docs/deployment.md), since they describe every route to anyone.
+    enable_api_docs: bool = True
+
     # Bearer token for the whole API except /api/health (app/auth.py). Empty, the
     # default, leaves the API open, which is only safe on localhost.
     api_token: str = ""
