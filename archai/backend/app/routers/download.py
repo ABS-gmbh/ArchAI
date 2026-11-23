@@ -11,9 +11,25 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from starlette.background import BackgroundTask
 
+from app.services import file_manager
 from app.services.file_manager import get_task, get_task_dir
 
 router = APIRouter(tags=["download"])
+
+
+def _inside_task(task_id: str, path: str | None) -> bool:
+    """Whether *path* is a file inside the task's own directory.
+
+    The paths come from the task's state, which is read back from state.json
+    after a restart. Before uploads were stored under a fixed name, an upload
+    called state.json could replace that file, and the downloads below served
+    whatever path it named. Anything outside the task directory is refused.
+    """
+    if not path:
+        return False
+    base = os.path.realpath(os.path.join(file_manager.TASK_BASE_DIR, task_id))
+    target = os.path.realpath(path)
+    return target.startswith(base + os.sep) and os.path.isfile(target)
 
 
 @router.get("/download/{task_id}/coco_json")
@@ -38,7 +54,7 @@ def download_annotated_image(task_id: str):
     if task is None or task.annotated_image_path is None:
         raise HTTPException(status_code=404, detail="Task not found or no annotated image.")
 
-    if not os.path.exists(task.annotated_image_path):
+    if not _inside_task(task_id, task.annotated_image_path):
         raise HTTPException(status_code=404, detail="Annotated image file not found.")
 
     return FileResponse(
@@ -59,7 +75,7 @@ def download_batch_annotated(task_id: str, index: int):
         raise HTTPException(status_code=404, detail="Image index out of range.")
 
     path = task.gallery[index]["annotated_path"]
-    if not os.path.exists(path):
+    if not _inside_task(task_id, path):
         raise HTTPException(status_code=404, detail="Annotated image file not found.")
 
     filename = task.gallery[index]["filename"]
@@ -91,8 +107,8 @@ def _write_results_zip(task, directory: str) -> str:
     try:
         with os.fdopen(handle, "wb") as out, zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
             for g in task.gallery:
-                if os.path.exists(g["annotated_path"]):
-                    zf.write(g["annotated_path"], f"images/{g['filename']}")
+                if _inside_task(task.task_id, g["annotated_path"]):
+                    zf.write(g["annotated_path"], f"images/{os.path.basename(g['filename'])}")
             if task.coco_json:
                 zf.writestr("annotations.json", json.dumps(task.coco_json, indent=2))
     except BaseException:
