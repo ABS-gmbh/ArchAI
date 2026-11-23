@@ -140,3 +140,22 @@ def test_the_package_check_exits_1_when_a_check_fails(monkeypatch: pytest.Monkey
     assert module.main() == 1
     monkeypatch.setattr(module, "CHECKS", {"ok": lambda: None})
     assert module.main() == 0
+
+
+def test_region_ocr_availability_is_checked_not_assumed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Audit OCR-022: both engines were recorded as not installed, unconditionally."""
+    import importlib.util
+
+    script = _showcase_script()
+    installed = {"kraken"}
+    real_find_spec = importlib.util.find_spec
+
+    def find_spec(name: str, *args: Any) -> Any:
+        if name in {"kraken", "calamari_ocr"}:
+            return object() if name in installed else None
+        return real_find_spec(name, *args)
+
+    monkeypatch.setattr(importlib.util, "find_spec", find_spec)
+    assert script.missing_region_ocr_packages() == ["calamari region OCR unavailable: package not installed"]
+    installed.add("calamari_ocr")
+    assert script.missing_region_ocr_packages() == []

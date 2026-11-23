@@ -667,6 +667,25 @@ def pivot_markdown() -> str:
     )
 
 
+# Region OCR engines whose absence the manifest records, by importable module.
+REGION_OCR_PACKAGES = {"kraken": "kraken", "calamari": "calamari_ocr"}
+
+
+def missing_region_ocr_packages() -> list[str]:
+    """The region OCR engines not installed here, checked rather than assumed.
+
+    Both used to be written into the manifest as unavailable whatever the
+    environment held (audit OCR-022).
+    """
+    import importlib.util
+
+    return [
+        f"{name} region OCR unavailable: package not installed"
+        for name, module in REGION_OCR_PACKAGES.items()
+        if importlib.util.find_spec(module) is None
+    ]
+
+
 def verify_bundle(root: Path = ARTIFACT_ROOT) -> list[str]:
     """Problems with the bundle at *root*, checked offline against its manifest.
 
@@ -771,10 +790,7 @@ def generate() -> int:
         "plain_chat_baseline": model_name if llm_client else "unavailable",
         "grounded_chat_answer": f"{model_name} over ArchAI retrieved evidence" if llm_client else "unavailable",
     }
-    unavailable_subsystems: list[str] = [
-        "kraken region OCR unavailable: package not installed",
-        "calamari region OCR unavailable: package not installed",
-    ]
+    unavailable_subsystems: list[str] = missing_region_ocr_packages()
 
     for spec in PAGES:
         log(f"Tracing OCR pipeline for {spec.page_id}")
