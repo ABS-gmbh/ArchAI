@@ -1061,7 +1061,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** Tuning the HIGH threshold or the lexical gate requires editing three files, and `format_gate_report` (pipeline_hardening.py:516-520) prints only the config values — so the logged 'config:' line is not the configuration that actually decided HIGH vs OK or LEXICAL_PLAUSIBILITY. Any thesis appendix listing the config module as the thresholds used would be incomplete.
 - **Fix:** Move all eight literals into `ocr_quality_config.py` as named constants (`HIGH_GIBBERISH_MAX`, `ENTROPY_HIGH_BAND_LOW`, `LEXICAL_HARD_LIMIT`, …), import them, and add a test that greps these three modules for bare float comparisons.
 
-### [SVC-24] extract_high_recall_mentions requires capitalisation that its docstring promises to ignore
+### [SVC-24] extract_high_recall_mentions requires capitalisation that its docstring promises to ignore — **NOT CHANGED AS PROPOSED** (measured: dropping the capital adds 246 false positives on the gold pages vs 22, no entity gained; the docstring was corrected instead)
 
 - **Where:** `vendor:app/services/pipeline_hardening.py:246`  
 - **Category:** ocr-quality  

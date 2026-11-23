@@ -108,3 +108,18 @@ def test_the_reference_pages_score_as_measured() -> None:
         sys.modules.pop(spec.name, None)
     assert (result["all"]["tp"], result["all"]["fp"], result["all"]["fn"]) == (9, 0, 5)
     assert result["pages"]["old-french"]["fp"] == result["pages"]["latin-abaton"]["fp"] == 0
+
+
+def test_the_high_recall_pass_adds_only_false_positives_on_the_reference_pages() -> None:
+    """What the pipeline stores: it runs only where the standard pass found too little (SVC-24)."""
+    spec = importlib.util.spec_from_file_location("benchmark_entities", _backend / "scripts" / "benchmark_entities.py")
+    bench = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = bench
+    try:
+        spec.loader.exec_module(bench)
+        result = bench.run(with_high_recall=True)
+    finally:
+        sys.modules.pop(spec.name, None)
+    assert (result["all"]["tp"], result["all"]["fp"], result["all"]["fn"]) == (9, 22, 5)
+    # It triggers on the two pages with no entity, and nowhere else.
+    assert {pid for pid, page in result["pages"].items() if page["fp"]} == {"old-french", "latin-abaton"}
