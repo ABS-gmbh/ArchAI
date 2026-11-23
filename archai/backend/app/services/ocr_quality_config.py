@@ -173,6 +173,3 @@ UNCERTAINTY_ENFORCEMENT_FRAG_THRESHOLD: float = 0.10
 
 UNCERTAINTY_ENFORCEMENT_DENSITY_THRESHOLD: float = 0.08
 """If uncertainty_density is above this, run uncertainty enforcement."""
-
-HALLUCINATED_HYPHEN_MIN_INSTABILITY: float = 0.40
-"""Minimum instability for a hyphenated token to be replaced."""
