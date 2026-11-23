@@ -118,6 +118,24 @@ def test_the_default_weights_are_equal() -> None:
     assert type(settings).model_fields["rag_lexical_weight"].default == 1.0
 
 
+@pytest.mark.parametrize(("embedding_model", "expected"), [("", [1.0, 2.0]), ("multilingual-e5-large-instruct", [1.0, 1.0])])
+def test_the_local_embedder_space_weights_bm25_double(
+    runs: dict[str, Any], monkeypatch: pytest.MonkeyPatch, embedding_model: str, expected: list[float]
+) -> None:
+    """ChromaDB's English MiniLM ranks these pages worse than BM25; the e5 space is unmeasured on that."""
+    seen: dict[str, Any] = {}
+    real = rag_store.reciprocal_rank_fusion
+
+    def fuse(rankings, *, k, weights):
+        seen["weights"] = list(weights)
+        return real(rankings, k=k, weights=weights)
+
+    monkeypatch.setattr(rag_store, "reciprocal_rank_fusion", fuse)
+    monkeypatch.setattr(settings, "rag_embedding_model", embedding_model)
+    rag_store.retrieve_chunks("Dominus vobiscum", top_k=2, run_ids=[runs["run_1"]])
+    assert seen["weights"] == expected
+
+
 def test_scope_is_respected_by_the_lexical_side(runs: dict[str, Any]) -> None:
     """run-2 holds an exact match, but the query is scoped to run-1."""
     hits = rag_store.retrieve_chunks("Dominus vobiscum", top_k=5, run_ids=[runs["run_1"]])

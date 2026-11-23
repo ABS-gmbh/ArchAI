@@ -165,10 +165,10 @@ ChromaDB's default model:
 BM25 alone ranks the passage first more often, but the fusion puts it in the
 top 5, the chunks chat passes to the model, more often than either ranker.
 
-Passage lookup quotes the page. `eval/retrieval/questions.json` holds 35
+Passage lookup quotes the page. `eval/retrieval/questions.json` holds
 questions a reader might ask about the same pages, in English, each with the
 span of the reference that answers it; `--questions` asks them of every
-reading (151 lookups):
+reading. The table is the first 35 (`--question-set 2026-10`, 151 lookups):
 
 ```bash
 python scripts/benchmark_retrieval.py --questions eval/retrieval/questions.json --embedder e5-local
@@ -185,6 +185,10 @@ Here the dense side carries the fusion. `RAG_LEXICAL_WEIGHT` sets BM25's weight
 in the fusion (the dense ranking's is 1); `--lexical-weight` and `--rrf-k` try
 other settings on the benchmark. At 2, passage lookup gains (MRR 0.863 to
 0.903) but questions with e5 do not (MRR -0.011, Hit@5 -0.007), so it stays 1.
+With ChromaDB's default model (no `RAG_EMBEDDING_MODEL`), BM25 weighs 2
+instead (`RAG_LEXICAL_WEIGHT_LOCAL`). Against weight 1 on that model, MRR rises
++0.037 [+0.011, +0.063] over 270 question lookups (both question sets, see
+`eval/retrieval/README.md`) and +0.040 [+0.019, +0.063] over 222 passage lookups.
 latin-apocalypse has four chunks, so every ranker puts its answer in the top
 5 there; MRR is the measure that separates them on that page.
 

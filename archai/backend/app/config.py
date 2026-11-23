@@ -140,6 +140,16 @@ class Settings(BaseSettings):
     # 49% and e5 for 82%. With ChromaDB's default model 2 helps both (+0.049
     # MRR on questions). The default stays 1.
     rag_lexical_weight: float = 1.0
+    # The weight used instead when the dense side is ChromaDB's default model
+    # (rag_embedding_model empty): an English MiniLM that ranks Old French and
+    # Latin worse than BM25 does. Measured against weight 1 with that model
+    # (scripts/benchmark_retrieval.py, paired 95% CIs over readings): 270
+    # question lookups (--questions, 4 pages) MRR +0.037 [+0.011, +0.063],
+    # Hit@1 +0.056 [+0.011, +0.099]; 222 passage lookups (--readings) MRR
+    # +0.040 [+0.019, +0.063], Hit@1 +0.068 [+0.029, +0.105]. Weight 3 was no
+    # better on passages. The e5 space keeps rag_lexical_weight until e5 is
+    # measured on the larger question set.
+    rag_lexical_weight_local: float = 2.0
     # Candidates each ranker contributes to the fusion.
     rag_fusion_pool: int = 50
     # The lexical index is built per query; scopes larger than this skip it.

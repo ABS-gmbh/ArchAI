@@ -909,6 +909,13 @@ def _lexical_ranking(
     return index.search(query, limit=limit), records
 
 
+def _lexical_weight() -> float:
+    """BM25's weight in the fusion for the configured embedding space (see the settings)."""
+    if _space_key() == _LOCAL_EMBED_BACKEND:
+        return float(settings.rag_lexical_weight_local)
+    return float(settings.rag_lexical_weight)
+
+
 def _fuse(
     col: chromadb.Collection | None,
     query: str,
@@ -922,7 +929,7 @@ def _fuse(
     dense_ids = [hit["chunk_id"] for hit in dense]
     lexical_ids = [chunk_id for chunk_id, _score in lexical]
     fused = reciprocal_rank_fusion(
-        [dense_ids, lexical_ids], k=settings.rag_rrf_k, weights=[1.0, settings.rag_lexical_weight]
+        [dense_ids, lexical_ids], k=settings.rag_rrf_k, weights=[1.0, _lexical_weight()]
     )[:top_k]
 
     by_id = {hit["chunk_id"]: hit for hit in dense}
