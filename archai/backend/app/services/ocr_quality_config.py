@@ -46,6 +46,23 @@ ENTROPY_LOW_LIMIT: float = 2.0
 ENTROPY_HIGH_LIMIT: float = 5.5
 UNCERTAINTY_HARD_LIMIT: float = 0.15
 UNCERTAINTY_RISKY_LIMIT: float = 0.08  # above -> RISKY
+ENTROPY_UNRELIABLE_LIMIT: float = 1.5  # below -> UNRELIABLE
+
+# ═══════════════════════════════════════════════════════════════════════
+# HIGH label (_derive_quality_label): every one must hold
+# ═══════════════════════════════════════════════════════════════════════
+# These were literals inside _derive_quality_label (audit SVC-23); the values
+# are unchanged. HIGH's entropy band starts at 2.5 while RISKY starts below
+# ENTROPY_LOW_LIMIT (2.0), so a page reading 2.0-2.5 is OK, not HIGH.
+
+HIGH_GIBBERISH_MAX: float = 0.10
+HIGH_NON_WORDLIKE_MAX: float = 0.15
+HIGH_LEADING_FRAG_MAX: float = 0.06  # tiled text only
+HIGH_SEAM_FRAG_MAX: float = 0.05  # tiled text only
+HIGH_UNCERTAINTY_MAX: float = 0.03
+HIGH_ENTROPY_MIN: float = 2.5
+HIGH_ENTROPY_MAX: float = 5.0
+HIGH_REPETITION_MAX: float = 0.10
 
 # ═══════════════════════════════════════════════════════════════════════
 # Repetition (degenerate VLM decoding loops)

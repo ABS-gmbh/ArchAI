@@ -38,8 +38,17 @@ from app.services.ocr_quality_config import (
     CROSS_PASS_STABILITY_MIN,
     ENTROPY_HIGH_LIMIT,
     ENTROPY_LOW_LIMIT,
+    ENTROPY_UNRELIABLE_LIMIT,
     GIBBERISH_HARD_LIMIT,
     GIBBERISH_SOFT_LIMIT,
+    HIGH_ENTROPY_MAX,
+    HIGH_ENTROPY_MIN,
+    HIGH_GIBBERISH_MAX,
+    HIGH_LEADING_FRAG_MAX,
+    HIGH_NON_WORDLIKE_MAX,
+    HIGH_REPETITION_MAX,
+    HIGH_SEAM_FRAG_MAX,
+    HIGH_UNCERTAINTY_MAX,
     LEADING_FRAG_HARD_LIMIT,
     MENTION_ABSOLUTE_MIN,
     MENTION_MIN_PER_1K_CHARS,
@@ -385,7 +394,7 @@ def _derive_quality_label(r: OCRQualityReport) -> str:
         return "UNRELIABLE"
     if r.non_wordlike_frac >= NON_WORDLIKE_GATE_LIMIT:
         return "UNRELIABLE"
-    if r.char_entropy < 1.5:
+    if r.char_entropy < ENTROPY_UNRELIABLE_LIMIT:
         return "UNRELIABLE"
     # A decoding loop repeating one line is lexically and statistically normal;
     # only the repetition share exposes it.
@@ -423,12 +432,12 @@ def _derive_quality_label(r: OCRQualityReport) -> str:
         return "RISKY"
 
     # HIGH conditions
-    if (r.gibberish_score < 0.10
-        and r.non_wordlike_frac < 0.15
-        and (not r.tiled or (r.leading_fragment_ratio < 0.06 and r.seam_fragment_ratio < 0.05))
-        and r.uncertainty_density < 0.03
-        and 2.5 <= r.char_entropy <= 5.0
-        and r.repetition_score < 0.10
+    if (r.gibberish_score < HIGH_GIBBERISH_MAX
+        and r.non_wordlike_frac < HIGH_NON_WORDLIKE_MAX
+        and (not r.tiled or (r.leading_fragment_ratio < HIGH_LEADING_FRAG_MAX and r.seam_fragment_ratio < HIGH_SEAM_FRAG_MAX))
+        and r.uncertainty_density < HIGH_UNCERTAINTY_MAX
+        and HIGH_ENTROPY_MIN <= r.char_entropy <= HIGH_ENTROPY_MAX
+        and r.repetition_score < HIGH_REPETITION_MAX
         and (r.lexical_contrast < 0 or r.lexical_contrast >= LEXICAL_CONTRAST_CLEAN)):
         return "HIGH"
 
