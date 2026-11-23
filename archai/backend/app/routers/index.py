@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from app.db import pipeline_db
 
+from app.routers.errors import unexpected_error
 from app.services import rag_store
 
 router = APIRouter(tags=["index"])
@@ -20,8 +21,8 @@ def index_run(run_id: str) -> dict[str, Any]:
         return rag_store.index_run(run_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Indexing failed: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="Indexing", provider="embedding provider")
 
 
 @router.get("/index/run/{run_id}/status")
@@ -32,8 +33,8 @@ def index_status(run_id: str) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
     try:
         return rag_store.is_run_indexed(run_id)
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Status check failed: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="Status check", provider="embedding provider")
 
 
 @router.delete("/index/run/{run_id}")
@@ -42,8 +43,8 @@ def delete_index(run_id: str) -> dict[str, Any]:
     try:
         deleted = rag_store.delete_run(run_id)
         return {"run_id": run_id, "deleted": deleted}
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Deletion failed: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="Deletion", provider="embedding provider")
 
 
 @router.post("/index/search")
@@ -75,5 +76,5 @@ def search_index(
             "results": list(hits),
             "entity_results": list(entity_hits),
         }
-    except Exception as exc:  # pragma: no cover
-        raise HTTPException(status_code=500, detail=f"Search failed: {exc}") from exc
+    except Exception as exc:
+        unexpected_error(exc, what="Search", provider="embedding provider")
