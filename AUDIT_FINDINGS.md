@@ -857,7 +857,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** A genuine bug — e.g. passing a legacy pageseg dict to a model expecting baseline Segmentation — surfaces to the user as 'Unable to run Kraken recognition with available call signatures', pointing them at an API-compatibility dead end. Worse, attempts 2 and 3 re-run full recognition over the image after attempt 1 already partially executed, tripling the work before failing.
 - **Fix:** Resolve the call signature once, before the crop loop, using inspect.signature(rpred.rpred) rather than exception-driven probing, and let real exceptions from inside rpred propagate. If probing must stay, only treat a TypeError whose traceback's innermost frame is the rpred call itself as a signature mismatch.
 
-### [OCR-010] PAGE XML is written in crop coordinate space referencing the crop filename, and omits the schema-required Metadata element
+### [OCR-010] PAGE XML is written in crop coordinate space referencing the crop filename, and omits the schema-required Metadata element — **FIXED** (in ae7b186: one PAGE XML per page, lines translated into page coordinates, imageFilename and size of the source page, Metadata first; test_page_xml.py, including a Kraken read-back)
 
 - **Where:** `src/archai_ocr/pipeline/htr_kraken.py:131`  
 - **Category:** correctness  
