@@ -997,7 +997,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** A destructive DDL statement is hidden behind an ordinary read like get_run(). The docstring justifies it as "derived data ... fully reconstructed on each pipeline run", but nothing reconstructs decisions for the 5356 historical runs already in the DB — pointing ARCHAI_DB_PATH at an older database (a backup, a colleague's copy) permanently destroys its decision/attempt audit trail at the moment the first request arrives, with no backup and no log line.
 - **Fix:** Move this out of the lazy init path into an explicit, logged migration entrypoint (a script under scripts/ or an Alembic revision) that the operator runs deliberately, and rename the old table rather than dropping it.
 
-### [DB-07] No retention policy for pipeline_runs — 5356 runs and 16221 chunks accumulate, and the only delete path is an unreachable manual endpoint — partly fixed (pipeline_db.delete_run, app/services/run_retention.py and scripts/prune_runs.py: report-only by default, --apply to delete, conservative protections; no scheduled sweep yet)
+### [DB-07] No retention policy for pipeline_runs — 5356 runs and 16221 chunks accumulate, and the only delete path is an unreachable manual endpoint — **FIXED** (opt-in: pipeline_db.delete_run, app/services/run_retention.py, scripts/prune_runs.py report-only unless --apply, and a scheduled sweep off unless RUN_RETENTION_DAYS > 0; each page's newest run and benchmarked, annotated and showcase runs are kept; test_run_retention.py. Not run on the live database)
 
 - **Where:** `vendor:app/db/pipeline_db.py:489`  
 - **Category:** architecture  

@@ -110,6 +110,13 @@ removes its vectors first, then the run and everything recorded under it;
 shared authority records stay. `--vacuum` compacts the database afterwards and
 locks it while it runs.
 
+The running server can do the same on a schedule, and does not by default.
+With `RUN_RETENTION_DAYS` set to a number of days (0, the default, turns it
+off), every 15-minute sweep deletes at most `RUN_RETENTION_MAX_PER_SWEEP` (50)
+expired runs, oldest first, never an annotated one, logging each deletion and a
+summary. The first sweep after startup only logs the runs the next sweep will
+delete.
+
 ## Test
 
 ```bash

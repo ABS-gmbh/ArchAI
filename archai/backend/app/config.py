@@ -38,6 +38,26 @@ class Settings(BaseSettings):
             raise ValueError(f"LOG_FORMAT must be text or json, got {value!r}")
         return normalized
 
+    # Retention of pipeline runs (app/services/run_retention.py). 0 disables the
+    # scheduled sweep, and is the default: nothing is deleted unless an operator
+    # sets a window. scripts/prune_runs.py previews a window without deleting.
+    run_retention_days: int = 0
+    run_retention_max_per_sweep: int = 50
+
+    @field_validator("run_retention_days")
+    @classmethod
+    def _non_negative_retention(cls, value: int) -> int:
+        if value < 0:
+            raise ValueError(f"RUN_RETENTION_DAYS must be 0 (off) or a number of days, got {value}")
+        return value
+
+    @field_validator("run_retention_max_per_sweep")
+    @classmethod
+    def _positive_sweep_cap(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError(f"RUN_RETENTION_MAX_PER_SWEEP must be at least 1, got {value}")
+        return value
+
     # Model paths
     model_dir: str = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
 

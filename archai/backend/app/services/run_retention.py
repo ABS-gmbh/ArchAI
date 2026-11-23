@@ -52,6 +52,8 @@ class RetentionPlan:
     cutoff: str
     expired: list[str] = field(default_factory=list)
     kept: dict[str, list[str]] = field(default_factory=dict)
+    # run_id -> (page key, last update) for the expired runs, for the log.
+    details: dict[str, tuple[str, str]] = field(default_factory=dict)
 
     def keep(self, reason: str, run_id: str) -> None:
         self.kept.setdefault(reason, []).append(run_id)
@@ -141,6 +143,7 @@ def plan_retention(
             plan.keep("thesis_showcase", run_id)
         else:
             plan.expired.append(run_id)
+            plan.details[run_id] = (str(_page_key(row)), str(row["updated_at"] or row["created_at"]))
     return plan
 
 
@@ -183,3 +186,62 @@ def delete_runs(run_ids: list[str], *, cutoff: str) -> dict[str, int]:
             runs += 1
             _LOGGER.info("Retention: deleted run %s", run_id)
     return {"runs": runs, "vectors": vectors}
+
+
+class RetentionSweeper:
+    """The scheduled retention sweep, off unless RUN_RETENTION_DAYS is above 0.
+
+    The first sweep after startup only logs what it would delete; deleting
+    starts with the next one, so an operator who did not expect the list has
+    one sweep interval to stop the process. Each sweep deletes at most
+    ``max_per_sweep`` runs, oldest first, never an annotated run, and logs every
+    deletion and one summary line.
+    """
+
+    def __init__(self) -> None:
+        self._previewed = False
+
+    def sweep(self, *, now: datetime | None = None) -> dict[str, int] | None:
+        from app.config import settings
+
+        days = int(settings.run_retention_days)
+        if days <= 0:
+            return None
+        plan = plan_retention(days, now=now)
+        batch = list(reversed(plan.expired))[: int(settings.run_retention_max_per_sweep)]
+        moment = now or datetime.now(UTC)
+
+        def describe(run_id: str) -> str:
+            page, updated = plan.details[run_id]
+            try:
+                age = (moment - datetime.fromisoformat(updated)).days
+            except ValueError:
+                age = -1
+            return f"run {run_id} (page {page}, last updated {age} days ago)"
+
+        if not self._previewed:
+            self._previewed = True
+            _LOGGER.warning(
+                "Retention preview (RUN_RETENTION_DAYS=%d): the next sweep deletes %d of %d expired runs: %s",
+                days,
+                len(batch),
+                len(plan.expired),
+                "; ".join(describe(run_id) for run_id in batch) or "none",
+            )
+            return {"runs": 0, "vectors": 0, "expired": len(plan.expired), "previewed": len(batch)}
+
+        deleted = {"runs": 0, "vectors": 0}
+        for run_id in batch:
+            result = delete_runs([run_id], cutoff=plan.cutoff)
+            if result["runs"]:
+                _LOGGER.info("Retention: deleted %s", describe(run_id))
+            deleted["runs"] += result["runs"]
+            deleted["vectors"] += result["vectors"]
+        _LOGGER.info(
+            "Retention sweep: deleted %d runs and %d vectors; %d expired runs remain; kept %s",
+            deleted["runs"],
+            deleted["vectors"],
+            len(plan.expired) - deleted["runs"],
+            {reason: len(run_ids) for reason, run_ids in sorted(plan.kept.items())},
+        )
+        return {**deleted, "expired": len(plan.expired)}
