@@ -825,7 +825,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** `--verify` is not rejected and not honoured — argparse never sees it, so the flag is silently discarded and the script runs its full generation path. Anyone following README.md:78 to "validate" the bundle instead needs a running backend on port 8000, a populated .env, and a live GWDG API key; without them the script dies at check_backend or regenerates artifacts with `plain_chat_baseline: "unavailable"`, overwriting the committed artifacts/thesis_showcase payloads with degraded ones.
 - **Fix:** Add an argparse parser with a real `--verify` mode that only hashes and compares artifacts/thesis_showcase against manifest.json without touching the network, and correct README.md:78 to describe the network/API-key prerequisites of the generation mode.
 
-### [OCR-015] No range validation on any numeric config value; bad env-var casts produce errors that never name the variable
+### [OCR-015] No range validation on any numeric config value; bad env-var casts produce errors that never name the variable — **FIXED** (in 41a4f9e: _bounded_float/_positive_int/_non_negative_int raise ConfigError naming layout.<key>; a bad env value raises "Environment variable NAME='raw' is not a valid section.key"; test_config.py::test_invalid_values_are_rejected, ::test_a_bad_environment_value_names_its_variable)
 
 - **Where:** `src/archai_ocr/config.py:114`  
 - **Category:** correctness  
@@ -833,7 +833,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** confidence_threshold=5.0 yields zero detections and the same silent empty-.txt-with-exit-0 as OCR-001. max_regions=0 becomes `max_det=0` at layout_yolo.py:43 and trips an assertion inside ultralytics. Negative crop_padding inverts the clamps at crop_regions.py:24-27 and can make right < left, which PIL rejects with `ValueError: Coordinate 'right' is less than 'left'` (verified). And a typo'd env var yields the bare message 'could not convert string to float: abc' with no variable name — undiagnosable in a .env file with eleven candidates.
 - **Fix:** Add a _validate(cfg) step in _build_app_config asserting 0 <= confidence_threshold <= 1, 0 <= iou_threshold <= 1, max_regions >= 1, crop_padding >= 0, and raise ValueError naming the offending key and its value. Wrap the cast at config.py:177 in try/except ValueError and re-raise as `ValueError(f"Invalid value for {env_name}: {raw!r}")`.
 
-### [OCR-014] setup_logging reconfigures the root logger, so --log-level DEBUG floods stdout with torch/PIL/ultralytics internals
+### [OCR-014] setup_logging reconfigures the root logger, so --log-level DEBUG floods stdout with torch/PIL/ultralytics internals — **FIXED** (in 41a4f9e: setup_logging configures the archai_ocr logger only, with propagate=False, and leaves root alone; test_cli_and_logging.py::test_setup_logging_does_not_touch_the_root_logger)
 
 - **Where:** `src/archai_ocr/logging_utils.py:29`  
 - **Category:** architecture  
@@ -1141,7 +1141,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** `./scripts/run_demo.sh page.png` run from anywhere but the repo root fails with ModuleNotFoundError: archai_ocr (src/ is not on the path) or, if the package happens to be pip-installed, with FileNotFoundError on config.example.yaml from config.py:69. Combined with OCR-003, even when it does resolve, the outputs land next to whichever config.example.yaml was found.
 - **Fix:** Mirror the sibling scripts: derive `SCRIPT_DIR`/`REPO_ROOT` from BASH_SOURCE at the top of run_demo.sh and use `PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH:-}"` with `CONFIG_PATH="${2:-${REPO_ROOT}/config.example.yaml}"`.
 
-### [OCR-021] _apply_overrides crashes with an unhelpful TypeError when a YAML section is not a mapping
+### [OCR-021] _apply_overrides crashes with an unhelpful TypeError when a YAML section is not a mapping — **FIXED** (in 41a4f9e: _reject_unknown_keys refuses a non-mapping section with a ConfigError naming it before any override is applied, and the CLI catches ConfigError; test_config.py::test_a_section_that_is_not_a_mapping_is_named)
 
 - **Where:** `src/archai_ocr/config.py:153`  
 - **Category:** correctness  

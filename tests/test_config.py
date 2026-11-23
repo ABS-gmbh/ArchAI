@@ -187,3 +187,20 @@ def test_secondary_classes_from_the_environment(config_file: Path, monkeypatch: 
     assert load_config(config_file).layout.secondary_text_classes == ("MarginTextZone", "NumberingZone")
     monkeypatch.setenv("ARCHAI_OCR_SECONDARY_TEXT_CLASS", "")
     assert load_config(config_file).layout.secondary_text_classes == ()
+
+
+def test_a_bad_environment_value_names_its_variable(
+    config_file: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Audit OCR-015: the bare "could not convert string to float" named nothing."""
+    monkeypatch.setenv("ARCHAI_OCR_CONFIDENCE_THRESHOLD", "abc")
+    with pytest.raises(ConfigError, match="ARCHAI_OCR_CONFIDENCE_THRESHOLD='abc'"):
+        load_config(config_file)
+
+
+def test_a_section_that_is_not_a_mapping_is_named(tmp_path: Path) -> None:
+    """Audit OCR-021: "runtime: cpu" ended in a TypeError inside the override walk."""
+    path = tmp_path / "c.yaml"
+    path.write_text("runtime: cpu\n", encoding="utf-8")
+    with pytest.raises(ConfigError, match="'runtime' .* must be a mapping"):
+        load_config(path, overrides={"runtime.output_dir": "out"})
