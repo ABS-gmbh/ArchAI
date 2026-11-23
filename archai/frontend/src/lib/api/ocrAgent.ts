@@ -1,4 +1,4 @@
-import { ApiError, apiFetch } from "./client";
+import { ApiError, apiFetch, fetchBackend } from "./client";
 
 export interface OCRLocationSuggestionPayload {
   region_id?: string;
@@ -51,6 +51,24 @@ export interface OCRExtractRequestPayload {
   metadata?: OCRDocumentMetadataPayload;
   benchmark_text?: string;
   benchmark_source?: string;
+  /** A run reserved with reserveRun(); the request then logs its progress into it. */
+  run_id?: string;
+}
+
+/** One line the segmented engine read, with where it sits on the page and in `text`. */
+export interface FullPageLine {
+  region_id: string;
+  lane: "body" | "secondary";
+  reading_order: number;
+  text: string;
+  /** Offsets into the response `text`; null for the secondary lane and for proofread lines. */
+  char_start: number | null;
+  char_end: number | null;
+  /** Pixels of the upright page (original_image_width x original_image_height). */
+  bbox_xyxy: [number, number, number, number] | null;
+  polygon?: number[][] | null;
+  confidence: number | null;
+  backend_name: string | null;
 }
 
 export interface OCRFallback {
@@ -85,6 +103,8 @@ export interface OCRExtractResponse {
   ocr_attempts_used?: number | null;
   quality_label?: string | null;
   downstream_mode?: string | null;
+  /** Per-line geometry from the segmented engine; absent on GLM-OCR and on older backends. */
+  line_regions?: FullPageLine[] | null;
   chunks_count?: number | null;
   mentions_count?: number | null;
   authority_report?: string | null;
@@ -288,4 +308,152 @@ export function mergeOCRResultText(payload: OCRExtractResponse): string {
     return payload.text.trim();
   }
   return (payload.lines || []).map((line) => String(line || "").trim()).filter(Boolean).join("\n").trim();
+}
+
+
+// ── Following a run while it is read ────────────────────────────────────
+
+export interface RunEvent {
+  ts?: string;
+  stage: string;
+  event: string;
+  message: string;
+}
+
+export interface RunSnapshot {
+  run_id: string;
+  run?: { status?: string; current_stage?: string; error?: string | null } | null;
+  events?: RunEvent[];
+  chunks_count?: number;
+  mentions_count?: number;
+  status?: string;
+  error?: string;
+}
+
+/**
+ * Reserve a run id so the client can follow its own extraction live.
+ * Returns null on a backend without the route (404/405), where progress is
+ * simply not shown.
+ */
+export async function reserveRun(): Promise<string | null> {
+  try {
+    const res = await apiFetch<{ run_id: string }>("/ocr/runs", { method: "POST" });
+    return typeof res.run_id === "string" && res.run_id ? res.run_id : null;
+  } catch (error: unknown) {
+    if (error instanceof ApiError && (error.status === 404 || error.status === 405)) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Follow a run's trace stream until it ends or `signal` aborts. Each snapshot
+ * carries the whole event list so far. Resolves when the stream closes; a
+ * stream that cannot be opened resolves too, since progress is optional.
+ */
+export async function followRun(
+  runId: string,
+  onSnapshot: (snapshot: RunSnapshot) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetchBackend(`/ocr/trace/stream/${encodeURIComponent(runId)}`, {
+      headers: { Accept: "text/event-stream" },
+      signal,
+    });
+  } catch {
+    return;
+  }
+  if (!res.ok || !res.body) {
+    return;
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) {
+        return;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      let split = buffer.indexOf("\n\n");
+      while (split !== -1) {
+        const block = buffer.slice(0, split);
+        buffer = buffer.slice(split + 2);
+        let eventName = "message";
+        const data: string[] = [];
+        for (const line of block.split("\n")) {
+          if (line.startsWith("event:")) {
+            eventName = line.slice(6).trim();
+          } else if (line.startsWith("data:")) {
+            data.push(line.slice(5).trim());
+          }
+        }
+        if (eventName === "end") {
+          return;
+        }
+        if (eventName === "snapshot" && data.length) {
+          try {
+            onSnapshot(JSON.parse(data.join("\n")) as RunSnapshot);
+          } catch {
+            // A malformed snapshot is skipped; the next one carries the full state again.
+          }
+        }
+        split = buffer.indexOf("\n\n");
+      }
+    }
+  } catch {
+    // Aborted, or the connection dropped: progress stops, the extraction request decides the outcome.
+  } finally {
+    reader.releaseLock();
+  }
+}
+
+// ── The linking report as data ──────────────────────────────────────────
+
+export interface LinkCandidate {
+  source?: string | null;
+  authority_id?: string | null;
+  qid?: string | null;
+  label?: string | null;
+  description?: string | null;
+  score?: number | null;
+  viaf_id?: string | null;
+  geonames_id?: string | null;
+  type_compatible?: boolean | null;
+  score_breakdown?: Record<string, unknown> | null;
+}
+
+export interface MentionResult {
+  mention_id?: string;
+  surface: string;
+  ent_type?: string | null;
+  start_offset?: number | null;
+  end_offset?: number | null;
+  evidence_text?: string | null;
+  status: "linked" | "unresolved" | "ambiguous" | "skipped" | string;
+  reason?: string | null;
+  selected?: LinkCandidate | null;
+  top_candidates?: LinkCandidate[];
+}
+
+export interface LinkingReport {
+  run_id: string;
+  report?: string;
+  mention_results?: MentionResult[];
+  linked?: number;
+  unresolved?: number;
+  ambiguous?: number;
+  skipped?: number;
+}
+
+export async function fetchLinkingReport(runId: string): Promise<LinkingReport> {
+  const clean = String(runId || "").trim();
+  if (!clean) {
+    throw new Error("run_id is required for the linking report.");
+  }
+  return apiFetch<LinkingReport>(`/authority/report/${encodeURIComponent(clean)}`, { method: "GET" });
 }
