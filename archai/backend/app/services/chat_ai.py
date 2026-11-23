@@ -87,7 +87,8 @@ def _create_client() -> Any:
         from openai import OpenAI  # type: ignore[import-not-found]
     except Exception as exc:  # pragma: no cover
         raise RuntimeError("openai package is required for chat proxy support.") from exc
-    return OpenAI(api_key=_require_api_key(), base_url=_base_url())
+    # The SDK's own default is 600 s per attempt, with two retries.
+    return OpenAI(api_key=_require_api_key(), base_url=_base_url(), timeout=settings.chat_ai_timeout_seconds)
 
 
 def is_vision_model(model_id: str) -> bool:
