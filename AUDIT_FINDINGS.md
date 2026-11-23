@@ -881,7 +881,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** On a two-column folio where the left column's MainZone starts at y=210 and the right column's at y=208 (a 2px difference well within detector noise), the right column sorts first and the entire page transcribes in the wrong order. On a page with several stacked regions per column, left and right columns interleave line-block by line-block, producing text that is unusable without manual reordering — and the .txt gives no signal that reordering happened.
 - **Fix:** Group regions into columns before ordering: cluster by bbox x-centre (or by x-interval overlap), sort clusters left-to-right for LTR script, and sort within each cluster by y1. Use a y-tolerance (e.g. a fraction of median region height) rather than exact y comparison when regions are in the same column. Emit the derived reading order into layout_coco.json so it is inspectable, and soften the README.md:8 claim until this exists.
 
-### [OCR-011] layout_coco.json is neither valid COCO ground truth nor valid COCO results — it mixes a 'score' field into a dataset dict and omits 'segmentation'
+### [OCR-011] layout_coco.json is neither valid COCO ground truth nor valid COCO results — it mixes a 'score' field into a dataset dict and omits 'segmentation' — **FIXED** (segmentation polygons since 41a4f9e; info and licenses added now; score kept as an extra annotation key, which COCO loaders ignore. No results-format file is written: its category ids would not match any ground truth's)
 
 - **Where:** `src/archai_ocr/utils/coco_writer.py:30`  
 - **Category:** correctness  

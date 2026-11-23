@@ -127,7 +127,7 @@ def test_coco_bbox_is_xywh_not_xyxy(tmp_path: Path, page_image: Path) -> None:
 def test_coco_has_required_top_level_keys(tmp_path: Path, page_image: Path) -> None:
     out = write_layout_coco(page_image, (1000, 1400), [], tmp_path / "c.json", "main_text")
     payload = json.loads(out.read_text(encoding="utf-8"))
-    assert {"images", "annotations", "categories"} <= set(payload)
+    assert {"info", "licenses", "images", "annotations", "categories"} <= set(payload)
     assert payload["images"][0]["file_name"] == page_image.name
 
 
@@ -274,3 +274,15 @@ def test_crop_of_a_page_png_cannot_hold_is_written_as_rgb(tmp_path: Path, mode: 
     with Image.open(paths[0]) as crop:
         assert crop.mode == "RGB"
         assert crop.size == (200, 100)
+
+
+def test_coco_annotations_carry_every_key_coco_tooling_reads(tmp_path: Path, page_image: Path) -> None:
+    """Audit OCR-011: no segmentation, info or licenses; annToMask and COCO.info() failed."""
+    out = write_layout_coco(
+        page_image, (100, 100), [region(5, 6, 50, 60).to_dict()], tmp_path / "c.json", "main_text"
+    )
+    payload = json.loads(out.read_text(encoding="utf-8"))
+    annotation = payload["annotations"][0]
+    assert {"id", "image_id", "category_id", "bbox", "area", "iscrowd", "segmentation"} <= set(annotation)
+    assert annotation["segmentation"] == [[5, 6, 50, 6, 50, 60, 5, 60]]
+    assert isinstance(payload["info"], dict) and payload["licenses"] == []

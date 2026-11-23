@@ -30,6 +30,7 @@ def write_layout_coco(
     class - is always category 1, so a file of main-text regions only is
     exactly what it was when every annotation was written as category 1.
     """
+    from archai_ocr import __version__
     from archai_ocr.pipeline.zones import zone_kind
 
     width, height = image_size
@@ -58,7 +59,17 @@ def write_layout_coco(
             }
         )
 
+    # "info" and "licenses" complete the dataset format; COCO tooling such as
+    # pycocotools' COCO.info() and several converters read them. "score" on
+    # each annotation is the detector's confidence: COCO keeps unknown keys, so
+    # the file stays loadable as a dataset while recording how sure the model was.
     payload = {
+        "info": {
+            "description": f"Layout detections for {image_path.name}",
+            "version": __version__,
+            "contributor": "archai-ocr",
+        },
+        "licenses": [],
         "images": [
             {
                 "id": 1,
