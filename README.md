@@ -177,11 +177,31 @@ literals. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 ## Thesis artifacts
 
 `artifacts/thesis_showcase/` holds reproducible figure datasets for Figures
-24/25/26/29/30. Verify bundle integrity with:
+24/25/26/29/30. Check the bundle against its manifest, offline, with:
 
 ```bash
 python scripts/build_thesis_showcase_payloads.py --verify
 ```
+
+It checks that every file `manifest.json` lists exists, that every listed JSON
+file parses, and that no file is present that the manifest omits; when the
+manifest has a `sha256` map of path to digest, it also checks each file's
+content. It exits 1 on any problem. The committed manifest has no `sha256` map,
+so content is not checked, and the committed bundle currently reports 18
+problems:
+
+- 6 files listed but missing: `figure24/outputs/*.txt`. The root `.gitignore`
+  ignores `outputs/`, so they were never committed.
+- 1 screenshot listed under a name one character different from the file in
+  `figure30/screenshots/`.
+- 10 files present but not listed: `figures_rendered/`, added after the
+  manifest was written.
+
+Without `--verify` the script regenerates the bundle and overwrites it. That
+needs the backend running at `ARCHAI_BACKEND_URL` (default
+`http://127.0.0.1:8000`), the `showcase` extra (`pip install -e ".[showcase]"`)
+and, for the chat figures, a SAIA key in `archai/backend/.env`, which bills
+real completions.
 
 ## Repository hygiene
 

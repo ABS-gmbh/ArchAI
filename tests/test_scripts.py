@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -35,3 +36,76 @@ def test_run_demo_finds_the_package_and_config_from_another_directory(tmp_path: 
     assert f"PYTHONPATH={REPO_ROOT / 'src'}:" in result.stdout
     assert f"--config {REPO_ROOT / 'config.example.yaml'}" in result.stdout
     assert "--image page.png" in result.stdout
+
+
+def _showcase_script() -> Any:
+    import importlib.util
+    import sys
+
+    name = "build_thesis_showcase_payloads"
+    if name in sys.modules:
+        return sys.modules[name]
+    spec = importlib.util.spec_from_file_location(name, REPO_ROOT / "scripts" / f"{name}.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    # Its dataclasses resolve their annotations through sys.modules.
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _bundle(root: Path, *, sha256: dict[str, str] | None = None) -> Path:
+    import json
+
+    (root / "figure").mkdir(parents=True)
+    (root / "figure" / "data.json").write_text('{"ok": true}', encoding="utf-8")
+    (root / "README.md").write_text("bundle\n", encoding="utf-8")
+    manifest: dict[str, object] = {"files": ["manifest.json", "README.md", "figure/data.json"]}
+    if sha256 is not None:
+        manifest["sha256"] = sha256
+    (root / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    return root
+
+
+def test_verify_accepts_a_bundle_that_matches_its_manifest(tmp_path: Path) -> None:
+    import hashlib
+
+    digest = hashlib.sha256(b"bundle\n").hexdigest()
+    bundle = _bundle(tmp_path / "b", sha256={"README.md": digest})
+    assert _showcase_script().verify_bundle(bundle) == []
+
+
+def test_verify_reports_every_kind_of_problem(tmp_path: Path) -> None:
+    bundle = _bundle(tmp_path / "b", sha256={"README.md": "0" * 64})
+    (bundle / "figure" / "data.json").write_text("{not json", encoding="utf-8")
+    (bundle / "extra.png").write_bytes(b"x")
+    manifest = (bundle / "manifest.json").read_text(encoding="utf-8")
+    (bundle / "manifest.json").write_text(manifest.replace('"README.md"]', '"README.md", "gone.txt"]'))
+    (bundle / "manifest.json").write_text(
+        manifest.replace('"figure/data.json"]', '"figure/data.json", "gone.txt"]')
+    )
+
+    problems = _showcase_script().verify_bundle(bundle)
+
+    assert "listed but missing: gone.txt" in problems
+    assert any(p.startswith("not valid JSON: figure/data.json") for p in problems)
+    assert "present but not in the manifest: extra.png" in problems
+    assert "content changed: README.md" in problems
+
+
+def test_verify_mode_never_generates(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """--verify was silently ignored: the full networked generation ran and overwrote the bundle."""
+    script = _showcase_script()
+    monkeypatch.setattr(script, "ARTIFACT_ROOT", _bundle(tmp_path / "b"))
+
+    def generate() -> int:
+        raise AssertionError("--verify must not generate")
+
+    monkeypatch.setattr(script, "generate", generate)
+    assert script.main(["--verify"]) == 0
+
+
+def test_an_unknown_flag_is_refused(capsys: pytest.CaptureFixture[str]) -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        _showcase_script().main(["--verfy"])
+    assert exit_info.value.code == 2
