@@ -1133,7 +1133,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** These two strings are baked into artifacts/thesis_showcase/ regardless of reality. If kraken is installed and the region OCR did run, the published thesis payload still asserts it was unavailable — a factual claim in a research artifact that the code never verified. Conversely the claim can never be corrected by fixing the environment, only by editing the script.
 - **Fix:** Replace the literals with a runtime check: `if importlib.util.find_spec('kraken') is None: unavailable_subsystems.append(...)`, same for calamari, so the manifest reflects the environment the artifacts were actually produced in.
 
-### [OCR-023] run_demo.sh uses a relative PYTHONPATH and only works from the repo root, unlike the sibling scripts
+### [OCR-023] run_demo.sh uses a relative PYTHONPATH and only works from the repo root, unlike the sibling scripts — **FIXED** (REPO_ROOT from BASH_SOURCE, as in the sibling scripts; tests/test_scripts.py)
 
 - **Where:** `scripts/run_demo.sh:7`  
 - **Category:** hygiene  
