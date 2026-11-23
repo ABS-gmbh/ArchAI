@@ -86,3 +86,11 @@ def test_a_failed_record_marks_the_candidates_partial(monkeypatch: pytest.Monkey
 def test_no_code_path_uses_the_retired_viaf_json_url() -> None:
     for module in (authority_sources, authority_linking):
         assert '/viaf.json"' not in Path(module.__file__).read_text(encoding="utf-8")  # as a URL literal
+
+
+def test_any_namespace_prefix_is_stripped() -> None:
+    record = authority_sources._strip_viaf_namespace(
+        {"ns2:VIAFCluster": {"ns2:nameType": "Corporate", "ns12:mainHeadings": {"ns12:data": [{"ns12:text": "OCLC"}]}, "xmlns:ns2": "x"}}
+    )
+    assert record == {"VIAFCluster": {"nameType": "Corporate", "mainHeadings": {"data": [{"text": "OCLC"}]}}}
+    assert authority_sources._strip_viaf_namespace({"ns1x:key": 1, "dns1:key": 2}) == {"ns1x:key": 1, "dns1:key": 2}
