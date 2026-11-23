@@ -56,3 +56,33 @@ def test_a_token_signed_with_the_old_default_secret_is_rejected(client, monkeypa
     )
     response = client.get("/analytics/data", headers={"Authorization": f"Bearer {forged}"})
     assert response.status_code == 401
+
+
+def test_non_ascii_credentials_are_refused_not_a_server_error(monkeypatch):
+    """compare_digest raises TypeError on non-ASCII str; that was a 500."""
+    monkeypatch.setattr(analytics.settings, "analytics_username", "operator")
+    monkeypatch.setattr(analytics.settings, "analytics_password", "s3cret-pass")
+    app = FastAPI()
+    app.include_router(analytics.router)
+    client = TestClient(app, raise_server_exceptions=False)
+    response = client.post("/analytics/login", json={"username": "opérateur", "password": "s3cret-pass"})
+    assert response.status_code == 401
+
+
+def test_non_ascii_configured_password_still_logs_in(monkeypatch):
+    monkeypatch.setattr(analytics.settings, "analytics_username", "opérateur")
+    monkeypatch.setattr(analytics.settings, "analytics_password", "pässwört")
+    app = FastAPI()
+    app.include_router(analytics.router)
+    response = TestClient(app).post("/analytics/login", json={"username": "opérateur", "password": "pässwört"})
+    assert response.status_code == 200
+
+
+def test_an_out_of_range_day_filter_is_a_422(client, monkeypatch):
+    monkeypatch.setattr(analytics.settings, "analytics_username", "operator")
+    monkeypatch.setattr(analytics.settings, "analytics_password", "s3cret-pass")
+    monkeypatch.setattr(analytics.settings, "jwt_secret", "x" * 40)
+    token = client.post("/analytics/login", json={"username": "operator", "password": "s3cret-pass"}).json()["token"]
+    headers = {"Authorization": f"Bearer {token}"}
+    assert client.get("/analytics/data?days=1000000", headers=headers).status_code == 422
+    assert client.get("/analytics/data?days=-1", headers=headers).status_code == 422
