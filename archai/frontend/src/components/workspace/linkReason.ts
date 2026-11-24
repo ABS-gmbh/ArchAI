@@ -88,3 +88,88 @@ export function reasonInWords(reason: string): string {
   }
   return reason.replace(/\s*\[ocr_quality=\w+\]\s*$/, "").replace(/^./, (first) => first.toUpperCase());
 }
+
+// ── Kinds of mention ────────────────────────────────────────────────────
+//
+// What the backend marks on a page is not all names: the title rule marks
+// "pere", "euesque", "prince", role words are marked, and dates are. They were
+// listed and counted as names ("6 names found" on the Antitus page, three of
+// them titles; live regression, 2026-11-24). The panel now counts names only
+// and lists the rest after them, each with its reason. The kinds are the
+// backend's ent_type values (app/services/mention_extraction.py,
+// pipeline_hardening.py, ocr_test_fixtures.py); linkReason.test.ts reads them
+// from the backend's sources and fails on one without a word here.
+
+interface KindWords {
+  /** The kind as a row's label. */
+  label: string;
+  /** One and several, for the "Also marked" line; names need none. */
+  one?: string;
+  many?: string;
+}
+
+export const KIND_WORDS: Record<string, KindWords> = {
+  person: { label: "Person" },
+  place: { label: "Place" },
+  work: { label: "Work" },
+  organization: { label: "Organisation" },
+  org: { label: "Organisation" },
+  unknown: { label: "Name" },
+  title: { label: "Title", one: "role or title", many: "roles or titles" },
+  role: { label: "Role", one: "role or title", many: "roles or titles" },
+  date: { label: "Date", one: "date", many: "dates" },
+  // The canned answers of the test fixtures (ENABLE_TEST_OCR_FIXTURES,
+  // app/services/ocr_test_fixtures.py): terms a reader studies, not names.
+  religious_title: { label: "Religious title", one: "role or title", many: "roles or titles" },
+  social_role: { label: "Social role", one: "role or title", many: "roles or titles" },
+  temporal_liturgical_term: { label: "Liturgical time", one: "date", many: "dates" },
+  abstract_concept: term("Concept"),
+  action_or_warning: term("Action or warning"),
+  glossing_language_element: term("Gloss"),
+  grammatical_term: term("Grammatical term"),
+  lexical_example: term("Example word"),
+  moral_action: term("Moral action"),
+  moral_practical_concept: term("Moral concept"),
+  morphological_explanation: term("Grammar note"),
+  pedagogical_function: term("Teaching aid"),
+  religious_group: term("Religious group"),
+  religious_reference: term("Religious reference"),
+  state_or_fortune: term("State or fortune"),
+  theological_concept: term("Theological concept"),
+  verb_paradigm_example: term("Verb form"),
+};
+
+function term(label: string): KindWords {
+  return { label, one: "term", many: "terms" };
+}
+
+/** A mention's kind as its row shows it; an unknown kind reads "Name". */
+export function kindLabel(entType: string | null | undefined): string {
+  return KIND_WORDS[String(entType || "").trim().toLowerCase()]?.label ?? "Name";
+}
+
+/** Whether a kind is a name: everything but the kinds with words for the "Also marked" line. */
+export function isName(entType: string | null | undefined): boolean {
+  return !KIND_WORDS[String(entType || "").trim().toLowerCase()]?.one;
+}
+
+/** The mentions split into names and the rest, each in the order the backend gave. */
+export function splitMentions<T extends { ent_type?: string | null }>(mentions: T[]): { names: T[]; others: T[] } {
+  return {
+    names: mentions.filter((mention) => isName(mention.ent_type)),
+    others: mentions.filter((mention) => !isName(mention.ent_type)),
+  };
+}
+
+/** "3 roles or titles, 1 date": the rest, counted by what a reader calls them. */
+export function otherMarksSummary(others: { ent_type?: string | null }[]): string {
+  const counts = new Map<string, { one: string; many: string; count: number }>();
+  for (const mention of others) {
+    const words = KIND_WORDS[String(mention.ent_type || "").trim().toLowerCase()];
+    const one = words?.one ?? "other mark";
+    const entry = counts.get(one) ?? { one, many: words?.many ?? "other marks", count: 0 };
+    entry.count += 1;
+    counts.set(one, entry);
+  }
+  return [...counts.values()].map(({ one, many, count }) => `${count} ${count === 1 ? one : many}`).join(", ");
+}

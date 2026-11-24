@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import type { LinkCandidate, LinkingReport, MentionResult } from "@/lib/api/ocrAgent";
 
-import { linkingSummary, mentionStatus, reasonInWords, summaryOfMentions } from "./linkReason";
+import { kindLabel, linkingSummary, mentionStatus, otherMarksSummary, reasonInWords, splitMentions, summaryOfMentions } from "./linkReason";
 import { Button, Icon, Pill } from "./ui";
 
 export type LinkingState =
@@ -12,15 +12,6 @@ export type LinkingState =
   | { phase: "loading" }
   | { phase: "failed"; error: string }
   | { phase: "ready"; report: LinkingReport };
-
-const TYPE_WORDS: Record<string, string> = {
-  person: "Person",
-  place: "Place",
-  work: "Work",
-  date: "Date",
-  organization: "Organisation",
-  org: "Organisation",
-};
 
 function recordUrl(candidate: LinkCandidate): string | null {
   const qid = String(candidate.qid || "").trim();
@@ -58,7 +49,7 @@ function Mention({ mention }: { mention: MentionResult }) {
         <p className="min-w-0 break-words font-text text-[17px] leading-6">{mention.surface}</p>
         <Pill tone={status.tone}>{status.label}</Pill>
       </div>
-      <p className="mt-0.5 text-xs text-ink-muted">{TYPE_WORDS[String(mention.ent_type || "").toLowerCase()] ?? mention.ent_type ?? "Name"}</p>
+      <p className="mt-0.5 text-xs text-ink-muted">{kindLabel(mention.ent_type)}</p>
       {selected ? (
         <p className="mt-2 text-sm">
           {url ? (
@@ -184,19 +175,41 @@ export function EntitiesPanel({ state, hasRun, onRetry }: { state: LinkingState;
       </div>
     );
   }
-  // The same words as the linking step in Steps (linkReason.ts), so the two agree.
+  // Names first, counted alone; titles, roles and dates the backend also
+  // marked follow under their own heading, each with its reason, so nothing it
+  // found is hidden and a title is not presented as a name. The Steps line
+  // keeps the backend's own count of everything (linkReason.ts).
+  const { names, others } = splitMentions(mentions);
   return (
     <div className="p-6">
-      <p className="text-sm text-ink-muted">
-        <span className="tabular-nums text-ink">{mentions.length}</span> {mentions.length === 1 ? "name" : "names"} found:{" "}
-        <span className="tabular-nums">{linkingSummary(summaryOfMentions(mentions))}</span>. Linked means matched to an
-        authority record.
-      </p>
-      <ul className="mt-3">
-        {mentions.map((mention, index) => (
-          <Mention key={mention.mention_id ?? `${mention.surface}-${index}`} mention={mention} />
-        ))}
-      </ul>
+      {names.length ? (
+        <p className="text-sm text-ink-muted">
+          <span className="tabular-nums text-ink">{names.length}</span> {names.length === 1 ? "name" : "names"} found:{" "}
+          <span className="tabular-nums">{linkingSummary(summaryOfMentions(names))}</span>. Linked means matched to an
+          authority record.
+        </p>
+      ) : (
+        <p className="text-sm text-ink-muted">No names were found on this page.</p>
+      )}
+      {names.length ? (
+        <ul className="mt-3">
+          {names.map((mention, index) => (
+            <Mention key={mention.mention_id ?? `${mention.surface}-${index}`} mention={mention} />
+          ))}
+        </ul>
+      ) : null}
+      {others.length ? (
+        <section aria-labelledby="names-also-marked" className="mt-6">
+          <h3 id="names-also-marked" className="text-sm font-medium">
+            Also marked on this page: <span className="font-normal text-ink-muted">{otherMarksSummary(others)}</span>
+          </h3>
+          <ul className="mt-2">
+            {others.map((mention, index) => (
+              <Mention key={mention.mention_id ?? `${mention.surface}-other-${index}`} mention={mention} />
+            ))}
+          </ul>
+        </section>
+      ) : null}
     </div>
   );
 }
