@@ -228,7 +228,7 @@ def _resolve_model_path(raw_path: str | None, *fallbacks: str | None) -> Path:
 def _load_glmocr_instance(cuda_devices: str):
     """Load and cache a GLM-OCR instance in self-hosted mode."""
     try:
-        from glmocr import GlmOcr  # type: ignore[import-untyped]
+        from glmocr import GlmOcr
     except ImportError as exc:  # pragma: no cover
         raise OCRBackendError("GLM-OCR is not installed: pip install glmocr") from exc
     return GlmOcr(mode="selfhosted", cuda_visible_devices=cuda_devices)
@@ -306,8 +306,8 @@ def _preprocess_kraken_crop_with_metadata(
         return _enlarge_short_crop(grayscale, (source_width, source_height), deskew_angle=0.0)
     deskew_angle = 0.0
     try:
-        import cv2  # type: ignore[import-not-found]
-        import numpy as np  # type: ignore[import-not-found]
+        import cv2
+        import numpy as np
 
         arr = np.array(ImageOps.autocontrast(grayscale), dtype=np.uint8)
         arr = cv2.fastNlMeansDenoising(arr, None, h=12, templateWindowSize=7, searchWindowSize=21)
@@ -385,8 +385,8 @@ def _preprocess_glmocr_crop(image: Image.Image) -> tuple[Image.Image, dict[str, 
     source_width, source_height = rgb.size
     processed = ImageOps.autocontrast(rgb)
     try:
-        import cv2  # type: ignore[import-not-found]
-        import numpy as np  # type: ignore[import-not-found]
+        import cv2
+        import numpy as np
 
         arr = np.array(processed)
         arr = cv2.fastNlMeansDenoisingColored(arr, None, 8, 8, 7, 21)
@@ -844,8 +844,8 @@ def _resolve_calamari_checkpoints(configured_dir: str | None) -> tuple[Path, tup
 @lru_cache(maxsize=4)
 def _load_calamari_predictor(checkpoints: tuple[str, ...]):
     try:
-        from calamari_ocr.ocr.predict.params import PredictorParams  # type: ignore[import-untyped]
-        from calamari_ocr.ocr.predict.predictor import MultiPredictor  # type: ignore[import-untyped]
+        from calamari_ocr.ocr.predict.params import PredictorParams
+        from calamari_ocr.ocr.predict.predictor import MultiPredictor
     except ImportError as exc:
         raise OCRBackendError("Calamari OCR is not installed: pip install calamari-ocr") from exc
     params = PredictorParams()
@@ -889,7 +889,7 @@ class CalamariBackend(OCRBackend):
 
     def recognize(self, crop_b64: str, metadata: OCRRecognitionMetadata) -> OCRBackendResult:
         try:
-            import numpy as np  # type: ignore[import-not-found]
+            import numpy as np
         except ImportError as exc:
             raise OCRBackendError("numpy is required for Calamari OCR") from exc
 
@@ -963,7 +963,7 @@ class GlmOcrBackend(OCRBackend):
 
     def recognize(self, crop_b64: str, metadata: OCRRecognitionMetadata) -> OCRBackendResult:
         try:
-            from glmocr import GlmOcr  # type: ignore[import-untyped]
+            from glmocr import GlmOcr
         except ImportError as exc:
             raise OCRBackendError(
                 "GLM-OCR is not installed. Install with: pip install glmocr"
@@ -1004,7 +1004,7 @@ class GlmOcrBackend(OCRBackend):
                         ]
                     }
                     results = list(
-                        ocr._pipeline.process(  # type: ignore[attr-defined]
+                        ocr._pipeline.process(
                             request_data,
                             save_layout_visualization=False,
                             layout_vis_output_dir=None,

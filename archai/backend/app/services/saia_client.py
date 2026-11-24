@@ -69,7 +69,7 @@ class SaiaClient:
 
     def _create_client(self) -> Any:
         try:
-            from openai import OpenAI  # type: ignore[import-not-found]
+            from openai import OpenAI
         except Exception as exc:  # pragma: no cover
             raise SaiaClientError("openai package is required for SAIA client support.") from exc
         return OpenAI(api_key=self._api_key, base_url=self._base_url, timeout=self._timeout_seconds)
