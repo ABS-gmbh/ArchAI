@@ -338,3 +338,32 @@ describe("crossSiteRefusal with FRONTEND_ORIGINS", () => {
     assert.equal(crossSiteRefusal("POST", local, listed), null);
   });
 });
+
+// Second security review (2026-11-24): the backend's redirects name its own
+// address (location: http://127.0.0.1:8010/api/classes), and the proxy passed
+// them to the browser. A location at the backend becomes a path on the
+// frontend; one elsewhere is passed on as it is.
+describe("downstreamHeaders and Location", () => {
+  const backend = new URL("http://backend.internal:8010");
+  const location = (value: string) => downstreamHeaders({ location: value }, backend).get("location");
+
+  it("turns a location at the backend into a path on the frontend", () => {
+    assert.equal(location("http://backend.internal:8010/api/classes"), "/api/classes");
+    assert.equal(location("http://BACKEND.internal:8010/api/x?a=1#f"), "/api/x?a=1#f");
+  });
+
+  it("keeps a relative location and one on another host", () => {
+    assert.equal(location("/api/classes"), "/api/classes");
+    assert.equal(location("https://www.wikidata.org/wiki/Q807"), "https://www.wikidata.org/wiki/Q807");
+  });
+
+  it("drops a location at the backend outside its /api", () => {
+    assert.equal(location("http://backend.internal:8010/docs"), null);
+  });
+
+  it("takes off the path BACKEND_URL puts the backend under", () => {
+    const prefixed = new URL("http://backend.internal:8010/archai/");
+    assert.equal(downstreamHeaders({ location: "http://backend.internal:8010/archai/api/classes" }, prefixed).get("location"), "/api/classes");
+    assert.equal(downstreamHeaders({ location: "http://backend.internal:8010/api/classes" }, prefixed).get("location"), null);
+  });
+});

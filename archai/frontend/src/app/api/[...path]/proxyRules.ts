@@ -268,9 +268,39 @@ export function backendTarget(backendUrl: string, pathname: string, search: stri
   return target.pathname.startsWith(apiRoot) ? target : null;
 }
 
-export function downstreamHeaders(res: http.IncomingHttpHeaders): Headers {
+/**
+ * A redirect's Location as the browser should see it. One at the backend (its
+ * redirects are built from the Host this proxy sends, the backend's own
+ * address) becomes the same path on the frontend, or is dropped when it is
+ * outside the backend's /api; a relative one, or one on another host, is kept.
+ */
+export function frontendLocation(value: string, backend: URL): string | null {
+  let target: URL;
+  try {
+    target = new URL(value);
+  } catch {
+    return value; // relative: already a path on the frontend
+  }
+  if (target.origin !== backend.origin) {
+    return value;
+  }
+  const base = backend.pathname.replace(/\/+$/, "");
+  if (!target.pathname.startsWith(`${base}/api/`)) {
+    return null;
+  }
+  return `${target.pathname.slice(base.length)}${target.search}${target.hash}`;
+}
+
+export function downstreamHeaders(res: http.IncomingHttpHeaders, backend?: URL): Headers {
   const headers = new Headers();
   for (const [name, value] of Object.entries(res)) {
+    if (name === "location" && backend && typeof value === "string") {
+      const location = frontendLocation(value, backend);
+      if (location !== null) {
+        headers.set("location", location);
+      }
+      continue;
+    }
     // "server" names the backend's software (uvicorn): nothing a browser needs.
     // The backend's CORS headers answer an origin the browser never sees: the
     // browser talks to the frontend, same-origin.
