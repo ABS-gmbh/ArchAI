@@ -79,7 +79,7 @@ in `archai/backend` or pass them as environment variables.
 | `ANALYTICS_USERNAME`, `ANALYTICS_PASSWORD`, `JWT_SECRET` | Analytics login refuses with 503 until the first two are set. Set `JWT_SECRET` too, at least 32 characters (with a shorter one the server starts, and logs an ERROR at startup naming the setting and the minimum): without it the tokens are signed with a random per-process secret, so sessions end at every restart, and startup logs an ERROR saying so. A session token is accepted only for `ANALYTICS_USERNAME`. |
 | `ARCHAI_DB_PATH`, `CHROMA_PERSIST_DIR`, `ARCHAI_WIKIDATA_CACHE`, `OCR_EVIDENCE_PATH`, `TASK_BASE_DIR` | Their defaults are inside the code checkout. Point them at a data directory (the first four are the ones to back up). |
 | `MAX_UPLOAD_MEGABYTES` | The default is 1024 MB per upload, and request bodies may be a third larger for base64. Set what your pages need. |
-| `MAX_JSON_MEGABYTES` | Every request body that is not a multipart upload, 48 MB by default: enough for one A4 page at 600 dpi as a PNG data URL (36 MB). |
+| `MAX_JSON_MEGABYTES` | Every request body but an upload to `/api/predict/single` or `/api/predict/batch`, 48 MB by default: enough for one A4 page at 600 dpi as a PNG data URL (36 MB). |
 | `LOG_FORMAT=json` | One JSON object per log line, for a log collector. |
 
 Leave `ENABLE_TEST_OCR_FIXTURES=false` (canned OCR answers for four test
@@ -131,12 +131,13 @@ the frontend's server and its `/api` proxy adds it (see
 - **Authenticate**: set `API_TOKEN`, or authenticate at the proxy (basic
   auth, single sign-on, an IP allow-list) for every route except, if a monitor
   needs it, `/api/health`. Both together do no harm.
-- **Body size:** the backend refuses multipart uploads over
-  `MAX_UPLOAD_MEGABYTES × 4/3 + 1 MB`, and every other body (JSON) over
-  `MAX_JSON_MEGABYTES` (48 MB), with 413. The largest JSON request is a page
+- **Body size:** the backend refuses uploads to `/api/predict/single` and
+  `/api/predict/batch` over `MAX_UPLOAD_MEGABYTES × 4/3 + 1 MB`, and every
+  other body over `MAX_JSON_MEGABYTES` (48 MB), with 413, whatever its
+  `Content-Type`. Set the proxy's limit for the two upload routes to the
+  first, and for everything else to the second or lower. The largest JSON request is a page
   image sent as a base64 data URL: an A4 page scanned at 600 dpi makes a 36 MB
-  body as PNG, 10.5 MB as JPEG. Set the proxy's limit to the larger of the two
-  or lower.
+  body as PNG, 10.5 MB as JPEG.
 - **Timeouts:** a full-page OCR request is synchronous and can take minutes
   (GLM-OCR waits up to `GLMOCR_OLLAMA_TIMEOUT_SECONDS`, 300 s by default).
   Give the proxy a read timeout of at least 10 minutes on `/api/ocr/`.

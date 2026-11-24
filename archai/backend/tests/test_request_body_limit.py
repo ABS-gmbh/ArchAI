@@ -6,6 +6,7 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from pydantic import BaseModel
+from starlette.routing import compile_path
 
 from app.body_limit import RequestBodyLimit, max_json_bytes, max_request_bytes
 from app.config import settings
@@ -69,7 +70,8 @@ def test_a_multipart_upload_is_held_to_the_upload_limit_not_the_json_one(monkeyp
     monkeypatch.setattr(settings, "max_upload_megabytes", 3)
     monkeypatch.setattr(settings, "max_json_megabytes", 1)
     app = FastAPI()
-    app.add_middleware(RequestBodyLimit)
+    # Only the paths given as uploads get the upload limit (tests/test_body_limit_by_route.py).
+    app.add_middleware(RequestBodyLimit, upload_paths=[compile_path("/upload")[0]])
 
     @app.post("/upload")
     async def upload(request: Request) -> dict[str, int]:

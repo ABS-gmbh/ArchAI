@@ -7,7 +7,8 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import ApiTokenGate, require_api_token
-from app.body_limit import RequestBodyLimit
+from app.body_limit import RequestBodyLimit, upload_paths
+from app.error_handlers import install_error_handlers
 from app.security_headers import SecurityHeaders
 from app.config import JWT_SECRET_MIN_LENGTH, api_docs_enabled, settings
 from app.logging_setup import configure_logging
@@ -125,9 +126,23 @@ app = FastAPI(
     openapi_url="/openapi.json" if _docs else None,
 )
 
+# /api/health stays open for monitors and load balancers. Every other router
+# requires API_TOKEN when it is set (app/auth.py); add new routers to this list.
+API_PREFIX = "/api"
+OPEN_ROUTERS = (health.router,)
+PROTECTED_ROUTERS = tuple(
+    module.router
+    for module in (classes, predict, chat, agents_ocr, ocr, evidence, index, rag_debug, authority, download, analytics)
+)
+
+install_error_handlers(app)
 # Added first so it sits inside CORS: a 413 still carries the CORS headers the
-# browser needs to read it.
-app.add_middleware(RequestBodyLimit)
+# browser needs to read it. Multipart bodies get the upload limit only on the
+# routes that take an upload; every other body gets the JSON limit.
+app.add_middleware(
+    RequestBodyLimit,
+    upload_paths=upload_paths((API_PREFIX, router) for router in OPEN_ROUTERS + PROTECTED_ROUTERS),
+)
 # Outside the body limit and inside CORS: a request without the API token is
 # answered 401 before any of its body is received (app/auth.py).
 app.add_middleware(ApiTokenGate)
@@ -142,9 +157,8 @@ app.add_middleware(
 # Outermost, so every answer carries it: 413s, CORS preflights, errors.
 app.add_middleware(SecurityHeaders)
 
-# /api/health stays open for monitors and load balancers. Every other router
-# requires API_TOKEN when it is set (app/auth.py); add new routers to this list.
-app.include_router(health.router, prefix="/api")
+for _router in OPEN_ROUTERS:
+    app.include_router(_router, prefix=API_PREFIX)
 _PROTECTED = [Depends(require_api_token)]
-for _router in (classes, predict, chat, agents_ocr, ocr, evidence, index, rag_debug, authority, download, analytics):
-    app.include_router(_router.router, prefix="/api", dependencies=_PROTECTED)
+for _router in PROTECTED_ROUTERS:
+    app.include_router(_router, prefix=API_PREFIX, dependencies=_PROTECTED)
