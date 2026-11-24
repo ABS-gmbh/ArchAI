@@ -5,7 +5,8 @@ Usage::
     # in one shell: a backend on scratch data, no .env, nothing live
     ARCHAI_DB_PATH=/tmp/smoke/archai.sqlite CHROMA_PERSIST_DIR=/tmp/smoke/chroma \\
     ARCHAI_WIKIDATA_CACHE=/tmp/smoke/wikidata.sqlite OCR_EVIDENCE_PATH=/tmp/smoke/evidence.jsonl \\
-    TASK_BASE_DIR=/tmp/smoke/tasks MAX_UPLOAD_MEGABYTES=2 GLMOCR_OLLAMA_HOST=http://127.0.0.1:9 \\
+    TASK_BASE_DIR=/tmp/smoke/tasks MAX_UPLOAD_MEGABYTES=2 MAX_JSON_MEGABYTES=2 \\
+    GLMOCR_OLLAMA_HOST=http://127.0.0.1:9 \\
         uvicorn app.main:app --port 8765
     # in another
     python scripts/smoke_api.py --base http://127.0.0.1:8765 --db /tmp/smoke/archai.sqlite
@@ -13,7 +14,7 @@ Usage::
 The TestClient suite runs the app in-process; this exercises the real server:
 uvicorn, the middleware stack, streaming responses, disconnects and
 concurrency. It expects the backend above: no chat key, no Ollama, no layout
-models, MAX_UPLOAD_MEGABYTES=2. Every check states the status it expects, and
+models, MAX_UPLOAD_MEGABYTES=2 and MAX_JSON_MEGABYTES=2. Every check states the status it expects, and
 the script exits 1 if any differs. --db (the backend's own scratch database)
 lets it create a run that never finishes, for the stream checks; without it
 those checks are skipped. Never point it at a live backend: it writes runs,
