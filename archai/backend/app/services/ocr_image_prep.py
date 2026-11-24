@@ -26,6 +26,12 @@ SAIA_OCR_MAX_PIXELS = max(
 )
 
 
+# The largest image decoded at all (width x height). A larger page is refused
+# before any pixel is read; one under it but over SAIA_OCR_MAX_PIXELS is decoded
+# and resized down for the provider.
+SAIA_OCR_MAX_DECODE_PIXELS = max(1, int(settings.ocr_max_decode_pixels))
+
+
 SAIA_OCR_MAX_LONG_EDGE = max(
     1024,
     int(settings.ocr_max_long_edge or os.getenv("OCR_MAX_LONG_EDGE", "12000") or "12000"),
@@ -45,15 +51,23 @@ def _open_rgb_image_from_b64(image_b64: str) -> Image.Image:
     except Exception as exc:
         raise SaiaOCRAgentError("image_b64 is not valid base64.") from exc
 
-    previous_max_pixels = Image.MAX_IMAGE_PIXELS
+    # PIL's process-wide limit (Image.MAX_IMAGE_PIXELS) is left alone: it was
+    # set to None around this open and restored without a lock, so concurrent
+    # calls left it None for good and a decompression bomb opened anywhere in
+    # the process (security review C3). Image.open reads only the header; the
+    # size is checked against OCR_MAX_DECODE_PIXELS before any pixel is decoded.
     try:
-        Image.MAX_IMAGE_PIXELS = None
         with Image.open(io.BytesIO(raw)) as decoded:
+            width, height = decoded.size
+            if width * height > SAIA_OCR_MAX_DECODE_PIXELS:
+                raise SaiaOCRAgentError(
+                    f"The image has {width * height} pixels; at most {SAIA_OCR_MAX_DECODE_PIXELS} are decoded (OCR_MAX_DECODE_PIXELS)."
+                )
             image = decoded.convert("RGB")
+    except SaiaOCRAgentError:
+        raise
     except Exception as exc:
         raise SaiaOCRAgentError("Unable to decode image payload for OCR.") from exc
-    finally:
-        Image.MAX_IMAGE_PIXELS = previous_max_pixels
     return image
 
 
