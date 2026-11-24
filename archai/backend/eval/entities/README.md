@@ -515,3 +515,72 @@ Tried on B-dev, not shipped:
   (Q48438), enriched, became the only rival for "Sainct George" but scored
   0.770, under the 0.80 threshold. A title could only help with the
   enrichment order changed as well, which this attempt did not try.
+
+### Where linkable names stop (B-dev, 2026-11-24)
+
+`scripts/benchmark_names_funnel.py` puts each of the 91 sure B-dev names
+that have an authority record at the first stage it does not pass, from the
+recorded responses (offline; the requests only its probes make are in
+`heldout_funnel_probes.json.gz`, gzip, 452 responses). `--oracle` gives the
+gold spans to the linker as the mentions, as if extraction were perfect;
+`--deeper` asks where a longer or other-language search would have found
+the gold record.
+
+| Stage | as shipped | gold spans as mentions |
+|---|---|---|
+| 1 not extracted | 63 | 0 |
+| 2 extracted, never searched (a gate before the lookup) | 0 | 31 |
+| 3 gold record not in the search results | 21 | 40 |
+| 4 in the results, not enriched | 2 | 2 |
+| 5 enriched, type-incompatible or name too far | 0 | 2 |
+| 6 scored, not selected | 4 | 12 |
+| 7 linked to another record | 0 | 1 |
+| 7 linked | 1 | 3 |
+
+- **Stage 2 under `--oracle`.** All 31 are places, stopped by the
+  `low_evidence_place` gate: 30 are written in lowercase, are in no
+  gazetteer and have no strong place context around them ("nilo",
+  "armenia", "espanna", "thessalia", "dubl̃in", "asia la menor"); one,
+  "Bar", is capitalised but shorter than the gate's four letters.
+- **Stage 4.** Mark the Evangelist (Q31966) for "Sainct Marc" and Andrew the
+  Apostle (Q43399) for "Sainct Andre" were the 4th and 5th of 5 Wikidata
+  answers, 5th after the pre-sort, and only 3 are enriched a mention; their
+  type stayed unknown and they scored 0.35 and 0.39.
+- **Stage 5 under `--oracle`.** Asclepius for "esculapio" and Simeon for
+  "symeon", enriched and judged not a person.
+- **Stage 6 as shipped (4).** COLUMBANI: the gold VIAF record 0.878 against
+  0.835, the margin. Pierre Gringoire: two Wikidata items of that exact
+  label tie at 0.872, the gold (Pierre Gringore, Q2373032) third at 0.867.
+  George: Saint George 0.770, under George Sand at 0.827. Çiro: "Ciro II,
+  Rey de Persia" 0.788, under Ciro Pinsuti at 0.801.
+- **Stage 6 under `--oracle` (12).** The four above (George 0.790, Çiro now
+  under the threshold with its top at 0.799), and aristote (Aristotle 0.884
+  against Aristóteles 0.867), pilate five times (Pontius Pilate's VIAF
+  record 0.79 under "Pilate, Gilles" 0.83), mauritania (Mauretania 0.859
+  under Mauritania 0.892) and Granicus (the Biga River, 0.698). Nine of the
+  twelve are lost on the margin with the gold record at or near the top.
+- **Linked to another record under `--oracle`.** galilea to Galilea instead
+  of Galilee.
+
+Asking for more, for the 21 names whose gold record was not in the
+results as shipped:
+
+- Wikidata, 50 results instead of 5, in French as the linker asks: 1 found
+  (Saint Peter for "Pierre", 6th).
+- Wikidata, 50 results in English, Latin, Spanish or Italian: Latin finds
+  the gold record for the five "iohannes"/"IOHANNES" mentions (one saint,
+  one page) 10th; Italian finds Rodrigo 2nd; Spanish finds Saint Peter 9th
+  and Theobald Walter 46th (for "Theob").
+- VIAF: the recorded AutoSuggest answers, all their rows (the linker reads
+  5), hold none of the 21 gold records.
+- The other 13 are not found at any of these settings: the written form is
+  not the one the records hold (Pol for Paul, Frãcois, Rommant de la Rose,
+  ioħis and iohannis, Theob Walteri, Renũ for the Rhine, Bar for the Duchy of
+  Bar).
+
+Retrieval is the stage that binds: as shipped it loses 21 of the 28
+extracted names, and with perfect extraction 40 of the 60 that reach a
+search, so extracting every name would add 2 links and 1 wrong one.
+Neither a longer search nor enriching more candidates changes that; mapping
+old spellings and Latin case to the forms the authorities hold would, and
+that is a lexicon or a model, not a rule.
