@@ -109,6 +109,10 @@ def score_answer(item: dict[str, Any], text: str, relevant_chunk_ids: set[str]) 
 
 
 E5_LOCAL_MODEL = "intfloat/multilingual-e5-large-instruct"
+# The checkpoint is float16, and sentence-transformers 6 loads it as such: on a
+# CPU that encodes about 5 times slower than float32, with the same vectors
+# (cosine 1.000 on the evaluation VM).
+_FLOAT32 = {"dtype": "float32"}
 
 
 def _use_local_e5() -> None:
@@ -120,7 +124,7 @@ def _use_local_e5() -> None:
     from app.config import settings
     from app.services import rag_store
 
-    model = SentenceTransformer(E5_LOCAL_MODEL)
+    model = SentenceTransformer(E5_LOCAL_MODEL, model_kwargs=_FLOAT32)
     settings.rag_embedding_model = E5_LOCAL_MODEL
     rag_store._embed = lambda texts: [
         [float(x) for x in v] for v in model.encode(list(texts), batch_size=16, normalize_embeddings=True)
