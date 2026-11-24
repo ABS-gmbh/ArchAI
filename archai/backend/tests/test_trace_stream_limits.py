@@ -25,6 +25,7 @@ def db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
     monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
     monkeypatch.setattr(pipeline_db, "_DB_READY", False)
     monkeypatch.setattr(ocr_router, "_open_trace_streams", 0, raising=False)
+    monkeypatch.setattr(ocr_router, "_open_trace_streams_by_run", {}, raising=False)
     return pipeline_db
 
 
@@ -91,3 +92,26 @@ def test_the_stream_of_an_unclaimed_expired_reservation_ends(db: Any, monkeypatc
 
     chunks = asyncio.run(scenario())
     assert chunks[-1].startswith("event: end")
+
+
+def test_one_run_cannot_take_every_stream(db: Any) -> None:
+    # Second review, E: one client with one reserved run opened all 32 streams
+    # and another user's stream on another run was refused.
+    busy = db.create_run(asset_ref="busy", asset_sha256=None)
+    other = db.create_run(asset_ref="other", asset_sha256=None)
+    for run_id in (busy, other):
+        db.update_run_fields(run_id, status="COMPLETED")
+
+    async def scenario() -> None:
+        held = [await ocr_router.ocr_trace_stream(busy) for _ in range(ocr_router._TRACE_STREAM_MAX_PER_RUN)]
+        with pytest.raises(HTTPException) as refused:
+            await ocr_router.ocr_trace_stream(busy)
+        assert refused.value.status_code == 429 and "for this run" in str(refused.value.detail)
+        await _drain(await ocr_router.ocr_trace_stream(other))  # another run still gets one
+        await _drain(held[0])  # a closed stream frees its run's place
+        await _drain(await ocr_router.ocr_trace_stream(busy))
+        for response in held[1:]:
+            await _drain(response)
+        assert ocr_router._open_trace_streams == 0 and ocr_router._open_trace_streams_by_run == {}
+
+    asyncio.run(scenario())

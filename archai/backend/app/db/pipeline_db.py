@@ -555,20 +555,47 @@ def create_run(asset_ref: str, asset_sha256: str | None = None) -> str:
 RESERVED_RUN_STATUS = "RESERVED"
 
 
-def reserve_run() -> str:
-    """Create an empty run a client can pass to one OCR request, so it can follow that request's trace."""
+class TooManyReservations(Exception):
+    """reserve_run found *waiting* unused reservations, at or over its *max_live*."""
+
+    def __init__(self, waiting: int) -> None:
+        super().__init__(f"{waiting} reserved runs are waiting")
+        self.waiting = waiting
+
+
+def reserve_run(*, max_live: int | None = None) -> str:
+    """Create an empty run a client can pass to one OCR request, so it can follow that request's trace.
+
+    With *max_live*, the unused reservations are counted and the new one
+    inserted in one write transaction, so parallel requests cannot all pass
+    the count: 160 at once made 134 rows against a cap of 100 when the two
+    were separate (second security review, E). Raises TooManyReservations.
+    """
     _init_db_if_needed()
     run_id = str(uuid.uuid4())
     ts = now_iso()
     with _connect() as conn:
-        conn.execute(
-            """
-            INSERT INTO pipeline_runs (
-                run_id, created_at, updated_at, status, current_stage, asset_ref, asset_sha256
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (run_id, ts, ts, RESERVED_RUN_STATUS, RESERVED_RUN_STATUS, "", None),
-        )
+        # IMMEDIATE takes the write lock before the count; a parallel
+        # reservation waits (busy_timeout) and then counts this one.
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            if max_live is not None:
+                waiting = int(
+                    conn.execute("SELECT COUNT(*) FROM pipeline_runs WHERE status=?", (RESERVED_RUN_STATUS,)).fetchone()[0]
+                )
+                if waiting >= max_live:
+                    raise TooManyReservations(waiting)
+            conn.execute(
+                """
+                INSERT INTO pipeline_runs (
+                    run_id, created_at, updated_at, status, current_stage, asset_ref, asset_sha256
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (run_id, ts, ts, RESERVED_RUN_STATUS, RESERVED_RUN_STATUS, "", None),
+            )
+        except BaseException:
+            conn.rollback()
+            raise
         conn.commit()
     return run_id
 

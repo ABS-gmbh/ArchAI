@@ -875,3 +875,33 @@ def test_an_unclaimed_reservation_expires_within_minutes_by_default(route: dict[
     fresh = asyncio.run(ocr_router.ocr_reserve_run())["run_id"]
     _age_reservation(db, fresh, 9 * 60)
     assert _extract(run_id=fresh).ocr_engine == "segmented"
+
+
+def test_parallel_reservations_never_pass_the_cap(db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Second review, E: the count and the insert were separate, and 160
+    # parallel requests made 134 rows against a cap of 100.
+    import threading
+
+    from fastapi import HTTPException
+
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "ocr_run_reservation_max_live", 10)
+    start = threading.Barrier(40)
+    outcomes: list[str] = []
+
+    def reserve() -> None:
+        start.wait()
+        try:
+            ocr_router._reserve_bounded_run()
+            outcomes.append("reserved")
+        except HTTPException as exc:
+            outcomes.append(str(exc.status_code))
+
+    threads = [threading.Thread(target=reserve) for _ in range(40)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(30)
+    assert db.count_reserved_runs() == 10
+    assert sorted(outcomes) == ["429"] * 30 + ["reserved"] * 10

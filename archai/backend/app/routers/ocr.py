@@ -26,8 +26,8 @@ from app.routers.errors import configuration_message, provider_failure, unexpect
 from app.db.pipeline_db import (
     claim_reserved_run,
     count_chunks,
-    count_reserved_runs,
     RESERVED_RUN_STATUS,
+    TooManyReservations,
     delete_expired_reservations,
     count_entity_mentions,
     create_run,
@@ -1395,17 +1395,17 @@ def _reserve_bounded_run() -> str:
     """Reserve a run, after deleting expired reservations, unless too many are waiting."""
     delete_expired_reservations(created_before=_reservation_cutoff())
     cap = max(1, int(_app_settings.ocr_run_reservation_max_live))
-    waiting = count_reserved_runs()
-    if waiting >= cap:
+    try:
+        return reserve_run(max_live=cap)
+    except TooManyReservations as exc:
         minutes = max(1, int(_app_settings.ocr_run_reservation_ttl_seconds) // 60)
         raise HTTPException(
             status_code=429,
             detail=(
-                f"Too many reserved runs are waiting to be used ({waiting}). Use one, or try again once "
+                f"Too many reserved runs are waiting to be used ({exc.waiting}). Use one, or try again once "
                 f"unused reservations expire ({minutes} minutes after they were made)."
             ),
-        )
-    return reserve_run()
+        ) from exc
 
 
 @router.post("/ocr/extract_full_page", response_model=SaiaFullPageExtractResponse)
@@ -2405,6 +2405,12 @@ _TRACE_STREAM_MAX_SECONDS = 60 * 60
 _TRACE_STREAM_FAST_POLL_SECONDS = 0.4
 _TRACE_STREAM_SLOW_POLL_SECONDS = 1.0
 _open_trace_streams = 0
+# One client with one reserved run opened all 32 streams and another user's
+# stream was refused (second security review, E). The workspace opens one
+# stream per read and falls back to polling when refused; three per run leave
+# room for a reload or a second tab.
+_TRACE_STREAM_MAX_PER_RUN = 3
+_open_trace_streams_by_run: dict[str, int] = {}
 
 
 @router.get("/ocr/trace/stream/{run_id}")
@@ -2413,12 +2419,23 @@ async def ocr_trace_stream(run_id: str) -> StreamingResponse:
     if await asyncio.to_thread(get_run, run_id) is None:
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
     cap = max(1, int(_app_settings.ocr_trace_stream_max_open))
+    # Counted and taken with no await in between: the event loop runs one
+    # request at a time here, so the check cannot be passed twice.
     if _open_trace_streams >= cap:
         raise HTTPException(
             status_code=429,
             detail=f"Too many trace streams are open ({_open_trace_streams}). Close one, or poll /ocr/trace/{{run_id}}.",
         )
+    if _open_trace_streams_by_run.get(run_id, 0) >= _TRACE_STREAM_MAX_PER_RUN:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"{_TRACE_STREAM_MAX_PER_RUN} trace streams are already open for this run. "
+                "Close one, or poll /ocr/trace/{run_id}."
+            ),
+        )
     _open_trace_streams += 1
+    _open_trace_streams_by_run[run_id] = _open_trace_streams_by_run.get(run_id, 0) + 1
 
     async def event_stream():
         global _open_trace_streams
@@ -2427,6 +2444,11 @@ async def ocr_trace_stream(run_id: str) -> StreamingResponse:
                 yield chunk
         finally:
             _open_trace_streams -= 1
+            left = _open_trace_streams_by_run.get(run_id, 1) - 1
+            if left > 0:
+                _open_trace_streams_by_run[run_id] = left
+            else:
+                _open_trace_streams_by_run.pop(run_id, None)
 
     return StreamingResponse(
         event_stream(),
