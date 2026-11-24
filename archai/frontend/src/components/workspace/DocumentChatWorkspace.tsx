@@ -1617,7 +1617,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
               page={currentPage}
               zoom={currentZoom}
               onZoom={updateZoom}
-              regionsSrc={currentSegmentedPreview}
+              regions={currentSegmentationLabels}
               showRegions={showSegmentationOverlay}
               onShowRegions={setShowSegmentationOverlay}
               lines={currentPageId ? pageLinesByPageId[currentPageId] ?? [] : []}

@@ -5,14 +5,16 @@ import Image from "next/image";
 
 import type { FullPageLine } from "@/lib/api/ocrAgent";
 
+import type { StoredLabelRegionMap } from "./workspaceSegmentation";
+
 import { Button, Icon } from "./ui";
 
 export interface PageViewerProps {
   page: { id: string; name: string; dataUrl: string } | null;
   zoom: number;
   onZoom: (next: number) => void;
-  /** The page with its layout regions drawn on it, when regions have been found. */
-  regionsSrc: string | null;
+  /** The page's layout regions by kind, in the page image's own pixel frame, when they have been found. */
+  regions: StoredLabelRegionMap | null;
   showRegions: boolean;
   onShowRegions: (show: boolean) => void;
   /** Lines with a box on the page, in the page's own pixel frame. */
@@ -30,16 +32,22 @@ export interface PageViewerProps {
   pageNav?: ReactNode;
 }
 
+function regionArea(box: [number, number, number, number]): number {
+  return Math.max(0, box[2] - box[0]) * Math.max(0, box[3] - box[1]);
+}
+
 /**
  * The page on a well one step darker than the frame. Lines the recogniser read
  * are drawn over it as boxes: the one in focus, here or in the transcription,
- * carries the brand hue. Zoom changes the width, so the well scrolls normally.
+ * carries the brand hue. Layout regions are drawn the same way, outlined in
+ * ink, with the kind in focus (in the list or under the pointer) in the brand
+ * hue. Zoom changes the width, so the well scrolls normally.
  */
 export function PageViewer({
   page,
   zoom,
   onZoom,
-  regionsSrc,
+  regions,
   showRegions,
   onShowRegions,
   lines,
@@ -69,6 +77,9 @@ export function PageViewer({
   };
   const [natural, setNatural] = useState<{ id: string; width: number; height: number } | null>(null);
   const [showLines, setShowLines] = useState(true);
+  // The kind of region in focus: pinned by a click, or under the pointer. Both belong to one page.
+  const [pinnedKind, setPinnedKind] = useState<{ pageId: string; kind: string } | null>(null);
+  const [hoverKind, setHoverKind] = useState<string | null>(null);
 
   if (!page) {
     // First run: the well is the place the pages go, so it is the drop target.
@@ -112,7 +123,17 @@ export function PageViewer({
     );
   }
 
-  const usingRegions = showRegions && Boolean(regionsSrc);
+  // Largest count first; within the drawing, largest area first, so a small region stays reachable inside a column.
+  const kinds = Object.entries(regions ?? {})
+    .filter(([, items]) => items.length > 0)
+    .sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0]));
+  const hasRegions = kinds.length > 0;
+  const usingRegions = showRegions && hasRegions;
+  const regionShapes = kinds
+    .flatMap(([kind, items]) => items.map((region) => ({ kind, region })))
+    .sort((a, b) => regionArea(b.region.bbox_xyxy) - regionArea(a.region.bbox_xyxy));
+  const pinned = pinnedKind && pinnedKind.pageId === page.id ? pinnedKind.kind : null;
+  const focusKind = hoverKind ?? pinned;
   const measured = natural && natural.id === page.id ? natural : null;
   const frame = pageSize ?? measured;
   const boxed = lines.filter((line) => Array.isArray(line.bbox_xyxy) && line.bbox_xyxy.length === 4);
@@ -123,8 +144,8 @@ export function PageViewer({
       <div className="h-full overflow-auto p-4">
         <div className="relative mx-auto" style={{ width: `${zoom * 100}%` }}>
           <Image
-            src={usingRegions && regionsSrc ? regionsSrc : page.dataUrl}
-            alt={usingRegions ? `${page.name}, with its layout regions marked` : page.name}
+            src={page.dataUrl}
+            alt={page.name}
             width={measured?.width ?? 1200}
             height={measured?.height ?? 1600}
             unoptimized
@@ -132,7 +153,7 @@ export function PageViewer({
             className="block h-auto w-full select-none"
             onLoad={(event) => {
               const image = event.currentTarget;
-              if (!usingRegions && image.naturalWidth && image.naturalHeight) {
+              if (image.naturalWidth && image.naturalHeight) {
                 setNatural({ id: page.id, width: image.naturalWidth, height: image.naturalHeight });
               }
             }}
@@ -170,8 +191,77 @@ export function PageViewer({
               })}
             </svg>
           ) : null}
+          {measured && usingRegions ? (
+            // Regions are in the image's own pixels (the image is what was segmented), not in the read's frame.
+            <svg
+              aria-hidden="true"
+              viewBox={`0 0 ${measured.width} ${measured.height}`}
+              preserveAspectRatio="none"
+              className="absolute inset-0 h-full w-full"
+              onMouseLeave={() => setHoverKind(null)}
+            >
+              {regionShapes.map(({ kind, region }) => {
+                const inFocus = kind === focusKind;
+                const dimmed = Boolean(focusKind) && !inFocus;
+                const look = {
+                  className: "cursor-pointer",
+                  fill: inFocus ? "var(--aa-brand)" : "transparent",
+                  fillOpacity: inFocus ? 0.14 : 0,
+                  stroke: inFocus ? "var(--aa-brand)" : "var(--aa-ink)",
+                  strokeOpacity: inFocus ? 1 : dimmed ? 0.18 : 0.45,
+                  strokeWidth: inFocus ? 2 : 1,
+                  vectorEffect: "non-scaling-stroke" as const,
+                  pointerEvents: "all" as const,
+                  onMouseEnter: () => setHoverKind(kind),
+                  onClick: () => setPinnedKind(pinned === kind ? null : { pageId: page.id, kind }),
+                };
+                const polygons = (region.polygons ?? []).filter((points) => points.length >= 6);
+                if (polygons.length) {
+                  return polygons.map((points, index) => (
+                    <polygon key={`${kind}-${region.region_id}-${index}`} points={points.join(" ")} {...look}>
+                      <title>{kind}</title>
+                    </polygon>
+                  ));
+                }
+                const [x0, y0, x1, y1] = region.bbox_xyxy;
+                return (
+                  <rect key={`${kind}-${region.region_id}`} x={x0} y={y0} width={Math.max(1, x1 - x0)} height={Math.max(1, y1 - y0)} {...look}>
+                    <title>{kind}</title>
+                  </rect>
+                );
+              })}
+            </svg>
+          ) : null}
         </div>
       </div>
+
+      {usingRegions ? (
+        <details open className="absolute left-4 top-4 w-56 max-w-[calc(100%-2rem)] rounded-md border border-line bg-sheet text-sm">
+          <summary className="cursor-pointer select-none rounded-md px-3 py-1.5 outline-none focus-visible:ring-2 focus-visible:ring-brand">
+            Layout regions <span className="tabular-nums text-ink-muted">{regionShapes.length}</span>
+          </summary>
+          <ul className="max-h-64 overflow-y-auto border-t border-rule p-1" onMouseLeave={() => setHoverKind(null)}>
+            {kinds.map(([kind, items]) => (
+              <li key={kind}>
+                <button
+                  type="button"
+                  aria-pressed={pinned === kind}
+                  onMouseEnter={() => setHoverKind(kind)}
+                  onFocus={() => setHoverKind(kind)}
+                  onBlur={() => setHoverKind(null)}
+                  onClick={() => setPinnedKind(pinned === kind ? null : { pageId: page.id, kind })}
+                  className={`flex w-full items-center justify-between gap-3 rounded px-2 py-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                    focusKind === kind ? "bg-brand-wash" : "hover:bg-well"
+                  }`}
+                >
+                  <span className="min-w-0 truncate">{kind.replace(/\s+/g, " ").trim()}</span>
+                  <span className="tabular-nums text-ink-muted">{items.length}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
 
       {pageNav ? (
         <div className="absolute right-4 top-4 rounded-md border border-line bg-sheet sm:hidden">{pageNav}</div>
@@ -179,7 +269,7 @@ export function PageViewer({
 
       <div className="pointer-events-none absolute inset-x-4 bottom-4 flex flex-wrap items-end justify-between gap-2">
         <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-line bg-sheet px-3 py-1.5 text-sm">
-          {regionsSrc ? (
+          {hasRegions ? (
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
@@ -202,7 +292,7 @@ export function PageViewer({
               Lines read
             </label>
           ) : null}
-          {!regionsSrc && !boxed.length ? <span className="text-ink-muted">{page.name}</span> : null}
+          {!hasRegions && !boxed.length ? <span className="text-ink-muted">{page.name}</span> : null}
         </div>
         <div className="pointer-events-auto flex items-center rounded-md border border-line bg-sheet">
           <Button variant="quiet" className="w-8 px-0" aria-label="Zoom out" disabled={zoom <= 0.5} onClick={() => onZoom(zoom - 0.25)}>
