@@ -77,8 +77,24 @@ The "not in the sources" instruction is present for all 79 items. The 9
 answerable questions whose answer stays out at top_k 5 are English questions
 that share no word with the Old French or Latin passage. Their answer chunk
 ranks 6th to 15th of the page's 7 to 17 windows. Three of them come in at
-top_k 8. The multilingual embedder the app is configured for has not been
-measured on this set.
+top_k 8.
+
+With multilingual-e5-large-instruct (`--embedder e5-local`, on the evaluation
+VM, 2026-11-24, BM25 weight 1 as in the e5 space):
+
+| top_k | MiniLM (weight 2) | e5 | e5, weight 2 | e5, weight 0.5 |
+|---|---|---|---|---|
+| 5 | 53/62 | 55/62 | 54/62 | 56/62 |
+| 8 (default) | 56/62 | 62/62 | 61/62 | 62/62 |
+| 10 | 59/62 | 62/62 | | |
+
+At top_k 5, MiniLM misses a00, a06, a09, a39, a41, a42, a56, a58 and a61, and
+e5 misses a06, a08, a31, a39, a41, a49 and a58. e5 recovers five of MiniLM's
+nine misses and loses three others. Each lookup searches a single page of 7
+to 17 windows, so top_k 8 is a large share of the page, and 62/62 comes
+easily there. The question benchmark (`eval/retrieval/README.md`), which ranks
+every window of every reading, is the stronger evidence: e5 dense MRR 0.590
+against MiniLM's 0.398.
 
 No live answers have been scored yet: the chat provider key returns 401.
 
