@@ -65,3 +65,42 @@ describe("messageInWords", () => {
     assert.equal(messageInWords(null), "");
   });
 });
+
+// The messages a page gets when the quality gate rates its reading too
+// uncertain to search or link (app/services/trace_pipeline.py). They are log
+// lines ("token_search_allowed=False (quality=RISKY)") and reached the Steps
+// panel as they came.
+describe("messageInWords, an uncertain reading", () => {
+  it("says why linking and indexing were skipped", () => {
+    assert.equal(
+      messageInWords("Authority linking SKIPPED: token_search_allowed=False (quality=RISKY)"),
+      "Skipped: the reading was rated risky, too uncertain to look names up.",
+    );
+    assert.equal(
+      messageInWords("RAG auto-index SKIPPED: token_search_allowed=False (quality=UNRELIABLE)"),
+      "Skipped: the reading was rated unreliable, too uncertain to search.",
+    );
+  });
+
+  it("drops the bare reason, which the step's name already gives", () => {
+    assert.equal(messageInWords("token_search_allowed=False quality=RISKY"), "");
+  });
+
+  it("counts the names kept without links", () => {
+    assert.equal(messageInWords("Deferred linking stored unresolved mentions: total=3"), "3 names kept, not linked");
+    assert.equal(messageInWords("Deferred linking stored unresolved mentions: total=1"), "1 name kept, not linked");
+  });
+
+  it("puts the cautious name search's counts in words", () => {
+    assert.equal(
+      messageInWords("degraded_capture chunks=4, mentions=1"),
+      "4 passages, 1 name (names found with the cautious search used for an uncertain reading)",
+    );
+  });
+
+  it("drops the full-page pipeline's other bookkeeping lines", () => {
+    for (const message of ["Full-page OCR text stored.", "Running the full-page post-OCR pipeline.", "Full-page OCR run received (segmented)."]) {
+      assert.equal(messageInWords(message), "", message);
+    }
+  });
+});
