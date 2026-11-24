@@ -25,6 +25,8 @@ import {
   backendTarget,
   crossSiteRefusal,
   downstreamHeaders,
+  DRAIN_MAX_MS,
+  earlyAnswerPlan,
   hostRefusal,
   originOptions,
   tokenRefusal,
@@ -59,6 +61,11 @@ function unreachable(): Response {
 function isApiTokenRefusal(res: http.IncomingMessage): boolean {
   return res.statusCode === 401 && /realm="archai"/i.test(String(res.headers["www-authenticate"] ?? ""));
 }
+
+// How long the proxy waits for the backend's "100 Continue" before sending a
+// body anyway (RFC 9110 15.2.1: a client need not wait indefinitely). uvicorn
+// answers at once on the same machine or network.
+const CONTINUE_WAIT_MS = 1000;
 
 let tokenRefusalLogged = false;
 // The first cross-site refusal only: one line tells the operator, and a site
@@ -130,10 +137,54 @@ async function proxy(req: NextRequest): Promise<Response> {
       trustedProxyHops: trustedProxyHops(),
       token: process.env.BACKEND_API_TOKEN || "",
     });
+    // The request body as it is passed on, and how much of it has been read.
+    let incoming: Readable | null = null;
+    let incomingRead = 0;
+    let incomingDone = true;
+
+    /**
+     * The backend answered before the whole body was passed on (its body
+     * limit, its token gate). The proxy stopped reading it then, and the
+     * client's next request on that connection waited behind the unread bytes
+     * until the connection was reset. A small rest is read and discarded; for
+     * a large one the answer closes the connection (earlyAnswerPlan).
+     */
+    const afterEarlyAnswer = (): "drain" | "close" | null => {
+      if (!incoming || incomingDone) {
+        return null;
+      }
+      const rest = incoming;
+      rest.unpipe(upstream);
+      const plan = earlyAnswerPlan(Number(req.headers.get("content-length") ?? Number.NaN), incomingRead);
+      if (plan === "drain") {
+        const giveUp = setTimeout(() => rest.destroy(), DRAIN_MAX_MS);
+        rest.once("close", () => clearTimeout(giveUp));
+        rest.resume();
+      }
+      return plan;
+    };
+    const withClose = (response: Response, plan: "drain" | "close" | null): Response => {
+      if (plan === "close") {
+        response.headers.set("connection", "close");
+      }
+      return response;
+    };
+
+    // A body is sent only once the backend asks for it (Expect: 100-continue).
+    // Its body limit and token gate answer before they read anything; a body
+    // already on its way then met a closed connection, and the proxy reported
+    // the backend unreachable (503) for 14 of 30 refused 4 MB requests, where
+    // the backend itself always answered 413 (2026-11-24). A backend that
+    // never sends 100 Continue gets the body after CONTINUE_WAIT_MS anyway.
+    const sendsBody = Boolean(req.body) && method !== "GET" && method !== "HEAD";
+    if (sendsBody) {
+      headers.expect = "100-continue";
+    }
     const upstream = transport.request(target, { method, agent, headers }, (res) => {
+      const plan = afterEarlyAnswer();
       if (isApiTokenRefusal(res)) {
         res.resume();
-        settle(tokenRefused(method, req.nextUrl.pathname));
+        settle(withClose(tokenRefused(method, req.nextUrl.pathname), plan));
         return;
       }
       const status = res.statusCode ?? 502;
@@ -142,11 +193,14 @@ async function proxy(req: NextRequest): Promise<Response> {
         res.resume();
       }
       settle(
-        new Response(noBody ? null : (Readable.toWeb(res) as ReadableStream<Uint8Array>), {
-          status,
-          statusText: res.statusMessage,
-          headers: downstreamHeaders(res.headers, new URL(backendUrl)),
-        }),
+        withClose(
+          new Response(noBody ? null : (Readable.toWeb(res) as ReadableStream<Uint8Array>), {
+            status,
+            statusText: res.statusMessage,
+            headers: downstreamHeaders(res.headers, new URL(backendUrl)),
+          }),
+          plan,
+        ),
       );
     });
 
@@ -160,10 +214,33 @@ async function proxy(req: NextRequest): Promise<Response> {
     // The browser went away (closed tab, aborted upload, closed stream): stop the backend request too.
     req.signal.addEventListener("abort", () => upstream.destroy(), { once: true });
 
-    if (req.body && method !== "GET" && method !== "HEAD") {
+    if (sendsBody && req.body) {
       const body = Readable.fromWeb(req.body as Parameters<typeof Readable.fromWeb>[0]);
+      incoming = body;
+      incomingDone = false;
+      // Paused first: a "data" listener would otherwise start the flow before
+      // the pipe exists, and a small body would be read and lost while the
+      // proxy waits for 100 Continue. pipe() (or the drain) resumes it.
+      body.pause();
+      body.on("data", (chunk: Buffer) => {
+        incomingRead += chunk.length;
+      });
+      body.on("end", () => {
+        incomingDone = true;
+      });
       body.on("error", (err) => upstream.destroy(err));
-      body.pipe(upstream);
+      let sending = false;
+      const send = () => {
+        clearTimeout(fallback);
+        if (!sending && !settled) {
+          sending = true;
+          body.pipe(upstream);
+        }
+      };
+      const fallback = setTimeout(send, CONTINUE_WAIT_MS);
+      upstream.once("continue", send);
+      upstream.once("response", () => clearTimeout(fallback));
+      upstream.once("close", () => clearTimeout(fallback));
     } else {
       upstream.end();
     }

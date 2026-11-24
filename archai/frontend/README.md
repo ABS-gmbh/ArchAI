@@ -43,6 +43,12 @@ npm run check:fonts      # the transcription fonts draw every character the reco
 npx next build --webpack
 ```
 
+After a build, `node scripts/check-proxy-keepalive.mjs` checks the `/api`
+proxy against a stand-in backend that answers before reading a request's
+body (as the backend's body limit and token gate do): the answer comes
+through, the client's next request on the same connection is answered, and
+an aborted upload still cancels the backend's request.
+
 ## Build
 
 ```bash

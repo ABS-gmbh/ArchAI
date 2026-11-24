@@ -7,6 +7,8 @@ import {
   clientAddress,
   crossSiteRefusal,
   downstreamHeaders,
+  DRAIN_MAX_BYTES,
+  earlyAnswerPlan,
   hostRefusal,
   tokenRefusal,
   upstreamHeaders,
@@ -365,5 +367,28 @@ describe("downstreamHeaders and Location", () => {
     const prefixed = new URL("http://backend.internal:8010/archai/");
     assert.equal(downstreamHeaders({ location: "http://backend.internal:8010/archai/api/classes" }, prefixed).get("location"), "/api/classes");
     assert.equal(downstreamHeaders({ location: "http://backend.internal:8010/api/classes" }, prefixed).get("location"), null);
+  });
+});
+
+// Final live run (2026-11-24): after the backend answered a 4 MB body with 413
+// before reading it, the client's next request on the same connection hung 6 s
+// and was reset. scripts/check-proxy-keepalive.mjs reproduces it end to end.
+describe("earlyAnswerPlan", () => {
+  const MB = 1024 * 1024;
+
+  it("drains what is left when it is small, so the connection can be reused", () => {
+    assert.equal(earlyAnswerPlan(4 * MB, 64 * 1024), "drain");
+    assert.equal(earlyAnswerPlan(DRAIN_MAX_BYTES, 0), "drain");
+    assert.equal(earlyAnswerPlan(20 * MB, 13 * MB), "drain"); // 7 MB left
+  });
+
+  it("closes the connection rather than read a large rest", () => {
+    assert.equal(earlyAnswerPlan(DRAIN_MAX_BYTES + 1, 0), "close");
+    assert.equal(earlyAnswerPlan(85 * MB, 1 * MB), "close");
+  });
+
+  it("closes when the size is not declared", () => {
+    assert.equal(earlyAnswerPlan(Number.NaN, 0), "close");
+    assert.equal(earlyAnswerPlan(-1, 0), "close");
   });
 });
