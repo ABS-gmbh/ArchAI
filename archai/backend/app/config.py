@@ -38,6 +38,18 @@ class Settings(BaseSettings):
             raise ValueError(f"LOG_FORMAT must be text or json, got {value!r}")
         return normalized
 
+    # Failed analytics logins allowed per client address within the window,
+    # before 429 (app/services/login_limiter.py).
+    analytics_login_max_failures: int = 5
+    analytics_login_window_seconds: int = 900
+
+    @field_validator("analytics_login_max_failures", "analytics_login_window_seconds")
+    @classmethod
+    def _positive_login_limit(cls, value: int, info) -> int:  # type: ignore[no-untyped-def]
+        if value < 1:
+            raise ValueError(f"{info.field_name.upper()} must be at least 1, got {value}")
+        return value
+
     # Bearer token for the whole API except /api/health (app/auth.py). Empty, the
     # default, leaves the API open, which is only safe on localhost.
     api_token: str = ""
