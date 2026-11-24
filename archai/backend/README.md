@@ -131,6 +131,18 @@ Mark a test that needs model weights or that stack `@pytest.mark.requires_models
 The suite runs offline: `tests/conftest.py` refuses every connection that is
 not loopback, so stub the SAIA, GWDG, Ollama or Wikidata client in the test.
 
+`scripts/smoke_api.py` checks a running server over real HTTP: every route
+with valid, invalid and oversized input, streams, a client disconnecting and
+`/api/health` under 20 open streams. Start a backend on scratch data with no
+`.env` (the script's docstring has the command), then:
+
+```bash
+python scripts/smoke_api.py --base http://127.0.0.1:8765 --db /tmp/smoke/archai.sqlite
+```
+
+It exits 1 if any route answers differently from what it expects. Never
+point it at a live backend: it writes runs, tasks and evidence spans.
+
 Four tests are expected failures (`xfail(strict=True)`): they expect the SAIA
 OCR agent to try Qwen first, while it reads with InternVL only.
 
