@@ -1,7 +1,7 @@
 // Files and images of the document workspace: ids, data URLs, page files.
 // Moved out of DocumentChatWorkspace.tsx.
 
-import { type WorkspacePage } from "@/lib/workspace/types";
+import type { WorkspacePage } from "@/lib/workspace/types";
 
 export function makeId(prefix: string): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -70,4 +70,14 @@ export function toBase64(dataUrl: string): string {
     return dataUrl;
   }
   return dataUrl.slice(index + 1);
+}
+
+/**
+ * What to tell someone whose page image the server refused as too large. The
+ * image is sent as text inside the request, about a third larger than the
+ * file, so the size given is what was sent, not the file's.
+ */
+export function pageTooLargeMessage(sentCharacters: number): string {
+  const megabytes = Math.max(1, Math.round(sentCharacters / (1024 * 1024)));
+  return `This page image is too large to send: about ${megabytes} MB as it travels. Save it as a JPEG or at a lower resolution and open it again, or ask whoever runs the server to raise MAX_JSON_MEGABYTES.`;
 }

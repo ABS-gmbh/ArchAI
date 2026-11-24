@@ -31,6 +31,7 @@ import {
   clamp,
   makeId,
   pageToFile,
+  pageTooLargeMessage,
   readFileAsDataUrl,
   sortedImages,
   toBase64,
@@ -1221,7 +1222,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       );
       return { text: storedText, runId, authorityReport };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "request failed";
+      let message = err instanceof Error ? err.message : "request failed";
+      if (err instanceof ApiError && err.status === 413) {
+        // The page travels as text inside the request, a third larger than the file; the server caps that.
+        message = `${pageTooLargeMessage(currentPage.dataUrl.length)} ${message}`;
+      }
       setExtractionStatus(`Extraction failed: ${message}`);
       patchRead({ phase: "failed", progress: null, stage: null, error: message });
       // A read that failed may never have claimed its run; its stream would stay open for an hour.
