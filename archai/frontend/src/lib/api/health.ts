@@ -36,7 +36,12 @@ export async function getBackendHealth(signal?: AbortSignal): Promise<BackendHea
   let body: { status?: string; checks?: Record<string, BackendHealthCheck> } | null = null;
   try {
     body = await res.json();
-  } catch {
+  } catch (err) {
+    // An abort can also land while the body is being read: it must not turn
+    // into a result, or a superseded check overwrites the newer one.
+    if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) {
+      throw err instanceof DOMException ? err : new DOMException("Aborted", "AbortError");
+    }
     body = null;
   }
   if (!body || typeof body.status !== "string") {

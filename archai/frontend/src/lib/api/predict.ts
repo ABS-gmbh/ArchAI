@@ -1,4 +1,4 @@
-import { fetchBackend } from "./client";
+import { ApiError, fetchBackend, readErrorDetail } from "./client";
 
 export interface PredictSingleResponse {
   task_id: string;
@@ -7,17 +7,6 @@ export interface PredictSingleResponse {
   annotated_image_url: string;
 }
 
-function parseErrorText(status: number, raw: string): string {
-  try {
-    const parsed = JSON.parse(raw) as { detail?: string };
-    if (typeof parsed.detail === "string" && parsed.detail.trim()) {
-      return `HTTP ${status}: ${parsed.detail}`;
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return `HTTP ${status}: ${raw || "Request failed"}`;
-}
 
 export async function predictSinglePage(
   image: File,
@@ -49,8 +38,7 @@ export async function predictSinglePage(
   }
 
   if (!response.ok) {
-    const raw = await response.text();
-    throw new Error(parseErrorText(response.status, raw));
+    throw new ApiError(response.status, await readErrorDetail(response));
   }
 
   return (await response.json()) as PredictSingleResponse;

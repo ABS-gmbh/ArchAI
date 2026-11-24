@@ -58,7 +58,7 @@ export function describeRetrieval(retrieval: ChatRetrievalStatus | null | undefi
         badges.push({
           tone: "warn",
           label: `${label} · ${passages}`,
-          detail: "Part of the search did not run, so relevant evidence may have been missed.",
+          detail: `Part of the search did not run, so relevant evidence may have been missed.${hits > 0 ? "" : fallback}`,
         });
         break;
       }

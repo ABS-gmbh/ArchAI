@@ -1,4 +1,4 @@
-import { fetchBackend } from "./client";
+import { ApiError, fetchBackend, readErrorDetail } from "./client";
 
 export interface ChatModelListResponse {
   models: string[];
@@ -50,6 +50,8 @@ export interface ChatRetrievalStatus {
 
 export interface ChatCompletionResult {
   text: string;
+  /** The stream closed before its final event: `text` is only the part that arrived. */
+  incomplete?: boolean;
   retrieval?: ChatRetrievalStatus | null;
   model?: string;
   stage_metadata?: {
@@ -133,23 +135,10 @@ interface StreamError {
 
 type StreamEvent = StreamDelta | StreamDone | StreamError;
 
-function parseErrorText(status: number, raw: string): string {
-  try {
-    const parsed = JSON.parse(raw) as { detail?: string };
-    if (typeof parsed.detail === "string" && parsed.detail.trim()) {
-      return `HTTP ${status}: ${parsed.detail}`;
-    }
-  } catch {
-    // ignore json parse errors
-  }
-  return `HTTP ${status}: ${raw || "Request failed"}`;
-}
-
 export async function getChatModels(): Promise<ChatModelListResponse> {
   const res = await fetchBackend("/chat/models");
   if (!res.ok) {
-    const raw = await res.text();
-    throw new Error(parseErrorText(res.status, raw));
+    throw new ApiError(res.status, await readErrorDetail(res));
   }
   return (await res.json()) as ChatModelListResponse;
 }
@@ -166,8 +155,7 @@ export async function createChatCompletion(
   });
 
   if (!res.ok) {
-    const raw = await res.text();
-    throw new Error(parseErrorText(res.status, raw));
+    throw new ApiError(res.status, await readErrorDetail(res));
   }
 
   if (!useStream) {
@@ -191,6 +179,7 @@ export async function createChatCompletion(
   let inspection: ChatCompletionResult["inspection"] | undefined;
   let verification: ChatCompletionResult["verification"] | undefined;
   let retrieval: ChatCompletionResult["retrieval"] | undefined;
+  let finished = false;
 
   while (true) {
     const { value, done } = await reader.read();
@@ -220,6 +209,7 @@ export async function createChatCompletion(
           text += event.delta;
           onDelta?.(event.delta);
         } else if (event.type === "done") {
+          finished = true;
           text = event.text ?? text;
           model = event.model;
           stageMetadata = event.stage_metadata;
@@ -235,7 +225,9 @@ export async function createChatCompletion(
     }
   }
 
-  return { text, model, stage_metadata: stageMetadata, inspection, verification, retrieval };
+  // A stream that ends without "done" was cut off (proxy timeout, dropped
+  // connection): what arrived is not the whole answer and was never verified.
+  return { text, model, stage_metadata: stageMetadata, inspection, verification, retrieval, incomplete: !finished };
 }
 
 export async function analyzeSegmentLabel(
@@ -261,8 +253,7 @@ export async function analyzeSegmentLabel(
   }
 
   if (!res.ok) {
-    const raw = await res.text();
-    throw new Error(parseErrorText(res.status, raw));
+    throw new ApiError(res.status, await readErrorDetail(res));
   }
 
   return (await res.json()) as LabelAnalysisResult;
