@@ -2466,8 +2466,8 @@
     false
    ],
    "language": [
-    "latin",
-    0.10101
+    "spanish",
+    0.111111
    ],
    "latin_lines": [
     [
@@ -2681,15 +2681,15 @@
    },
    "quality": 0.986104,
    "region_quality": [
-    0.4955,
-    0.4955,
-    0.4955,
-    0.4755,
-    0.4755,
-    0.4755,
-    0.5755,
-    0.5755,
-    0.5755
+    0.5,
+    0.5,
+    0.5,
+    0.48,
+    0.48,
+    0.48,
+    0.58,
+    0.58,
+    0.58
    ],
    "sanitized": "& eurlano brsu apotce le\nvman grlsfer tehannes\nndirbur illisuente\nm ge lus & locurus en\nmnecum dcins: Unu ot\nre dam ubisponsam\nuvoykn agmi. Rsuscu\nErr me inypu inmonr\ncn magnim &alcumn-\nnofto ot milu curta\nchn rcam hepur alen\ndir cin darton drcarlo.\nhabtcrm clarrartin\ndi; Cumtu mur simile\nApide ppenotoramt\nquam capidur iasq\ndos ficur. enirrallur\nRhabr bar monummnag",
    "sanitized_fenced": "& eurlano brsu apotce le\nvman grlsfer tehannes\nndirbur illisuente\nm ge lus & locurus en\nmnecum dcins: Unu ot\nre dam ubisponsam\nuvoykn agmi. Rsuscu\nErr me inypu inmonr\ncn magnim &alcumn-\nnofto ot milu curta\nchn rcam hepur alen\ndir cin darton drcarlo.\nhabtcrm clarrartin\ndi; Cumtu mur simile\nApide ppenotoramt\nquam capidur iasq\ndos ficur. enirrallur\nRhabr bar monummnag"
