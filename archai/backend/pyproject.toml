@@ -28,9 +28,16 @@ dependencies = [
     # followed by `uvicorn app.main:app` fails at import time.
     "chromadb>=0.5.0",          # app/services/rag_store.py
     "requests>=2.31.0",         # app/services/glm_ollama_ocr.py
+    "python-dotenv>=1.0.0",     # app/config.py (also required by pydantic-settings)
 ]
 
 [project.optional-dependencies]
+# OpenCV for an install without ultralytics, which brings its own build
+# (opencv-python). Used by CI (scripts/ci_requirements.py); do not combine
+# with a full install, as both builds provide the same cv2 module.
+headless = [
+    "opencv-python-headless>=4.8,<5",
+]
 dev = [
     "pytest>=7.0.0",
     "httpx>=0.24.0",
