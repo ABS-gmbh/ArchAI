@@ -7,22 +7,40 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 type ButtonVariant = "primary" | "secondary" | "quiet";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-ink text-white hover:bg-ink/90 active:bg-ink/80 disabled:bg-control disabled:text-white",
-  secondary: "border border-field bg-sheet text-ink hover:bg-well active:bg-active disabled:text-ink-muted",
-  quiet: "text-ink hover:bg-active active:bg-control/60 disabled:text-ink-muted aria-disabled:text-ink-muted aria-disabled:hover:bg-transparent",
+  primary: "bg-ink text-white hover:bg-ink/90 active:bg-ink/80 aria-disabled:bg-control aria-disabled:text-white",
+  secondary: "border border-field bg-sheet text-ink hover:bg-well active:bg-active aria-disabled:bg-sheet aria-disabled:text-ink-muted",
+  quiet: "text-ink hover:bg-active active:bg-control/60 aria-disabled:bg-transparent aria-disabled:text-ink-muted",
 };
 
+/**
+ * The workspace's button. Unavailable is aria-disabled, not disabled: a button
+ * that is disabled while it has focus (Read page while reading, Next page on
+ * the last page, Zoom in at the largest zoom) loses that focus, and a keyboard
+ * user is left on the document body. An unavailable button keeps focus, is
+ * announced as unavailable, looks as it did, and ignores presses.
+ */
 export function Button({
   variant = "secondary",
   className = "",
   children,
+  disabled,
+  onClick,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
+  const unavailable = Boolean(disabled) || props["aria-disabled"] === true || props["aria-disabled"] === "true";
   return (
     <button
       type="button"
       {...props}
-      className={`inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 disabled:cursor-not-allowed aria-disabled:cursor-not-allowed ${BUTTON_VARIANTS[variant]} ${className}`}
+      aria-disabled={unavailable || undefined}
+      onClick={(event) => {
+        if (unavailable) {
+          event.preventDefault();
+          return;
+        }
+        onClick?.(event);
+      }}
+      className={`inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 aria-disabled:cursor-not-allowed ${BUTTON_VARIANTS[variant]} ${className}`}
     >
       {children}
     </button>
