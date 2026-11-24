@@ -11,6 +11,7 @@ const STAGE_WORDS: Record<string, string> = {
   QUALITY_GATES: "Quality check",
   QUALITY_BLOCKED: "Stopped by the quality check",
   ANALYZE_RUNNING: "Finding passages and names",
+  ANALYZE_DEGRADED: "Looking for names with a cautious search",
   ANALYZE_DONE: "Passages and names found",
   STORED: "Saved",
   AUTHORITY_LINKING_RUNNING: "Linking names to authority records",
@@ -62,6 +63,20 @@ const MESSAGE_WORDS: [RegExp, (match: RegExpExecArray) => string][] = [
   [/^RAG auto-index SKIPPED: token_search_allowed=False \(quality=(\w+)\)$/, (m) => `Skipped: the reading was rated ${m[1].toLowerCase()}, too uncertain to search.`],
   [/^token_search_allowed=False quality=\w+$/, () => ""],
   [/^Deferred linking stored unresolved mentions: total=(\d+)$/, (m) => `${plural(m[1], "name", "names")} kept, not linked`],
+  [
+    /^NER gate blocked full analysis; running degraded mention capture only \(quality=(\w+)\)$/,
+    (m) => `The reading was rated ${m[1].toLowerCase()}, so names are looked for with a cautious search only.`,
+  ],
+  [
+    /^Quality gates FAILED for segmented OCR\. quality_label_v2=(\w+),/,
+    (m) => `The reading was rated ${m[1].toLowerCase()}, too uncertain to search, look names up or translate.`,
+  ],
+  // The region-by-region reading (POST /ocr/page_with_trace).
+  [/^OCR trace run received\.$/, () => ""],
+  [/^Using provided location suggestions: (\d+)$/, (m) => `${plural(m[1], "layout region", "layout regions")} given with the page`],
+  [/^Segmented OCR on (\d+) regions\.$/, (m) => (m[1] === "1" ? "1 region, read on its own" : `${m[1]} regions, each read on its own`)],
+  // The exception's class name means nothing to a reader; its message is kept.
+  [/^Post-OCR pipeline failed: \w+: ([\s\S]*)$/, (m) => `The steps after reading failed: ${m[1]}`],
 ];
 
 export function messageInWords(message: string | null | undefined): string {
