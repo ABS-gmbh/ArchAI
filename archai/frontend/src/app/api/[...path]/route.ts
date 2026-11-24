@@ -60,6 +60,9 @@ function isApiTokenRefusal(res: http.IncomingMessage): boolean {
 }
 
 let tokenRefusalLogged = false;
+// The first cross-site refusal only: one line tells the operator, and a site
+// that keeps trying does not fill the log.
+let crossSiteLogged = false;
 
 function tokenRefused(method: string, path: string): Response {
   const refusal = tokenRefusal(Boolean(process.env.BACKEND_API_TOKEN));
@@ -86,8 +89,12 @@ async function proxy(req: NextRequest): Promise<Response> {
 
   const crossSite = crossSiteRefusal(method, req.headers, originOptions());
   if (crossSite) {
+    if (!crossSiteLogged) {
+      crossSiteLogged = true;
+      console.error(`[api proxy] ${req.nextUrl.pathname}: ${crossSite.log}`);
+    }
     return Response.json(
-      { detail: crossSite },
+      { detail: crossSite.detail },
       { status: 403, headers: { [PROXY_STATUS_HEADER]: "cross-site-refused", "cache-control": "no-store" } },
     );
   }

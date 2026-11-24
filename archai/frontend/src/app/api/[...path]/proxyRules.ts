@@ -106,6 +106,22 @@ function withoutDefaultPort(host: string): string {
   return host.trim().toLowerCase().replace(/:(80|443)$/, "");
 }
 
+export interface CrossSiteRefusal {
+  /** For the browser: what happened, and where an operator reads more. No configuration in it. */
+  detail: string;
+  /** For the frontend server's log: what was compared, and the settings that let the app's own pages through. */
+  log: string;
+}
+
+const REFUSAL_DETAIL =
+  "Refused: this request came from another site. The frontend accepts changes only from its own pages. " +
+  "If this is the app's own page, the frontend is behind a proxy that changes the Host header: " +
+  "see docs/deployment.md, 'Behind a reverse proxy'.";
+
+function quoted(value: string | null): string {
+  return JSON.stringify(String(value ?? "").slice(0, 200));
+}
+
 /**
  * Why a request must be refused as coming from another site, or null.
  *
@@ -116,15 +132,25 @@ function withoutDefaultPort(host: string): string {
  * not the frontend's own is refused. A request with no Origin is not a
  * browser's cross-site request, and is let through.
  */
-export function crossSiteRefusal(method: string, headers: Headers, options: OriginOptions): string | null {
+export function crossSiteRefusal(method: string, headers: Headers, options: OriginOptions): CrossSiteRefusal | null {
   if (SAFE_METHODS.has(method.toUpperCase())) {
     return null;
   }
-  const refusal = "Refused: this request came from another site. The frontend accepts changes only from its own pages.";
-  if ((headers.get("sec-fetch-site") || "").toLowerCase() === "cross-site") {
-    return refusal;
-  }
   const origin = headers.get("origin");
+  const forwardedHost = (headers.get("x-forwarded-host") || "").split(",")[0];
+  const refuse = (): CrossSiteRefusal => ({
+    detail: REFUSAL_DETAIL,
+    log:
+      `refused ${method.toUpperCase()} from Origin ${quoted(origin)} (Sec-Fetch-Site ${quoted(headers.get("sec-fetch-site"))}): ` +
+      `it matches neither Host ${quoted(headers.get("host"))}` +
+      (options.trustForwardedHost ? ` nor X-Forwarded-Host ${quoted(forwardedHost)}` : "") +
+      " nor FRONTEND_ORIGINS. If that origin is the app's own, behind a proxy that rewrites Host, set " +
+      "TRUST_FORWARDED_HOST=true (the proxy sets X-Forwarded-Host) or add the origin to FRONTEND_ORIGINS " +
+      "(docs/deployment.md, 'Behind a reverse proxy').",
+  });
+  if ((headers.get("sec-fetch-site") || "").toLowerCase() === "cross-site") {
+    return refuse();
+  }
   if (origin === null) {
     return null;
   }
@@ -132,17 +158,17 @@ export function crossSiteRefusal(method: string, headers: Headers, options: Orig
   try {
     parsed = new URL(origin);
   } catch {
-    return refusal; // "null" (a sandboxed frame, a file) or garbage
+    return refuse(); // "null" (a sandboxed frame, a file) or garbage
   }
   if (options.allowedOrigins.includes(parsed.origin.toLowerCase())) {
     return null;
   }
   const hosts = [headers.get("host") || ""];
   if (options.trustForwardedHost) {
-    hosts.push((headers.get("x-forwarded-host") || "").split(",")[0]);
+    hosts.push(forwardedHost);
   }
   const originHost = withoutDefaultPort(parsed.host);
-  return hosts.some((host) => host && withoutDefaultPort(host) === originHost) ? null : refusal;
+  return hosts.some((host) => host && withoutDefaultPort(host) === originHost) ? null : refuse();
 }
 
 /**
