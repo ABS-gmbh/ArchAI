@@ -1,0 +1,5684 @@
+{
+ "description": "Gold mentions and authority ids for eval/entities/heldout_pages.json, annotated 2026-11-24 to the guidelines in README.md ('Held-out name set'). One annotator (Claude, an AI model), reading diplomatic transcriptions without the images; 'unsure' marks doubtful mentions; 'uncertain' authority means a record may exist but the page does not settle which, or none was found.",
+ "types": [
+  "person",
+  "place",
+  "work"
+ ],
+ "pages": [
+  {
+   "page_id": "paris-bnf-smith-lesou-f-16#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "Georgio",
+     "type": "person",
+     "note": "fragment of a name at a line start",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Martini Iusti",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Barozi",
+     "type": "person",
+     "note": "Barozzi, family name; line start",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Franciscum",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Iacobum",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Philippũ",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Franciscum Georgiũ",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Sancti Marci",
+     "type": "place",
+     "occurrence": 2,
+     "note": "the Procuratia of San Marco; occurrence 1 is a feast day",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-smith-lesou-f-16#1",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "Bartholomei",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Bartholomei Ba",
+     "type": "person",
+     "note": "surname cut at the line end",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "oxford-bodleian-library-ms-rawl-b-499#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "Will̃o",
+     "type": "person",
+     "note": "William, parson of Fornaghe",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "ffornache",
+     "type": "place",
+     "note": "Fornaghe?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Thomas de hereforde",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Thomas de hereforde",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "kille",
+     "type": "place",
+     "note": "Kill, Co. Kildare?",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "kille",
+     "type": "place",
+     "occurrence": 2,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "kille",
+     "type": "place",
+     "occurrence": 3,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "kille",
+     "type": "place",
+     "occurrence": 4,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "makenulti",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "de bretteuille",
+     "type": "person",
+     "note": "end of a name cut at the line start",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Edwardo de balneo",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Will̃o",
+     "type": "person",
+     "occurrence": 2,
+     "note": "William the reeve of Kill",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Iacobo",
+     "type": "person",
+     "note": "James the clerk",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Siluestro drois",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "padin",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "agancloye",
+     "type": "place",
+     "note": "field name",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Rog̾o de Renni",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Simone de brothton",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Galfrido de Tiper",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Will̃o hib̃niens̃",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Will̃o Artur",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "siluester de drois",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Rog̾o de Salosburia",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Iacobo",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Rog̾o de Renni",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Simõe de brothton",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Willo hireys",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Will̃o Artur",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "oxford-bodleian-library-ms-rawl-b-499#1",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "sc̃e marie",
+     "type": "person",
+     "note": "the Virgin Mary, in a dedication",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q345"
+      ],
+      "viaf": [
+       "207159474183027661574",
+       "86913753"
+      ],
+      "how": "wbsearchentities 'Mary, mother of Jesus' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "sc̃o Thome",
+     "type": "person",
+     "note": "Thomas Becket, in a dedication",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q192236"
+      ],
+      "viaf": [
+       "100187947"
+      ],
+      "how": "wbsearchentities 'Thomas Becket' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Rob̃ de Com̃",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "dubl̃in",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1761"
+      ],
+      "viaf": [
+       "150028417"
+      ],
+      "how": "wbsearchentities 'Dublin' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Barranghe",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Rog̃ de hikelige",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "thome",
+     "type": "person",
+     "occurrence": 2,
+     "note": "beati thome martiris: Thomas Becket",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q192236"
+      ],
+      "viaf": [
+       "100187947"
+      ],
+      "how": "wbsearchentities 'Thomas Becket' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Dublin",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1761"
+      ],
+      "viaf": [
+       "150028417"
+      ],
+      "how": "wbsearchentities 'Dublin' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Rob̃ti de candidina",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "barrache",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "haydͤyn",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Will̃ms de Burc",
+     "type": "person",
+     "note": "William de Burgh?",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Wiͥ de burcke",
+     "type": "person",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "ardoyn",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Will̃ms de Burc",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "ardoin",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "hug̃ de Burc",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Theob̃ Walteri",
+     "type": "person",
+     "note": "Theobald Walter, chief butler of Ireland",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q7781540"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Theobald Walter, 1st Chief Butler of Ireland' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Wale hay de Walle",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Steph̃ de Walle",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Alane",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Reg̃ fil̃ Martini",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Rog̃ de sc̃o patͥc̃o",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Theob̃. Walt̃",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q7781540"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Theobald Walter, 1st Chief Butler of Ireland' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Will̃mo de burc",
+     "type": "person",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "hayduni",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Theob̃ Walt̾i",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q7781540"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Theobald Walter, 1st Chief Butler of Ireland' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "liege-archives-de-l-tat-t51-13#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "alb̃tꝰ",
+     "type": "person",
+     "note": "Albert, abbot of Gorze",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Stephano",
+     "type": "person",
+     "note": "Stephen of Bar, bishop of Metz, predecessor of the issuer",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": [],
+      "how": "wbsearchentities found no item for 'Stephen of Bar'; not filled from memory"
+     }
+    },
+    {
+     "surface": "alb̃to",
+     "type": "person",
+     "note": "the same abbot Albert",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Theodericꝰ",
+     "type": "person",
+     "note": "Theoderic, bishop-elect of Metz",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "sc̃m Trudonẽ",
+     "type": "place",
+     "note": "Sint-Truiden",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q37792"
+      ],
+      "viaf": [
+       "151253253",
+       "245033520"
+      ],
+      "how": "wbsearchentities 'Sint-Truiden' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "semur-en-auxois-biblioth-que-municipale-#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "ioħis",
+     "type": "person",
+     "note": "John of Réôme",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "COLUMBANI",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q319653"
+      ],
+      "viaf": [
+       "211159474192727661953",
+       "3217168048987638410003",
+       "4152151595774005470006",
+       "61583084",
+       "9262167867531523060007"
+      ],
+      "how": "wbsearchentities 'Columbanus' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "clarus",
+     "type": "person",
+     "note": "a man named Clarus",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "iohan",
+     "type": "person",
+     "note": "name cut at the line end",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "ioħs",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "IOHANNES",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "iohaNNis",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "iohannis",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "iohannes",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Agrestius",
+     "type": "person",
+     "note": "Agrestius, monk of Luxeuil?",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "nicasii",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "semur-en-auxois-biblioth-que-municipale-#1",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "IOH̃IS",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "ioħis",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "iohannis",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "iohannes",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "iohannes",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "iohannem",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "iohannes",
+     "type": "person",
+     "occurrence": 3,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "iohannes",
+     "type": "person",
+     "occurrence": 4,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Iohͣis",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q107863881"
+      ],
+      "viaf": [
+       "17152263"
+      ],
+      "how": "wbsearchentities 'John of Réôme' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-fr-604#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "piltre Othea",
+     "type": "work",
+     "note": "L'Epistre Othea, by Christine de Pizan",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q4373688"
+      ],
+      "viaf": [
+       "41154074394711741583"
+      ],
+      "how": "wbsearchentities 'Epistre Othea' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "nr̃e dame",
+     "type": "person",
+     "note": "the Virgin Mary",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q345"
+      ],
+      "viaf": [
+       "207159474183027661574",
+       "86913753"
+      ],
+      "how": "wbsearchentities 'Mary, mother of Jesus' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "dorleans",
+     "type": "person",
+     "note": "monseigneur d'Orleans: Louis I, duke of Orleans",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q337057"
+      ],
+      "viaf": [
+       "72829747"
+      ],
+      "how": "wbsearchentities 'Louis I, Duke of Orléans' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "nr̃e dame",
+     "type": "person",
+     "occurrence": 2,
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q345"
+      ],
+      "viaf": [
+       "207159474183027661574",
+       "86913753"
+      ],
+      "how": "wbsearchentities 'Mary, mother of Jesus' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Rommant de la Rose",
+     "type": "work",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q642211"
+      ],
+      "viaf": [
+       "7464152140002811100009"
+      ],
+      "how": "wbsearchentities 'Roman de la Rose' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "haynau",
+     "type": "place",
+     "note": "Hainaut",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q309460"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'County of Hainaut' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "xp̃ine de pizan",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q234816"
+      ],
+      "viaf": [
+       "100188547"
+      ],
+      "how": "wbsearchentities 'Christine de Pizan' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "dit de la Rose",
+     "type": "work",
+     "note": "Christine's Dit de la Rose",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "pitre au dieu damours",
+     "type": "work",
+     "note": "Epistre au dieu d'Amours",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "dit de poissy",
+     "type": "work",
+     "note": "Le Livre du dit de Poissy",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "dit des trois iugemens amoureux",
+     "type": "work",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "xp̃ine de pizan",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q234816"
+      ],
+      "viaf": [
+       "100188547"
+      ],
+      "how": "wbsearchentities 'Christine de Pizan' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "debat de deux amans",
+     "type": "work",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-fr-604#1",
+   "split": "dev",
+   "entities": []
+  },
+  {
+   "page_id": "paris-bnf-r-s-ye-1325#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "mars",
+     "type": "person",
+     "note": "Mars, the god",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": [],
+      "how": "wbsearchentities found no item for 'Mars (mythology)'; not filled from memory"
+     }
+    },
+    {
+     "surface": "Pan",
+     "type": "person",
+     "note": "Pan, the god",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": [],
+      "how": "wbsearchentities found no item for 'Pan (god)'; not filled from memory"
+     }
+    },
+    {
+     "surface": "Daudemont",
+     "type": "person",
+     "note": "Gringore's herald name?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Bar",
+     "type": "place",
+     "note": "the duchy of Bar",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q706679"
+      ],
+      "viaf": [
+       "141907183"
+      ],
+      "how": "wbsearchentities 'Duchy of Bar' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Pont",
+     "type": "place",
+     "note": "marquis du Pont: Pont-a-Mousson?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "aristote",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q868"
+      ],
+      "viaf": [
+       "108159371",
+       "1600149296227980670002",
+       "4306168049039238410003",
+       "605144647705519704282",
+       "72206945",
+       "7524651"
+      ],
+      "how": "wbsearchentities 'Aristotle' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Pierre Gringoire",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q2373032"
+      ],
+      "viaf": [
+       "29543440"
+      ],
+      "how": "wbsearchentities 'Pierre Gringore' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Anthoine",
+     "type": "person",
+     "note": "Antoine, duke of Lorraine and Calabria",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q590487"
+      ],
+      "viaf": [
+       "54506616"
+      ],
+      "how": "wbsearchentities 'Antoine, Duke of Lorraine' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Calabre",
+     "type": "place",
+     "note": "the duchy of Calabria, in Antoine's title",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1458"
+      ],
+      "viaf": [
+       "155870508"
+      ],
+      "how": "wbsearchentities 'Calabria' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Lorraine",
+     "type": "place",
+     "note": "the duchy of Lorraine",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q155019"
+      ],
+      "viaf": [
+       "131145259"
+      ],
+      "how": "wbsearchentities 'Duchy of Lorraine' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-r-s-ye-1325#1",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "Benedictus",
+     "type": "work",
+     "note": "the psalm or canticle Benedictus",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Pierre",
+     "type": "person",
+     "note": "Saint Peter",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q33923"
+      ],
+      "viaf": [
+       "13581141"
+      ],
+      "how": "wbsearchentities 'Saint Peter' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Pol",
+     "type": "person",
+     "note": "Saint Paul",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q9200"
+      ],
+      "viaf": [
+       "100178816",
+       "100178828",
+       "101799727",
+       "1547167504509793090008",
+       "268879132",
+       "305069717",
+       "4224168049039038410000",
+       "56160483787104992131",
+       "666144647702949521545",
+       "68937692",
+       "72147118118426340361",
+       "775154381057130292520",
+       "8145857075922922066",
+       "8323159477652327990003",
+       "99616928"
+      ],
+      "how": "wbsearchentities 'Paul the Apostle' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Frãcois",
+     "type": "person",
+     "note": "Saint Francis",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q676555"
+      ],
+      "viaf": [
+       "87832561"
+      ],
+      "how": "wbsearchentities 'Francis of Assisi' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Denys",
+     "type": "place",
+     "note": "a pilgrimage to Saint-Denis, or the saint",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Jacque",
+     "type": "person",
+     "note": "Saint James, in Galicia",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q43999"
+      ],
+      "viaf": [
+       "23151776723718010199",
+       "2394152331601003260006",
+       "289664662",
+       "316749235",
+       "88894564"
+      ],
+      "how": "wbsearchentities 'James the Great' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "galice",
+     "type": "place",
+     "note": "Galicia",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q3908"
+      ],
+      "viaf": [
+       "157837173",
+       "168542331"
+      ],
+      "how": "wbsearchentities 'Galicia (Spain)' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Marc",
+     "type": "person",
+     "note": "Saint Mark",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q31966"
+      ],
+      "viaf": [
+       "264405984"
+      ],
+      "how": "wbsearchentities 'Mark the Evangelist' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "George",
+     "type": "person",
+     "note": "Saint George",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q48438"
+      ],
+      "viaf": [
+       "27862930"
+      ],
+      "how": "wbsearchentities 'Saint George' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Andre",
+     "type": "person",
+     "note": "Saint Andrew",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q43399"
+      ],
+      "viaf": [
+       "45705266"
+      ],
+      "how": "wbsearchentities 'Andrew the Apostle' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-fr-413#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "Cayphas",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q211246"
+      ],
+      "viaf": [
+       "161055492"
+      ],
+      "how": "wbsearchentities 'Caiaphas' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "pilate",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q17131"
+      ],
+      "viaf": [
+       "1053154380953230290638",
+       "1212159478206127990006",
+       "172385754",
+       "196156563699123242909",
+       "22151776729918010368",
+       "27867680",
+       "283873472",
+       "4818171191090958030001",
+       "508145857891323021220",
+       "513152138590610980673",
+       "7731158070730408780007",
+       "786144647707776569744",
+       "84036530"
+      ],
+      "how": "wbsearchentities 'Pontius Pilate' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-fr-413#1",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "pilate",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q17131"
+      ],
+      "viaf": [
+       "1053154380953230290638",
+       "1212159478206127990006",
+       "172385754",
+       "196156563699123242909",
+       "22151776729918010368",
+       "27867680",
+       "283873472",
+       "4818171191090958030001",
+       "508145857891323021220",
+       "513152138590610980673",
+       "7731158070730408780007",
+       "786144647707776569744",
+       "84036530"
+      ],
+      "how": "wbsearchentities 'Pontius Pilate' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "pilate",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q17131"
+      ],
+      "viaf": [
+       "1053154380953230290638",
+       "1212159478206127990006",
+       "172385754",
+       "196156563699123242909",
+       "22151776729918010368",
+       "27867680",
+       "283873472",
+       "4818171191090958030001",
+       "508145857891323021220",
+       "513152138590610980673",
+       "7731158070730408780007",
+       "786144647707776569744",
+       "84036530"
+      ],
+      "how": "wbsearchentities 'Pontius Pilate' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "pilate",
+     "type": "person",
+     "occurrence": 3,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q17131"
+      ],
+      "viaf": [
+       "1053154380953230290638",
+       "1212159478206127990006",
+       "172385754",
+       "196156563699123242909",
+       "22151776729918010368",
+       "27867680",
+       "283873472",
+       "4818171191090958030001",
+       "508145857891323021220",
+       "513152138590610980673",
+       "7731158070730408780007",
+       "786144647707776569744",
+       "84036530"
+      ],
+      "how": "wbsearchentities 'Pontius Pilate' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "pilate",
+     "type": "person",
+     "occurrence": 4,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q17131"
+      ],
+      "viaf": [
+       "1053154380953230290638",
+       "1212159478206127990006",
+       "172385754",
+       "196156563699123242909",
+       "22151776729918010368",
+       "27867680",
+       "283873472",
+       "4818171191090958030001",
+       "508145857891323021220",
+       "513152138590610980673",
+       "7731158070730408780007",
+       "786144647707776569744",
+       "84036530"
+      ],
+      "how": "wbsearchentities 'Pontius Pilate' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "cesar",
+     "type": "person",
+     "note": "the emperor, Caesar",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "cesar",
+     "type": "person",
+     "occurrence": 2,
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Amias",
+     "type": "person",
+     "note": "Annas, the high priest?",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q51680"
+      ],
+      "viaf": [
+       "3069160728555810380000"
+      ],
+      "how": "wbsearchentities 'Annas' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Cayphas",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q211246"
+      ],
+      "viaf": [
+       "161055492"
+      ],
+      "how": "wbsearchentities 'Caiaphas' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-esp-458#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "sangarũ",
+     "type": "place",
+     "note": "river Sangarius",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Ganges",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q5089"
+      ],
+      "viaf": [
+       "134989216",
+       "251205486"
+      ],
+      "how": "wbsearchentities 'Ganges' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "licao",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "nilo",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q3392"
+      ],
+      "viaf": [
+       "129365562",
+       "316429432"
+      ],
+      "how": "wbsearchentities 'Nile' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Gercus",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "salmanasar",
+     "type": "person",
+     "note": "Shalmaneser, king",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q310640"
+      ],
+      "viaf": [
+       "199151246606944132886"
+      ],
+      "how": "wbsearchentities 'Shalmaneser V' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "bauilonia",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q5684"
+      ],
+      "viaf": [
+       "146198874"
+      ],
+      "how": "wbsearchentities 'Babylon' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "canpianacũ",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "epidamũ",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Horion",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "armenia",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q399"
+      ],
+      "viaf": [
+       "138518304"
+      ],
+      "how": "wbsearchentities 'Armenia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "tigri",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q35591"
+      ],
+      "viaf": [
+       "236538332"
+      ],
+      "how": "wbsearchentities 'Tigris' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Huth",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "mauritania",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q309272"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Mauretania' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "espanna",
+     "type": "place",
+     "note": "Spain, in a Roman-geography context",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q186513"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Hispania' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "çeltico",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Hoçias",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "thessalia",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q166919",
+       "Q1247568"
+      ],
+      "viaf": [
+       "233252552"
+      ],
+      "how": "wbsearchentities 'Thessaly' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Grauius",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Çiro",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q8423"
+      ],
+      "viaf": [
+       "201159474047227660387",
+       "2157523175527030626",
+       "311113679",
+       "317283453",
+       "384152138619610980576",
+       "552144647697969146525",
+       "588144647699981057831",
+       "86154380939630290892"
+      ],
+      "how": "wbsearchentities 'Cyrus the Great' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "asia la menor",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q51614"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Anatolia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "frigia",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q32579"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Phrygia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "alexandro de maçedonia",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q8409"
+      ],
+      "viaf": [
+       "101353608",
+       "150010712",
+       "238144647698704607750",
+       "260178606699401110009",
+       "263218367",
+       "281151028",
+       "305068913",
+       "316415327",
+       "3224178467071935190004",
+       "41848566",
+       "5203178467062035190001",
+       "531159478204427990005",
+       "53151776797218012092",
+       "607154380951330290701",
+       "707168048975638410001",
+       "765144647704392521762",
+       "773144647700590707289",
+       "88742742",
+       "9160178467127935190008",
+       "99934177"
+      ],
+      "how": "wbsearchentities 'Alexander the Great' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Griata",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "britania",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q23666"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Great Britain' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "cãbria",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "nilo",
+     "type": "place",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q3392"
+      ],
+      "viaf": [
+       "129365562",
+       "316429432"
+      ],
+      "how": "wbsearchentities 'Nile' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "hypacari",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "carçinen",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Gessus",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "narbona",
+     "type": "place",
+     "note": "la prouinçia de narbona: Gallia Narbonensis?",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q6555"
+      ],
+      "viaf": [
+       "163668245"
+      ],
+      "how": "wbsearchentities 'Narbonne' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "nenmaso",
+     "type": "place",
+     "note": "Nemausus, Nimes?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "coriphe",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Granicus",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1268444"
+      ],
+      "viaf": [
+       "248990497"
+      ],
+      "how": "wbsearchentities 'Granicus' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "meotidis",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Gerros",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "nilo",
+     "type": "place",
+     "occurrence": 3,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q3392"
+      ],
+      "viaf": [
+       "129365562",
+       "316429432"
+      ],
+      "how": "wbsearchentities 'Nile' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Gagatis",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "liçia",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q18927"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Lycia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Gargarus",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-esp-458#1",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "Liquentia",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "gallia çissalpina",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q199728"
+      ],
+      "viaf": [
+       "240776059"
+      ],
+      "how": "wbsearchentities 'Cisalpine Gaul' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "alotrine",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "meandẽ",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Margus",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Mandrus",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "india",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q668"
+      ],
+      "viaf": [
+       "135375457"
+      ],
+      "how": "wbsearchentities 'India' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Luno",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "mauritania",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q309272"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Mauretania' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Meduacus",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Melas",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "boeçia",
+     "type": "place",
+     "note": "written fused: deboeçia",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q187570"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Boeotia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Mestus",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "traçia",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q41741"
+      ],
+      "viaf": [
+       "246534538"
+      ],
+      "how": "wbsearchentities 'Thrace' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Merula",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Melas",
+     "type": "place",
+     "occurrence": 2,
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "chersonense",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "appẽuino",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1285"
+      ],
+      "viaf": [
+       "316432554"
+      ],
+      "how": "wbsearchentities 'Apennine Mountains' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Linternus",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "canpania",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1438"
+      ],
+      "viaf": [
+       "148325709"
+      ],
+      "how": "wbsearchentities 'Campania' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "çiliçia",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q620864",
+       "Q4819648"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Cilicia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "çiçilia",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q4951156",
+       "Q1460"
+      ],
+      "viaf": [
+       "149921888"
+      ],
+      "how": "wbsearchentities 'Sicily' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Matrona",
+     "type": "place",
+     "note": "Marne?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Lucca",
+     "type": "place",
+     "note": "here a river",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Marsia",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Lupia",
+     "type": "place",
+     "note": "Lippe?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Renũ",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q584"
+      ],
+      "viaf": [
+       "3145602320301361474"
+      ],
+      "how": "wbsearchentities 'Rhine' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "archadia",
+     "type": "place",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": [],
+      "how": "wbsearchentities found no item for 'Arcadia'; not filled from memory"
+     }
+    },
+    {
+     "surface": "siria",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q858"
+      ],
+      "viaf": [
+       "154701530"
+      ],
+      "how": "wbsearchentities 'Syria' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Liger",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1469"
+      ],
+      "viaf": [
+       "170297260"
+      ],
+      "how": "wbsearchentities 'Loire' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "asia",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q48"
+      ],
+      "viaf": [
+       "315526119"
+      ],
+      "how": "wbsearchentities 'Asia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Melpes",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "mauritania",
+     "type": "place",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q309272"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Mauretania' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Mardrageus",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "asdrubal",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q311702"
+      ],
+      "viaf": [
+       "62340381"
+      ],
+      "how": "wbsearchentities 'Hasdrubal Barca' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "españa",
+     "type": "place",
+     "note": "Spain, Roman context",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q186513"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Hispania' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "gallia",
+     "type": "place",
+     "occurrence": 2,
+     "note": "written fused: degallia; occurrence 1 is in gallia çissalpina",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q38060"
+      ],
+      "viaf": [
+       "242520115"
+      ],
+      "how": "wbsearchentities 'Gaul' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Melas",
+     "type": "place",
+     "occurrence": 3,
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "esculapio",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q83223"
+      ],
+      "viaf": [
+       "210996065",
+       "26163456235504812137",
+       "317108067",
+       "41157523413627032798",
+       "64798430",
+       "67151776786418011665",
+       "7146284266115330019",
+       "791144647701837368850"
+      ],
+      "how": "wbsearchentities 'Asclepius' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "arsinoe",
+     "type": "person",
+     "note": "Arsinoe, mother of Asclepius",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Metaurus",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q653678"
+      ],
+      "viaf": [
+       "244533928"
+      ],
+      "how": "wbsearchentities 'Metauro' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "umbria",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1280"
+      ],
+      "viaf": [
+       "154755801"
+      ],
+      "how": "wbsearchentities 'Umbria' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "minerua",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q126916"
+      ],
+      "viaf": [
+       "13107718"
+      ],
+      "how": "wbsearchentities 'Minerva' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "athenas",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1524"
+      ],
+      "viaf": [
+       "131280462"
+      ],
+      "how": "wbsearchentities 'Athens' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-esp-65#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "turias",
+     "type": "place",
+     "note": "As-turias, cut at the line start",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "alaua",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q81801"
+      ],
+      "viaf": [
+       "123148374",
+       "4007160364976763680007"
+      ],
+      "how": "wbsearchentities 'Álava' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "baztã",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q641755",
+       "Q379170"
+      ],
+      "viaf": [
+       "238152563"
+      ],
+      "how": "wbsearchentities 'Baztan' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Rodrigo",
+     "type": "person",
+     "note": "king Rodrigo, the last Visigothic king",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q243573"
+      ],
+      "viaf": [
+       "316428596"
+      ],
+      "how": "wbsearchentities 'Roderic' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Castiey",
+     "type": "place",
+     "note": "Castiey-lla, cut at the line end",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "aragon",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q199442"
+      ],
+      "viaf": [
+       "134417237"
+      ],
+      "how": "wbsearchentities 'Kingdom of Aragon' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-esp-65#1",
+   "split": "dev",
+   "entities": []
+  },
+  {
+   "page_id": "london-british-library-harley-ms-7403#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "caiphas",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q211246"
+      ],
+      "viaf": [
+       "161055492"
+      ],
+      "how": "wbsearchentities 'Caiaphas' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "symeon",
+     "type": "person",
+     "note": "Simeon, who held the child in the temple",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q345205"
+      ],
+      "viaf": [
+       "60229619"
+      ],
+      "how": "wbsearchentities 'Simeon (Gospel of Luke)' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "leui",
+     "type": "person",
+     "note": "Levi?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "simeon",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q345205"
+      ],
+      "viaf": [
+       "60229619"
+      ],
+      "how": "wbsearchentities 'Simeon (Gospel of Luke)' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "london-british-library-harley-ms-7403#1",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "simeon",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q345205"
+      ],
+      "viaf": [
+       "60229619"
+      ],
+      "how": "wbsearchentities 'Simeon (Gospel of Luke)' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "maria",
+     "type": "person",
+     "note": "the Virgin Mary",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q345"
+      ],
+      "viaf": [
+       "207159474183027661574",
+       "86913753"
+      ],
+      "how": "wbsearchentities 'Mary, mother of Jesus' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "symeons",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q345205"
+      ],
+      "viaf": [
+       "60229619"
+      ],
+      "how": "wbsearchentities 'Simeon (Gospel of Luke)' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "galilea",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q83241"
+      ],
+      "viaf": [
+       "172712077"
+      ],
+      "how": "wbsearchentities 'Galilee' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "ioseph",
+     "type": "person",
+     "note": "Joseph: of Arimathea, or Mary's husband",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-ita-481#0",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "mõtoro",
+     "type": "place",
+     "note": "Montoro, written fused with a: amõtoro",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Biã",
+     "type": "person",
+     "note": "Biancifiore (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Fło",
+     "type": "person",
+     "note": "Florio, the hero of the Filocolo (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Fło",
+     "type": "person",
+     "occurrence": 2,
+     "note": "Florio, the hero of the Filocolo (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Fło",
+     "type": "person",
+     "occurrence": 3,
+     "note": "Florio, the hero of the Filocolo (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Biã",
+     "type": "person",
+     "occurrence": 2,
+     "note": "Biancifiore (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "montoro",
+     "type": "place",
+     "note": "written fused: amontoro",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Ascaliom",
+     "type": "person",
+     "note": "Ascalion, a character",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-ita-481#1",
+   "split": "dev",
+   "entities": [
+    {
+     "surface": "Fło",
+     "type": "person",
+     "note": "Florio, the hero of the Filocolo (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Fło",
+     "type": "person",
+     "occurrence": 2,
+     "note": "Florio, the hero of the Filocolo (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Fło",
+     "type": "person",
+     "occurrence": 3,
+     "note": "Florio, the hero of the Filocolo (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Fło",
+     "type": "person",
+     "occurrence": 4,
+     "note": "Florio, the hero of the Filocolo (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Biã",
+     "type": "person",
+     "note": "Biancifiore (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Biã",
+     "type": "person",
+     "occurrence": 2,
+     "note": "Biancifiore (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Biã",
+     "type": "person",
+     "occurrence": 3,
+     "note": "Biancifiore (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Biã",
+     "type": "person",
+     "occurrence": 4,
+     "note": "Biancifiore (abbreviated)",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-archives-nationales-ll-108b#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "Goberti",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Balneolis",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Bartholomei",
+     "type": "person",
+     "note": "chapel of saints Bartholomew and Vincent",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q43982"
+      ],
+      "viaf": [
+       "25151776798218011992",
+       "40174994",
+       "6422277",
+       "84310051"
+      ],
+      "how": "wbsearchentities 'Bartholomew the Apostle' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Uincencii",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q318974"
+      ],
+      "viaf": [
+       "11154196694720111559",
+       "535159474048327660005",
+       "72193475"
+      ],
+      "how": "wbsearchentities 'Vincent of Saragossa' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Gobertus Buitardi",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Ioħes haẏs",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Geruasius Thiesse",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Io de kaerolay",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "R. de Baileux",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Ioħes",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "haudri",
+     "type": "place",
+     "note": "capelle haudri: the Haudry chapel?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Auberti",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "reginaldus de Putheolis",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Sepulcri",
+     "type": "place",
+     "note": "canons of Saint-Sepulcre?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Billart",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "G. de Porta",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-archives-nationales-ll-108b#1",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "mons",
+     "type": "place",
+     "note": "terra de mons",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Paris",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q90"
+      ],
+      "viaf": [
+       "158822968"
+      ],
+      "how": "wbsearchentities 'Paris' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Petrus Aguenini",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Sancti Mederici Pariẜ",
+     "type": "place",
+     "note": "Saint-Merri, Paris",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "uincenñ",
+     "type": "place",
+     "note": "Datum apud Vincennes",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q193819"
+      ],
+      "viaf": [
+       "133701274"
+      ],
+      "how": "wbsearchentities 'Vincennes' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Pħus",
+     "type": "person",
+     "note": "Philip, king of the French",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Alexandre le celier",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Iehan de Sains",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Girard louuel",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "ẏsabeau",
+     "type": "person",
+     "note": "surname on another line",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Paris",
+     "type": "place",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q90"
+      ],
+      "viaf": [
+       "158822968"
+      ],
+      "how": "wbsearchentities 'Paris' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Iaques Petit",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "henrẏ de Arnhen",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Paris",
+     "type": "place",
+     "occurrence": 3,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q90"
+      ],
+      "viaf": [
+       "158822968"
+      ],
+      "how": "wbsearchentities 'Paris' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Girard Ceruel",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "girart Ceruel",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "normãnie",
+     "type": "place",
+     "note": "ducatu normannie",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q842091"
+      ],
+      "viaf": [
+       "132859230"
+      ],
+      "how": "wbsearchentities 'Normandy' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-lat-10996#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "roscha",
+     "type": "place",
+     "note": "the abbey de Roscha",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "dyoñ",
+     "type": "place",
+     "note": "beati dyon.: Saint-Denis",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "guidone de caprosia",
+     "type": "person",
+     "note": "Guy of Chevreuse",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "herueo",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Bellum ramum",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Guidonem",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "meencort",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "haymerico",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Enardo",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "balneolis",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Guido de Leuies",
+     "type": "person",
+     "note": "Guy de Levis",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "stephano de monte fermeolo",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "marli",
+     "type": "place",
+     "note": "Marly?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "petro",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Nicholao",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "philipo",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "sc̃m Uictorem",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": [],
+      "how": "wbsearchentities found no item for 'Abbey of Saint-Victor, Paris'; not filled from memory"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-lat-10996#1",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "dasnois",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "mauriciꝰ",
+     "type": "person",
+     "note": "Maurice, bishop of Paris",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q727818"
+      ],
+      "viaf": [
+       "260146462604027770351",
+       "88627694"
+      ],
+      "how": "wbsearchentities 'Maurice de Sully' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Guido",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "caprosie",
+     "type": "place",
+     "note": "lord of Chevreuse",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q399366"
+      ],
+      "viaf": [
+       "33149366262885601228"
+      ],
+      "how": "wbsearchentities 'Chevreuse' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Roscha",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "bella penna",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "sancti nonni",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Logiis",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "nemore guidonis",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "caprosie",
+     "type": "place",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q399366"
+      ],
+      "viaf": [
+       "33149366262885601228"
+      ],
+      "how": "wbsearchentities 'Chevreuse' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "bele penne",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "bele penne",
+     "type": "place",
+     "occurrence": 2,
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "sancti nonni",
+     "type": "place",
+     "occurrence": 2,
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Guidonis",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "caprosie",
+     "type": "place",
+     "occurrence": 3,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q399366"
+      ],
+      "viaf": [
+       "33149366262885601228"
+      ],
+      "how": "wbsearchentities 'Chevreuse' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "helissendis",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Guiburgꝰ",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "herueꝰ",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "angers-archives-d-partementales-de-maine#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "bartholomei camilliacensis",
+     "type": "place",
+     "note": "canons of Saint-Barthelemy",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Milo p̃nestinꝰ",
+     "type": "person",
+     "note": "Milo, bishop of Palestrina, legate",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "florentii",
+     "type": "place",
+     "note": "abbey of Saint-Florent",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Gui.",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Burgulii",
+     "type": "place",
+     "note": "Bourgueil abbey",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Bal.",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "iouim",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Bri.",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "sergii",
+     "type": "place",
+     "note": "abbey of Saint-Serge",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Gual.",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "albim",
+     "type": "place",
+     "note": "abbey of Saint-Aubin",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "calĩmã",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "milo",
+     "type": "person",
+     "note": "the legate Milo again",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "mauricii",
+     "type": "place",
+     "note": "canons of Saint-Maurice",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "mauricuꝰ",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Mariȩ",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "egidii",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "qͥntini",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-lat-14650#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "aureliã",
+     "type": "place",
+     "note": "uia aurelia",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q756816"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Via Aurelia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "panchracii",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q336731"
+      ],
+      "viaf": [
+       "27868592",
+       "283338477"
+      ],
+      "how": "wbsearchentities 'Pancras of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Diocletianꝰ",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q43107"
+      ],
+      "viaf": [
+       "1057159474216927661955",
+       "141313669",
+       "2310159477754527990000",
+       "263887407",
+       "70259756",
+       "814144647708664153405",
+       "97151776731518010626"
+      ],
+      "how": "wbsearchentities 'Diocletian' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Pancraciꝰ",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q336731"
+      ],
+      "viaf": [
+       "27868592",
+       "283338477"
+      ],
+      "how": "wbsearchentities 'Pancras of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "pancracii",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q336731"
+      ],
+      "viaf": [
+       "27868592",
+       "283338477"
+      ],
+      "how": "wbsearchentities 'Pancras of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "pancraciꝰ",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q336731"
+      ],
+      "viaf": [
+       "27868592",
+       "283338477"
+      ],
+      "how": "wbsearchentities 'Pancras of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "pãcraciꝰ",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q336731"
+      ],
+      "viaf": [
+       "27868592",
+       "283338477"
+      ],
+      "how": "wbsearchentities 'Pancras of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "diocletiano",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q43107"
+      ],
+      "viaf": [
+       "1057159474216927661955",
+       "141313669",
+       "2310159477754527990000",
+       "263887407",
+       "70259756",
+       "814144647708664153405",
+       "97151776731518010626"
+      ],
+      "how": "wbsearchentities 'Diocletian' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "maximiano",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q46768"
+      ],
+      "viaf": [
+       "50478873"
+      ],
+      "how": "wbsearchentities 'Maximian' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-fr-12563#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "maiience",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1720"
+      ],
+      "viaf": [
+       "123738720",
+       "155482669"
+      ],
+      "how": "wbsearchentities 'Mainz' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Robault",
+     "type": "person",
+     "note": "a character",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Ihr̃lmn",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1218"
+      ],
+      "viaf": [
+       "131280745"
+      ],
+      "how": "wbsearchentities 'Jerusalem' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-fr-12563#1",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "Archã",
+     "type": "person",
+     "note": "Archambault, a character",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Archa̾",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "doelin",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Arch̃",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Archã",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "doon",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Arch̃",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Archa̾bault",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Salemon",
+     "type": "person",
+     "note": "a character",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-naf-4503#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "alexis",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q137947"
+      ],
+      "viaf": [
+       "35702254"
+      ],
+      "how": "wbsearchentities 'Alexius of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "alexis",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q137947"
+      ],
+      "viaf": [
+       "35702254"
+      ],
+      "how": "wbsearchentities 'Alexius of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "alexi",
+     "type": "person",
+     "occurrence": 3,
+     "note": "num alexi",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q137947"
+      ],
+      "viaf": [
+       "35702254"
+      ],
+      "how": "wbsearchentities 'Alexius of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-naf-4503#1",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "arsis",
+     "type": "place",
+     "note": "Alsis, Edessa",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "liche",
+     "type": "place",
+     "note": "Laodicea",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "alexĩs",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q137947"
+      ],
+      "viaf": [
+       "35702254"
+      ],
+      "how": "wbsearchentities 'Alexius of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "arsis",
+     "type": "place",
+     "occurrence": 2,
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "alexis",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q137947"
+      ],
+      "viaf": [
+       "35702254"
+      ],
+      "how": "wbsearchentities 'Alexius of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "alexis",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q137947"
+      ],
+      "viaf": [
+       "35702254"
+      ],
+      "how": "wbsearchentities 'Alexius of Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "tarsis",
+     "type": "place",
+     "note": "written fused: atarsis; Tarsus",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-esp-36#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "serin",
+     "type": "person",
+     "note": "the infanta Seringa?, cut at the line end",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "bres",
+     "type": "place",
+     "note": "Rey debres: written fused, a fictional kingdom?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-esp-36#1",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "ferrnãdo",
+     "type": "person",
+     "note": "Fernando, bishop of Calahorra",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "calahorra",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q642046"
+      ],
+      "viaf": [
+       "137218859"
+      ],
+      "how": "wbsearchentities 'Calahorra' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "toledo",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q5836"
+      ],
+      "viaf": [
+       "262780836"
+      ],
+      "how": "wbsearchentities 'Toledo' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "iuã",
+     "type": "person",
+     "note": "don Juan, son of the infante don Manuel",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q373007"
+      ],
+      "viaf": [
+       "29528474"
+      ],
+      "how": "wbsearchentities 'Don Juan Manuel' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "uiscaya",
+     "type": "place",
+     "note": "written fused: deuiscaya",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q93366"
+      ],
+      "viaf": [
+       "143051698"
+      ],
+      "how": "wbsearchentities 'Biscay' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "lope",
+     "type": "person",
+     "note": "don Lope, lord of Biscay",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Roma",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q220"
+      ],
+      "viaf": [
+       "243431474",
+       "251380480",
+       "445149106006268490419",
+       "6280157416838916710001"
+      ],
+      "how": "wbsearchentities 'Rome' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "manuel",
+     "type": "person",
+     "note": "infante don Manuel",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q2468400"
+      ],
+      "viaf": [
+       "2919157100619872740002"
+      ],
+      "how": "wbsearchentities 'Manuel of Castile' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "santa m̃iä la mayor",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q186282"
+      ],
+      "viaf": [
+       "235673748",
+       "248753162",
+       "293001968",
+       "317121634"
+      ],
+      "how": "wbsearchentities 'Santa Maria Maggiore' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Sanchõ",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q312110"
+      ],
+      "viaf": [
+       "37462"
+      ],
+      "how": "wbsearchentities 'Sancho IV of Castile' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "maria",
+     "type": "person",
+     "note": "reyna doña maria",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q266025"
+      ],
+      "viaf": [
+       "16782544"
+      ],
+      "how": "wbsearchentities 'María de Molina' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "españa",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q29"
+      ],
+      "viaf": [
+       "133609710"
+      ],
+      "how": "wbsearchentities 'Spain' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "enrriq̃",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1357700"
+      ],
+      "viaf": [
+       "86958359"
+      ],
+      "how": "wbsearchentities 'Henry of Castile the Senator' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "diego",
+     "type": "person",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-esp-368#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "filandro",
+     "type": "person",
+     "note": "Philander?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Thomas Spica",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Pedro Gilio",
+     "type": "person",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Fossés",
+     "type": "person",
+     "authority": {
+      "status": "none",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Pitagoras",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q10261"
+      ],
+      "viaf": [
+       "102862543",
+       "13151352051052602454",
+       "162237897",
+       "209894863",
+       "225158790508938850686",
+       "250958546",
+       "264085599",
+       "318159474331827662926",
+       "375157342860710100009",
+       "498168048974538410002",
+       "83073140",
+       "84036666"
+      ],
+      "how": "wbsearchentities 'Pythagoras' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Platon",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q859"
+      ],
+      "viaf": [
+       "108159964",
+       "123158790754138852978",
+       "192168048973138410001",
+       "276159474047727660458",
+       "303814984",
+       "4044156811375145390005",
+       "9045175780349917010002",
+       "9106168850967767620009"
+      ],
+      "how": "wbsearchentities 'Plato' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Mercurio",
+     "type": "person",
+     "note": "Mercury as inventor of the arts",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1150",
+       "Q192358"
+      ],
+      "viaf": [
+       "102459012",
+       "24571510",
+       "26151776784718011759",
+       "3267160668324503560001",
+       "439144783116713231916",
+       "65145970325532252490",
+       "82154381046430292063",
+       "822144647705342525212"
+      ],
+      "how": "wbsearchentities 'Hermes' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Pitagoras",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q10261"
+      ],
+      "viaf": [
+       "102862543",
+       "13151352051052602454",
+       "162237897",
+       "209894863",
+       "225158790508938850686",
+       "250958546",
+       "264085599",
+       "318159474331827662926",
+       "375157342860710100009",
+       "498168048974538410002",
+       "83073140",
+       "84036666"
+      ],
+      "how": "wbsearchentities 'Pythagoras' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Mercurio",
+     "type": "person",
+     "occurrence": 2,
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1150",
+       "Q192358"
+      ],
+      "viaf": [
+       "102459012",
+       "24571510",
+       "26151776784718011759",
+       "3267160668324503560001",
+       "439144783116713231916",
+       "65145970325532252490",
+       "82154381046430292063",
+       "822144647705342525212"
+      ],
+      "how": "wbsearchentities 'Hermes' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-ita-783#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "Orso",
+     "type": "person",
+     "note": "patriarch of Grado",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q339285"
+      ],
+      "viaf": [
+       "1083154501937839210008"
+      ],
+      "how": "wbsearchentities 'Orso Orseolo' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "pepon",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1391772"
+      ],
+      "viaf": [
+       "231946451"
+      ],
+      "how": "wbsearchentities 'Poppo of Aquileia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "uenexia",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q641",
+       "Q4948"
+      ],
+      "viaf": [
+       "159454011",
+       "168385648",
+       "8456155769103127880005"
+      ],
+      "how": "wbsearchentities 'Venice' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "rauena",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q13364"
+      ],
+      "viaf": [
+       "131479922",
+       "279348621"
+      ],
+      "how": "wbsearchentities 'Ravenna' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Oto",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q935635"
+      ],
+      "viaf": [
+       "57696385"
+      ],
+      "how": "wbsearchentities 'Otto Orseolo' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Omenego contarini",
+     "type": "person",
+     "note": "initial D missing",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q522675"
+      ],
+      "viaf": [
+       "171031548"
+      ],
+      "how": "wbsearchentities 'Domenico I Contarini' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "orsioli",
+     "type": "person",
+     "note": "the Orseolo family",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Omenego orsiolo",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q3713168"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Domenico Orseolo' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "oto",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q935635"
+      ],
+      "viaf": [
+       "57696385"
+      ],
+      "how": "wbsearchentities 'Otto Orseolo' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "omenego flabanigo",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q741273"
+      ],
+      "viaf": [
+       "220987021"
+      ],
+      "how": "wbsearchentities 'Domenico Flabanico' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Oto",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q935635"
+      ],
+      "viaf": [
+       "57696385"
+      ],
+      "how": "wbsearchentities 'Otto Orseolo' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Çara",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q3370"
+      ],
+      "viaf": [
+       "144237547"
+      ],
+      "how": "wbsearchentities 'Zadar' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "grecia",
+     "type": "place",
+     "note": "Greece or Byzantium",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "oto",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q935635"
+      ],
+      "viaf": [
+       "57696385"
+      ],
+      "how": "wbsearchentities 'Otto Orseolo' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "pepon",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1391772"
+      ],
+      "viaf": [
+       "231946451"
+      ],
+      "how": "wbsearchentities 'Poppo of Aquileia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Orso",
+     "type": "person",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q339285"
+      ],
+      "viaf": [
+       "1083154501937839210008"
+      ],
+      "how": "wbsearchentities 'Orso Orseolo' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "uenexia",
+     "type": "place",
+     "occurrence": 2,
+     "note": "written fused: auenexia",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q641",
+       "Q4948"
+      ],
+      "viaf": [
+       "159454011",
+       "168385648",
+       "8456155769103127880005"
+      ],
+      "how": "wbsearchentities 'Venice' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-ita-783#1",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "tyro",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q82070"
+      ],
+      "viaf": [
+       "124395803",
+       "248971129"
+      ],
+      "how": "wbsearchentities 'Tyre' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "dalmatia",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q528042",
+       "Q1330965"
+      ],
+      "viaf": [
+       "153270746",
+       "248536514"
+      ],
+      "how": "wbsearchentities 'Dalmatia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "spalato",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1663"
+      ],
+      "viaf": [
+       "154775061"
+      ],
+      "how": "wbsearchentities 'Split' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "trau",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q189161"
+      ],
+      "viaf": [
+       "144264595"
+      ],
+      "how": "wbsearchentities 'Trogir' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "belgrado",
+     "type": "place",
+     "note": "Biograd na Moru?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "Emondo",
+     "type": "person",
+     "note": "Gormond, patriarch of Jerusalem?",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "ierusalem",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1218"
+      ],
+      "viaf": [
+       "131280745"
+      ],
+      "how": "wbsearchentities 'Jerusalem' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "uenexia",
+     "type": "place",
+     "note": "auenexia",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q641",
+       "Q4948"
+      ],
+      "viaf": [
+       "159454011",
+       "168385648",
+       "8456155769103127880005"
+      ],
+      "how": "wbsearchentities 'Venice' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "ierusalẽ",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1218"
+      ],
+      "viaf": [
+       "131280745"
+      ],
+      "how": "wbsearchentities 'Jerusalem' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "sen gorgi",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "ongaria",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q171150"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Kingdom of Hungary' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Omenego michiel",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q281879"
+      ],
+      "viaf": [
+       "172303554"
+      ],
+      "how": "wbsearchentities 'Domenico Michiel' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Calisto",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q170654"
+      ],
+      "viaf": [
+       "11167759620413570068",
+       "264480374",
+       "316407512",
+       "97716484"
+      ],
+      "how": "wbsearchentities 'Pope Callixtus II' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Iero pollani",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q1073651"
+      ],
+      "viaf": [
+       "173661084"
+      ],
+      "how": "wbsearchentities 'Pietro Polani' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "baldoin",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q51718"
+      ],
+      "viaf": [
+       "120365288",
+       "286159474182827661554"
+      ],
+      "how": "wbsearchentities 'Baldwin II of Jerusalem' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "domenego",
+     "type": "person",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q281879"
+      ],
+      "viaf": [
+       "172303554"
+      ],
+      "how": "wbsearchentities 'Domenico Michiel' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "uenexia",
+     "type": "place",
+     "occurrence": 2,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q641",
+       "Q4948"
+      ],
+      "viaf": [
+       "159454011",
+       "168385648",
+       "8456155769103127880005"
+      ],
+      "how": "wbsearchentities 'Venice' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "croacie",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q858841",
+       "Q623573"
+      ],
+      "viaf": [],
+      "how": "wbsearchentities 'Croatia' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "uenexia",
+     "type": "place",
+     "occurrence": 3,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q641",
+       "Q4948"
+      ],
+      "viaf": [
+       "159454011",
+       "168385648",
+       "8456155769103127880005"
+      ],
+      "how": "wbsearchentities 'Venice' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "sen marcho",
+     "type": "place",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q172988"
+      ],
+      "viaf": [
+       "141608775",
+       "168148197"
+      ],
+      "how": "wbsearchentities \"St Mark's Basilica\" (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Tyro",
+     "type": "place",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q82070"
+      ],
+      "viaf": [
+       "124395803",
+       "248971129"
+      ],
+      "how": "wbsearchentities 'Tyre' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "soria",
+     "type": "place",
+     "note": "dellasoria: Syria",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    },
+    {
+     "surface": "sen nicholo dellido",
+     "type": "place",
+     "note": "San Nicolo di Lido",
+     "unsure": true,
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": []
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "florence-bncf-conventi-soppressi-c-iii-1#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "cõmedia",
+     "type": "work",
+     "note": "di questa commedia: the poem names itself",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q40185"
+      ],
+      "viaf": [
+       "127145068565666631399",
+       "181860567",
+       "22145424499486831132",
+       "310240817",
+       "5018155769094027880009",
+       "6801148997697859870002"
+      ],
+      "how": "wbsearchentities 'Divine Comedy' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  },
+  {
+   "page_id": "paris-bnf-esp-305#0",
+   "split": "test",
+   "entities": [
+    {
+     "surface": "Ecclesiastes",
+     "type": "work",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q131072"
+      ],
+      "viaf": [
+       "224729743",
+       "316620548",
+       "6678159477810427990008",
+       "7711167807421818130009"
+      ],
+      "how": "wbsearchentities 'Ecclesiastes' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "salamo",
+     "type": "person",
+     "authority": {
+      "status": "uncertain",
+      "qids": [],
+      "viaf": [],
+      "how": "wbsearchentities found no item for 'Solomon'; not filled from memory"
+     }
+    },
+    {
+     "surface": "Gregori",
+     "type": "person",
+     "note": "Gregori en lo dialogo",
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q42827"
+      ],
+      "viaf": [
+       "100184667",
+       "103646037",
+       "2167867486423060004",
+       "283027091",
+       "305078616",
+       "307185644",
+       "394158790634838852045",
+       "54148539",
+       "5819168049046738410000",
+       "63158790629638851734",
+       "7451167867524823060008",
+       "758154381044030291947",
+       "7802167867526223060008",
+       "8856148997662259870004",
+       "8978167867569623060006"
+      ],
+      "how": "wbsearchentities 'Pope Gregory I' (2026-11-24); VIAF ids are the items' P214"
+     }
+    },
+    {
+     "surface": "Thomas",
+     "type": "person",
+     "note": "sent Thomas",
+     "unsure": true,
+     "authority": {
+      "status": "linkable",
+      "qids": [
+       "Q9438"
+      ],
+      "viaf": [
+       "100910150"
+      ],
+      "how": "wbsearchentities 'Thomas Aquinas' (2026-11-24); VIAF ids are the items' P214"
+     }
+    }
+   ]
+  }
+ ]
+}
