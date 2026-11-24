@@ -1082,7 +1082,8 @@ async def ocr_extract(
     except RequestRefused as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except SaiaConfigError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        # The reader's sentence; the settings to set go to the log, once per failure streak.
+        raise HTTPException(status_code=422, detail=configuration_message(exc, provider="OCR provider")) from exc
     except Exception as exc:
         # OCRAgentError included: it quotes the provider's error.
         unexpected_error(exc, what="OCR extraction", provider="OCR provider")
