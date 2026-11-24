@@ -246,12 +246,23 @@ def test_ocr_extract_reports_a_rejected_key_through_the_agents_wrapper(monkeypat
     assert (response.status_code, response.json()["detail"]) == (502, "The OCR provider refused this server's key. Tell whoever runs it.")
 
 
-def test_ocr_extract_keeps_its_configuration_message(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_ocr_extract_tells_the_reader_the_ocr_provider_is_not_set_up(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """It answered the configuration text, naming CHAT_AI_API_KEY, to the reader; that goes to the log now."""
+    from app.services import setup_notices
     from app.services.saia_client import SaiaConfigError
 
+    setup_notices.reset()
     message = "Chat API key not configured. Set CHAT_AI_API_KEY (or SAIA_API_KEY) in backend/.env or environment."
-    response = _ocr_extract(monkeypatch, SaiaConfigError(message))
-    assert (response.status_code, response.json()["detail"]) == (422, message)
+    with caplog.at_level(logging.WARNING):
+        first = _ocr_extract(monkeypatch, SaiaConfigError(message))
+        second = _ocr_extract(monkeypatch, SaiaConfigError(message))
+    sentence = "Reading with the OCR provider is not set up on this server. Tell whoever runs it."
+    assert (first.status_code, first.json()["detail"]) == (422, sentence)
+    assert second.json()["detail"] == sentence
+    assert "CHAT_AI_API_KEY" not in first.text
+    assert sum("CHAT_AI_API_KEY" in record.getMessage() for record in caplog.records) == 1
 
 
 @pytest.mark.parametrize("path", ["/ocr/extract_full_page", "/ocr/saia"])
