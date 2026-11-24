@@ -4,10 +4,11 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager, suppress
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app.auth import require_api_token
 from app.body_limit import RequestBodyLimit
 from app.config import settings
 from app.logging_setup import configure_logging
@@ -51,6 +52,11 @@ async def _retention_sweep(retention: RetentionSweeper) -> None:
 async def lifespan(app: FastAPI):
     """Initialize model pool on startup, clean up on shutdown."""
     configure_logging(settings.log_level, settings.log_format)
+    if not settings.api_token:
+        logging.getLogger(__name__).warning(
+            "API_TOKEN is not set: the API is unauthenticated and must only be reachable from "
+            "localhost. Set API_TOKEN before exposing it (docs/deployment.md)."
+        )
     # A wrong TASK_BASE_DIR stops startup here, naming the variable.
     check_task_base_dir()
     # One worker process is supported (docs/deployment.md); a second one using
@@ -102,18 +108,12 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 
+# /api/health stays open for monitors and load balancers. Every other router
+# requires API_TOKEN when it is set (app/auth.py); add new routers to this list.
 app.include_router(health.router, prefix="/api")
-app.include_router(classes.router, prefix="/api")
-app.include_router(predict.router, prefix="/api")
-app.include_router(chat.router, prefix="/api")
-app.include_router(agents_ocr.router, prefix="/api")
-app.include_router(ocr.router, prefix="/api")
-app.include_router(evidence.router, prefix="/api")
-app.include_router(index.router, prefix="/api")
-app.include_router(rag_debug.router, prefix="/api")
-app.include_router(authority.router, prefix="/api")
-app.include_router(download.router, prefix="/api")
-app.include_router(analytics.router, prefix="/api")
+_PROTECTED = [Depends(require_api_token)]
+for _router in (classes, predict, chat, agents_ocr, ocr, evidence, index, rag_debug, authority, download, analytics):
+    app.include_router(_router.router, prefix="/api", dependencies=_PROTECTED)
 
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 if os.path.isdir(static_dir):

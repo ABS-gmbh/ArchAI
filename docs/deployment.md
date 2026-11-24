@@ -50,6 +50,7 @@ in `archai/backend` or pass them as environment variables.
 
 | Variable | Why it must be set |
 |---|---|
+| `API_TOKEN` | Without it the API has no authentication (startup logs a warning). Set at least 24 random characters, e.g. `python -c 'import secrets; print(secrets.token_urlsafe(32))'`. |
 | `CORS_ORIGINS` | The default allows only `localhost`/`127.0.0.1` on ports 3000 and 3001. Set the frontend's real origin, or leave it unset only if the browser reaches the backend through the frontend's `/api` proxy (same origin). |
 | `CHAT_AI_API_KEY` | Without it, chat, translation, SAIA OCR and provider embeddings fail ("Chat API key not configured"). |
 | `GLMOCR_OLLAMA_HOST` | The Ollama server running `glm-ocr`, if GLM-OCR or the segmented engine's fallback is to work. |
@@ -70,15 +71,27 @@ there. It needs no backup: task files expire after `TASK_TTL_MINUTES` (60).
 
 ## What to put in front
 
-The backend speaks plain HTTP and has **no authentication** except on the
-analytics routes. Anyone who can reach it can run OCR (spending SAIA credits
-and GPU or CPU time), read any run's text by its id, write evidence spans and
-delete a run's vectors. Do not expose it directly.
+The backend speaks plain HTTP. Unless `API_TOKEN` is set it has **no
+authentication** except on the analytics routes: anyone who can reach it can
+run OCR (spending SAIA credits and GPU or CPU time), read any run's text by
+its id, write evidence spans and delete a run's vectors. Do not expose it
+without a token or a proxy that authenticates.
+
+With `API_TOKEN` set, every route except `/api/health` requires the token,
+compared in constant time, and answers 401 otherwise. Send it as
+`X-API-Token: <token>` or `Authorization: Bearer <token>`. Analytics clients
+use `X-API-Token`, because their session token travels as `Authorization:
+Bearer`. The two event streams a browser opens with EventSource
+(`GET /api/ocr/trace/stream/{run_id}`, `GET /api/predict/batch/{id}/progress`)
+also accept it as `?token=`, and uvicorn's access log shows that value as
+`[redacted]`. A browser should not hold the token: let the frontend's
+server-side `/api` proxy add it.
 
 - **Bind to localhost** (`--host 127.0.0.1`, as above) and put a reverse proxy
   in front that terminates TLS.
-- **Authenticate at the proxy** (basic auth, single sign-on, an IP allow-list)
-  for every route except, if a monitor needs it, `/api/health`.
+- **Authenticate**: set `API_TOKEN`, or authenticate at the proxy (basic
+  auth, single sign-on, an IP allow-list) for every route except, if a monitor
+  needs it, `/api/health`. Both together do no harm.
 - **Body size:** the backend refuses bodies over `MAX_UPLOAD_MEGABYTES × 4/3 +
   1 MB` with 413. Set the proxy's limit to the same value or lower.
 - **Timeouts:** a full-page OCR request is synchronous and can take minutes

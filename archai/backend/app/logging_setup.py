@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sys
 from datetime import datetime, timezone
 from typing import Any, TextIO
@@ -38,6 +39,33 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False, default=str)
 
 
+_TOKEN_IN_QUERY = re.compile(r"([?&]token=)[^&\s\"]*")
+
+
+class RedactTokenFilter(logging.Filter):
+    """Blank the value of a ?token= query parameter before a record is written.
+
+    The two event-stream routes accept the API token in the query string
+    (app/auth.py), and uvicorn's access log writes each request's full path.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.args, tuple):
+            record.args = tuple(
+                _TOKEN_IN_QUERY.sub(r"\1[redacted]", arg) if isinstance(arg, str) else arg for arg in record.args
+            )
+        if isinstance(record.msg, str):
+            record.msg = _TOKEN_IN_QUERY.sub(r"\1[redacted]", record.msg)
+        return True
+
+
+def install_token_redaction() -> None:
+    """Attach the redaction to uvicorn's access logger, once."""
+    access = logging.getLogger("uvicorn.access")
+    if not any(isinstance(existing, RedactTokenFilter) for existing in access.filters):
+        access.addFilter(RedactTokenFilter())
+
+
 def configure_logging(level: str, fmt: str, *, stream: TextIO | None = None) -> logging.Handler:
     """Install (or replace) the backend's handler on the root logger and return it."""
     root = logging.getLogger()
@@ -49,4 +77,5 @@ def configure_logging(level: str, fmt: str, *, stream: TextIO | None = None) -> 
     handler.setFormatter(JsonFormatter() if fmt == "json" else logging.Formatter(_TEXT_FORMAT))
     root.addHandler(handler)
     root.setLevel(level)
+    install_token_redaction()
     return handler
