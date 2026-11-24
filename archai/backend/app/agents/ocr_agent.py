@@ -914,10 +914,8 @@ def _run_segmented_ocr_extraction(
         final_text=final_text or None,
         final_changes=_summarize_final_changes(raw_ocr.text, final_text),
     )
-    try:
-        write_ocr_evidence_jsonl(evidence_record)
-    except Exception:
-        pass
+    # Never raises; a failed write is logged by the writer, once per failure streak.
+    write_ocr_evidence_jsonl(evidence_record)
 
     if payload.mode == "simple":
         return OCRExtractSimpleResponse(
@@ -1254,10 +1252,8 @@ def _run_ocr_extraction(
         final_text=final_text or None,
         final_changes=_summarize_final_changes(raw_ocr.text, final_text),
     )
-    try:
-        write_ocr_evidence_jsonl(evidence_record)
-    except Exception:
-        pass
+    # Never raises; a failed write is logged by the writer, once per failure streak.
+    write_ocr_evidence_jsonl(evidence_record)
 
     if payload.mode == "simple":
         return OCRExtractSimpleResponse(
