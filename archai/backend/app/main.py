@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.auth import require_api_token
 from app.body_limit import RequestBodyLimit
+from app.security_headers import SecurityHeaders
 from app.config import settings
 from app.logging_setup import configure_logging
 from app.process_guard import guard_for_database
@@ -124,6 +125,8 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["Content-Disposition"],
 )
+# Outermost, so every answer carries it: 413s, CORS preflights, errors.
+app.add_middleware(SecurityHeaders)
 
 # /api/health stays open for monitors and load balancers. Every other router
 # requires API_TOKEN when it is set (app/auth.py); add new routers to this list.
