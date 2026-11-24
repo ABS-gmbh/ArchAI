@@ -734,20 +734,27 @@ def _table_columns(conn: sqlite3.Connection, table_name: str) -> list[str]:
     return [str(row[1]) for row in rows]
 
 
-def table_view_for_run(run_id: str) -> dict[str, Any]:
+def _limited(sql: str, params: tuple[Any, ...], limit: int | None) -> tuple[str, tuple[Any, ...]]:
+    """*sql* with a LIMIT, when one is given."""
+    if limit is None:
+        return sql, params
+    return f"{sql} LIMIT ?", (*params, int(limit))
+
+
+def table_view_for_run(run_id: str, limit: int | None = None) -> dict[str, Any]:
     _init_db_if_needed()
     with _connect() as conn:
         columns = _table_columns(conn, "pipeline_runs")
-        rows = conn.execute("SELECT * FROM pipeline_runs WHERE run_id=?", (run_id,)).fetchall()
+        rows = conn.execute(*_limited("SELECT * FROM pipeline_runs WHERE run_id=?", (run_id,), limit)).fetchall()
     values = [[row[col] for col in columns] for row in rows]
     return {"table": "pipeline_runs", "columns": columns, "rows": values}
 
 
-def table_view_for_events(run_id: str) -> dict[str, Any]:
+def table_view_for_events(run_id: str, limit: int | None = None) -> dict[str, Any]:
     _init_db_if_needed()
     with _connect() as conn:
         columns = _table_columns(conn, "pipeline_events")
-        rows = conn.execute("SELECT * FROM pipeline_events WHERE run_id=? ORDER BY id ASC", (run_id,)).fetchall()
+        rows = conn.execute(*_limited("SELECT * FROM pipeline_events WHERE run_id=? ORDER BY id ASC", (run_id,), limit)).fetchall()
     values = [[row[col] for col in columns] for row in rows]
     return {"table": "pipeline_events", "columns": columns, "rows": values}
 
@@ -1053,40 +1060,40 @@ def count_entity_mentions(run_id: str) -> int:
     return int(row["c"] if row else 0)
 
 
-def table_view_for_chunks(run_id: str) -> dict[str, Any]:
+def table_view_for_chunks(run_id: str, limit: int | None = None) -> dict[str, Any]:
     _init_db_if_needed()
     with _connect() as conn:
         columns = _table_columns(conn, "chunks")
-        rows = conn.execute("SELECT * FROM chunks WHERE run_id=? ORDER BY idx ASC", (run_id,)).fetchall()
+        rows = conn.execute(*_limited("SELECT * FROM chunks WHERE run_id=? ORDER BY idx ASC", (run_id,), limit)).fetchall()
     values = [[row[col] for col in columns] for row in rows]
     return {"table": "chunks", "columns": columns, "rows": values}
 
 
-def table_view_for_entity_mentions(run_id: str) -> dict[str, Any]:
+def table_view_for_entity_mentions(run_id: str, limit: int | None = None) -> dict[str, Any]:
     _init_db_if_needed()
     with _connect() as conn:
         columns = _table_columns(conn, "entity_mentions")
-        rows = conn.execute(
+        rows = conn.execute(*_limited(
             "SELECT * FROM entity_mentions WHERE run_id=? ORDER BY start_offset ASC, confidence DESC",
-            (run_id,),
-        ).fetchall()
+            (run_id,), limit,
+        )).fetchall()
     values = [[row[col] for col in columns] for row in rows]
     return {"table": "entity_mentions", "columns": columns, "rows": values}
 
 
-def table_view_for_entity_candidates(run_id: str) -> dict[str, Any]:
+def table_view_for_entity_candidates(run_id: str, limit: int | None = None) -> dict[str, Any]:
     _init_db_if_needed()
     with _connect() as conn:
         columns = _table_columns(conn, "entity_candidates")
-        rows = conn.execute(
+        rows = conn.execute(*_limited(
             """
             SELECT c.* FROM entity_candidates c
             JOIN entity_mentions m ON m.mention_id = c.mention_id
             WHERE m.run_id=?
             ORDER BY c.score DESC, c.cand_id ASC
             """,
-            (run_id,),
-        ).fetchall()
+            (run_id,), limit,
+        )).fetchall()
     values = [[row[col] for col in columns] for row in rows]
     return {"table": "entity_candidates", "columns": columns, "rows": values}
 
@@ -1417,6 +1424,7 @@ def list_evidence_spans(
     run_id: str | None = None,
     mention_id: str | None = None,
     chunk_id: str | None = None,
+    limit: int | None = None,
 ) -> list[dict[str, Any]]:
     _init_db_if_needed()
     sql = "SELECT * FROM evidence_spans WHERE 1=1"
@@ -1434,6 +1442,9 @@ def list_evidence_spans(
         sql += " AND chunk_id=?"
         params.append(chunk_id)
     sql += " ORDER BY created_at ASC, span_id ASC"
+    if limit is not None:
+        sql += " LIMIT ?"
+        params.append(int(limit))
     with _connect() as conn:
         rows = conn.execute(sql, params).fetchall()
     results: list[dict[str, Any]] = []
@@ -1770,14 +1781,14 @@ def count_entity_decisions(run_id: str, *, status: str | None = None) -> int:
     return int(row["c"] if row else 0)
 
 
-def table_view_for_entity_decisions(run_id: str) -> dict[str, Any]:
+def table_view_for_entity_decisions(run_id: str, limit: int | None = None) -> dict[str, Any]:
     _init_db_if_needed()
     with _connect() as conn:
         columns = _table_columns(conn, "entity_decisions")
-        rows = conn.execute(
+        rows = conn.execute(*_limited(
             "SELECT * FROM entity_decisions WHERE run_id=? ORDER BY start_offset ASC",
-            (run_id,),
-        ).fetchall()
+            (run_id,), limit,
+        )).fetchall()
     values = [[row[col] for col in columns] for row in rows]
     return {"table": "entity_decisions", "columns": columns, "rows": values}
 
@@ -1896,31 +1907,31 @@ def list_entity_attempts(decision_id: str) -> list[dict[str, Any]]:
     return [{key: row[key] for key in row.keys()} for row in rows]
 
 
-def table_view_for_entity_attempts(run_id: str) -> dict[str, Any]:
+def table_view_for_entity_attempts(run_id: str, limit: int | None = None) -> dict[str, Any]:
     _init_db_if_needed()
     with _connect() as conn:
         columns = _table_columns(conn, "entity_attempts")
-        rows = conn.execute(
+        rows = conn.execute(*_limited(
             """
             SELECT a.* FROM entity_attempts a
             JOIN entity_decisions d ON d.decision_id = a.decision_id
             WHERE d.run_id=?
             ORDER BY a.decision_id, a.attempt_idx
             """,
-            (run_id,),
-        ).fetchall()
+            (run_id,), limit,
+        )).fetchall()
     values = [[row[col] for col in columns] for row in rows]
     return {"table": "entity_attempts", "columns": columns, "rows": values}
 
 
-def table_view_for_ocr_backend_results(run_id: str) -> dict[str, Any]:
+def table_view_for_ocr_backend_results(run_id: str, limit: int | None = None) -> dict[str, Any]:
     _init_db_if_needed()
     with _connect() as conn:
         columns = _table_columns(conn, "ocr_backend_results")
-        rows = conn.execute(
+        rows = conn.execute(*_limited(
             "SELECT * FROM ocr_backend_results WHERE run_id=? ORDER BY created_at ASC, region_id ASC",
-            (run_id,),
-        ).fetchall()
+            (run_id,), limit,
+        )).fetchall()
     values = [[row[col] for col in columns] for row in rows]
     return {"table": "ocr_backend_results", "columns": columns, "rows": values}
 
