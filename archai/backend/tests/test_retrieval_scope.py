@@ -214,4 +214,5 @@ def test_retrieve_debug_reports_how_the_hits_were_found(store: None, monkeypatch
     payload = rag_store.retrieve_debug("Caldus li roys", k=2, run_id=run_id)
     assert payload["mode"] == "lexical"
     assert payload["results"][0]["chunk_id"] == f"{run_id}:1"
-    assert any("provider down" in note for note in payload["notes"])
+    assert "dense ranking unavailable" in payload["notes"]
+    assert not any("provider down" in note for note in payload["notes"])  # the error text stays in the log

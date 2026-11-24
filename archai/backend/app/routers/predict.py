@@ -23,6 +23,7 @@ from app.agents.segmentation_agent import run_single_segmentation
 from app.config import settings
 from app.core.model_runner import combine_and_filter_predictions
 from app.services.coco_utils import filter_coco_by_classes, merge_coco_list, stats_from_coco
+from app.services.public_errors import public_failure
 from app.services.file_manager import TaskState, create_task, discard_task, get_task, get_task_dir, save_task_state
 from app.services.inference import run_models_parallel
 from app.services.visualization import draw_coco_on_image
@@ -494,7 +495,7 @@ def _run_batch(task: TaskState, zip_path: str, conf: float, iou: float, selected
                     task.stats_summary[k] = task.stats_summary.get(k, 0) + v
 
             except Exception as e:
-                task.errors.append(f"Error processing {fn}: {str(e)}")
+                task.errors.append(public_failure(f"Processing {fn}", e, logger=_LOGGER))
 
         # Save merged COCO JSON before announcing completion, so a client that
         # fetches results on "completed" finds them.

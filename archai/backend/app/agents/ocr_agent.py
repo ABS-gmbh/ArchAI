@@ -15,6 +15,7 @@ from PIL import Image
 
 from app.agents._llm_common import chat_completion_preferring_json_object, is_image_too_large_error
 from app.agents.base import BaseAgent
+from app.services.public_errors import public_failure
 from app.agents.crop_agent import crop_page_region, decode_image_bytes, decode_page
 from app.agents.ocr_proofreader_agent import OcrProofreaderAgent
 from app.config import settings
@@ -1052,7 +1053,7 @@ def _ocr_tile_with_model_candidates(
                         continue
 
                 if idx + 1 < len(selected_models):
-                    reason = "MODEL_NOT_FOUND" if is_model_not_found_error(exc) else f"MODEL_ERROR:{exc}"
+                    reason = "MODEL_NOT_FOUND" if is_model_not_found_error(exc) else f"MODEL_ERROR:{public_failure(model, exc, logger=log)}"
                     fallback_records.append(OCRFallback(model=model, reason=reason))
                     fallbacks_used.append(model)
                     break

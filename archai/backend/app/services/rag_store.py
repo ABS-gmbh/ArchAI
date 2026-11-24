@@ -835,7 +835,7 @@ def retrieve_chunks(
         query_embeddings = _embed([embedding_input(query, query=True)])
     except EmbeddingUnavailable as exc:
         log.warning("Dense retrieval unavailable: %s", exc)
-        notes.append(f"dense ranking unavailable: {exc}")
+        notes.append("dense ranking unavailable")  # the error is in the log line above
     else:
         if run_ids is not None:
             _ensure_chunk_runs_indexed(scope)
@@ -849,7 +849,7 @@ def retrieve_chunks(
             ranked = _lexical_ranking(query, scope, limit=pool)
         except Exception as exc:  # noqa: BLE001 - fusion must never cost the dense result
             log.warning("Lexical retrieval failed; using the dense ranking alone: %s", exc)
-            notes.append(f"lexical ranking failed: {exc}")
+            notes.append("lexical ranking failed")  # the error is in the log line above
         else:
             if ranked is None:
                 notes.append(f"lexical ranking skipped: more than rag_lexical_max_chunks={settings.rag_lexical_max_chunks} chunks in scope")
@@ -1007,7 +1007,7 @@ def retrieve_entities(
         query_embeddings = _embed([embedding_input(query, query=True)])
     except EmbeddingUnavailable as exc:
         log.warning("Entity retrieval unavailable: %s", exc)
-        return RetrievalResult(mode="none", notes=[f"dense ranking unavailable: {exc}"])
+        return RetrievalResult(mode="none", notes=["dense ranking unavailable"])
     if run_ids is not None:
         _ensure_entity_runs_indexed(scope)
     col = _entity_collection(backend_key=_space_key())
