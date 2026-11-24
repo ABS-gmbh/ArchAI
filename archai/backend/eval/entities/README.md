@@ -315,9 +315,9 @@ Gold, one annotator, without the images:
 
 `scripts/benchmark_names_heldout.py`, current code. Authority responses were
 recorded live (1,107 requests, none failed) to `heldout_linking_cache.json.gz`
-(gzip; SHA-256 of the uncompressed JSON ce775ef9aa87172f754d8b871351ff4f0a5826f904e4bb5b9c67246e5ffd1704), so
+(gzip; SHA-256 of the uncompressed JSON ad1bec786f7c54571b47883aafb4922e176f4ea936878f1a189f4c9d10916908), so
 reruns are offline. The changes below added the requests their new queries
-make (1,134 distinct requests after the lexicon change). Unsure gold mentions are left out. Intervals are 95%,
+make (1,164 distinct requests after the separator change). Unsure gold mentions are left out. Intervals are 95%,
 resampled over manuscripts.
 
 | | gold | found | spurious / extracted | links c / w / a / m |
@@ -366,6 +366,7 @@ pages before it was kept. Development pages, links c / w / a / m: reference
 |---|---|---|---|---|---|
 | baseline | 52 / 152 | 65 / 129 | 23 / 3 / 22 / 90 | 1 / 0 / 22 / 68 | 22 / 3 / 0 / 22 |
 | "sainct" a title; "la"/"le"/"les" after "de" a particle | 55 / 152 | 65 / 134 | 23 / 3 / 25 / 87 | 1 / 0 / 25 / 65 | 22 / 3 / 0 / 22 |
+| and a sentence point (. ; :) ends a run of capitals | 51 / 152 | 63 / 129 | 19 / 3 / 25 / 91 | 1 / 0 / 25 / 65 | 18 / 3 / 0 / 26 |
 
 - **Lexicon.** Of the 33 capitalised B-dev names never proposed, 2 were lost
   to a missing spelling of a title ("sainct Pol", "sainct Frãcois") and 1 to
@@ -380,3 +381,16 @@ pages before it was kept. Development pages, links c / w / a / m: reference
   capital mid-line is a gold name 64 times in 227 on B-dev, so no rule
   proposes it), 8 a capitalised given name with a lowercase byname
   ("Thomas de hereforde").
+- **Sentence points.** The run of capitals went across ". ; :", making
+  "Sancti Marci. In", "Ducentesimo. Sexagesimo", "Dominos Franciscum.
+  Iacobum". It now stops there, except at a point after an abbreviated word
+  (a combining mark or an abbreviation letter: "Theob̃. Walt̃"). The table
+  shows four gold names fewer found: Iacobum and Biã three times. They were
+  never found as names: each sat inside a span running across a point into
+  the next sentence ("Biã. La", "Biã. Accio", "Dominos Franciscum.
+  Iacobum"), and the scoring counted it found because the span overlapped
+  the name, and correct because a name with no record that is left unlinked
+  scores as correct. That was an artefact of the scoring, not a find. After
+  the cut each is a lone capital, which no rule proposes. The spans are now
+  the names alone, and they are the baseline the next changes (the query
+  trimming and the spurious-mention rules) are measured against.

@@ -145,3 +145,20 @@ def test_de_la_inside_a_capitalised_name_does_not_cut_it() -> None:
 
 def test_la_without_de_still_ends_a_run() -> None:
     assert "Rommant la Rose" not in [m["surface"] for m in _mentions("Item Rommant la Rose")]
+
+
+# ── sentence punctuation ends a run of capitals ────────────────────────
+
+
+def test_a_sentence_point_ends_a_name() -> None:
+    """"Dominos Franciscum. Iacobum" was one mention across the point, and "Sancti Marci. In" took the next sentence's first word."""
+    surfaces = [m["surface"] for m in _mentions("deuenire in Dominos Franciscum. Iacobum. et Philippũ.")]
+    assert "Dominos Franciscum" in surfaces
+    assert not any("." in s for s in surfaces)  # no mention runs across a point
+    assert not any(s.endswith(" In") for s in [m["surface"] for m in _mentions("Procuratorum Sancti Marci. In quo")])
+    assert [m["surface"] for m in _mentions("Ducentesimo. Sexagesimo")] == []
+
+
+def test_a_point_after_an_abbreviated_word_does_not_end_the_name() -> None:
+    """"Theob̃. Walt̃" (B-dev, Bodleian Rawl. B 499): the point abbreviates Theobaldus."""
+    assert "Theob̃. Walt̃" in [m["surface"] for m in _mentions("Theob̃. Walt̃ dedit Will̃mo de burc")]
