@@ -60,7 +60,7 @@ import { BackendStatusBanner } from "./BackendStatusBanner";
 import { ChatPanel } from "./ChatPanel";
 import { DocumentPanel } from "./DocumentPanel";
 import { EntitiesPanel, type LinkingState } from "./EntitiesPanel";
-import { splitMentions } from "./linkReason";
+import { groupMentions, splitMentions } from "./linkReason";
 import { MetadataDialog } from "./MetadataDialog";
 import { PageViewer } from "./PageViewer";
 import { RunPanel, stageInWords } from "./RunPanel";
@@ -1683,9 +1683,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         .join(" · ")
     : "";
   const panel: "ask" | "names" | "run" | "about" = pane === "names" || pane === "run" || pane === "about" ? pane : "ask";
-  // Names only, as the panel counts them (titles, roles and dates are listed apart).
+  // Names only, one per row, as the panel counts them (titles, roles and dates are listed apart).
   const namesCount =
-    currentLinking.phase === "ready" ? splitMentions(currentLinking.report.mention_results ?? []).names.length : null;
+    currentLinking.phase === "ready" ? groupMentions(splitMentions(currentLinking.report.mention_results ?? []).names).length : null;
   const tabs: { id: WorkspacePane; label: string; only?: string }[] = [
     { id: "page", label: "Page", only: "md:hidden" },
     { id: "text", label: "Transcription", only: "xl:hidden" },

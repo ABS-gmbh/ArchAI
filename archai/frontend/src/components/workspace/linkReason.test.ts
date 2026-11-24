@@ -7,11 +7,15 @@ import { describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  groupMentions,
+  groupNote,
   isName,
   KIND_WORDS,
   kindLabel,
   linkingSummary,
   mentionStatus,
+  nameKey,
+  namesHeadline,
   otherMarksSummary,
   reasonInWords,
   splitMentions,
@@ -185,5 +189,52 @@ describe("the kinds of mention", () => {
     for (const kind of ["title", "role", "date", "DATE"]) {
       assert.equal(isName(kind), false, kind);
     }
+  });
+});
+
+// The fmb-cb-0001 page as the final live run read it (2026-11-24).
+describe("one row per name", () => {
+  const fmb = [
+    { surface: "Caldꝰ li roys", ent_type: "person", status: "unresolved" },
+    { surface: "Marcadigas", ent_type: "person", status: "unresolved" },
+    { surface: "marcadigas", ent_type: "person", status: "unresolved" },
+    { surface: "Roys mͣrcadigas", ent_type: "person", status: "unresolved" },
+  ];
+
+  it("leaves out letter case and combining marks, not letters", () => {
+    assert.equal(nameKey("Marcadigas"), nameKey("marcadigas"));
+    assert.equal(nameKey("dñs"), nameKey("Dns")); // ñ is n with a combining tilde
+    assert.equal(nameKey("mͣrcadigas"), "mrcadigas"); // the superscript a is a mark
+    assert.notEqual(nameKey("Caldꝰ"), nameKey("Cald")); // ꝰ is a letter of its own
+    assert.equal(nameKey("  La  satyre "), "la satyre");
+  });
+
+  it("shows the fmb-cb-0001 page's four mentions as three names", () => {
+    const groups = groupMentions(fmb);
+    assert.deepEqual(groups.map((g) => g.first.surface), ["Caldꝰ li roys", "Marcadigas", "Roys mͣrcadigas"]);
+    assert.equal(groupNote(groups[1]), "2 mentions; also written marcadigas");
+    assert.equal(groupNote(groups[0]), "");
+    assert.equal(namesHeadline(groups), "4 mentions of 3 names: 0 linked, 3 not linked.");
+  });
+
+  it("says names found when no two mentions share a row", () => {
+    const antitus = [
+      { surface: "La satyre megere.", ent_type: "work", status: "linked", selected: { qid: "Q135111996" } },
+      { surface: "lausanne", ent_type: "place", status: "linked", selected: { qid: "Q807" } },
+    ];
+    assert.equal(namesHeadline(groupMentions(antitus)), "2 names found: 2 linked, 0 not linked.");
+    assert.equal(namesHeadline(groupMentions([antitus[1]])), "1 name found: 1 linked, 0 not linked.");
+  });
+
+  it("keeps apart the same spelling with another kind or another outcome", () => {
+    const rows = groupMentions([
+      { surface: "Lausanne", ent_type: "place", status: "linked", selected: { qid: "Q807" } },
+      { surface: "lausanne", ent_type: "place", status: "linked", selected: { qid: "Q999" } },
+      { surface: "LAUSANNE", ent_type: "place", status: "unresolved" },
+      { surface: "lausanne", ent_type: "person", status: "linked", selected: { qid: "Q807" } },
+      { surface: "Lausanne", ent_type: "place", status: "linked", selected: { qid: "Q807" } },
+    ]);
+    assert.equal(rows.length, 4);
+    assert.equal(groupNote(rows[0]), "2 mentions"); // the same spelling twice: no "also written"
   });
 });

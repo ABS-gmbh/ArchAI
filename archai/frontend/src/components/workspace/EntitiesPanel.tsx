@@ -4,7 +4,17 @@ import { useState } from "react";
 
 import type { LinkCandidate, LinkingReport, MentionResult } from "@/lib/api/ocrAgent";
 
-import { kindLabel, linkingSummary, mentionStatus, otherMarksSummary, reasonInWords, splitMentions, summaryOfMentions } from "./linkReason";
+import {
+  groupMentions,
+  groupNote,
+  kindLabel,
+  type MentionGroup,
+  mentionStatus,
+  namesHeadline,
+  otherMarksSummary,
+  reasonInWords,
+  splitMentions,
+} from "./linkReason";
 import { Button, Icon, Pill } from "./ui";
 
 export type LinkingState =
@@ -37,7 +47,9 @@ function score(value: number | null | undefined): string {
   return typeof value === "number" && Number.isFinite(value) ? value.toFixed(2) : "—";
 }
 
-function Mention({ mention }: { mention: MentionResult }) {
+function Mention({ group }: { group: MentionGroup<MentionResult> }) {
+  const mention = group.first;
+  const note = groupNote(group);
   const [open, setOpen] = useState(false);
   const status = mentionStatus(mention.status);
   const selected = mention.status === "linked" ? mention.selected : null;
@@ -49,7 +61,10 @@ function Mention({ mention }: { mention: MentionResult }) {
         <p className="min-w-0 break-words font-text text-[17px] leading-6">{mention.surface}</p>
         <Pill tone={status.tone}>{status.label}</Pill>
       </div>
-      <p className="mt-0.5 text-xs text-ink-muted">{kindLabel(mention.ent_type)}</p>
+      <p className="mt-0.5 text-xs text-ink-muted">
+        {kindLabel(mention.ent_type)}
+        {note ? <span> · {note}</span> : null}
+      </p>
       {selected ? (
         <p className="mt-2 text-sm">
           {url ? (
@@ -180,32 +195,31 @@ export function EntitiesPanel({ state, hasRun, onRetry }: { state: LinkingState;
   // found is hidden and a title is not presented as a name. The Steps line
   // keeps the backend's own count of everything (linkReason.ts).
   const { names, others } = splitMentions(mentions);
+  // One row per name: mentions differing only in letter case or abbreviation
+  // marks, with the same kind and outcome, share a row (linkReason.ts).
+  const nameRows = groupMentions(names);
+  const otherRows = groupMentions(others);
   return (
     <div className="p-6">
-      {names.length ? (
-        <p className="text-sm text-ink-muted">
-          <span className="tabular-nums text-ink">{names.length}</span> {names.length === 1 ? "name" : "names"} found:{" "}
-          <span className="tabular-nums">{linkingSummary(summaryOfMentions(names))}</span>. Linked means matched to an
-          authority record.
-        </p>
-      ) : (
-        <p className="text-sm text-ink-muted">No names were found on this page.</p>
-      )}
-      {names.length ? (
+      <p className="text-sm text-ink-muted">
+        {nameRows.length ? `${namesHeadline(nameRows)} Linked means matched to an authority record.` : "No names were found on this page."}
+      </p>
+      {nameRows.length ? (
         <ul className="mt-3">
-          {names.map((mention, index) => (
-            <Mention key={mention.mention_id ?? `${mention.surface}-${index}`} mention={mention} />
+          {nameRows.map((group, index) => (
+            <Mention key={group.first.mention_id ?? `${group.first.surface}-${index}`} group={group} />
           ))}
         </ul>
       ) : null}
-      {others.length ? (
+      {otherRows.length ? (
         <section aria-labelledby="names-also-marked" className="mt-6">
           <h3 id="names-also-marked" className="text-sm font-medium">
-            Also marked on this page: <span className="font-normal text-ink-muted">{otherMarksSummary(others)}</span>
+            Also marked on this page:{" "}
+            <span className="font-normal text-ink-muted">{otherMarksSummary(otherRows.map((group) => group.first))}</span>
           </h3>
           <ul className="mt-2">
-            {others.map((mention, index) => (
-              <Mention key={mention.mention_id ?? `${mention.surface}-other-${index}`} mention={mention} />
+            {otherRows.map((group, index) => (
+              <Mention key={group.first.mention_id ?? `${group.first.surface}-other-${index}`} group={group} />
             ))}
           </ul>
         </section>

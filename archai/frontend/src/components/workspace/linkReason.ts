@@ -173,3 +173,82 @@ export function otherMarksSummary(others: { ent_type?: string | null }[]): strin
   }
   return [...counts.values()].map(({ one, many, count }) => `${count} ${count === 1 ? one : many}`).join(", ");
 }
+
+// ── One row per name ────────────────────────────────────────────────────
+//
+// The same name read twice, once capitalised or with an abbreviation mark
+// and once without, was listed twice: "Marcadigas" and "marcadigas" on the
+// fmb-cb-0001 page (final live run, 2026-11-24). Such mentions are now one row
+// with their count and their spellings, when their kind and link outcome are
+// the same. A different span ("Roys mͣrcadigas") stays its own row. Nothing
+// changes in the backend; the Steps line keeps its own count of mentions.
+
+/** A surface as compared for grouping: letter case and combining marks (ꝑ's stroke is a letter, ̃ and ͣ are marks) left out. */
+export function nameKey(surface: string): string {
+  return surface
+    .normalize("NFD")
+    .replace(/[̀-ͯ᪰-᫿᷀-᷿⃐-⃿︠-︯]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export interface MentionGroup<T> {
+  /** The first mention, as the backend ordered them: its spelling heads the row. */
+  first: T;
+  mentions: T[];
+  /** The other spellings, each once, in order. */
+  spellings: string[];
+}
+
+interface Groupable {
+  surface: string;
+  ent_type?: string | null;
+  status: string;
+  selected?: { qid?: string | null; authority_id?: string | null } | null;
+}
+
+/** What a mention was linked to, so that only mentions with the same outcome share a row. */
+function outcome(mention: Groupable): string {
+  const target = mention.status === "linked" ? (mention.selected?.qid || mention.selected?.authority_id || "") : "";
+  return `${mention.status}|${target}`;
+}
+
+/** The mentions as rows: one per name, kind and link outcome. */
+export function groupMentions<T extends Groupable>(mentions: T[]): MentionGroup<T>[] {
+  const groups = new Map<string, MentionGroup<T>>();
+  for (const mention of mentions) {
+    const key = [nameKey(mention.surface), String(mention.ent_type || "").toLowerCase(), outcome(mention)].join("\u0000");
+    const group = groups.get(key);
+    if (!group) {
+      groups.set(key, { first: mention, mentions: [mention], spellings: [] });
+      continue;
+    }
+    group.mentions.push(mention);
+    if (mention.surface !== group.first.surface && !group.spellings.includes(mention.surface)) {
+      group.spellings.push(mention.surface);
+    }
+  }
+  return [...groups.values()];
+}
+
+/** "2 mentions; also written marcadigas", for a row that stands for more than one mention; "" otherwise. */
+export function groupNote(group: MentionGroup<{ surface: string }>): string {
+  if (group.mentions.length < 2) {
+    return "";
+  }
+  const also = group.spellings.length ? `; also written ${group.spellings.join(", ")}` : "";
+  return `${group.mentions.length} mentions${also}`;
+}
+
+/**
+ * The Names panel's headline: names counted after grouping, with the mentions
+ * when there are more of them ("4 mentions of 3 names: 0 linked, 3 not
+ * linked.").
+ */
+export function namesHeadline(groups: MentionGroup<Groupable>[]): string {
+  const mentions = groups.reduce((total, group) => total + group.mentions.length, 0);
+  const names = `${groups.length} ${groups.length === 1 ? "name" : "names"}`;
+  const counted = linkingSummary(summaryOfMentions(groups.map((group) => group.first)));
+  return mentions > groups.length ? `${mentions} mentions of ${names}: ${counted}.` : `${names} found: ${counted}.`;
+}
