@@ -93,9 +93,10 @@ blocked, and 4 of 59 at CER ≥ 25% are allowed", **does not survive**:
 - **Good readings blocked.** Six of 76 good CATMuS readings are blocked, and
   five of the six are medieval Spanish: both blocks of Madrid, BNE, MSS. 3995
   (CER 2.2% and 2.0%), both of Paris, BnF, esp. 458 (8.7%, 9.3%) and one of
-  Paris, BnF, esp. 65 (Navarrese, 4.0%). All are detected as Spanish and
-  labelled RISKY on the lexical contrast alone (2.28 and 2.94 on two of them;
-  another Castilian manuscript scores 3.01 and passes). The sixth is a Latin
+  Paris, BnF, esp. 65 (Navarrese, 4.0%). All are detected as Spanish, which
+  was scored against the Latin profile. They are labelled RISKY mainly on the
+  hit-rate floor: plausibility 0.18-0.22, under 0.25, while their contrasts
+  are 2.23-2.94, above the 2.2 RISKY limit. The sixth is a Latin
   page detected as Catalan (2.6%). Of the Castilian and Navarrese pages the
   routed model read well, half are blocked (5 of 10). The development set has
   no Spanish page, so this could not show there.
@@ -106,11 +107,28 @@ blocked, and 4 of 59 at CER ≥ 25% are allowed", **does not survive**:
   this sample (its worst is 24.2%), so in the product this matters where a
   fallback recogniser reads a page or some of its lines.
 
-Nothing in the gate was changed on this evidence. The two findings need
-different work: the first a lexical profile that knows medieval Castilian
-(built from text this sample is not part of, such as the dataset's train
-split, and checked on this one), the second a signal that the gate does not
-have at all.
+The two findings need different work: the first a lexical profile that knows
+medieval Castilian, the second a signal that the gate does not have at all.
+
+**After 016a998** (Spanish and Dutch profiles built from the dataset's train
+split, `scripts/build_trigram_profiles.py`; see
+`eval/quality_gate/README.md`), on the same pseudo-pages:
+
+| reading by | CER ≤ 10% blocked, before → after | CER ≥ 25% allowed, before → after |
+|---|---|---|
+| CATMuS Medieval (routed) | 6/76 → 1/76 | – |
+| CREMMA Medieval | 0/3 → 0/3 | 31/47 → 31/47 |
+| McCATMuS | 0/1 → 0/1 | 46/81 → 50/81 |
+
+- **What changed.** The five Spanish pages pass; the remaining block is the
+  Latin page detected as Catalan.
+- **The cost.** Four more McCATMuS readings at CER ≥ 25% pass (Castilian
+  1/6 → 4/6, Navarrese 0/2 → 1/2).
+- **What it rests on.** 4 Castilian manuscripts and 1 Navarrese here, 93
+  dev-split Castilian pages, and one sampling seed.
+- **This sample is spent for gate decisions.** It has now been used once to
+  decide whether to ship a gate change, so the next gate change must be
+  judged on a fresh sample (another seed, other blocks), not on this one.
 
 ## 3. Kraken's confidence
 
