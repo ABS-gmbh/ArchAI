@@ -40,3 +40,16 @@ def test_evidence_text_and_meta_are_bounded() -> None:
             schemas.EvidenceSpanCreateRequest(run_id="r", **{field: "a" * (limit + 1)})
     with pytest.raises(ValidationError):
         schemas.EvidenceSpanCreateRequest(run_id="r", meta_json={"blob": "a" * schemas.MAX_EVIDENCE_META_BYTES})
+
+
+def test_polygons_are_bounded() -> None:
+    # Second review, L: an evidence span with a 500,000-point polygon was stored.
+    limit = schemas.MAX_POLYGON_POINTS
+    square = [[0.0, 0.0], [10.0, 0.0], [10.0, 10.0]]
+    points = (square * limit)[:limit]
+    schemas.EvidenceSpanCreateRequest(run_id="r", text="x", polygon=points)
+    schemas.OCRRegionInput(polygon=points)
+    with pytest.raises(ValidationError):
+        schemas.EvidenceSpanCreateRequest(run_id="r", text="x", polygon=points + [[1.0, 1.0]])
+    with pytest.raises(ValidationError):
+        schemas.OCRRegionInput(polygon=points + [[1.0, 1.0]])

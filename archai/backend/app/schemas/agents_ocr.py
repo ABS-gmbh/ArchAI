@@ -48,10 +48,17 @@ MANUSCRIPT_DETECTED_LANGUAGE = Literal[
 ]
 
 
+# Points of one polygon a client may send. Kraken's line boundaries have tens
+# to a few hundred and the workspace sends none; the limit leaves wide room
+# for outlines traced at full resolution (about 200 KB of JSON at most), where
+# a 500,000-point evidence polygon was stored as is (second security review, L).
+MAX_POLYGON_POINTS = 10000
+
+
 class OCRRegionInput(BaseModel):
     region_id: str | None = None
     bbox_xyxy: list[float] | None = None
-    polygon: list[list[float]] | None = None
+    polygon: list[list[float]] | None = Field(default=None, max_length=MAX_POLYGON_POINTS)
     label: str | None = None
     reading_order: int | None = None
 
@@ -366,7 +373,7 @@ class EvidenceSpanCreateRequest(BaseModel):
     start_offset: int | None = None
     end_offset: int | None = None
     bbox_xyxy: list[float] | None = None
-    polygon: list[list[float]] | None = None
+    polygon: list[list[float]] | None = Field(default=None, max_length=MAX_POLYGON_POINTS)
     model_used: str | None = None
     ocr_model: str | None = None
     prompt_version: str | None = None
