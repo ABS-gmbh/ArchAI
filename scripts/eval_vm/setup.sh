@@ -31,10 +31,12 @@ NUMPY_VERSION="2.0.2"
 TORCH_CPU_INDEX="https://download.pytorch.org/whl/cpu"
 
 log() { printf '\n== %s\n' "$*"; }
+# Run a network step up to 3 times: the deadsnakes PPA answered 503 on the first VM run.
+retry() { local n; for n in 1 2 3; do "$@" && return 0; [[ $n -lt 3 ]] && { echo "failed (attempt $n): $*; retrying in 30 s"; sleep 30; }; done; return 1; }
 
 log "System packages"
-sudo apt-get update -y
-sudo apt-get install -y --no-install-recommends \
+retry sudo apt-get update -y
+retry sudo apt-get install -y --no-install-recommends \
   git curl ca-certificates build-essential pkg-config \
   libgl1 libglib2.0-0t64 libjpeg-dev libpng-dev libtiff-dev \
   libspatialindex-dev software-properties-common
@@ -42,9 +44,9 @@ sudo apt-get install -y --no-install-recommends \
 if ! command -v "python${PYTHON_VERSION}" >/dev/null 2>&1; then
   log "Python ${PYTHON_VERSION} (Ubuntu 24.04 ships 3.12; kraken ${KRAKEN_VERSION} is used with 3.11 here)"
   # deadsnakes is the usual source of other CPython versions for Ubuntu.
-  sudo add-apt-repository -y ppa:deadsnakes/ppa
-  sudo apt-get update -y
-  sudo apt-get install -y "python${PYTHON_VERSION}" "python${PYTHON_VERSION}-venv" "python${PYTHON_VERSION}-dev"
+  retry sudo add-apt-repository -y ppa:deadsnakes/ppa
+  retry sudo apt-get update -y
+  retry sudo apt-get install -y "python${PYTHON_VERSION}" "python${PYTHON_VERSION}-venv" "python${PYTHON_VERSION}-dev"
 fi
 
 log "Checkout ${REF} into ${CHECKOUT}"
