@@ -401,6 +401,23 @@ def is_timeout_error(exc: Exception) -> bool:
     return isinstance(cause, requests.Timeout) or "timed out" in str(exc).lower()
 
 
+def is_unreachable_error(exc: Exception) -> bool:
+    """Nothing is listening at the Ollama host: the connection was refused or never made.
+
+    Another image variant cannot help then, unlike a timeout or a bad answer.
+    """
+    current: BaseException | None = exc
+    seen: set[int] = set()
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(current, (ConnectionRefusedError, requests.exceptions.ConnectTimeout)):
+            return True
+        if isinstance(current, requests.ConnectionError) and "NewConnectionError" in repr(current):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
+
+
 def clean_model_output(text: str) -> str:
     if not text:
         return text
@@ -523,6 +540,7 @@ def run_glm_ollama_ocr(
     first_empty_attempts_used: int | None = None
 
     for variant in variants:
+        unreachable = False
         logger.info(
             "OCR variant ref=%s variant=%s processed_dimensions=%sx%s processed_bytes=%s resized=%s compressed=%s autocontrast=%s quality=%s",
             image_ref,
@@ -603,6 +621,7 @@ def run_glm_ollama_ocr(
                 logger.warning("OCR variant failed ref=%s %s", image_ref, message)
                 if "Pull it first with: ollama pull" in str(exc):
                     raise GlmOllamaOcrError(str(exc)) from exc
+                unreachable = is_unreachable_error(exc)
                 if is_backend_shape_error(exc) or is_timeout_error(exc):
                     break
                 if attempt < selected_retries:
@@ -612,6 +631,12 @@ def run_glm_ollama_ocr(
 
         if first_empty_variant is not None and first_empty_variant == variant:
             continue
+        if unreachable:
+            # Every variant goes to the same host: with nothing listening, the
+            # other five only repeated the refusal, 12 s in all.
+            raise GlmOllamaOcrError(
+                f"{image_ref}: Ollama is not reachable at {selected_host}.\nLast: {recent_errors[-1]}"
+            )
 
     duration = time.perf_counter() - started_at
     if first_empty_variant is not None:
