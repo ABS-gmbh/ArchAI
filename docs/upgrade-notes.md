@@ -26,9 +26,15 @@ These behave differently from the first start:
 - **Settings that refuse a bad value** stop startup with a message naming
   them: `LOG_LEVEL`, `LOG_FORMAT`, `ANALYTICS_LOGIN_MAX_FAILURES`,
   `ANALYTICS_LOGIN_MAX_FAILURES_PER_USERNAME`, `ANALYTICS_LOGIN_WINDOW_SECONDS`,
-  `API_TOKEN` (at least 24 characters), `RUN_RETENTION_DAYS`,
-  `RUN_RETENTION_MAX_PER_SWEEP`, `CHAT_AI_TIMEOUT_SECONDS`. A `JWT_SECRET`
-  shorter than 32 characters is only logged as an ERROR.
+  `API_TOKEN` (at least 24 characters, and not only spaces), `CORS_ORIGINS`
+  (`*` is refused), `RUN_RETENTION_DAYS`, `RUN_RETENTION_MAX_PER_SWEEP`,
+  `CHAT_AI_TIMEOUT_SECONDS`, and below 1: `MAX_JSON_MEGABYTES`,
+  `MAX_UPLOAD_MEGABYTES`, `MAX_EXTRACTED_MEGABYTES`, `MAX_ZIP_MEMBERS`,
+  `MAX_CONCURRENT_BATCHES`, `MAX_ACTIVE_BATCHES`, `TASK_TTL_MINUTES`,
+  `OCR_MAX_DECODE_PIXELS`, `OCR_RUN_RESERVATION_TTL_SECONDS` (also above
+  86400), `OCR_RUN_RESERVATION_MAX_LIVE`, `OCR_TRACE_STREAM_MAX_OPEN`, which
+  were quietly treated as 1. A `JWT_SECRET` shorter than 32 characters is
+  only logged as an ERROR.
 - **A frontend opened under a name needs `FRONTEND_ORIGINS`.** The `/api`
   proxy answers only requests sent to loopback, an IP address or a host named
   in `FRONTEND_ORIGINS` (DNS rebinding); under any other name every `/api`

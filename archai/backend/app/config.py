@@ -6,6 +6,7 @@ from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings
 
 _EPHEMERAL_JWT_SECRET: str | None = None
+_MAX_RESERVATION_TTL_SECONDS = 24 * 60 * 60
 
 
 class Settings(BaseSettings):
@@ -16,6 +17,20 @@ class Settings(BaseSettings):
         "http://localhost:3001,"
         "http://127.0.0.1:3001"
     )
+
+    @field_validator("cors_origins")
+    @classmethod
+    def _no_wildcard_origin(cls, value: str) -> str:
+        # CORS is sent with credentials allowed, and Starlette then answers a
+        # wildcard with the asking origin itself: any site could read the
+        # answers. The workspace never needs it (the browser talks to the
+        # frontend, same-origin), so "*" stops startup rather than being dropped.
+        if any(origin.strip() == "*" for origin in str(value).split(",")):
+            raise ValueError(
+                "CORS_ORIGINS must list origins (https://archai.example), not *: credentials are allowed, "
+                "so * would let any site read the API's answers"
+            )
+        return value
 
     # Logging (app/logging_setup.py): level of the root logger, and "text" or
     # "json" lines on stderr. uvicorn's own access and error logs are unaffected.
@@ -66,7 +81,11 @@ class Settings(BaseSettings):
     @field_validator("api_token")
     @classmethod
     def _long_enough_token(cls, value: str) -> str:
-        value = str(value or "").strip()
+        raw = str(value or "")
+        value = raw.strip()
+        if raw and not value:
+            # "   " used to start the API open, with only the "not set" warning.
+            raise ValueError("API_TOKEN is set but blank; set at least 24 characters, or leave it unset")
         if value and len(value) < 24:
             raise ValueError(f"API_TOKEN must be at least 24 characters, got {len(value)}")
         return value
@@ -352,6 +371,38 @@ class Settings(BaseSettings):
     # Most trace streams (/ocr/trace/stream/{run_id}) open at once; beyond it the
     # route answers 429. The workspace follows one run per page being read.
     ocr_trace_stream_max_open: int = 32
+
+    # Limits the code used to clamp to 1 without a word; deployment.md says an
+    # out-of-range value stops startup, so now it does.
+    @field_validator(
+        "max_json_megabytes",
+        "max_upload_megabytes",
+        "max_extracted_megabytes",
+        "max_zip_members",
+        "max_concurrent_batches",
+        "max_active_batches",
+        "task_ttl_minutes",
+        "ocr_max_decode_pixels",
+        "ocr_run_reservation_ttl_seconds",
+        "ocr_run_reservation_max_live",
+        "ocr_trace_stream_max_open",
+    )
+    @classmethod
+    def _at_least_one(cls, value: int, info: ValidationInfo) -> int:
+        if value < 1:
+            raise ValueError(f"{(info.field_name or '').upper()} must be at least 1, got {value}")
+        return value
+
+    @field_validator("ocr_run_reservation_ttl_seconds")
+    @classmethod
+    def _reservation_ttl_fits_a_date(cls, value: int) -> int:
+        # 99999999999999 started, and then every reservation raised OverflowError
+        # working out its expiry. A day is far beyond any upload.
+        if value > _MAX_RESERVATION_TTL_SECONDS:
+            raise ValueError(
+                f"OCR_RUN_RESERVATION_TTL_SECONDS must be at most {_MAX_RESERVATION_TTL_SECONDS} (a day), got {value}"
+            )
+        return value
 
     # Kraken recognition
     kraken_device: str = "cpu"
