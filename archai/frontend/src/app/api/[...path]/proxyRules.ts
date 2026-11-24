@@ -342,3 +342,33 @@ export function tokenRefusal(configured: boolean): { status: number; detail: str
       : "the backend answered 401 to a request without a token (BACKEND_API_TOKEN is not set). Set BACKEND_API_TOKEN on the frontend server to the backend's API_TOKEN, and restart it.",
   };
 }
+
+/**
+ * Reading and discarding what is left of a request body after the backend
+ * answered before reading it (a 413 from its body limit, a 401 from the token
+ * gate). Without it the proxy stopped reading, and the client's next request on
+ * the same connection waited behind the unread bytes until the connection was
+ * reset, 6 s later (final live run, 2026-11-24).
+ *
+ * 8 MB: what a refused request that is not a page image (a chat message, the
+ * smoke test's 4 MB body) can leave, and what a client on a local network sends
+ * in well under the 5 s allowed. A refused page image is at least the backend's
+ * JSON limit (48 MB by default) and an upload up to 1.3 GB: draining those
+ * would spend that bandwidth on nothing, so they are answered with
+ * `Connection: close` and not read further.
+ */
+export const DRAIN_MAX_BYTES = 8 * 1024 * 1024;
+export const DRAIN_MAX_MS = 5000;
+
+/**
+ * What to do with an unread request body when the backend has answered early:
+ * "drain" it (the connection stays usable) or "close" the connection after the
+ * answer. *declaredLength* is the request's Content-Length (NaN when it has
+ * none: a chunked body of unknown size is not drained).
+ */
+export function earlyAnswerPlan(declaredLength: number, received: number, maxBytes = DRAIN_MAX_BYTES): "drain" | "close" {
+  if (!Number.isFinite(declaredLength) || declaredLength < 0) {
+    return "close";
+  }
+  return declaredLength - received <= maxBytes ? "drain" : "close";
+}
