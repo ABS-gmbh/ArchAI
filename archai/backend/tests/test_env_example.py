@@ -42,5 +42,17 @@ def test_the_operational_settings_are_documented() -> None:
         "LOG_FORMAT",
         "CHAT_AI_TIMEOUT_SECONDS",
         "ENABLE_TEST_OCR_FIXTURES",
+        "OCR_RUN_RESERVATION_TTL_SECONDS",
+        "OCR_RUN_RESERVATION_MAX_LIVE",
+        "OCR_TILE_CONCURRENCY",
+        "OCR_BACKEND_DEFAULT",
+        "GLMOCR_DEVICE",
+        "RAG_TOP_K",
+        "RAG_CHUNK_WINDOW_LINES",
+        "RAG_CHUNK_OVERLAP_LINES",
+        "RAG_LEXICAL_FUSION",
+        "RAG_LEXICAL_WEIGHT",
+        "RAG_LEXICAL_WEIGHT_LOCAL",
+        "RAG_LEXICAL_MAX_CHUNKS",
     }
     assert sorted(operational - listed) == []
