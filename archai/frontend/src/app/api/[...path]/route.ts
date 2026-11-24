@@ -21,7 +21,7 @@ import { Readable } from "node:stream";
 
 import type { NextRequest } from "next/server";
 
-import { HOP_BY_HOP, TOKEN_HEADER, trustedProxyHops, upstreamHeaders } from "./proxyRules";
+import { HOP_BY_HOP, TOKEN_HEADER, crossSiteRefusal, originOptions, trustedProxyHops, upstreamHeaders } from "./proxyRules";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -107,6 +107,14 @@ async function proxy(req: NextRequest): Promise<Response> {
   const target = backendTarget(req);
   const transport = target.protocol === "https:" ? https : http;
   const method = req.method.toUpperCase();
+
+  const crossSite = crossSiteRefusal(method, req.headers, originOptions());
+  if (crossSite) {
+    return Response.json(
+      { detail: crossSite },
+      { status: 403, headers: { [PROXY_STATUS_HEADER]: "cross-site-refused", "cache-control": "no-store" } },
+    );
+  }
 
   return new Promise<Response>((resolve) => {
     let settled = false;
