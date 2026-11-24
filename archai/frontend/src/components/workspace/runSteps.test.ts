@@ -104,3 +104,38 @@ describe("messageInWords, an uncertain reading", () => {
     }
   });
 });
+
+// Steps of runs that an upgrade drill read back from an older install, and
+// that the pipeline still writes today (trace_pipeline.py, routers/ocr.py):
+// they reached the Steps panel as log lines.
+describe("stageInWords and messageInWords, a cautious or blocked reading", () => {
+  it("names the cautious name search", () => {
+    assert.equal(stageInWords("ANALYZE_DEGRADED"), "Looking for names with a cautious search");
+    assert.equal(
+      messageInWords("NER gate blocked full analysis; running degraded mention capture only (quality=UNRELIABLE)"),
+      "The reading was rated unreliable, so names are looked for with a cautious search only.",
+    );
+  });
+
+  it("says why the quality check stopped a reading, without the gate's internals", () => {
+    const message =
+      "Quality gates FAILED for segmented OCR. quality_label_v2=UNRELIABLE, blocked_stages=['token_search', 'token_ner', " +
+      "'entity_claims', 'no_entity_claims', 'paraphrase', 'translation'], gibberish=0.0000, lead_frag=0.0000";
+    assert.equal(messageInWords(message), "The reading was rated unreliable, too uncertain to search, look names up or translate.");
+  });
+
+  it("puts the region-by-region reading in words", () => {
+    assert.equal(messageInWords("OCR trace run received."), "");
+    assert.equal(messageInWords("Using provided location suggestions: 1"), "1 layout region given with the page");
+    assert.equal(messageInWords("Using provided location suggestions: 4"), "4 layout regions given with the page");
+    assert.equal(messageInWords("Segmented OCR on 1 regions."), "1 region, read on its own");
+    assert.equal(messageInWords("Segmented OCR on 12 regions."), "12 regions, each read on its own");
+  });
+
+  it("says a failure after reading happened there, without the exception's class", () => {
+    assert.equal(
+      messageInWords("Post-OCR pipeline failed: RuntimeError: database is locked"),
+      "The steps after reading failed: database is locked",
+    );
+  });
+});
