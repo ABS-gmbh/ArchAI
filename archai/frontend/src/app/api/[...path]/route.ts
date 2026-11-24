@@ -69,7 +69,8 @@ function upstreamHeaders(req: NextRequest, target: URL): http.OutgoingHttpHeader
 function downstreamHeaders(res: http.IncomingMessage): Headers {
   const headers = new Headers();
   for (const [name, value] of Object.entries(res.headers)) {
-    if (value === undefined || HOP_BY_HOP.has(name) || name === TOKEN_HEADER) {
+    // "server" names the backend's software (uvicorn): nothing a browser needs.
+    if (value === undefined || HOP_BY_HOP.has(name) || name === TOKEN_HEADER || name === "server") {
       continue;
     }
     for (const item of Array.isArray(value) ? value : [value]) {
