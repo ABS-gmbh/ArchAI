@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
@@ -68,6 +68,8 @@ from app.agents.ocr_text_parsing import (
 AGENT_VERSION = "5.0.0"
 OCR_PROMPT_VERSION = "paleo_ocr_tiled_v1"
 LOCKED_OCR_MODEL = "internvl3.5-30b-a3b"
+# Called as progress(lines_done, lines_total) after each region of a segmented page.
+LineProgress = Callable[[int, int], None]
 log = logging.getLogger(__name__)
 PIPELINE_VERSION = str(
     os.getenv("ARCHAI_PIPELINE_VERSION")
@@ -210,8 +212,10 @@ class OcrAgent(BaseAgent):
             int(settings.ocr_crop_upscale or os.getenv("OCR_CROP_UPSCALE", "2") or "2"),
         )
 
-    def run(self, payload: OCRExtractRequest) -> OCRExtractAnyResponse:
-        return run_ocr_extraction(payload, client=self.client, upscale_factor=self.upscale_factor)
+    def run(self, payload: OCRExtractRequest, *, progress: LineProgress | None = None) -> OCRExtractAnyResponse:
+        if progress is None:
+            return run_ocr_extraction(payload, client=self.client, upscale_factor=self.upscale_factor)
+        return run_ocr_extraction(payload, client=self.client, upscale_factor=self.upscale_factor, progress=progress)
 
 
 def _parse_preference_env(raw: str) -> list[str]:
@@ -536,11 +540,25 @@ def _reorder_attempt_backends_from_samples(
     return reordered_plan, prepared_regions, prefetched_results, prefetched_errors
 
 
+def _with_progress(items: Sequence[Any], progress: LineProgress | None) -> Iterator[tuple[int, Any]]:
+    """``enumerate(items)``, calling ``progress(done, total)`` once each item's turn is over.
+
+    The report follows the item, whether its body finished or ``continue``d; an
+    exception reports nothing more.
+    """
+    total = len(items)
+    for index, item in enumerate(items):
+        yield index, item
+        if progress is not None:
+            progress(index + 1, total)
+
+
 def _run_segmented_ocr_extraction(
     payload: OCRExtractRequest,
     *,
     client: SaiaClient,
     upscale_factor: int,
+    progress: LineProgress | None = None,
 ) -> OCRExtractAnyResponse:
     regions_input = _ordered_region_inputs(payload)
     if not regions_input:
@@ -583,7 +601,7 @@ def _run_segmented_ocr_extraction(
     final_model = plan.primary_backend
     backend_repeat_counts: dict[str, Counter[str]] = defaultdict(Counter)
 
-    for index, region in enumerate(regions_input):
+    for index, region in _with_progress(regions_input, progress):
         if index in prefetched_regions:
             region_id, crop_b64, metadata = prefetched_regions[index]
         else:
@@ -1110,11 +1128,12 @@ def run_ocr_extraction(
     *,
     client: SaiaClient | None = None,
     upscale_factor: int = 2,
+    progress: LineProgress | None = None,
 ) -> OCRExtractAnyResponse:
     ignored = ignored_model_requests(payload)
     if ignored:
         log.warning("OCR request settings ignored by the locked model policy (%s): %s", LOCKED_OCR_MODEL, ", ".join(ignored))
-    result = _run_ocr_extraction(payload, client=client, upscale_factor=upscale_factor)
+    result = _run_ocr_extraction(payload, client=client, upscale_factor=upscale_factor, progress=progress)
     if ignored and isinstance(result, OCRExtractResponse):
         result.warnings = list(dict.fromkeys([*result.warnings, *ignored]))
     return result
@@ -1125,11 +1144,12 @@ def _run_ocr_extraction(
     *,
     client: SaiaClient | None = None,
     upscale_factor: int = 2,
+    progress: LineProgress | None = None,
 ) -> OCRExtractAnyResponse:
     saia = client or SaiaClient()
 
     if _iter_region_inputs(payload):
-        return _run_segmented_ocr_extraction(payload, client=saia, upscale_factor=upscale_factor)
+        return _run_segmented_ocr_extraction(payload, client=saia, upscale_factor=upscale_factor, progress=progress)
 
     available_models = saia.list_models()
     preferred_models = resolve_model_preferences(
