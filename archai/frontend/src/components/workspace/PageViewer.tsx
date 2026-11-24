@@ -30,6 +30,8 @@ export interface PageViewerProps {
   openError: string | null;
   /** Page navigation, shown inside the viewer where the top bar has no room for it. */
   pageNav?: ReactNode;
+  /** The page image's natural size once it has loaded: the workspace checks it against the server's pixel limit before a read. */
+  onNaturalSize?: (pageId: string, width: number, height: number) => void;
 }
 
 function regionArea(box: [number, number, number, number]): number {
@@ -59,6 +61,7 @@ export function PageViewer({
   onDropFiles,
   openError,
   pageNav,
+  onNaturalSize,
 }: PageViewerProps) {
   const [dropping, setDropping] = useState(false);
   const dropHandlers = {
@@ -162,6 +165,7 @@ export function PageViewer({
               const image = event.currentTarget;
               if (image.naturalWidth && image.naturalHeight) {
                 setNatural({ id: page.id, width: image.naturalWidth, height: image.naturalHeight });
+                onNaturalSize?.(page.id, image.naturalWidth, image.naturalHeight);
               }
             }}
           />

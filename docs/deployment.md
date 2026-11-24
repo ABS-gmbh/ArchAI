@@ -418,6 +418,11 @@ layout weights or line recogniser not installed, or pages that cannot be
 indexed for search) or `unavailable` (HTTP 503: the pipeline database cannot
 be used).
 
+`limits` gives the request limits a client needs, `json_bytes`
+(`MAX_JSON_MEGABYTES`) and `decode_pixels` (`OCR_MAX_DECODE_PIXELS`): the
+workspace checks a page against them before it reserves a run or sends
+anything, and says why it will not send it.
+
 The `search_index` check fails when `RAG_EMBEDDING_MODEL` names a provider
 model (the default, `multilingual-e5-large-instruct`) and there is no chat
 key: pages are then read but not indexed, and the workspace marks each one

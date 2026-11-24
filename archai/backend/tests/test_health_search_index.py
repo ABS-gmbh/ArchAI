@@ -58,3 +58,13 @@ def test_indexing_switched_off_is_not_a_problem(monkeypatch: pytest.MonkeyPatch)
     _no_key(monkeypatch)
     monkeypatch.setattr(settings, "rag_auto_index", False)
     assert _search_index() == {"ok": True, "detail": "Pages are not indexed automatically (RAG_AUTO_INDEX is off)."}
+
+
+# J6 of the live regression: the workspace sent an 85 MB request before the
+# server refused it as over 48 MB. Health now says the limits a client needs,
+# so the workspace can refuse a page before sending it.
+def test_health_states_the_request_limits(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "max_json_megabytes", 48)
+    monkeypatch.setattr(settings, "ocr_max_decode_pixels", 89478485)
+    limits = TestClient(main.app).get("/api/health").json()["limits"]
+    assert limits == {"json_bytes": 48 << 20, "decode_pixels": 89478485}

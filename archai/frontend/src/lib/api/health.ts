@@ -65,3 +65,27 @@ export async function getBackendHealth(signal?: AbortSignal): Promise<BackendHea
     : res.ok ? "ok" : "unavailable";
   return { status, problems };
 }
+
+/** The request limits in a /health body, or null when it has none (an older backend) or they are not numbers. */
+export function requestLimitsFrom(body: unknown): { jsonBytes: number; decodePixels: number } | null {
+  const limits = (body as { limits?: { json_bytes?: unknown; decode_pixels?: unknown } } | null)?.limits;
+  const jsonBytes = Number(limits?.json_bytes);
+  const decodePixels = Number(limits?.decode_pixels);
+  if (!Number.isFinite(jsonBytes) || jsonBytes <= 0 || !Number.isFinite(decodePixels) || decodePixels <= 0) {
+    return null;
+  }
+  return { jsonBytes, decodePixels };
+}
+
+/**
+ * The server's request limits from GET /health, for checking a page before it
+ * is sent; null when they cannot be had, and then only the server checks.
+ */
+export async function getRequestLimits(signal?: AbortSignal): Promise<{ jsonBytes: number; decodePixels: number } | null> {
+  try {
+    const res = await fetchBackend("/health", { signal });
+    return requestLimitsFrom(await res.json());
+  } catch {
+    return null;
+  }
+}
