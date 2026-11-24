@@ -16,6 +16,7 @@ from app.logging_setup import configure_logging
 from app.process_guard import guard_for_database
 from app.db import pipeline_db
 from app.services.data_paths import check_data_paths, log_data_paths
+from app.services.model_files import log_missing_models
 from app.services.file_manager import check_task_base_dir, cleanup_expired_tasks
 from app.services.inference import init_model_pool, shutdown_model_pool
 from app.services.run_retention import RetentionSweeper
@@ -72,6 +73,9 @@ async def lifespan(app: FastAPI):
     # silently not being written.
     check_data_paths()
     log_data_paths(check_task_base_dir())
+    # Missing weights or packages do not stop the server (chat, retrieval and
+    # GLM-OCR still work), but the first page read would fail without a word.
+    log_missing_models()
     # One worker process is supported (docs/deployment.md); a second one using
     # the same pipeline database is logged as an error, not refused.
     process_guard = guard_for_database(pipeline_db._db_config().path)
