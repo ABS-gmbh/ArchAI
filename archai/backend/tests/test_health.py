@@ -39,6 +39,9 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(settings, "glmocr_ollama_host", "http://127.0.0.1:11434")
     monkeypatch.setattr(health, "_last_ok", {})
+    # Every call here asks Ollama afresh; the cache is tested in test_health_ollama_cache.py.
+    monkeypatch.setattr(health, "_ollama_cache", None)
+    monkeypatch.setattr(health, "_OLLAMA_CACHE_SECONDS", 0.0)
     monkeypatch.setattr(health.requests, "get", lambda url, timeout: _Response({"version": "0.6.0"}))
     # The model checks are tested in test_health_models.py; here the models count as installed.
     monkeypatch.setattr(health.model_files, "missing_layout", lambda: [])
