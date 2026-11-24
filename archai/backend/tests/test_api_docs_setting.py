@@ -1,4 +1,4 @@
-"""ENABLE_API_DOCS switches off /docs, /redoc and /openapi.json; on by default."""
+"""ENABLE_API_DOCS switches off /docs, /redoc and /openapi.json; on by default while there is no API_TOKEN."""
 
 from __future__ import annotations
 
@@ -12,7 +12,8 @@ from app.config import Settings, settings
 
 
 def test_docs_are_on_by_default() -> None:
-    assert Settings.model_fields["enable_api_docs"].default is True
+    # Unset: on without a token (the tests run without one), off with one (test_docs_with_token.py).
+    assert Settings.model_fields["enable_api_docs"].default is None
     client = TestClient(main.app)
     assert [client.get(path).status_code for path in ("/docs", "/redoc", "/openapi.json")] == [200, 200, 200]
 
@@ -25,7 +26,7 @@ def test_switched_off_they_are_gone(monkeypatch: pytest.MonkeyPatch) -> None:
         assert [client.get(path).status_code for path in ("/docs", "/redoc", "/openapi.json")] == [404, 404, 404]
         assert client.get("/api/health").status_code in (200, 503)
     finally:
-        monkeypatch.setattr(settings, "enable_api_docs", True)
+        monkeypatch.setattr(settings, "enable_api_docs", None)
         importlib.reload(main)
 
 

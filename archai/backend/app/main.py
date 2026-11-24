@@ -1,17 +1,15 @@
 import multiprocessing as mp
-import os
 import asyncio
 import logging
 from contextlib import asynccontextmanager, suppress
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.auth import ApiTokenGate, require_api_token
 from app.body_limit import RequestBodyLimit
 from app.security_headers import SecurityHeaders
-from app.config import settings
+from app.config import api_docs_enabled, settings
 from app.logging_setup import configure_logging
 from app.process_guard import guard_for_database
 from app.db import pipeline_db
@@ -107,8 +105,9 @@ async def lifespan(app: FastAPI):
         process_guard.release()
 
 
-# ENABLE_API_DOCS=false removes /docs, /redoc and /openapi.json.
-_docs = settings.enable_api_docs
+# /docs, /redoc and /openapi.json: on without API_TOKEN, off with it, unless
+# ENABLE_API_DOCS says otherwise (app/config.py).
+_docs = api_docs_enabled(settings)
 app = FastAPI(
     title="Manuscript Layout Analysis API",
     version="1.0.0",
@@ -141,7 +140,3 @@ app.include_router(health.router, prefix="/api")
 _PROTECTED = [Depends(require_api_token)]
 for _router in (classes, predict, chat, agents_ocr, ocr, evidence, index, rag_debug, authority, download, analytics):
     app.include_router(_router.router, prefix="/api", dependencies=_PROTECTED)
-
-static_dir = os.path.join(os.path.dirname(__file__), "static")
-if os.path.isdir(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
