@@ -14,6 +14,7 @@ from PIL import Image, ImageFilter, ImageOps
 
 from app.agents.crop_agent import decode_image_bytes
 from app.config import settings
+from app.services.detached_initials import leading_glyph
 
 
 # Relative model paths are tried against the repository root, the backend, the
@@ -159,9 +160,9 @@ def select_backend_plan(
     # textualis, bastarda and a Romanesque hand - through the full-page route
     # (scripts/benchmark_recognizers.py):
     #
-    #     CATMuS Medieval    7.6%
-    #     CREMMA Medieval   15.1%
-    #     McCATMuS          36.5%
+    #     CATMuS Medieval    7.6%   (6.7% with versal initials joined)
+    #     CREMMA Medieval   15.1%  (14.1%)
+    #     McCATMuS          36.5%  (36.2%)
     #
     # McCATMuS is trained on documents from the late 16th century onwards. It was
     # worst on all three French pages, French being its majority language, so
@@ -682,6 +683,18 @@ class SAIABackend(OCRBackend):
             raise OCRBackendError(f"SAIA backend failed: {exc}") from exc
 
 
+def _leading_glyph_of(records: Sequence[Any]) -> dict[str, Any] | None:
+    read = [record for record in records if str(getattr(record, "prediction", "") or "").strip()]
+    if len(read) != 1:
+        return None
+    prediction = str(getattr(read[0], "prediction", "") or "")
+    cuts = list(getattr(read[0], "cuts", []) or [])
+    if len(cuts) != len(prediction):
+        return None
+    skip = len(prediction) - len(prediction.lstrip())
+    return leading_glyph(prediction[skip:].rstrip(), cuts[skip : skip + len(prediction[skip:].rstrip())])
+
+
 class KrakenBackend(OCRBackend):
     def __init__(
         self,
@@ -762,6 +775,9 @@ class KrakenBackend(OCRBackend):
                 "segmentation_type": getattr(bounds, "type", "unknown"),
                 "record_count": len(records),
                 "confidence_count": len(confidences),
+                # Whether the line starts with a detached glyph, and its gap (see
+                # app/services/detached_initials.py); measured on a one-line crop only.
+                "leading_glyph": _leading_glyph_of(records),
                 "notes": ["recommended manuscript OCR path using segmentation-driven line crops"],
             },
             region_id=metadata.region_id,

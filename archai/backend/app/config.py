@@ -269,7 +269,8 @@ class Settings(BaseSettings):
     # page yields no text regions or no text. "glmocr": GLM-OCR on the whole
     # page, as before. Over the five reference pages the segmented engine reads
     # at 7.6% CER, GLM-OCR at 27.7% (scripts/benchmark_recognizers.py,
-    # eval/recognizers/).
+    # eval/recognizers/); at 6.7% with versal initials joined
+    # (ocr_join_detached_initials).
     full_page_ocr_engine: str = "segmented"
     # Let a text-quality score reorder the backends of an "auto" plan and replace
     # a backend's non-empty text with another's. The score favours fluent-looking
@@ -278,6 +279,25 @@ class Settings(BaseSettings):
     # to 8.6%. Off, the plan order decides, and a later backend reads a line only
     # when every earlier one fails or reads nothing.
     ocr_backend_election: bool = False
+    # Join a versal initial that Kraken wrote apart from its word ("C aldꝰ" ->
+    # "Caldꝰ"), as the reference transcriptions do (app/services/detached_initials.py).
+    # Over the five reference pages it changes two, the ones with versals: CER
+    # on latin-abaton 6.6% -> 5.5%, on old-french-verse 7.2% -> 5.4%; the other
+    # three are unchanged. The three thresholds below were set on those two
+    # development pages, with one annotator.
+    ocr_join_detached_initials: bool = True
+    # A column needs this many lines before its initials are judged: protects a
+    # short block (a heading, a marginal note) where two detached glyphs would
+    # already be a majority.
+    ocr_detached_initial_min_column_lines: int = 5
+    # Share of a column's lines that must begin with a detached glyph: protects
+    # pages that do not set initials apart. On latin-apocalypse, 2 of 21 lines
+    # begin that way, both misreads ("R Rian"), and stay as read.
+    ocr_detached_initial_min_share: float = 0.5
+    # The gap after the glyph, as a share of the line's median word gap, must be
+    # at least this: protects a one-glyph word at word spacing (Qͥ, Q̾), which
+    # measured 0.47-0.99, below every initial (1.15 and up).
+    ocr_detached_initial_min_gap_ratio: float = 1.0
     # Runs reserved with POST /ocr/runs for a client to follow. The route is
     # unauthenticated, so reservations are bounded: one not used within the TTL
     # can no longer be claimed and is deleted by the next reservation, and no

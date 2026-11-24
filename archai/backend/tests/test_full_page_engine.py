@@ -799,3 +799,61 @@ def test_the_segmented_route_reads_a_page_without_a_chat_key(no_chat_key: None, 
 
     assert result.ocr_engine == "segmented"
     assert result.lines == ["line a1", "line a2"]
+
+
+# ------------------------------------------------------------ versal initials --
+
+_VERSE = {
+    "a1": ("C aldꝰ li roys qui mlt fu ber", 2.4),
+    "a2": ("L a fist requerre ⁊ demander", 1.7),
+    "a3": ("⁊ larges ⁊ cortoiz ⁊ franz", 2.0),
+    "a4": ("M arcadigas anõ a uoit", 1.6),
+    "a5": ("Qͥ gnͣt conseil uilain", 0.65),
+    "a6": ("y nabele ⁊ marcadigas.", 1.6),
+}
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_versal_initials_are_joined_in_the_region_texts_and_the_spans_stay_exact(
+    enabled: bool, no_chat_key: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.config import settings
+    from app.services import trace_pipeline
+
+    def recognize(self: Any, _crop_b64: str, metadata: Any) -> Any:
+        text, ratio = _VERSE[metadata.region_id]
+        return ocr_backends.OCRBackendResult(
+            text=text,
+            confidence=0.9,
+            backend_name=self.backend_name,
+            model_name=self.model_name,
+            raw_metadata={"leading_glyph": {"detached": True, "gap_ratio": ratio}},
+            region_id=metadata.region_id,
+            page_id=metadata.page_id,
+            script_hint=None,
+        )
+
+    monkeypatch.setattr(settings, "ocr_join_detached_initials", enabled)
+    monkeypatch.setattr(trace_pipeline, "_ocr_agent_instance", None)
+    monkeypatch.setattr(ocr_backends.KrakenBackend, "recognize", recognize)
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, *[_line(150 + 100 * i) for i in range(6)]))
+    monkeypatch.setattr(ocr_router, "run_glm_ollama_ocr", lambda *_a, **_k: pytest.fail("must not fall back to GLM-OCR"))
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", lambda *_a, **_k: {})
+    monkeypatch.setattr(ocr_router, "get_test_ocr_fixture", lambda _data: None)
+    monkeypatch.setattr(ocr_router, "get_test_ocr_override", lambda _data: None)
+
+    result = _extract()
+
+    expected = [
+        "Caldꝰ li roys qui mlt fu ber",
+        "La fist requerre ⁊ demander",
+        "⁊ larges ⁊ cortoiz ⁊ franz",  # a word sign stays apart
+        "Marcadigas anõ a uoit",
+        "Qͥ gnͣt conseil uilain",  # a word at word spacing stays apart
+        "ynabele ⁊ marcadigas.",
+    ]
+    assert result.lines == (expected if enabled else [text for text, _ in _VERSE.values()])
+    body = [line for line in result.line_regions if line.lane == "body"]
+    assert len(body) == 6
+    for line in body:
+        assert line.char_start is not None and result.text[line.char_start : line.char_end] == line.text

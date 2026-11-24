@@ -43,6 +43,7 @@ from app.services.ocr_evidence import (
     write_ocr_evidence_jsonl,
 )
 
+from app.services.detached_initials import join_first_glyph, lines_to_join
 from app.services.saia_client import SaiaClient, is_model_not_found_error, lazy_saia_client
 from app.agents.ocr_agent_errors import (
     OCRAgentError,
@@ -554,6 +555,40 @@ def _with_progress(items: Sequence[Any], progress: LineProgress | None) -> Itera
             progress(index + 1, total)
 
 
+def _join_detached_initials(
+    region_results: list[OCRRegionResult],
+    comparison_results: list[OCRComparisonResult],
+    merged_lines: list[str],
+) -> list[str]:
+    """Join versal initials Kraken wrote apart from their word, in each region's text.
+
+    Applied to the region texts the page text is built from, so every region's
+    text stays an exact span of it (line_regions). The decision is the page's
+    geometry: see app/services/detached_initials.py.
+    """
+    chosen = lines_to_join(
+        [
+            {"text": r.text, "bbox_xyxy": r.bbox_xyxy, "leading_glyph": (r.raw_metadata or {}).get("leading_glyph")}
+            for r in region_results
+        ],
+        min_column_lines=int(settings.ocr_detached_initial_min_column_lines),
+        min_share=float(settings.ocr_detached_initial_min_share),
+        min_gap_ratio=float(settings.ocr_detached_initial_min_gap_ratio),
+    )
+    if not chosen:
+        return merged_lines
+    for index in sorted(chosen):
+        region = region_results[index]
+        joined = join_first_glyph(region.text)
+        region_results[index] = region.model_copy(
+            update={"text": joined, "flags": list(dict.fromkeys([*region.flags, "DETACHED_INITIAL_JOINED"]))}
+        )
+        for k, comparison in enumerate(comparison_results):
+            if comparison.selected and comparison.region_id == region.region_id and comparison.text == region.text:
+                comparison_results[k] = comparison.model_copy(update={"text": joined})
+    return [line for r in region_results if r.text.strip() for line in r.text.splitlines() if line.strip()]
+
+
 def _run_segmented_ocr_extraction(
     payload: OCRExtractRequest,
     *,
@@ -851,6 +886,9 @@ def _run_segmented_ocr_extraction(
                     raw_metadata=dict(backend_result.raw_metadata or {}),
                 )
             )
+
+    if settings.ocr_join_detached_initials:
+        merged_lines = _join_detached_initials(region_results, comparison_results, merged_lines)
 
     # A later backend reads a line only when the earlier ones failed or read
     # nothing, so a page can mix models (McCATMuS lines in a CATMuS page) without
