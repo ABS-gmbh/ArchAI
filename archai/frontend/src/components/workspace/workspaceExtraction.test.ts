@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 
 import type { OCRExtractResponse } from "@/lib/api/ocrAgent";
 
-import { cleanTranscription, countUncertainties, describeExtraction, recogniserName } from "./workspaceExtraction";
+import { cleanTranscription, countUncertainties, describeExtraction, recogniserName, withIndexBadge } from "./workspaceExtraction";
 
 function reading(overrides: Partial<OCRExtractResponse> = {}): OCRExtractResponse {
   return {
@@ -91,5 +91,45 @@ describe("describeExtraction", () => {
   it("counts uncertain places only where the engine inserts the marks", () => {
     assert.deepEqual(labels(describeExtraction(reading({ ocr_engine: "glmocr" }), "a [...] b ?")), ["2 uncertain places"]);
     assert.deepEqual(labels(describeExtraction(reading({ ocr_engine: "segmented" }), "a [...] b ?")), []);
+  });
+});
+
+// Live regression (2026-11-24): without a chat key every page said "Quality:
+// high … is used for search" while its Steps said it was not indexed. The badge
+// now gives the verdict only, and a "Not indexed" pill carries the step's reason.
+describe("the quality verdict and indexing", () => {
+  it("states the verdict without claiming the page was indexed", () => {
+    for (const quality of ["HIGH", "OK"]) {
+      const [badge] = describeExtraction(reading({ quality_label: quality }), "");
+      assert.doesNotMatch(badge.detail, /is used for search|indexed/);
+      assert.match(badge.detail, /good enough to search and to look names up/);
+    }
+  });
+
+  const quality = describeExtraction(reading({ quality_label: "HIGH" }), "");
+  const event = (stage: string, message: string) => ({ stage, event: "INFO", message });
+  const unavailable =
+    "Not indexed: the embedding service is unavailable, so this page cannot be searched until the run is indexed again.";
+
+  it("adds a Not indexed pill with the step's reason", () => {
+    const badges = withIndexBadge(quality, [event("ANALYZE_DONE", "chunks=2, mentions=6"), event("INDEX_SKIPPED", unavailable)]);
+    assert.deepEqual(
+      badges.map((badge) => badge.label),
+      ["Quality: high", "Not indexed"],
+    );
+    assert.equal(badges[1].tone, "warn");
+    assert.equal(badges[1].detail, unavailable);
+  });
+
+  it("adds nothing when the page was indexed, or indexed again after a skip", () => {
+    assert.equal(withIndexBadge(quality, [event("INDEX_DONE", "Indexed 2 chunks.")]).length, 1);
+    assert.equal(withIndexBadge(quality, [event("INDEX_SKIPPED", unavailable), event("INDEX_DONE", "Indexed 2 chunks.")]).length, 1);
+    assert.equal(withIndexBadge(quality, undefined).length, 1);
+  });
+
+  it("does not repeat what Not searchable already says", () => {
+    const risky = describeExtraction(reading({ quality_label: "RISKY", downstream_mode: "mention_only" }), "");
+    const skipped = event("INDEX_SKIPPED", "RAG auto-index SKIPPED: token_search_allowed=False (quality=RISKY)");
+    assert.deepEqual(withIndexBadge(risky, [skipped]).map((badge) => badge.label), ["Quality: risky", "Not searchable"]);
   });
 });

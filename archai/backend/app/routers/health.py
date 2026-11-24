@@ -16,6 +16,13 @@ no OCR run can be recorded without it.
   a page (GLM-OCR still can) and /api/predict fails.
 - ``line_recognizer`` (optional): the CATMuS Medieval Kraken recogniser is
   where KRAKEN_CATMUS_MODEL_PATH points and kraken is installed.
+- ``search_index`` (optional): pages read can be indexed for search. The
+  default RAG_EMBEDDING_MODEL is a provider model reached with the chat key;
+  without a key every page was read and not indexed, and only each run's
+  Steps said so (live regression, 2026-11-24). RAG_EMBEDDING_MODEL= (empty)
+  indexes with ChromaDB's local embedder instead, in collections of its own
+  (rag_store: the two spaces never mix, so pages indexed in one are not found
+  from the other until read again).
 
 ``models_loaded`` is true when both model checks pass: everything the
 segmented engine needs is installed. The models themselves are loaded on first
@@ -153,6 +160,22 @@ def _check_line_recognizer() -> dict[str, Any]:
     return {"ok": True, "detail": "The line recogniser is installed."}
 
 
+def _check_search_index() -> dict[str, Any]:
+    if not settings.rag_auto_index:
+        return {"ok": True, "detail": "Pages are not indexed automatically (RAG_AUTO_INDEX is off)."}
+    if not str(settings.rag_embedding_model or "").strip():
+        return {"ok": True, "detail": "Pages are indexed with the local embedder."}
+    try:
+        SaiaClient._resolve_api_key()
+    except SaiaConfigError:
+        return {
+            "ok": False,
+            "detail": "Pages are read but not indexed for search: the embedding model needs the chat key. Set the key, "
+            "or set RAG_EMBEDDING_MODEL= to index with the local embedder (see docs/deployment.md).",
+        }
+    return {"ok": True, "detail": "Pages are indexed with the provider's embedding model; the key is not validated here."}
+
+
 # A plain def: the checks are a SQLite query and an HTTP request, which FastAPI
 # runs in its threadpool instead of on the event loop.
 @router.get("/health")
@@ -163,6 +186,7 @@ def health_check() -> JSONResponse:
         "chat_api_key": _check_chat_api_key(),
         "layout_models": _check_layout_models(),
         "line_recognizer": _check_line_recognizer(),
+        "search_index": _check_search_index(),
     }
     if not checks["database"]["ok"]:
         status, code = "unavailable", 503
