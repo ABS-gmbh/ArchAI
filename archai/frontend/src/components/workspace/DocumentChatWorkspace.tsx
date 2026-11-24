@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   analyzeSegmentLabel,
@@ -127,6 +127,10 @@ const EMPTY_DOCUMENT_METADATA: WorkspaceDocumentMetadata = {
   notes: "",
 };
 
+const subscribeToNothing = () => () => {};
+const isClient = () => true;
+const isServer = () => false;
+
 /**
  * Focus the first element matching *selector* once it is on screen, unless
  * focus has gone somewhere meaningful meanwhile (anywhere but the body). For a
@@ -147,7 +151,9 @@ function focusWhenShown(selector: string, frames = 20): void {
 }
 
 export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspaceProps) {
-  const [clientReady, setClientReady] = useState(false);
+  // False on the server and while hydrating, true in the browser after: the
+  // workspace reads sessionStorage and window, which the server has not got.
+  const clientReady = useSyncExternalStore(subscribeToNothing, isClient, isServer);
   const [hydrated, setHydrated] = useState(false);
   const [documents, setDocuments] = useState<WorkspaceDocument[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
@@ -220,10 +226,6 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const currentOcrRunId = currentPage ? (ocrRunIdByPageId[currentPage.id] ?? "") : "";
   const currentAuthorityReport = currentPage ? (authorityReportByPageId[currentPage.id] ?? "") : "";
   const currentMetadata = currentDocument?.metadata ?? null;
-
-  useEffect(() => {
-    setClientReady(true);
-  }, []);
 
   useEffect(() => {
     if (sending) {
