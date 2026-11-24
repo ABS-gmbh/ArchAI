@@ -53,9 +53,11 @@ class Settings(BaseSettings):
             raise ValueError(f"{(info.field_name or '').upper()} must be at least 1, got {value}")
         return value
 
-    # /docs, /redoc and /openapi.json. On by default; a server should switch them
-    # off (docs/deployment.md), since they describe every route to anyone.
-    enable_api_docs: bool = True
+    # /docs, /redoc and /openapi.json, which describe every route to anyone.
+    # Unset, they are on without API_TOKEN and off with it (api_docs_enabled);
+    # true or false decides either way. Switched on with a token set, they answer
+    # without it: a browser opening /docs cannot send the token.
+    enable_api_docs: bool | None = None
 
     # Bearer token for the whole API except /api/health (app/auth.py). Empty, the
     # default, leaves the API open, which is only safe on localhost.
@@ -383,6 +385,13 @@ class Settings(BaseSettings):
         return _EPHEMERAL_JWT_SECRET
 
     model_config = {"env_file": (".env", ".env.local"), "extra": "ignore"}
+
+
+def api_docs_enabled(config: Settings) -> bool:
+    """ENABLE_API_DOCS if it is set; otherwise on only while the API has no token."""
+    if config.enable_api_docs is not None:
+        return bool(config.enable_api_docs)
+    return not config.api_token
 
 
 # Read with os.getenv where they are used, not through Settings, which reads

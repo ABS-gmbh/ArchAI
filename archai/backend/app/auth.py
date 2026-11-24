@@ -126,6 +126,8 @@ def _exempt(scope: Scope) -> bool:
 
 
 def _open_doc_paths() -> frozenset[str]:
-    if not settings.enable_api_docs:
+    from app.config import api_docs_enabled
+
+    if not api_docs_enabled(settings):
         return frozenset()
     return frozenset({"/docs", "/docs/oauth2-redirect", "/redoc", "/openapi.json"})

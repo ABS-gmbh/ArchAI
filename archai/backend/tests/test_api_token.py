@@ -43,7 +43,6 @@ def test_every_route_but_health_and_docs_requires_the_token() -> None:
         path
         for path, dependant in _routes(main.app.routes)
         if path not in OPEN_PATHS
-        and not path.startswith("/static")
         and (dependant is None or require_api_token not in set(_calls(dependant)))
     ]
     seen = [path for path, _ in _routes(main.app.routes)]
