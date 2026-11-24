@@ -13,7 +13,7 @@ const STAGE_WORDS: Record<string, string> = {
   ANALYZE_DONE: "Passages and names found",
   STORED: "Saved",
   AUTHORITY_LINKING_RUNNING: "Linking names to authority records",
-  AUTHORITY_LINKING_DEFERRED: "Linking continues in the background",
+  AUTHORITY_LINKING_DEFERRED: "Names not linked: the reading is too uncertain",
   AUTHORITY_LINKING_ERROR: "Linking failed",
   LINKING_SKIPPED: "Linking skipped",
   INDEX_RUNNING: "Indexing for search",

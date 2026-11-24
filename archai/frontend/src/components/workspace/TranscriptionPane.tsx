@@ -76,6 +76,7 @@ export function TranscriptionPane({
   }, [scrollToLineId]);
 
   const hasText = lines.length > 0;
+  const activeInList = lines.some((line) => line.id === activeLineId);
   const ratio = state.progress && state.progress.total > 0 ? Math.min(1, state.progress.done / state.progress.total) : null;
 
   return (
@@ -99,7 +100,12 @@ export function TranscriptionPane({
         ) : null}
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4" aria-busy={state.phase === "reading"}>
+      {/* Said once when a read ends; the progress line below announces itself while it runs. */}
+      <p role="status" className="sr-only">
+        {state.phase === "done" ? (hasText ? `Page read: ${lines.length} ${lines.length === 1 ? "line" : "lines"}.` : "Page read: no text found.") : ""}
+      </p>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
         {state.phase === "reading" ? (
           <div role="status">
             <p className="text-sm">
@@ -161,14 +167,36 @@ export function TranscriptionPane({
 
         {state.phase !== "reading" && hasText ? (
           <>
-            <ol ref={listRef} className="font-text text-[17px] leading-7" onMouseLeave={() => onActiveLine(null)}>
+            <ol
+              ref={listRef}
+              aria-label="Lines of the page"
+              className="font-text text-[17px] leading-7"
+              onMouseLeave={() => onActiveLine(null)}
+              onKeyDown={(event) => {
+                // One tab stop for the list; the arrow keys walk its lines.
+                if (event.key !== "ArrowDown" && event.key !== "ArrowUp" && event.key !== "Home" && event.key !== "End") {
+                  return;
+                }
+                const rows = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>("button[data-row]"));
+                const at = rows.indexOf(document.activeElement as HTMLButtonElement);
+                if (at === -1) {
+                  return;
+                }
+                event.preventDefault();
+                const next =
+                  event.key === "Home" ? 0 : event.key === "End" ? rows.length - 1 : Math.min(rows.length - 1, Math.max(0, at + (event.key === "ArrowDown" ? 1 : -1)));
+                rows[next].focus();
+              }}
+            >
               {lines.map((line, index) => {
                 const active = line.id === activeLineId;
                 return (
                   <li key={line.id} data-line-id={line.id}>
                     <button
                       type="button"
-                      aria-pressed={active}
+                      data-row
+                      aria-current={active ? "true" : undefined}
+                      tabIndex={active || (!activeInList && index === 0) ? 0 : -1}
                       onMouseEnter={() => onActiveLine(line.id)}
                       onFocus={() => onActiveLine(line.id)}
                       onClick={() => onActiveLine(line.id)}

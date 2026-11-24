@@ -212,7 +212,9 @@ export async function extractPageText(
       body: JSON.stringify(payload),
     });
   } catch (error: unknown) {
-    if (error instanceof ApiError && error.status === 404) {
+    // Only a missing route falls back to the legacy one. Any other 404 (an
+    // unknown run_id, for one) would send the page to be read, and paid for, a second time.
+    if (error instanceof ApiError && error.status === 404 && error.detail === "Not Found") {
       const legacy = await apiFetch<LegacyOCRExtractResponse>("/ocr/saia", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

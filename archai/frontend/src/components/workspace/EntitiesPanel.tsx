@@ -58,6 +58,12 @@ function reasonInWords(reason: string): string {
   if (below) {
     return `The best match scored ${Number(below[1]).toFixed(2)}; a link needs ${Number(below[2]).toFixed(2)}.`;
   }
+  const gated = /token_search_allowed=False(?:\s+quality=(\w+))?/i.exec(reason);
+  if (gated) {
+    return gated[1]
+      ? `Not matched: the page's reading was graded ${gated[1].toLowerCase()}, too uncertain for names to be linked.`
+      : "Not matched: the page's reading is too uncertain for names to be linked.";
+  }
   if (/no candidates found/i.test(reason)) {
     return "No authority record was found for this name.";
   }
