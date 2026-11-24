@@ -131,6 +131,10 @@ class Settings(BaseSettings):
     # inflated without a bound (audit PRED-002).
     max_upload_megabytes: int = 1024
     max_extracted_megabytes: int = 4096
+    # Every request body that is not a multipart upload (app/body_limit.py). The
+    # largest legitimate one is a page image as a base64 data URL: an A4 page at
+    # 600 dpi as PNG makes a 36 MB body.
+    max_json_megabytes: int = 48
 
     # Chat AI (GWDG OpenAI-compatible)
     chat_ai_api_key: str = ""

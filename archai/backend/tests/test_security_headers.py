@@ -35,7 +35,7 @@ def test_json_answers_carry_nosniff(client: TestClient) -> None:
 
 
 def test_a_refused_body_carries_nosniff(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(settings, "max_upload_megabytes", 1)
+    monkeypatch.setattr(settings, "max_json_megabytes", 1)
     response = client.post("/api/ocr/extract_full_page", content=b"x" * (3 << 20), headers={"content-type": "application/json"})
     assert response.status_code == 413
     assert response.headers.get("x-content-type-options") == "nosniff"

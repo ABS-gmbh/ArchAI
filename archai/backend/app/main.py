@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.auth import require_api_token
+from app.auth import ApiTokenGate, require_api_token
 from app.body_limit import RequestBodyLimit
 from app.security_headers import SecurityHeaders
 from app.config import settings
@@ -121,6 +121,9 @@ app = FastAPI(
 # Added first so it sits inside CORS: a 413 still carries the CORS headers the
 # browser needs to read it.
 app.add_middleware(RequestBodyLimit)
+# Outside the body limit and inside CORS: a request without the API token is
+# answered 401 before any of its body is received (app/auth.py).
+app.add_middleware(ApiTokenGate)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins_list,
