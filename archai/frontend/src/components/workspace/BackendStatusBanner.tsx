@@ -41,17 +41,20 @@ function nextFocusableAfter(root: HTMLElement): HTMLElement | null {
  */
 export function BackendStatusBanner() {
   const [health, setHealth] = useState<BackendHealth | null>(null);
-  const [checking, setChecking] = useState(false);
+  // True from the start: the first check begins as the banner mounts.
+  const [checking, setChecking] = useState(true);
   // The problems on screen when Hide was pressed; in memory only, so a reload shows them again.
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
   const controllerRef = useRef<AbortController | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
-  const check = useCallback(async () => {
+  // Fetches and stores the health. It sets no state before its first await, so
+  // the effect that starts the first check sets none synchronously; `checking`
+  // starts true for that one, and `check` below sets it for the others.
+  const runCheck = useCallback(async () => {
     controllerRef.current?.abort();
     const controller = new AbortController();
     controllerRef.current = controller;
-    setChecking(true);
     try {
       const result = await getBackendHealth(controller.signal);
       if (!controller.signal.aborted) {
@@ -66,14 +69,20 @@ export function BackendStatusBanner() {
     }
   }, []);
 
+  const check = useCallback(() => {
+    setChecking(true);
+    void runCheck();
+  }, [runCheck]);
+
   useEffect(() => {
-    void check();
-    const timer = window.setInterval(() => void check(), RECHECK_MS);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- runCheck sets state only after its first await, asynchronously; the rule does not follow the await.
+    void runCheck();
+    const timer = window.setInterval(check, RECHECK_MS);
     return () => {
       window.clearInterval(timer);
       controllerRef.current?.abort();
     };
-  }, [check]);
+  }, [runCheck, check]);
 
   if (!health || health.status === "ok") {
     return null;
@@ -116,7 +125,7 @@ export function BackendStatusBanner() {
           type="button"
           onClick={() => {
             if (!checking) {
-              void check();
+              check();
             }
           }}
           aria-disabled={checking || undefined}

@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type KeyboardEvent, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import {
   analyzeSegmentLabel,
@@ -127,6 +127,20 @@ const EMPTY_DOCUMENT_METADATA: WorkspaceDocumentMetadata = {
   notes: "",
 };
 
+/** The workspace's settings saved in this tab, or null (none, unreadable, or on the server). */
+function readPersistedState(): WorkspacePersistedState | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as WorkspacePersistedState) : null;
+  } catch {
+    return null;
+  }
+}
+
+const subscribeToNothing = () => () => {};
+const isClient = () => true;
+const isServer = () => false;
+
 /**
  * Focus the first element matching *selector* once it is on screen, unless
  * focus has gone somewhere meaningful meanwhile (anywhere but the body). For a
@@ -147,8 +161,9 @@ function focusWhenShown(selector: string, frames = 20): void {
 }
 
 export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspaceProps) {
-  const [clientReady, setClientReady] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  // False on the server and while hydrating, true in the browser after: the
+  // workspace reads sessionStorage and window, which the server has not got.
+  const clientReady = useSyncExternalStore(subscribeToNothing, isClient, isServer);
   const [documents, setDocuments] = useState<WorkspaceDocument[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [pageIndexByDocument, setPageIndexByDocument] = useState<Record<string, number>>({});
@@ -158,7 +173,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [visionModelIds, setVisionModelIds] = useState<Set<string>>(new Set());
   const [taskModels, setTaskModels] = useState(DEFAULT_TASK_MODELS);
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_CHAT_MODEL_ID);
-  const [includeCurrentPageImage, setIncludeCurrentPageImage] = useState(false);
+  // Restored from this tab's sessionStorage when the workspace is created (the
+  // server has none: the workspace is rendered in the browser only).
+  const [includeCurrentPageImage, setIncludeCurrentPageImage] = useState(
+    () => readPersistedState()?.includeCurrentPageImage ?? false,
+  );
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -184,7 +203,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [activeLineId, setActiveLineId] = useState<string | null>(null);
   const [scrollToLineId, setScrollToLineId] = useState<string | null>(null);
   // Which region is shown where the screen has room for one: the page, its text, or a panel.
-  const [pane, setPane] = useState<WorkspacePane>("text");
+  // On a phone the page comes first; wider screens start on its text. (The
+  // workspace renders in the browser only; `window` is checked for the server.)
+  const [pane, setPane] = useState<WorkspacePane>(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "page" : "text",
+  );
   const runFollowersRef = useRef<Set<AbortController>>(new Set());
   // The run each page's latest read reserved: an older run's follower may not write over it.
   const latestRunByPageRef = useRef<Record<string, string | null>>({});
@@ -196,9 +219,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [replyAnnouncement, setReplyAnnouncement] = useState("");
-  const wasSendingRef = useRef(false);
   /** Whether the last chat request failed; its message is in the conversation, not above the composer. */
-  const chatFailedRef = useRef(false);
+  const [chatFailed, setChatFailed] = useState(false);
   const metadataDialogWasOpenRef = useRef(false);
 
   const currentDocument = useMemo(
@@ -221,20 +243,23 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const currentAuthorityReport = currentPage ? (authorityReportByPageId[currentPage.id] ?? "") : "";
   const currentMetadata = currentDocument?.metadata ?? null;
 
-  useEffect(() => {
-    setClientReady(true);
-  }, []);
-
-  useEffect(() => {
+  // What the reply announcement was last worked out from: it is worked out
+  // again, during render, whenever one of these changes (it was an effect that
+  // set state, react-hooks/set-state-in-effect). `chat` is whether the request
+  // in flight is a chat request: a page read or a region search also sets
+  // `sending`, and only a chat request ends in a reply.
+  const [announcedFrom, setAnnouncedFrom] = useState({ sending, label: assistantLoadingLabel, error, chat: false });
+  if (announcedFrom.sending !== sending || announcedFrom.label !== assistantLoadingLabel || announcedFrom.error !== error) {
+    let chat = announcedFrom.chat;
     if (sending) {
-      // A page read or a region search also sets `sending`; only a chat request ends in a reply.
-      wasSendingRef.current = assistantLoadingLabel !== "Extracting text" && assistantLoadingLabel !== "Segmenting page";
+      chat = assistantLoadingLabel !== "Extracting text" && assistantLoadingLabel !== "Segmenting page";
       setReplyAnnouncement("");
-    } else if (wasSendingRef.current) {
-      wasSendingRef.current = false;
-      setReplyAnnouncement(error || chatFailedRef.current ? "The request failed." : "Reply ready.");
+    } else if (chat) {
+      chat = false;
+      setReplyAnnouncement(error || chatFailed ? "The request failed." : "Reply ready.");
     }
-  }, [sending, error, assistantLoadingLabel]);
+    setAnnouncedFrom({ sending, label: assistantLoadingLabel, error, chat });
+  }
 
   // When the metadata dialog closes, hand focus back to the control that
   // opened it; otherwise it falls to the page body and a keyboard user starts
@@ -276,28 +301,20 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     };
   }, []);
 
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        setHydrated(true);
-        return;
-      }
-
-      const parsed = JSON.parse(raw) as WorkspacePersistedState;
-      setIncludeCurrentPageImage(Boolean(parsed.includeCurrentPageImage));
+  // A new document in the route restores the stored setting again and resets
+  // the model, as it did when this was an effect on initialDocumentId. Worked
+  // out during render (react-hooks/set-state-in-effect).
+  const [restoredFor, setRestoredFor] = useState(initialDocumentId);
+  if (restoredFor !== initialDocumentId) {
+    setRestoredFor(initialDocumentId);
+    const persisted = readPersistedState();
+    if (persisted) {
+      setIncludeCurrentPageImage(Boolean(persisted.includeCurrentPageImage));
       setSelectedModel(DEFAULT_CHAT_MODEL_ID);
-    } catch {
-      // Ignore malformed persisted state.
-    } finally {
-      setHydrated(true);
     }
-  }, [initialDocumentId]);
+  }
 
   useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
     const payload: WorkspacePersistedState = {
       selectedModel: selectedModel || null,
       includeCurrentPageImage,
@@ -307,18 +324,20 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     } catch {
       // Storage quota/availability should never block workspace usage.
     }
-  }, [
-    hydrated,
-    selectedModel,
-    includeCurrentPageImage,
-  ]);
+  }, [selectedModel, includeCurrentPageImage]);
 
-  useEffect(() => {
-    if (!initialDocumentId || !documents.some((doc) => doc.id === initialDocumentId)) {
-      return;
+  // The document named in the route is selected once it is among the open
+  // documents, checked again whenever either changes (it was an effect on both).
+  const [routeCheckedFor, setRouteCheckedFor] = useState<{ id: string | undefined; documents: WorkspaceDocument[] | null }>({
+    id: undefined,
+    documents: null,
+  });
+  if (routeCheckedFor.id !== initialDocumentId || routeCheckedFor.documents !== documents) {
+    setRouteCheckedFor({ id: initialDocumentId, documents });
+    if (initialDocumentId && documents.some((doc) => doc.id === initialDocumentId)) {
+      setSelectedDocumentId(initialDocumentId);
     }
-    setSelectedDocumentId(initialDocumentId);
-  }, [initialDocumentId, documents]);
+  }
 
   const selectDocument = (documentId: string) => {
     setSelectedDocumentId(documentId);
@@ -537,7 +556,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       ],
     }));
     setError(null);
-    chatFailedRef.current = false;
+    setChatFailed(false);
     setAssistantLoadingLabel(options?.loadingLabel || "Thinking");
     setSending(true);
 
@@ -627,7 +646,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Chat request failed.";
       // The failure is shown once, where the answer would have been.
-      chatFailedRef.current = true;
+      setChatFailed(true);
       setMessagesByDocument((prev) => {
         const list = [...(prev[currentDocument.id] ?? [])];
         const index = list.findIndex((msg) => msg.id === assistantMessage.id);
@@ -658,6 +677,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       id: makeId("msg-user"),
       role: "user",
       content: text,
+      // eslint-disable-next-line react-hooks/purity -- sendMessage runs only from onSend (a key or a button press), never during render.
       createdAt: Date.now(),
     };
 
@@ -1369,13 +1389,6 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     };
   }, []);
 
-  // On a phone the page comes first; wider screens start on its text.
-  useEffect(() => {
-    if (window.matchMedia("(max-width: 767px)").matches) {
-      setPane("page");
-    }
-  }, []);
-
   const currentPageId = currentPage?.id ?? null;
   const currentReadState: ReadState = (() => {
     const stored = currentPageId ? readStateByPageId[currentPageId] : undefined;
@@ -1399,8 +1412,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const reading = currentReadState.phase === "reading";
   const findingRegions = Boolean(currentPageId) && segmentingPageId === currentPageId;
 
-  const loadLinking = (runId: string) => {
-    setLinkingByRunId((prev) => ({ ...prev, [runId]: { phase: "loading" } }));
+  // Sets state only when the report arrives (or fails).
+  const fetchLinking = (runId: string) => {
     fetchLinkingReport(runId)
       .then((report) => setLinkingByRunId((prev) => ({ ...prev, [runId]: { phase: "ready", report } })))
       .catch((err: unknown) =>
@@ -1411,11 +1424,32 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       );
   };
 
-  // The names of a run are fetched when its panel is first opened.
+  // Retry, from the names panel.
+  const loadLinking = (runId: string) => {
+    setLinkingByRunId((prev) => ({ ...prev, [runId]: { phase: "loading" } }));
+    fetchLinking(runId);
+  };
+
+  // The names of a run are fetched when its panel is first opened. The run
+  // stays "idle" while they are fetched (the panel shows idle as loading), so
+  // the effect sets no state itself (react-hooks/set-state-in-effect); the ref
+  // remembers which idle entry was fetched for, so each is fetched once, and a
+  // re-read, which puts a new idle entry in its place, is fetched again.
+  const linkingFetchedForRef = useRef(new Map<string, LinkingState | undefined>());
   useEffect(() => {
-    if (pane === "names" && currentOcrRunId && (linkingByRunId[currentOcrRunId]?.phase ?? "idle") === "idle") {
-      loadLinking(currentOcrRunId);
+    if (pane !== "names" || !currentOcrRunId) {
+      return;
     }
+    const entry = linkingByRunId[currentOcrRunId];
+    if ((entry?.phase ?? "idle") !== "idle") {
+      return;
+    }
+    const fetched = linkingFetchedForRef.current;
+    if (fetched.has(currentOcrRunId) && fetched.get(currentOcrRunId) === entry) {
+      return;
+    }
+    fetched.set(currentOcrRunId, entry);
+    fetchLinking(currentOcrRunId);
   }, [pane, currentOcrRunId, linkingByRunId]);
 
   const choosePages = () => {
