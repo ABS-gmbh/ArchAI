@@ -260,6 +260,29 @@ class SaiaFullPageExtractRequest(BaseModel):
         return self
 
 
+class FullPageLine(BaseModel):
+    """One text region the segmented engine read: its text tied to its place on the page.
+
+    ``bbox_xyxy`` and ``polygon`` are in pixels of the upright page: the upload
+    with its EXIF orientation applied, at full resolution (the frame of
+    ``original_image_width`` x ``original_image_height``). ``char_start`` and
+    ``char_end`` index the response ``text`` (``text[char_start:char_end]`` is
+    this region's text); they are None for the secondary lane, whose text is in
+    ``secondary_lines``, and when the region's text is not found verbatim.
+    """
+
+    region_id: str
+    lane: Literal["body", "secondary"]
+    reading_order: int | None = None
+    text: str = ""
+    char_start: int | None = None
+    char_end: int | None = None
+    bbox_xyxy: list[float] | None = None
+    polygon: list[list[float]] | None = None
+    confidence: float | None = None
+    backend_name: str | None = None
+
+
 class SaiaFullPageExtractResponse(BaseModel):
     status: Literal["FULL", "PARTIAL", "EMPTY"]
     model_used: str
@@ -278,6 +301,9 @@ class SaiaFullPageExtractResponse(BaseModel):
     # Text the segmented engine found outside every text column - marginalia,
     # folio numbers, shelfmarks, stamps - kept out of ``text`` and in page order.
     secondary_lines: list[str] = Field(default_factory=list)
+    # The segmented engine's regions with their boxes; None from GLM-OCR, which
+    # reads the page as a whole.
+    line_regions: list[FullPageLine] | None = None
     original_image_size_bytes: int | None = None
     original_image_width: int | None = None
     original_image_height: int | None = None

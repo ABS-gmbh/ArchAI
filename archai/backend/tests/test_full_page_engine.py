@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import io
+import json
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -406,3 +407,98 @@ def test_the_segmented_route_keeps_question_marks_and_ellipses(route: dict[str, 
 def test_the_marker_stripping_used_by_the_other_paths_is_unchanged() -> None:
     assert ocr_router._strip_uncertainty_lines(["Que [ ]a? b […] c…", "  ", "x  y"]) == ["Que [ ]a b c", "x y"]
     assert ocr_router._strip_uncertainty_lines(["a?  b"], strip_markers=False) == ["a? b"]
+
+
+# ------------------------------------------------------------ line regions --
+
+
+class _BoxAgent(_LineAgent):
+    """Like the real agent: each region keeps its input box and polygon, and its text is one line."""
+
+    def __init__(self, *, texts: dict[str, str] | None = None, proofread: str | None = None) -> None:
+        super().__init__()
+        self.texts = texts or {}
+        self.proofread = proofread
+
+    def run(self, payload: Any) -> OCRExtractResponse:
+        result = super().run(payload)
+        regions = [
+            OCRRegionResult(
+                region_id=region.region_id,
+                text=self.texts.get(region.region_id, f"line {region.region_id}"),
+                quality=0.8,
+                confidence=0.9,
+                flags=[],
+                bbox_xyxy=list(region.bbox_xyxy) if region.bbox_xyxy else None,
+                polygon=region.polygon,
+                reading_order=region.reading_order,
+                backend_name="kraken_catmus",
+                model_name="CATMuS Medieval",
+            )
+            for region in payload.regions
+        ]
+        text = self.proofread or "\n".join(region.text for region in regions)
+        return result.model_copy(update={"regions": regions, "text": text, "final_text": text})
+
+
+def _rotated_page() -> bytes:
+    """A photo stored 1400x1000 with EXIF orientation 6: upright, it is 1000x1400."""
+    image = Image.new("RGB", (1400, 1000), (200, 190, 170))
+    exif = Image.Exif()
+    exif[0x0112] = 6
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", exif=exif)
+    return buffer.getvalue()
+
+
+def test_each_region_is_tied_to_its_span_of_text_and_its_box(route: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, Any] = {}
+
+    def segment(data: bytes) -> dict[str, Any]:
+        with Image.open(io.BytesIO(data)) as page:
+            seen["size"] = page.size  # the frame the boxes are in
+        return _coco(COLUMN, _line(150), _line(250), _line(350), ("Main script black", 300.0, 1250.0, 400.0, 40.0))
+
+    monkeypatch.setattr(ocr_router, "_segment_page", segment)
+    route["agent"] = _BoxAgent(texts={"a2": "Que   diras tu?"})
+    payload = SaiaFullPageExtractRequest(page_id="page-1", image_b64=base64.b64encode(_rotated_page()).decode("ascii"), apply_proofread=False)
+
+    result = asyncio.run(ocr_router.ocr_extract_full_page(payload))
+
+    assert seen["size"] == (1000, 1400) == (result.original_image_width, result.original_image_height)
+    body = [line for line in result.line_regions if line.lane == "body"]
+    assert [line.region_id for line in body] == ["a1", "a2", "a3"]
+    for line in body:
+        assert result.text[line.char_start : line.char_end] == line.text
+    assert body[1].text == "Que diras tu?"  # cleaned as the response text is
+    assert body[0].bbox_xyxy == [120.0, 150.0, 760.0, 190.0]  # upright-page pixels, as segmented
+    assert all(0 <= x <= 1000 for line in body for x in line.bbox_xyxy[::2])
+    assert all(0 <= y <= 1400 for line in body for y in line.bbox_xyxy[1::2])
+    assert (body[0].confidence, body[0].backend_name, body[0].reading_order) == (0.9, "kraken_catmus", 0)
+    [margin] = [line for line in result.line_regions if line.lane == "secondary"]
+    assert (margin.region_id, margin.char_start, margin.char_end) == ("a4", None, None)
+    assert margin.bbox_xyxy == [300.0, 1250.0, 700.0, 1290.0]
+
+
+def test_a_region_rewritten_by_the_proofreader_gets_no_offsets(route: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150), _line(250)))
+    route["agent"] = _BoxAgent(proofread="line a1\nsomething else")
+    result = _extract()
+    first, second = result.line_regions
+    assert result.text[first.char_start : first.char_end] == "line a1"
+    assert (second.char_start, second.char_end) == (None, None)
+
+
+def test_existing_fields_are_unchanged_by_line_regions(route: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    coco = _coco(COLUMN, _line(150), _line(250), ("Main script black", 300.0, 1250.0, 400.0, 40.0))
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: coco)
+    with_regions = _extract().model_dump(exclude={"line_regions"})
+    monkeypatch.setattr(ocr_router, "_full_page_lines", lambda *args, **kwargs: [])
+    without = _extract().model_dump(exclude={"line_regions"})
+    assert json.dumps(with_regions, sort_keys=True) == json.dumps(without, sort_keys=True)
+    assert with_regions["lines"] == ["line a1", "line a2"] and with_regions["secondary_lines"] == ["line a3"]
+
+
+def test_glm_ocr_returns_no_line_regions(route: dict[str, Any]) -> None:
+    result = _extract(ocr_backend="glmocr")
+    assert result.ocr_engine == "glmocr" and result.line_regions is None
