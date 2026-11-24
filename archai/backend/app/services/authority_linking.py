@@ -1551,6 +1551,53 @@ def _score_breakdown(meta: dict[str, Any] | None) -> dict[str, Any] | None:
     return breakdown if isinstance(breakdown, dict) else None
 
 
+# The link trace keeps every query but caps what each one returned: a run
+# stores the raw hits of every source per query, and the report is read by the
+# UI per page.
+_TRACE_MAX_QUERIES = 10
+_TRACE_MAX_HITS_PER_QUERY = 5
+_TRACE_MAX_CANDIDATES = 5
+_TRACE_HIT_FIELDS = ("source", "authority_id", "qid", "label", "description", "search_rank")
+
+
+def _trimmed_link_trace(trace: Any) -> dict[str, Any] | None:
+    """The stored decision trace of one mention (mention_links.score_breakdown_json), size-capped.
+
+    Kept: status, reason, ocr_quality, name_likeness, canonical_match,
+    mention_confidence, selected_candidate, top_candidates (first 5) and
+    query_details: up to 10 queries, each with its cache status, per-source hit
+    counts and its first 5 raw hits (source, ids, label, description, rank).
+    raw_hits_by_source repeats raw_hits and is dropped.
+    """
+    if not isinstance(trace, dict):
+        return None
+    queries = []
+    for query in list(trace.get("query_details") or [])[:_TRACE_MAX_QUERIES]:
+        if not isinstance(query, dict):
+            continue
+        hits = [hit for hit in list(query.get("raw_hits") or []) if isinstance(hit, dict)]
+        queries.append(
+            {
+                "query": query.get("query"),
+                "cache_status": query.get("cache_status"),
+                "wikidata_called": query.get("wikidata_called"),
+                "source_hit_counts": query.get("source_hit_counts"),
+                "raw_hits": [{key: hit.get(key) for key in _TRACE_HIT_FIELDS if key in hit} for hit in hits[:_TRACE_MAX_HITS_PER_QUERY]],
+                "raw_hits_total": len(hits),
+            }
+        )
+    kept = {
+        key: trace.get(key)
+        for key in ("status", "reason", "ocr_quality", "name_likeness", "canonical_match", "mention_confidence", "selected_candidate")
+        if key in trace
+    }
+    return {
+        **kept,
+        "top_candidates": list(trace.get("top_candidates") or [])[:_TRACE_MAX_CANDIDATES],
+        "query_details": queries,
+    }
+
+
 def _build_result_from_structured_rows(
     *,
     run_id: str,
@@ -1626,6 +1673,8 @@ def _build_result_from_structured_rows(
             )
             selected["score_breakdown"] = _score_breakdown(chosen)
 
+        link_trace = _trimmed_link_trace(link_row.get("score_breakdown_json") if link_row else None)
+
         top_candidates = []
         for candidate, meta in list(zip(candidate_rows_by_mention.get(mid, []), candidate_metas))[:3]:
             top_candidates.append(
@@ -1653,10 +1702,17 @@ def _build_result_from_structured_rows(
                 "reason": reason,
                 "selected": selected,
                 "top_candidates": top_candidates,
-                "query_details": [],
-                "queries_attempted": [surface] if surface else [],
-                "canonical_match": None,
-                "name_likeness": None,
+                # Stored with the link (mention_links.score_breakdown_json); these
+                # were returned as [] and None although the data was there.
+                "query_details": link_trace["query_details"] if link_trace else [],
+                "queries_attempted": (
+                    [str(q.get("query") or "") for q in link_trace["query_details"] if q.get("query")]
+                    if link_trace and link_trace["query_details"]
+                    else ([surface] if surface else [])
+                ),
+                "canonical_match": link_trace.get("canonical_match") if link_trace else None,
+                "name_likeness": link_trace.get("name_likeness") if link_trace else None,
+                "link_trace": link_trace,
             }
         )
 
