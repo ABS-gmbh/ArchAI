@@ -91,17 +91,27 @@ class BatchArchiveRefused(ValueError):
     """The batch ZIP breaks a limit; the message says which, and is shown to the client."""
 
 
-def _zip_entry_count(zip_path: str) -> int | None:
-    """The member count the archive's end record states, read without parsing its directory.
+# The most central-directory bytes a member may average: its 46-byte record plus
+# 978 for name, extra field and comment. Real batch archives average 100-200;
+# zipfile parses exactly the directory bytes the end record states, so bounding
+# them bounds the objects it builds on open, whatever count the record claims.
+_MAX_DIRECTORY_BYTES_PER_MEMBER = 1024
 
-    zipfile.ZipFile builds an object per member on open, so the count is checked
-    first: a 1 GB upload of empty members would be about 11 million of them.
+
+def _zip_directory(zip_path: str) -> tuple[int, int] | None:
+    """The member count and central-directory size the end record states, read without parsing the directory.
+
+    zipfile.ZipFile builds an object per member on open, so both are checked
+    first: a 1 GB upload of empty members would be about 11 million of them,
+    and an end record can state 1 member over a directory of a million.
     None when the record cannot be read; the caller then counts after opening.
     """
     try:
         with open(zip_path, "rb") as handle:
             record = zipfile._EndRecData(handle)  # type: ignore[attr-defined]
-        return int(record[zipfile._ECD_ENTRIES_TOTAL]) if record else None  # type: ignore[attr-defined]
+        if not record:
+            return None
+        return int(record[zipfile._ECD_ENTRIES_TOTAL]), int(record[zipfile._ECD_SIZE])  # type: ignore[attr-defined]
     except (OSError, AttributeError, IndexError, TypeError, ValueError):
         return None
 
@@ -114,9 +124,15 @@ def _safe_extract_zip(zip_path: str, extract_dir: str) -> None:
     """
     budget = max(1, int(settings.max_extracted_megabytes)) * (1 << 20)
     limit = max(1, int(settings.max_zip_members))
-    entries = _zip_entry_count(zip_path)
-    if entries is not None and entries > limit:
-        raise BatchArchiveRefused(f"ZIP has {entries} members; at most {limit} are accepted (MAX_ZIP_MEMBERS).")
+    directory = _zip_directory(zip_path)
+    if directory is not None:
+        entries, directory_bytes = directory
+        if entries > limit:
+            raise BatchArchiveRefused(f"ZIP has {entries} members; at most {limit} are accepted (MAX_ZIP_MEMBERS).")
+        if directory_bytes > limit * _MAX_DIRECTORY_BYTES_PER_MEMBER:
+            raise BatchArchiveRefused(
+                f"ZIP directory is {directory_bytes} bytes, more than {limit} members need (MAX_ZIP_MEMBERS)."
+            )
     with zipfile.ZipFile(zip_path, "r") as zf:
         members = zf.infolist()
         if len(members) > limit:

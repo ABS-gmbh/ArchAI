@@ -56,3 +56,47 @@ def test_every_member_costs_a_minimum_share_of_the_budget(tmp_path: Path, monkey
     with pytest.raises(ValueError, match="MB"):
         predict._safe_extract_zip(str(archive), str(out))
     assert len(_files(out)) < 300
+
+
+def _directory_only_zip(path: Path, members: int, stated: int = 1) -> Path:
+    """Only a central directory of *members* entries, no member data; the end record states *stated*."""
+    import struct
+
+    with open(path, "wb") as out:
+        size = 0
+        for i in range(members):
+            name = b"%07d.png" % i
+            entry = struct.pack("<4s4B4HL2L5H2L", b"PK\x01\x02", 20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, len(name), 0, 0, 0, 0, 0, 0) + name
+            out.write(entry)
+            size += len(entry)
+        out.write(struct.pack("<4s4H2LH", b"PK\x05\x06", 0, 0, stated, stated, size, 0, 0))
+    return path
+
+
+def test_an_end_record_that_understates_the_members_is_refused_before_zipfile_parses_them(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Second review, B: the end record said 1 member over a directory of a
+    # million; zipfile built them all (2.5 s, +528 MB) before the count check.
+    monkeypatch.setattr(predict.settings, "max_zip_members", 10, raising=False)
+    archive = _directory_only_zip(tmp_path / "lying.zip", members=1000)
+
+    def never_opened(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("zipfile.ZipFile opened an archive the end record already condemns")
+
+    monkeypatch.setattr(predict.zipfile, "ZipFile", never_opened)
+    out = tmp_path / "out"
+    out.mkdir()
+    with pytest.raises(predict.BatchArchiveRefused, match="directory"):
+        predict._safe_extract_zip(str(archive), str(out))
+    assert _files(out) == []
+
+
+def test_a_real_archive_at_the_member_limit_with_long_names_still_extracts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(predict.settings, "max_zip_members", 20, raising=False)
+    names = [f"{'Bibliothèque nationale de France/' * 6}folio-{i:03d}r.png" for i in range(20)]
+    archive = _zip(tmp_path / "long.zip", names, b"x")
+    out = tmp_path / "out"
+    out.mkdir()
+    predict._safe_extract_zip(str(archive), str(out))
+    assert len(_files(out)) == 20
