@@ -208,6 +208,17 @@ Where each gold entity is lost:
   *Ame de monfalcon*, *Antitus*, *Ynabele*, *despaigne* (see "Tried, not
   shipped").
 
+**With versal initials joined** (`OCR_JOIN_DETACHED_INITIALS`, the default
+since 4f68977; same VM, authority responses replayed from the run above):
+old-french-verse goes from CER 7.2% to 5.4%, and on its OCR text *Caldꝰ*
+and a second *mͣrcadigas* are found. Over all pages, on the OCR text:
+
+| | Mentions exact / fuzzy | Spurious | Links c / w / a / m (n=13) |
+|---|---|---|---|
+| before | 2 / 5 | 1 | 4 / 0 / 0 / 9 |
+| after | 3 / 7 | 1 | 6 / 0 / 0 / 7 |
+| reference text | 4 / 9 | 0 | 7 / 0 / 1 / 5 |
+
 Five pages and one annotator, with 14 gold entities on three pages: this
 locates the losses, but it is not a corpus-level score.
 

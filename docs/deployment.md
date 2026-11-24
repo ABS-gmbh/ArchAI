@@ -47,6 +47,23 @@ Concurrency inside the one worker comes from FastAPI's threadpool: blocking
 route handlers, OCR, linking and indexing run in worker threads, so one slow
 page does not hold up other requests.
 
+## Memory
+
+Measured on the evaluation VM (Ubuntu 24.04, CPU, 2026-11-24):
+
+- With the layout process pool, the default on Linux (`MAX_POOL_WORKERS=3`), a
+  running backend held about 5.3 GB: the main process about 1.0 GB and three
+  pool workers of 1.4 to 1.5 GB each.
+- With `ARCHAI_DISABLE_PROCESS_POOL=1`, the layout models run in the request's
+  process. A benchmark reading the five reference pages that way stayed at 3
+  to 4 GB, peaking at 5.5 GB on a full-size e-codices page (6130 x 8175 px).
+  The full pipeline with indexing peaked at 6.7 GB.
+- The two together, a backend with its pool and a benchmark run with its own
+  pool, exhausted 15 GB without swap, and the kernel killed the benchmark.
+  Plan for about 6 GB per backend process, plus headroom for the largest page
+  you accept. Either give the host swap or keep to one process, since each
+  process loads its own models.
+
 ## Settings with no safe default for a server
 
 Put these in `archai/backend/.env`, or in the environment. Settings are read

@@ -139,6 +139,13 @@ python scripts/benchmark_recognizers.py --images ~/pages --engines segmented seg
   byte-identical to the committed `eval/quality_gate/readings.json`, which was
   read on the dev machine. The other two are McCATMuS, at CER 34.0% against
   34.3% and an identical CER.
+- **Versal initials** (2026-11-24): joined by default since 4f68977. Micro CER
+  for CATMuS goes from 7.6% to 6.7% (latin-abaton 6.6 -> 5.5,
+  old-french-verse 7.2 -> 5.4; see `eval/recognizers/README.md`).
+- **Memory.** By default each run starts the layout process pool (three
+  workers). Next to a running backend with its own pool, the VM (15 GB, no
+  swap) ran out of memory. Run benchmarks one at a time with
+  `ARCHAI_DISABLE_PROCESS_POOL=1`, which keeps the layout models in process.
 - **Still blocked.** `glmocr` needs Ollama (Decision 5).
 - **Chat key.** Before 7bd8c99, the OCR agent needed a chat key even for local
   OCR. The run used `CHAT_AI_API_KEY=offline-placeholder-not-a-key` in the
