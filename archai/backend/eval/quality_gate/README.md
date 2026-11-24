@@ -80,9 +80,16 @@ the 72. The database holds users' transcriptions and is not committed.
   13-character reading of `latin-apocalypse` is graded HIGH.
 - Trigram profiles exist for Latin and French only. German, English and other
   languages are not judged lexically.
+- **The figures below do not hold on manuscripts outside this set.** On 93
+  pseudo-pages from 48 held-out manuscripts (`eval/heldout/README.md`,
+  2026-11-24), the gate blocks 6 of 76 CATMuS Medieval readings at
+  CER <= 10%, five of them medieval Spanish (half of the well-read Castilian
+  and Navarrese pages), and allows 77 of 128 readings at CER >= 25% from the
+  two recognisers pages are not routed to. This set has no Spanish page and
+  only 59 rows, so it could show neither.
 - Measured on the calibration set with langdetect seeded (59 rows,
-  2026-11-23). No reading at CER <= 10% is blocked, and 4 readings at
-  CER >= 25% are allowed:
+  2026-11-23). On these rows no reading at CER <= 10% is blocked, and 4
+  readings at CER >= 25% are allowed:
 
   | Label | n | allowed | CER range |
   |---|---|---|---|
