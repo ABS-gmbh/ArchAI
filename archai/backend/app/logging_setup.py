@@ -40,7 +40,11 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False, default=str)
 
 
-_QUERY = re.compile(r"\?([^\s\"#]*)")
+# A query runs to the next whitespace: the request target cannot hold any
+# (uvicorn's parsers refuse it), while a raw '"' or '#' can be in it (httptools
+# 0.9 and h11 0.16 both pass a raw quote into the query, h11 a raw '#' too).
+# Stopping at either, as this did, left "?a=\"&token=<value>" in clear.
+_QUERY = re.compile(r"\?(\S*)")
 _PAIR_SEPARATOR = re.compile(r"([&;])")
 
 
