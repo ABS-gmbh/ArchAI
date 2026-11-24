@@ -32,6 +32,10 @@ describe("messageInWords", () => {
     assert.equal(messageInWords("chunks=1, mentions=1"), "1 passage, 1 name");
     assert.equal(messageInWords("Indexed 13 chunks."), "13 passages indexed");
     assert.equal(messageInWords("Authority linking complete: linked=2, unresolved=5, ambiguous=1."), "2 linked, 5 not linked, 1 ambiguous");
+    // With the names not looked up (a date), which made the parts add up (2026-11-24).
+    assert.equal(messageInWords("Authority linking complete: linked=2, unresolved=3, ambiguous=0, skipped=1."), "2 linked, 3 not linked, 1 not looked up");
+    // Stored runs keep the three-part message; a zero is left out.
+    assert.equal(messageInWords("Authority linking complete: linked=2, unresolved=3, ambiguous=0."), "2 linked, 3 not linked");
   });
 
   it("explains a low name count", () => {
