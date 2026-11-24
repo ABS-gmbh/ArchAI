@@ -30,7 +30,7 @@ import re
 import secrets
 from collections.abc import Awaitable, Callable, Iterable, MutableMapping
 from typing import Any
-from urllib.parse import parse_qsl
+from urllib.parse import unquote_plus
 
 from fastapi import HTTPException, Request
 
@@ -70,10 +70,18 @@ def has_api_token(method: str, path: str, headers: Iterable[tuple[str, str]], qu
     if scheme.lower() == "bearer" and _matches(credentials.strip(), token):
         return True
     if method == "GET" and any(pattern.match(path) for pattern in _STREAM_PATHS):
-        query = dict(parse_qsl(query_string, keep_blank_values=True))
-        if _matches(query.get("token", ""), token):
+        if _matches(_query_token(query_string), token):
             return True
     return False
+
+
+def _query_token(query_string: str) -> str:
+    """The value of the parameter spelled exactly "token": no other spelling counts."""
+    for pair in query_string.split("&"):
+        name, equals, value = pair.partition("=")
+        if equals and name == "token":
+            return unquote_plus(value)
+    return ""
 
 
 def require_api_token(request: Request) -> None:
