@@ -7,6 +7,7 @@ import {
   annotationPolygons,
   availableStoredLabels,
   buildStoredLabelRegions,
+  labelNamedInPrompt,
   resolveCropLabelFromPrompt,
 } from "./workspaceSegmentation";
 
@@ -100,5 +101,36 @@ describe("resolveCropLabelFromPrompt", () => {
 
   it("finds nothing when the request names no label on the page", () => {
     assert.equal(resolveCropLabelFromPrompt("crop the miniature", regions), null);
+  });
+});
+
+describe("labelNamedInPrompt", () => {
+  const labels = ["Page Number", "Main script black", "Column", "Embellished", "Plain initial- coloured", "Plain initial - Black", "Running header"];
+
+  it("does not take a question about the text for a question about a region", () => {
+    // Each shares a word with a label ("page", "script", "black", "running").
+    for (const question of [
+      "What is this page about?",
+      "Explain the script of this manuscript",
+      "What is this black stain?",
+      "Explain why the text is running into the margin",
+    ]) {
+      assert.equal(labelNamedInPrompt(question, labels), null, question);
+    }
+  });
+
+  it("finds a label named whole, in any order of its words, or in the plural", () => {
+    assert.equal(labelNamedInPrompt("What is this page number?", labels), "Page Number");
+    assert.equal(labelNamedInPrompt("explain the number on the page", labels), "Page Number");
+    assert.equal(labelNamedInPrompt("What is this column?", labels), "Column");
+    assert.equal(labelNamedInPrompt("explain the columns", labels), "Column");
+    assert.equal(labelNamedInPrompt("what is the running header", labels), "Running header");
+  });
+
+  it("takes 'initial' for a kind of initial, and prefers the one whose other words are said", () => {
+    assert.equal(labelNamedInPrompt("What is this black initial?", labels), "Plain initial - Black");
+    assert.equal(labelNamedInPrompt("explain the coloured initial", labels), "Plain initial- coloured");
+    assert.ok(String(labelNamedInPrompt("What is this initial?", labels)).includes("initial"));
+    assert.equal(labelNamedInPrompt("explain the embellished letter", labels), "Embellished");
   });
 });

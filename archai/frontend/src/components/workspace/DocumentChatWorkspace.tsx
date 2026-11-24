@@ -40,10 +40,10 @@ import {
   type CocoPayload,
   type StoredLabelRegionMap,
   availableStoredLabels,
-  bestMatchingSegmentationLabel,
   buildSegmentationSummary,
   buildStoredLabelRegions,
   buildTransparentCropOverlay,
+  labelNamedInPrompt,
   resolveCropLabelFromPrompt,
 } from "./workspaceSegmentation";
 import {
@@ -682,9 +682,12 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     };
 
     const intent = detectWorkspaceIntent(text);
-    const matchedLabel =
-      resolveCropLabelFromPrompt(text, currentSegmentationLabels)
-      || bestMatchingSegmentationLabel(text, SEGMENTATION_LABEL_VOCAB);
+    // A question is about a layout label only when it names one: sharing a word
+    // with a label ("page", "script") does not make it a question about regions.
+    const matchedLabel = labelNamedInPrompt(text, [
+      ...availableStoredLabels(currentSegmentationLabels),
+      ...SEGMENTATION_LABEL_VOCAB,
+    ]);
 
     if (!intent && matchedLabel && isLabelAnalysisPrompt(text)) {
       appendMessages(documentId, [userMessage]);
