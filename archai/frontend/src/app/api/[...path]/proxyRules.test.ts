@@ -203,3 +203,58 @@ describe("crossSiteRefusal, for the operator", () => {
     assert.doesNotMatch(refusal.log, /\n/);
   });
 });
+
+// Behind a proxy that rewrites Host, the browser's own requests were refused
+// although the browser said they were same-origin: Sec-Fetch-Site is a
+// forbidden header name, set by the browser and never by a page, so
+// "same-origin" is proof enough. The other values get no such pass.
+describe("crossSiteRefusal and Sec-Fetch-Site", () => {
+  const own = { trustForwardedHost: false, allowedOrigins: [] as string[] };
+  const host = "127.0.0.1:3000"; // what a Host-rewriting proxy sends
+  const request = (site: string | null, origin: string | null) => {
+    const headers = new Headers({ host });
+    if (site !== null) headers.set("sec-fetch-site", site);
+    if (origin !== null) headers.set("origin", origin);
+    return headers;
+  };
+  const accepted = (site: string | null, origin: string | null) => crossSiteRefusal("POST", request(site, origin), own) === null;
+  const foreign = "https://archai.example"; // not the Host this server sees
+  const matching = "http://127.0.0.1:3000";
+
+  it("same-origin: accepted whatever the Origin and Host", () => {
+    assert.equal(accepted("same-origin", foreign), true);
+    assert.equal(accepted("same-origin", matching), true);
+    assert.equal(accepted("same-origin", null), true);
+  });
+
+  it("same-site: Origin is still compared with Host", () => {
+    assert.equal(accepted("same-site", foreign), false);
+    assert.equal(accepted("same-site", matching), true);
+    assert.equal(accepted("same-site", null), true);
+  });
+
+  it("cross-site: refused, with or without Origin", () => {
+    assert.equal(accepted("cross-site", foreign), false);
+    assert.equal(accepted("cross-site", matching), false);
+    assert.equal(accepted("cross-site", null), false);
+  });
+
+  it("none (typed in the address bar, a bookmark): Origin is still compared with Host", () => {
+    assert.equal(accepted("none", foreign), false);
+    assert.equal(accepted("none", matching), true);
+    assert.equal(accepted("none", null), true);
+  });
+
+  it("no Sec-Fetch-Site (an older browser): Origin is compared with Host, and a mismatch carries the operator's pointer", () => {
+    assert.equal(accepted(null, matching), true);
+    assert.equal(accepted(null, null), true);
+    const refusal = crossSiteRefusal("POST", request(null, foreign), own);
+    assert.ok(refusal);
+    assert.match(refusal.detail, /see docs\/deployment\.md, 'Behind a reverse proxy'\.$/);
+  });
+
+  it("the value is read without regard to case or spaces", () => {
+    assert.equal(accepted(" Same-Origin ", foreign), true);
+    assert.equal(accepted("CROSS-SITE", null), false);
+  });
+});

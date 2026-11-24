@@ -128,9 +128,11 @@ function quoted(value: string | null): string {
  * The proxy adds the API token to whatever reaches it, so a page on another
  * site that makes the user's browser POST here (a form, a bodiless fetch) would
  * be acting with the frontend's rights. A browser says where a request comes
- * from in Origin (and Sec-Fetch-Site): a state-changing request whose origin is
- * not the frontend's own is refused. A request with no Origin is not a
- * browser's cross-site request, and is let through.
+ * from in Sec-Fetch-Site and Origin: "same-origin" passes, "cross-site" is
+ * refused, and otherwise (an older browser sends no Sec-Fetch-Site) a
+ * state-changing request whose Origin is not the frontend's own Host is
+ * refused. A request with no Origin is not a browser's cross-site request,
+ * and is let through.
  */
 export function crossSiteRefusal(method: string, headers: Headers, options: OriginOptions): CrossSiteRefusal | null {
   if (SAFE_METHODS.has(method.toUpperCase())) {
@@ -148,7 +150,16 @@ export function crossSiteRefusal(method: string, headers: Headers, options: Orig
       "TRUST_FORWARDED_HOST=true (the proxy sets X-Forwarded-Host) or add the origin to FRONTEND_ORIGINS " +
       "(docs/deployment.md, 'Behind a reverse proxy').",
   });
-  if ((headers.get("sec-fetch-site") || "").toLowerCase() === "cross-site") {
+  // Sec-Fetch-Site is set by the browser, never by a page (a forbidden header
+  // name). "same-origin" is the browser's word that the page making the request
+  // is the one it was served from, even when a proxy in front rewrote Host; a
+  // non-browser client that sends it is not forging anyone's request.
+  // "same-site" and "none" are checked like a browser that sends nothing.
+  const site = (headers.get("sec-fetch-site") || "").trim().toLowerCase();
+  if (site === "same-origin") {
+    return null;
+  }
+  if (site === "cross-site") {
     return refuse();
   }
   if (origin === null) {
