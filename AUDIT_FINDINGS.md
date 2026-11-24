@@ -11,10 +11,10 @@ evidence. "Open" says why it was left and what the next step would be.
 | Severity | Total | Fixed | Partly fixed | Not a defect | Open |
 |---|---:|---:|---:|---:|---:|
 | Critical | 5 | 5 | 0 | 0 | 0 |
-| High | 33 | 30 | 2 | 0 | 1 |
+| High | 33 | 31 | 1 | 0 | 1 |
 | Medium | 60 | 46 | 10 | 1 | 3 |
 | Low | 32 | 26 | 5 | 0 | 1 |
-| **All** | **130** | **107** | **17** | **1** | **5** |
+| **All** | **130** | **108** | **16** | **1** | **5** |
 
 Counted from the headings. SVC-24 ("not changed as proposed": the
 measurement favoured the code, and the docstring was corrected) is counted as
@@ -189,7 +189,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** `disambiguate` (entity_scoring.py:371) rejects the run outright when the top candidate has `type_compatible` False, and `compute_score` (entity_scoring.py:248) subtracts a 0.30 penalty. A GeoNames hit for 'Camelot' or a VIAF hit for 'Lancelot du Lac' can never be selected under any score, so the multi-source resolver silently degrades to Wikidata-only while still paying the full VIAF/GeoNames HTTP cost (see AL-03) and still reporting `api_calls_viaf`/`api_calls_geonames` in the run summary at authority_linking.py:1980-1981.
 - **Fix:** Do not route non-Wikidata candidates through the P31 gate. In authority_linking.py:1777, branch on `_candidate_source(candidate)`: for `viaf`/`geonames`, derive type compatibility from the source's own typing — GeoNames `feature_code`/`fcode` (already carried at authority_sources.py:174) for places, VIAF `nameType == 'Personal'` (authority_sources.py:88) for persons and `'UniformTitleWork'` for works — and only call `is_type_compatible` for `source == 'wikidata'`.
 
-### [AL-03] search_viaf issues 1+k HTTP requests per query with no cache, no rate limit, and no per-run cap; the wbsearchentities cap explicitly does not apply to it — partly fixed (VIAF and GeoNames answers are cached and capped at 30 calls per run, and a run stops searching once every source is spent; the selected record is still fetched again, and as_completed has no timeout)
+### [AL-03] search_viaf issues 1+k HTTP requests per query with no cache, no rate limit, and no per-run cap; the wbsearchentities cap explicitly does not apply to it — **FIXED** (VIAF and GeoNames answers are cached and capped at 30 calls per run, and a run stops searching once every source is spent; the parallel lookups share a deadline taken from their request timeouts, unfinished ones are abandoned and reported in source_timeouts, the report and a run event; a selected VIAF candidate reuses the record search_viaf fetched; tests/test_authority_lookup_deadline.py, test_authority_source_budget.py)
 
 - **Where:** `vendor:app/services/authority_sources.py:70`  
 - **Category:** performance  
