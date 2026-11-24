@@ -18,13 +18,30 @@ It provides the document workspace UI:
 
 ## Local Development
 
+Node 20.9 or newer (CI uses 20.9.0).
+
 ```bash
 cd archai/frontend
-npm install
-npm run dev
+npm ci
+npm run dev -- --hostname 127.0.0.1
 ```
 
-Default URL: `http://127.0.0.1:3000`
+Then open `http://127.0.0.1:3000/workspace`. `npm ci` installs exactly what
+`package-lock.json` records (`npm install` may rewrite it). Without
+`--hostname`, the dev server listens on every network interface: anyone on the
+network could use the workspace, and through its `/api` proxy the backend.
+`make frontend` in `archai/` does the same on port 3001.
+
+## Checks
+
+What CI runs (`.github/workflows/ci.yml`):
+
+```bash
+npx eslint --max-warnings=0
+npx tsc --noEmit
+npm run check:fonts      # the transcription fonts draw every character the recognisers output
+npx next build --webpack
+```
 
 ## Build
 

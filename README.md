@@ -128,6 +128,10 @@ cp .env.example .env    # then fill in CHAT_AI_API_KEY, and ANALYTICS_USERNAME /
 uvicorn app.main:app --host 127.0.0.1 --port 8010
 ```
 
+The models the reading pipeline needs (layout weights, Kraken recognisers,
+GLM-OCR) are set up as [`docs/model_setup.md`](docs/model_setup.md) describes;
+the backend's startup log names any that are missing.
+
 The frontend expects the backend at 127.0.0.1:8010; `NEXT_PUBLIC_BACKEND_URL` (the browser's direct URL) and `BACKEND_URL` (the Next server's `/api` proxy) override it; `BACKEND_API_TOKEN` gives that proxy the backend's `API_TOKEN`.
 
 Without `CHAT_AI_API_KEY` the backend starts, but chat, translation and SAIA OCR
@@ -145,7 +149,7 @@ python -c 'import secrets; print(secrets.token_urlsafe(48))'
 Frontend:
 
 ```bash
-cd archai/frontend && npm install && npm run dev
+cd archai/frontend && npm ci && npm run dev -- --hostname 127.0.0.1
 ```
 
 ## Development
@@ -165,7 +169,8 @@ cd archai/backend && pytest -q -m "not requires_models"
 ```
 
 CI runs lint, format, strict typing and tests of `archai_ocr` on Python 3.11 and
-3.12, the backend test suite, and a scan of tracked files for credential
+3.12, the backend test suite, the frontend's lint, type check, font coverage
+check and production build, and a scan of tracked files for credential
 literals. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Reproducibility notes

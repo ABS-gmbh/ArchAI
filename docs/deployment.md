@@ -132,7 +132,9 @@ the frontend's server and its `/api` proxy adds it (see
 ### The frontend
 
 `archai/frontend` is a Next.js app: `npm ci`, `npm run build`, `npm start`
-(Node 20.9 or newer). On a server hostname the browser sends its requests to
+(Node 20.9 or newer). `npm start` listens on every interface, port 3000; with
+the reverse proxy on the same host, bind it to localhost:
+`npm start -- --hostname 127.0.0.1`. On a server hostname the browser sends its requests to
 the frontend's own `/api/...`. A route handler in the Next server
 (`src/app/api/[...path]/route.ts`) forwards them to the backend, streaming
 uploads and server-sent events through without buffering them. So the browser
@@ -219,7 +221,7 @@ as `?token=` on the two event streams.
 | OCR evidence log | `archai/backend/data/evidence/ocr_evidence.jsonl` (`OCR_EVIDENCE_PATH`) | Append-only record of every OCR call's raw and final text. |
 | Authority cache | `archai/backend/app/.data/wikidata_cache.sqlite` (`ARCHAI_WIKIDATA_CACHE`) | A cache; losing it only costs requests. |
 | Analytics database | `archai/backend/analytics.db` (`ANALYTICS_DB_PATH`) | Read only by the backend; written by whatever records visits. |
-| Model weights | `archai/backend/models`, `archai/backend/weights` | Not data, but needed to start; see [`model_setup.md`](model_setup.md). |
+| Model weights | `archai/backend/models` (`MODEL_DIR`), `weights/kraken_models` at the repository root | Not data, and the server starts without them, but pages are then read with GLM-OCR only; see [`model_setup.md`](model_setup.md). |
 | Layout tasks | `archai/backend/.tasks` (`TASK_BASE_DIR`) | Temporary: uploads and outputs, removed after `TASK_TTL_MINUTES`. No backup needed; give it room for the largest upload batch. |
 
 ## Health

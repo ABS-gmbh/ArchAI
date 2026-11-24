@@ -5,7 +5,7 @@ Usage::
     # in one shell: a backend on scratch data, no .env, nothing live
     ARCHAI_DB_PATH=/tmp/smoke/archai.sqlite CHROMA_PERSIST_DIR=/tmp/smoke/chroma \\
     ARCHAI_WIKIDATA_CACHE=/tmp/smoke/wikidata.sqlite OCR_EVIDENCE_PATH=/tmp/smoke/evidence.jsonl \\
-    MAX_UPLOAD_MEGABYTES=2 GLMOCR_OLLAMA_HOST=http://127.0.0.1:9 \\
+    TASK_BASE_DIR=/tmp/smoke/tasks MAX_UPLOAD_MEGABYTES=2 GLMOCR_OLLAMA_HOST=http://127.0.0.1:9 \\
         uvicorn app.main:app --port 8765
     # in another
     python scripts/smoke_api.py --base http://127.0.0.1:8765 --db /tmp/smoke/archai.sqlite
