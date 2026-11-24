@@ -187,6 +187,31 @@ def _is_abbreviation_point(word: str, between: str) -> bool:
     return bool(last) and (bool(re.match(f"[{_MARK_CHARS}]", last)) or last in _ABBREVIATION_LETTERS or any(c in _ABBREVIATION_LETTERS for c in word))
 
 
+# Spelled-out numbers, in dates and counts ("Millesimo. Ducentesimo.
+# Octuagesimo secundo", "A̾ Tercio"): never a word of a name.
+_NUMBER_WORD_KEYS = _keyed(
+    {
+        "millesimo", "millesimus", "illesimo", "ducentesimo", "trecentesimo", "quadringentesimo",
+        "quingentesimo", "sexcentesimo", "septingentesimo", "octingentesimo", "nongentesimo",
+        "centesimo", "vicesimo", "uicesimo", "tricesimo", "quadragesimo", "quinquagesimo",
+        "sexagesimo", "septuagesimo", "octuagesimo", "octogesimo", "nonagesimo", "primo", "secundo",
+        "tercio", "tertio", "quarto", "quinto", "sexto", "septimo", "octauo", "octavo", "nono",
+        "decimo", "undecimo", "duodecimo", "millesimum", "mil", "mille", "cent", "vingt", "trente",
+        "quarante", "cinquante",
+    }
+)
+
+
+def _is_rubric_siglum(token: str) -> bool:
+    """One capital with an abbreviation mark: A̾ (antiphon), R̃ (responsory), U̾ (versicle), P̾ (psalm)."""
+    return len(token) >= 2 and token[0].isupper() and all(re.match(f"[{_MARK_CHARS}]", c) for c in token[1:])
+
+
+def _is_no_name_word(token: str) -> bool:
+    """A rubric siglum or a number word: it neither starts nor continues a run of capitals."""
+    return _is_rubric_siglum(token) or _word_key(token) in _NUMBER_WORD_KEYS
+
+
 def _is_particle(tokens: list[re.Match[str]], k: int) -> bool:
     """Token *k* is a particle of a name: de, du, des, d', or la/le/les right after "de"."""
     word = tokens[k].group(0).lower()
@@ -205,7 +230,7 @@ def _extract_person_mentions(base_text: str) -> list[dict[str, Any]]:
         while i < len(token_matches):
             first = token_matches[i]
             token = first.group(0)
-            if not token[:1].isupper() or _is_roman_numeral_token(token):
+            if not token[:1].isupper() or _is_roman_numeral_token(token) or _is_no_name_word(token):
                 i += 1
                 continue
             best_end_idx = -1
@@ -226,7 +251,7 @@ def _extract_person_mentions(base_text: str) -> list[dict[str, Any]]:
                 if _is_particle(token_matches, j):
                     used_particle = True
                     continue
-                if not token_j[:1].isupper() or _is_roman_numeral_token(token_j):
+                if not token_j[:1].isupper() or _is_roman_numeral_token(token_j) or _is_no_name_word(token_j):
                     break
                 non_particle_tokens = sum(1 for k in range(i, j + 1) if not _is_particle(token_matches, k))
                 if 2 <= non_particle_tokens <= 5:
@@ -885,6 +910,48 @@ def _extract_salvage_mentions(base_text: str) -> tuple[list[dict[str, Any]], dic
     return mentions, debug
 
 
+_SAINT_TITLE_KEYS = _keyed(
+    {"saint", "sainct", "sainz", "seint", "sanctus", "sancti", "sancta", "sancte", "sanctae", "sancto",
+     "beatus", "beati", "beata", "beate"}
+)
+# Words that make "sancti michaelis" a day: "in festo sancti michaelis", "ad
+# festum sc̃i mich̃is", "In festiuitatibus Sancti Marci", "la feste saint Iehan".
+_FEAST_WORD_KEYS = _keyed(
+    {
+        "festum", "festo", "festi", "festa", "festiuitate", "festiuitatibus", "festivitate", "feste",
+        "die", "diem", "dies", "iour", "jour", "uigilia", "uigiliam", "vigilia", "octaua", "octauas",
+        "octabas", "natale", "natali", "natiuitate", "translatione", "passione", "decollatione",
+        "inuentione", "exaltatione", "assumptione", "purificatione", "annunciatione", "conuersione",
+        "cathedra",
+    }
+)
+
+
+def _is_bare_title(surface: str) -> bool:
+    """Every word of *surface* is a title, a role or a function word: "Dominus Dux", "Quod Dñs Dux"."""
+    from app.services.authority_scoring import _NAME_QUERY_DROP_KEYS
+
+    words = [m.group(0) for m in _MENTION_TOKEN_RE.finditer(surface)]
+    return bool(words) and all(_word_key(w) in _NAME_QUERY_DROP_KEYS or _word_key(w) == "quod" for w in words)
+
+
+def _retype_feasts(base_text: str, mentions: list[dict[str, Any]]) -> None:
+    """A saint's name in a feast formula names a day, not a person: re-typed as a date, in place."""
+    for mention in mentions:
+        if mention.get("ent_type") != "person":
+            continue
+        start = int(mention["start_offset"])
+        first = _MENTION_TOKEN_RE.match(base_text, start)
+        if first is None or _word_key(first.group(0)) not in _SAINT_TITLE_KEYS:
+            continue
+        before = [m.group(0) for m in _MENTION_TOKEN_RE.finditer(base_text[max(0, start - 40):start])][-2:]
+        if any(_word_key(w) in _FEAST_WORD_KEYS for w in before):
+            mention["ent_type"] = "date"
+            mention["label"] = "FEAST"
+            mention["notes"] = "feast formula (a day named after a saint)"
+            mention["name_keys"] = []
+
+
 def _propagate_names(base_text: str, mentions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Every other occurrence of a name a rule found, as a person mention.
 
@@ -903,10 +970,12 @@ def _propagate_names(base_text: str, mentions: list[dict[str, Any]]) -> list[dic
     }
     if not names:
         return []
+    # A feast formula ("In festiuitatibus Sancti Marci") is a date: its saint
+    # is not a person to propagate to.
     covered = [
         (int(mention["start_offset"]), int(mention["end_offset"]))
         for mention in mentions
-        if mention.get("ent_type") == "person"
+        if mention.get("ent_type") == "person" or mention.get("label") == "FEAST"
     ]
     out: list[dict[str, Any]] = []
     for match in _SALVAGE_TOKEN_RE.finditer(base_text):
@@ -952,10 +1021,12 @@ def _extract_mentions_from_text(
 
     salvage_mentions, salvage_debug = _extract_salvage_mentions(value)
     candidates = [
-        *_extract_person_mentions(value),
+        # A run of titles alone names no one ("Dominus Dux", "Dominum Ducem").
+        *[m for m in _extract_person_mentions(value) if not _is_bare_title(str(m["surface"]))],
         *_extract_anchor_mentions(value),
         *salvage_mentions,
     ]
+    _retype_feasts(value, candidates)
 
     # ── N-gram canonical scan (case-insensitive fallback) ─────────────
     # Catches canonical person/work names in fully-lowercase OCR output

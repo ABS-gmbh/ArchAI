@@ -316,9 +316,9 @@ Gold, one annotator, without the images:
 
 `scripts/benchmark_names_heldout.py`, current code. Authority responses were
 recorded live (1,107 requests, none failed) to `heldout_linking_cache.json.gz`
-(gzip; SHA-256 of the uncompressed JSON 14c3acb15fcca6418b6cd157414799e2b3d277640db64b79b0c148ce5ef3781e), so
+(gzip; SHA-256 of the uncompressed JSON e3f1030bc9533d85e72e5fb76356a2b335b8bbb2477b71bc29ea471492f0e59a), so
 reruns are offline. The changes below added the requests their new queries
-make (1,523 distinct requests after the query trimming). Unsure gold mentions are left out. Intervals are 95%,
+make (1,538 distinct requests after the spurious-mention rules). Unsure gold mentions are left out. Intervals are 95%,
 resampled over manuscripts.
 
 | | gold | found | spurious / extracted | links c / w / a / m |
@@ -369,6 +369,7 @@ pages before it was kept. Development pages, links c / w / a / m: reference
 | "sainct" a title; "la"/"le"/"les" after "de" a particle | 55 / 152 | 65 / 134 | 23 / 3 / 25 / 87 | 1 / 0 / 25 / 65 | 22 / 3 / 0 / 22 |
 | and a sentence point (. ; :) ends a run of capitals | 51 / 152 | 63 / 129 | 19 / 3 / 25 / 91 | 1 / 0 / 25 / 65 | 18 / 3 / 0 / 26 |
 | and a person is asked for by name alone; one name needs the context | 51 / 152 | 63 / 129 | 19 / 3 / 25 / 91 | 1 / 0 / 25 / 65 | 18 / 3 / 0 / 26 |
+| and rubric sigla, number words, bare titles and feasts are no names | 53 / 152 | 38 / 106 | 19 / 3 / 27 / 89 | 1 / 0 / 27 / 63 | 18 / 3 / 0 / 26 |
 
 - **Lexicon.** Of the 33 capitalised B-dev names never proposed, 2 were lost
   to a missing spelling of a title ("sainct Pol", "sainct Frãcois") and 1 to
@@ -420,3 +421,19 @@ pages before it was kept. Development pages, links c / w / a / m: reference
   B-dev. The 3 wrong links on names with no record are not touched: they
   come from one-word place mentions ("Renni" to Rennington, "Tiper" to
   Tipperary), not from person spans.
+- **Spurious mentions** (cause 5). Four rules, all in the mention
+  extractor: a rubric siglum, one capital with an abbreviation mark (A̾
+  antiphon, R̃ responsory, U̾ versicle, P̾ psalm), neither starts nor continues
+  a run of capitals; nor does a spelled-out number (Millesimo, Ducentesimo,
+  Tercio); a run made only of titles, roles and function words ("Dominus
+  Dux", "Quod Dñs Dux") is dropped; a saint's name right after a feast word
+  (festum, festo, festiuitatibus, die, uigilia, ...) is a date, a feast,
+  not a person ("in festo sancti michaelis"), and is not propagated to.
+  28 spurious mentions are removed: 21 by the sigla rule, 4 bare titles,
+  3 feasts; the number words had already been cut apart by the separator
+  change, so none of the 28 is theirs alone. 3 are added: the psalm incipit
+  "Beati uiri" twice, which the title rule now reaches once "A̾ Beati" no
+  longer covers it, and "S Acri" from "A̾ S Acri". No gold name is lost;
+  two ("Sancte iohannes", the same reason as "Beati uiri") are newly found
+  and abstained on. The 3 wrong links on names with no record are not
+  touched.

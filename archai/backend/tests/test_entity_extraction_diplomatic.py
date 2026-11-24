@@ -162,3 +162,37 @@ def test_a_sentence_point_ends_a_name() -> None:
 def test_a_point_after_an_abbreviated_word_does_not_end_the_name() -> None:
     """"Theob̃. Walt̃" (B-dev, Bodleian Rawl. B 499): the point abbreviates Theobaldus."""
     assert "Theob̃. Walt̃" in [m["surface"] for m in _mentions("Theob̃. Walt̃ dedit Will̃mo de burc")]
+
+
+# ── spurious mentions: rubric sigla, number words, bare titles, feasts ──
+
+
+def test_a_rubric_siglum_is_no_part_of_a_name() -> None:
+    """"A̾ Alius", "R̃ Uir", "U̾ Cui" (B-dev, Semur 41): antiphon, responsory and versicle marks before the chant's first word."""
+    for line in ("A̾ Alius autem", "R̃ Uir iste in populo", "U̾ Cui uirgo", "EUUANGL̃ A̾ Exultent"):
+        assert _mentions(line, "person") == [], line
+
+
+def test_spelled_out_numbers_are_no_name() -> None:
+    assert _mentions("Millesimo Ducentesimo Octuagesimo secundo", "person") == []
+    assert _mentions("A̾ Tercio die", "person") == []
+
+
+def test_a_run_of_titles_alone_is_no_name() -> None:
+    """"Dominus Dux", "Dominum Ducem", "Quod Dñs Dux" (B-dev, Paris BnF Smith-Lesouëf 16)."""
+    for line in ("quod quandocunque Dominus Dux pro eis", "De ueniendo ad Dominum Ducem", "Quod Dñs Dux"):
+        assert _mentions(line, "person") == [], line
+    assert _surfaces("deuenire in Domini Martini Iusti", "person")  # a title with a name stays
+
+
+def test_a_saint_in_a_feast_formula_names_a_day() -> None:
+    """"in festo sancti michaelis" (B-dev, Bodleian Rawl. B 499) is Michaelmas, not the archangel."""
+    assert [(m["surface"], m["ent_type"]) for m in _mentions("in festo sancti michaelis et sex denarios")] == [("sancti michaelis", "date")]
+    assert [(m["surface"], m["ent_type"]) for m in _mentions("ad festum sc̃i mich̃is et")] == [("sc̃i mich̃is", "date")]
+    assert _surfaces("et eccl̃ie sc̃i thome martiris de Dublin", "person")  # a church's saint stays a person
+
+
+def test_a_feast_s_saint_is_not_propagated_to() -> None:
+    text = "In festiuitatibus Sancti Marci. In\nde facto Procuratorum Sancti Marci pro"
+    persons = _mentions(text, "person")
+    assert all(m["start_offset"] >= text.index("Procuratorum") for m in persons)
