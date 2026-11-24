@@ -59,7 +59,7 @@ resampled over readings. With the local embedder (ChromaDB's MiniLM):
 |---|---|
 | top dense cosine | 0.439 [0.368, 0.515] |
 | top dense z-score | 0.471 [0.403, 0.536] |
-| top BM25 score | 0.506 [0.447, 0.566] |
+| top BM25 score | 0.507 [0.447, 0.566] |
 
 None of the three separates them, so no floor is set: a floor that removed
 the hits of an unanswerable question would remove the answer to an
@@ -82,7 +82,7 @@ left to the chat instruction instead.
 
 ## Results: MiniLM against multilingual-e5
 
-Measured on the evaluation VM on 2026-11-24 (`scripts/eval_vm/`): CPU,
+Measured on the evaluation VM on 2026-11-24 (the repository's `scripts/eval_vm/`): CPU,
 torch 2.9.0, sentence-transformers 6.3.0, e5 loaded as float32. Both sets
 together: 270 question lookups over 18 readings of 4 pages (latin-abaton 87,
 latin-apocalypse 44, old-french 71, old-french-verse 68). BM25 weight 1.

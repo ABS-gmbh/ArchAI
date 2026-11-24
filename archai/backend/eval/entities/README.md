@@ -1,6 +1,6 @@
 # Entity extraction benchmark
 
-**On held-out reference text, names that have an authority record are linked correctly 2 times in 153, never wrongly, and most are never extracted; the five development pages (7 of 9 linked) badly overstated it** (2026-11-24, "Held-out name set" below).
+**On held-out reference text, names that have an authority record are linked correctly 2 times in 160, never wrongly, and most are never extracted, before and after the name changes below; the five development pages, where 2 of the 7 names with a record were linked (7 of 13 outcomes correct, most of them names rightly left unlinked), overstated it** (2026-11-24, "Held-out name set" below).
 
 `gold.json` marks the named entities - people, places, works, dates - in the
 five reference transcriptions of `eval/quality_gate/readings.json`.
@@ -170,7 +170,9 @@ python scripts/benchmark_end_to_end.py --reference-only --out-dir OUT --cache ev
 
 ### Result (2026-11-24, evaluation VM, live Wikidata and VIAF)
 
-Checkout 0d1fac2, no chat key set. 58 distinct authority requests were made
+Checkout 0d1fac2 (13e7ffdc on master), no chat key set, versal initials still kept apart (the
+join that is now the default came later; its figures follow the "Where each
+gold entity is lost" list). 58 distinct authority requests were made
 (Wikidata 33, VIAF 25), and none failed.
 
 | Page | Gold | OCR CER | Gate, OCR / ref. | Mentions exact / fuzzy, OCR | ref. | Spurious, OCR / ref. | Links c / w / a / m, OCR | ref. |
@@ -202,17 +204,19 @@ Where each gold entity is lost:
     of the 28 on latin-abaton; the references join them. Joining them in the
     OCR text recovers both names here (links 2 -> 4 correct) and lowers CER
     from 7.2% to 5.4% and from 6.6% to 5.5%. A plain regex also joins two
-    misreads on latin-apocalypse ("R Rian"), so a fix would need the line
-    geometry. Not changed.
+    misreads on latin-apocalypse ("R Rian"), so a fix needs the line
+    geometry; it was made that way and is the default since 75181719 (below).
 - **Lost to linking**: *iohannis* on the reference text is extracted as
-  "euangelistæ iohannis" but abstained: no candidate (see "Tried, not
-  shipped").
+  "euangelistæ iohannis" and abstained. At 13e7ffdc its queries found no
+  candidate (see "Tried, not shipped"); since the query trimming (below) the
+  query is "iohannis", which finds 10, and the best, a wrong Iohannis
+  Caesariensis, scores 0.798, under the 0.80 threshold.
 - **Lost to extraction**, on the reference text as well: *hyerusalem*,
   *Ame de monfalcon*, *Antitus*, *Ynabele*, *despaigne* (see "Tried, not
   shipped").
 
 **With versal initials joined** (`OCR_JOIN_DETACHED_INITIALS`, the default
-since 4f68977; same VM, authority responses replayed from the run above):
+since 75181719; same VM, authority responses replayed from the run above):
 old-french-verse goes from CER 7.2% to 5.4%, and on its OCR text *Caldꝰ*
 and a second *mͣrcadigas* are found. Over all pages, on the OCR text:
 
@@ -228,7 +232,7 @@ locates the losses, but it is not a corpus-level score.
 
 ## Held-out name set (B-dev, B-test)
 
-**On held-out reference text, names that have an authority record are linked correctly 2 times in 153, never wrongly, and most are never extracted; the five development pages (7 of 9 linked) badly overstated it** (2026-11-24).
+**On held-out reference text, names that have an authority record are linked correctly 2 times in 160, never wrongly, and most are never extracted, before and after the name changes below; the five development pages, where 2 of the 7 names with a record were linked (7 of 13 outcomes correct, most of them names rightly left unlinked), overstated it** (2026-11-24).
 
 The five pages above set the extraction rules and the linking thresholds, so
 they cannot judge a change to either. `heldout_pages.json` and `heldout_gold.json`
@@ -314,8 +318,12 @@ Gold, one annotator, without the images:
 
 ### Result on the reference text (2026-11-24)
 
-`scripts/benchmark_names_heldout.py`, current code. Authority responses were
-recorded live (1,107 requests, none failed) to `heldout_linking_cache.json.gz`
+`scripts/benchmark_names_heldout.py`, the code before the name changes
+below (the baseline; the changes are measured under "Changes measured on
+B-dev" and "B-test, once"). Authority responses were recorded live (1,107
+requests, none refused; 3 of the bodies are Wikidata's "search is currently
+too busy" errors, 6 of 1,653 in the cache now, and replay as no result) to
+`heldout_linking_cache.json.gz`
 (gzip; SHA-256 of the uncompressed JSON 962c39963ca38f767762cfeeb6ee82f128b060c4143ad4d8a67951027a9b246a), so
 reruns are offline. The changes below added the requests their new queries
 make (1,653 distinct requests after the B-test run). Unsure gold mentions are left out. Intervals are 95%,
@@ -328,10 +336,10 @@ resampled over manuscripts.
 | B-dev, linkable only | 91 | 23 | | 1 / 0 / 22 / 68 |
 | B-dev, no record (`none`) | 47 | 25 | | 22 / 3 / 0 / 22 |
 | B-test, all | 120 | 28 [0.07, 0.44] | 35 / 87 | 18 / 0 / 7 / 87 (n=112) |
-| B-test, linkable only | 62 | 8 | | 1 / 0 / 7 / 61 |
+| B-test, linkable only | 69 | 8 | | 1 / 0 / 7 / 61 |
 | B-test, no record (`none`) | 43 | 17 | | 17 / 0 / 0 / 26 |
 
-By language, found / gold, B-dev and B-test together:
+By language, found / gold, B-dev and B-test together, baseline:
 
 | Language | Found / gold |
 |---|---|
@@ -346,16 +354,18 @@ By language, found / gold, B-dev and B-test together:
 
 On pages the rules and thresholds were not set on, the extractor finds about
 a third of the names. On the five development pages it found about two
-thirds. Of the names that have an authority record, 2 of 153 are linked
+thirds. Of the names that have an authority record, 2 of 160 are linked
 correctly. None is linked wrongly; the rest are abstained (29) or never
 found (129). Of the names with no record (`none`), 39 of the 42 found were
-rightly left unlinked; 3, all in B-dev, were linked to something.
+rightly left unlinked; 3, all in B-dev, were linked to something (the byname
+change below removed them: 38 of 38 now).
 
 These figures rest on 22 manuscripts and one annotator reading without the
 images. Many intervals are wide, and single-manuscript languages have none.
 No rule or threshold was changed for this measurement. B-test's errors have
-not been inspected one by one; it is kept to judge one change chosen on
-B-dev.
+not been inspected one by one. It was kept to judge the changes chosen on
+B-dev, and has since been used once for that ("B-test, once" below); it is
+spent.
 
 ### Changes measured on B-dev
 
@@ -444,8 +454,8 @@ pages before it was kept. Development pages, links c / w / a / m: reference
   of its own and was linked, "Renni" to Rennington, "Tiper" to Tipperary. A
   place candidate lying inside a person's run of capitals is no longer
   proposed, unless it is an anchored place (lausanne, paris, ...). The
-  three wrong links go, as does one spurious place ("Iuifs" in "Roys des
-  Iuifs Ihesus"); no gold name is lost, and the development pages are
+  three wrong links go, as do two spurious place mentions ("Iuifs", twice,
+  in "Roys des Iuifs"); no gold name is lost, and the development pages are
   unchanged, lausanne still linked. What it gives up: a real place inside
   a byname ("Iehan de Paris" with an unanchored place) is no longer a place
   mention of its own; the person mention still covers it. A run of
@@ -557,8 +567,9 @@ the gold record.
   under the threshold with its top at 0.799), and aristote (Aristotle 0.884
   against Aristóteles 0.867), pilate five times (Pontius Pilate's VIAF
   record 0.79 under "Pilate, Gilles" 0.83), mauritania (Mauretania 0.859
-  under Mauritania 0.892) and Granicus (the Biga River, 0.698). Nine of the
-  twelve are lost on the margin with the gold record at or near the top.
+  under Mauritania 0.892) and Granicus (the Biga River, 0.698). Ten of the
+  twelve are lost on the margin, nine of them with the gold record first or
+  second (George's is third); Çiro and Granicus fail the threshold.
 - **Linked to another record under `--oracle`.** galilea to Galilea instead
   of Galilee.
 
