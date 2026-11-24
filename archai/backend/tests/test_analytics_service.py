@@ -26,12 +26,13 @@ def test_a_missing_database_is_reported_and_not_created(monkeypatch, tmp_path):
     assert not path.exists()
 
 
-def test_a_database_without_visits_is_reported(monkeypatch, tmp_path):
+def test_a_database_without_visits_is_reported(monkeypatch, tmp_path, caplog):
     path = tmp_path / "analytics.db"
     sqlite3.connect(path).close()
     monkeypatch.setattr(analytics_service.settings, "analytics_db_path", str(path))
 
-    assert "no such table: visits" in get_analytics_data()["error"]
+    assert "could not be read" in get_analytics_data()["error"]
+    assert "no such table: visits" in caplog.text
 
 
 def test_visits_are_counted(monkeypatch, tmp_path):

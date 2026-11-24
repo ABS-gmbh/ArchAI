@@ -12,6 +12,8 @@ from app.config import settings
 _LOGGER = logging.getLogger(__name__)
 
 _EMPTY = {"summary": {}, "by_country": [], "by_day": [], "recent_visits": []}
+_NOT_FOUND = "The analytics database was not found. The server log names the file it looked for."
+_UNREADABLE = "The analytics database could not be read. The server log has the details."
 
 
 def get_analytics_data(days_filter: int = 30) -> dict:
@@ -20,10 +22,12 @@ def get_analytics_data(days_filter: int = 30) -> dict:
     Returns a dict with keys: summary, by_country, by_day, recent_visits, and
     "error" when there is nothing to read. The database is opened read-only: a
     missing file used to be created empty, and the dashboard showed zeros with
-    no sign that it had no data (audit AN-02).
+    no sign that it had no data (audit AN-02). The "error" is a fixed sentence;
+    the path and the exception go to the log, not to the client.
     """
     if not os.path.exists(settings.analytics_db_path):
-        return {**_EMPTY, "error": f"Analytics database not found: {settings.analytics_db_path}"}
+        _LOGGER.warning("Analytics database not found: %s (ANALYTICS_DB_PATH)", settings.analytics_db_path)
+        return {**_EMPTY, "error": _NOT_FOUND}
     # The cutoff and today's date are bound parameters, not spliced into the
     # SQL, and the connection is closed on every path - it leaked whenever a
     # query failed (audit AN-01). With no day filter the cutoff is NULL, which
@@ -88,9 +92,9 @@ def get_analytics_data(days_filter: int = 30) -> dict:
                 """,
                 (today, cutoff, cutoff),
             ).fetchone()
-    except Exception as e:
-        _LOGGER.exception("Analytics DB error")
-        return {**_EMPTY, "error": f"Analytics database could not be read: {e}"}
+    except Exception:
+        _LOGGER.exception("Analytics database %s could not be read", settings.analytics_db_path)
+        return {**_EMPTY, "error": _UNREADABLE}
     return {
         "summary": dict(summary_row) if summary_row else {},
         "by_country": by_country,
