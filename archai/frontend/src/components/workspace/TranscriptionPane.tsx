@@ -66,6 +66,14 @@ export function TranscriptionPane({
   busy,
 }: TranscriptionPaneProps) {
   const listRef = useRef<HTMLOListElement | null>(null);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+  // The read buttons in the pane are replaced by the progress line as soon as
+  // they are pressed, which would leave a keyboard user on the document body.
+  // Focus the pane's heading instead: it stays through the read.
+  const readHere = () => {
+    onRead();
+    requestAnimationFrame(() => headingRef.current?.focus());
+  };
 
   useEffect(() => {
     if (!scrollToLineId || !listRef.current) {
@@ -83,7 +91,12 @@ export function TranscriptionPane({
     <section aria-labelledby="transcription-heading" className="flex h-full min-h-0 flex-col">
       <header className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 border-b border-rule px-6 pb-4 pt-5">
         <div className="min-w-0">
-          <h2 id="transcription-heading" className="text-base font-semibold">
+          <h2
+            id="transcription-heading"
+            ref={headingRef}
+            tabIndex={-1}
+            className="rounded-sm text-base font-semibold outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
             Transcription
           </h2>
           <p className="mt-0.5 truncate text-sm text-ink-muted">
@@ -136,7 +149,7 @@ export function TranscriptionPane({
           <div role="alert" className="rounded-lg border border-line p-4">
             <p className="text-sm font-medium">The page could not be read.</p>
             <p className="mt-1 text-sm text-ink-muted">{state.error ?? "The request failed."}</p>
-            <Button variant="secondary" className="mt-3" onClick={onRead} disabled={busy}>
+            <Button variant="secondary" className="mt-3" onClick={readHere} disabled={busy}>
               <Icon name="retry" /> Try again
             </Button>
           </div>
@@ -149,7 +162,7 @@ export function TranscriptionPane({
               Reading finds the lines of text on the page, transcribes each one, and checks how far the result can be trusted.
             </p>
             {pageName ? (
-              <Button variant="secondary" className="mt-3" onClick={onRead} disabled={busy}>
+              <Button variant="secondary" className="mt-3" onClick={readHere} disabled={busy}>
                 Read this page
               </Button>
             ) : null}
