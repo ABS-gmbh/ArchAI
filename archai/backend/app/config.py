@@ -187,6 +187,12 @@ class Settings(BaseSettings):
     ocr_crop_upscale: int = 2
     ocr_max_pixels_per_tile: int = 160000000
     ocr_max_long_edge: int = 12000
+    # The largest page the provider path decodes at all (width x height); larger
+    # pages are refused before a pixel is read. The default is PIL's own refusal
+    # point (twice Image.MAX_IMAGE_PIXELS); a page under it but over
+    # ocr_max_pixels_per_tile is decoded and resized down. At 3 bytes a pixel
+    # the default is about 540 MB once decoded.
+    ocr_max_decode_pixels: int = 178956970
     ocr_image_size_retry_limit: int = 2
     ocr_image_retry_shrink: float = 0.82
     # Tiles of one page read by the VLM at once (ocr_agent.run_ocr_extraction).
