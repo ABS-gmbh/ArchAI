@@ -98,10 +98,35 @@ def get_task(task_id: str) -> TaskState | None:
             data = json.load(handle)
         known = {f.name for f in fields(TaskState)}
         task = TaskState(**{key: value for key, value in data.items() if key in known})
-    except (OSError, ValueError, TypeError):
+        _rebase_paths(task)
+    except (OSError, ValueError, TypeError, AttributeError):
         return None
     with _lock:
         return _task_store.setdefault(task_id, task)
+
+
+def _rebased(task_id: str, path: str | None) -> str | None:
+    """A saved file path, moved under this TASK_BASE_DIR if it named the task's directory elsewhere.
+
+    state.json stores absolute paths. When TASK_BASE_DIR changes and the task
+    directories are moved there, the saved paths still name the old place, and
+    the downloads, which serve only files inside the task's own directory,
+    answered 404. A path without the task's directory in it is left as it is
+    (and the downloads still refuse it).
+    """
+    if not path:
+        return path
+    marker = f"{os.sep}{task_id}{os.sep}"
+    if marker not in path:
+        return path
+    return os.path.join(TASK_BASE_DIR, task_id, path.rsplit(marker, 1)[1])
+
+
+def _rebase_paths(task: TaskState) -> None:
+    task.annotated_image_path = _rebased(task.task_id, task.annotated_image_path)
+    for entry in task.gallery:
+        if isinstance(entry, dict) and isinstance(entry.get("annotated_path"), str):
+            entry["annotated_path"] = _rebased(task.task_id, entry["annotated_path"])
 
 
 def save_task_state(task: TaskState) -> None:
