@@ -5,7 +5,10 @@
  * With BACKEND_API_TOKEN set (server-side only, never NEXT_PUBLIC_), the proxy
  * adds it as X-API-Token, so the browser works against a backend that has
  * API_TOKEN set without ever holding the token. The client's own
- * Authorization header (an analytics session) is passed on unchanged.
+ * Authorization header (an analytics session) is passed on unchanged. What the
+ * client says about its address (X-Forwarded-For, Forwarded, X-Real-IP) is
+ * not: the backend sees the address a trusted reverse proxy recorded, or none
+ * (TRUSTED_PROXY_HOPS, proxyRules.ts).
  *
  * Bodies are streamed both ways: an upload is not read into memory first, and
  * a server-sent event reaches the browser as soon as the backend sends it.
@@ -18,26 +21,13 @@ import { Readable } from "node:stream";
 
 import type { NextRequest } from "next/server";
 
+import { HOP_BY_HOP, TOKEN_HEADER, trustedProxyHops, upstreamHeaders } from "./proxyRules";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Read by lib/api/client.ts to tell "the proxy could not reach the backend" from a backend error. */
 const PROXY_STATUS_HEADER = "x-archai-proxy";
-
-// Hop-by-hop headers (RFC 9110 7.6.1) belong to one connection, not the request.
-const HOP_BY_HOP = new Set([
-  "connection",
-  "keep-alive",
-  "proxy-authenticate",
-  "proxy-authorization",
-  "proxy-connection",
-  "te",
-  "trailer",
-  "transfer-encoding",
-  "upgrade",
-]);
-
-const TOKEN_HEADER = "x-api-token";
 
 // One connection per request. Node's default agent keeps idle connections to
 // reuse them, and uvicorn closes an idle connection after 5 s: a request sent
@@ -49,21 +39,6 @@ const NO_REUSE = { http: new http.Agent({ keepAlive: false }), https: new https.
 function backendTarget(req: NextRequest): URL {
   const base = (process.env.BACKEND_URL || "http://127.0.0.1:8010").replace(/\/+$/, "");
   return new URL(`${base}${req.nextUrl.pathname}${req.nextUrl.search}`);
-}
-
-function upstreamHeaders(req: NextRequest, target: URL): http.OutgoingHttpHeaders {
-  const headers: http.OutgoingHttpHeaders = {};
-  req.headers.forEach((value, name) => {
-    if (!HOP_BY_HOP.has(name) && name !== "host") {
-      headers[name] = value;
-    }
-  });
-  headers.host = target.host;
-  const token = process.env.BACKEND_API_TOKEN;
-  if (token) {
-    headers[TOKEN_HEADER] = token;
-  }
-  return headers;
 }
 
 function downstreamHeaders(res: http.IncomingMessage): Headers {
@@ -143,7 +118,11 @@ async function proxy(req: NextRequest): Promise<Response> {
     };
 
     const agent = target.protocol === "https:" ? NO_REUSE.https : NO_REUSE.http;
-    const upstream = transport.request(target, { method, agent, headers: upstreamHeaders(req, target) }, (res) => {
+    const headers = upstreamHeaders(req.headers, target.host, {
+      trustedProxyHops: trustedProxyHops(),
+      token: process.env.BACKEND_API_TOKEN || "",
+    });
+    const upstream = transport.request(target, { method, agent, headers }, (res) => {
       if (isApiTokenRefusal(res)) {
         res.resume();
         settle(tokenRefused(method, req.nextUrl.pathname));

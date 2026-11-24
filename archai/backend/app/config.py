@@ -38,12 +38,15 @@ class Settings(BaseSettings):
             raise ValueError(f"LOG_FORMAT must be text or json, got {value!r}")
         return normalized
 
-    # Failed analytics logins allowed per client address within the window,
-    # before 429 (app/services/login_limiter.py).
+    # Failed analytics logins allowed within the window before 429, per client
+    # address and per user name from any address (app/services/login_limiter.py).
     analytics_login_max_failures: int = 5
+    analytics_login_max_failures_per_username: int = 10
     analytics_login_window_seconds: int = 900
 
-    @field_validator("analytics_login_max_failures", "analytics_login_window_seconds")
+    @field_validator(
+        "analytics_login_max_failures", "analytics_login_max_failures_per_username", "analytics_login_window_seconds"
+    )
     @classmethod
     def _positive_login_limit(cls, value: int, info: ValidationInfo) -> int:
         if value < 1:
