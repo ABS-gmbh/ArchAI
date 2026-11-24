@@ -128,7 +128,7 @@ cp .env.example .env    # then fill in CHAT_AI_API_KEY, and ANALYTICS_USERNAME /
 uvicorn app.main:app --host 127.0.0.1 --port 8010
 ```
 
-The frontend expects the backend at 127.0.0.1:8010; `NEXT_PUBLIC_BACKEND_URL` (the browser's direct URL) and `BACKEND_URL` (the dev server's `/api` proxy) override it.
+The frontend expects the backend at 127.0.0.1:8010; `NEXT_PUBLIC_BACKEND_URL` (the browser's direct URL) and `BACKEND_URL` (the Next server's `/api` proxy) override it; `BACKEND_API_TOKEN` gives that proxy the backend's `API_TOKEN`.
 
 Without `CHAT_AI_API_KEY` the backend starts, but chat, translation and SAIA OCR
 answer that the key is not configured, and `/api/health` reports `degraded`.
