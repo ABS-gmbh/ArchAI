@@ -127,6 +127,16 @@ const EMPTY_DOCUMENT_METADATA: WorkspaceDocumentMetadata = {
   notes: "",
 };
 
+/** The workspace's settings saved in this tab, or null (none, unreadable, or on the server). */
+function readPersistedState(): WorkspacePersistedState | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as WorkspacePersistedState) : null;
+  } catch {
+    return null;
+  }
+}
+
 const subscribeToNothing = () => () => {};
 const isClient = () => true;
 const isServer = () => false;
@@ -154,7 +164,6 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   // False on the server and while hydrating, true in the browser after: the
   // workspace reads sessionStorage and window, which the server has not got.
   const clientReady = useSyncExternalStore(subscribeToNothing, isClient, isServer);
-  const [hydrated, setHydrated] = useState(false);
   const [documents, setDocuments] = useState<WorkspaceDocument[]>([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [pageIndexByDocument, setPageIndexByDocument] = useState<Record<string, number>>({});
@@ -164,7 +173,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [visionModelIds, setVisionModelIds] = useState<Set<string>>(new Set());
   const [taskModels, setTaskModels] = useState(DEFAULT_TASK_MODELS);
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_CHAT_MODEL_ID);
-  const [includeCurrentPageImage, setIncludeCurrentPageImage] = useState(false);
+  // Restored from this tab's sessionStorage when the workspace is created (the
+  // server has none: the workspace is rendered in the browser only).
+  const [includeCurrentPageImage, setIncludeCurrentPageImage] = useState(
+    () => readPersistedState()?.includeCurrentPageImage ?? false,
+  );
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -284,28 +297,20 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     };
   }, []);
 
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        setHydrated(true);
-        return;
-      }
-
-      const parsed = JSON.parse(raw) as WorkspacePersistedState;
-      setIncludeCurrentPageImage(Boolean(parsed.includeCurrentPageImage));
+  // A new document in the route restores the stored setting again and resets
+  // the model, as it did when this was an effect on initialDocumentId. Worked
+  // out during render (react-hooks/set-state-in-effect).
+  const [restoredFor, setRestoredFor] = useState(initialDocumentId);
+  if (restoredFor !== initialDocumentId) {
+    setRestoredFor(initialDocumentId);
+    const persisted = readPersistedState();
+    if (persisted) {
+      setIncludeCurrentPageImage(Boolean(persisted.includeCurrentPageImage));
       setSelectedModel(DEFAULT_CHAT_MODEL_ID);
-    } catch {
-      // Ignore malformed persisted state.
-    } finally {
-      setHydrated(true);
     }
-  }, [initialDocumentId]);
+  }
 
   useEffect(() => {
-    if (!hydrated) {
-      return;
-    }
     const payload: WorkspacePersistedState = {
       selectedModel: selectedModel || null,
       includeCurrentPageImage,
@@ -315,18 +320,20 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     } catch {
       // Storage quota/availability should never block workspace usage.
     }
-  }, [
-    hydrated,
-    selectedModel,
-    includeCurrentPageImage,
-  ]);
+  }, [selectedModel, includeCurrentPageImage]);
 
-  useEffect(() => {
-    if (!initialDocumentId || !documents.some((doc) => doc.id === initialDocumentId)) {
-      return;
+  // The document named in the route is selected once it is among the open
+  // documents, checked again whenever either changes (it was an effect on both).
+  const [routeCheckedFor, setRouteCheckedFor] = useState<{ id: string | undefined; documents: WorkspaceDocument[] | null }>({
+    id: undefined,
+    documents: null,
+  });
+  if (routeCheckedFor.id !== initialDocumentId || routeCheckedFor.documents !== documents) {
+    setRouteCheckedFor({ id: initialDocumentId, documents });
+    if (initialDocumentId && documents.some((doc) => doc.id === initialDocumentId)) {
+      setSelectedDocumentId(initialDocumentId);
     }
-    setSelectedDocumentId(initialDocumentId);
-  }, [initialDocumentId, documents]);
+  }
 
   const selectDocument = (documentId: string) => {
     setSelectedDocumentId(documentId);
