@@ -123,3 +123,25 @@ def test_the_high_recall_pass_adds_only_false_positives_on_the_reference_pages()
     assert (result["all"]["tp"], result["all"]["fp"], result["all"]["fn"]) == (9, 22, 5)
     # It triggers on the two pages with no entity, and nowhere else.
     assert {pid for pid, page in result["pages"].items() if page["fp"]} == {"old-french", "latin-abaton"}
+
+
+# ── lexicon gaps found on the held-out B-dev pages ─────────────────────
+
+
+def test_the_middle_french_sainct_introduces_a_name() -> None:
+    """"sainct Pol", "sainct Frãcois" (B-dev, Paris BnF Rés. Ye 1325): the list had saint and sainz only."""
+    assert "sainct Pol" in _surfaces("¶ Sainct Pierre print le glaiue de sainct Pol", "person")
+    # The span runs on to the next word, as after the other titles; the
+    # authority query is trimmed separately.
+    assert any(s.startswith("sainct Frãcois") for s in _surfaces("Cuydant trouuer sainct Frãcois lasche ⁊ mol", "person"))
+
+
+def test_de_la_inside_a_capitalised_name_does_not_cut_it() -> None:
+    """"Rommant de la Rose" (B-dev, Paris BnF fr. 604): "la" after "de" broke the run of capitals."""
+    surfaces = [m["surface"] for m in _mentions("Item les epiltres sur les Rommant de la Rose")]
+    assert "Rommant de la Rose" in surfaces
+    assert [m["surface"] for m in _mentions("Iehan de le Mote et Pierre de les Pres")] == ["Iehan de le Mote", "Pierre de les Pres"]
+
+
+def test_la_without_de_still_ends_a_run() -> None:
+    assert "Rommant la Rose" not in [m["surface"] for m in _mentions("Item Rommant la Rose")]

@@ -315,8 +315,9 @@ Gold, one annotator, without the images:
 
 `scripts/benchmark_names_heldout.py`, current code. Authority responses were
 recorded live (1,107 requests, none failed) to `heldout_linking_cache.json.gz`
-(gzip; 1107 distinct requests; SHA-256 of the uncompressed JSON 303737059a98836fb705c840c6a12b54a7eed2abb7cd5eed9d50981509fdeaa7), so
-reruns are offline. Unsure gold mentions are left out. Intervals are 95%,
+(gzip; SHA-256 of the uncompressed JSON ce775ef9aa87172f754d8b871351ff4f0a5826f904e4bb5b9c67246e5ffd1704), so
+reruns are offline. The changes below added the requests their new queries
+make (1,134 distinct requests after the lexicon change). Unsure gold mentions are left out. Intervals are 95%,
 resampled over manuscripts.
 
 | | gold | found | spurious / extracted | links c / w / a / m |
@@ -354,3 +355,28 @@ images. Many intervals are wide, and single-manuscript languages have none.
 No rule or threshold was changed for this measurement. B-test's errors have
 not been inspected one by one; it is kept to judge one change chosen on
 B-dev.
+
+### Changes measured on B-dev
+
+Each change is its own commit, measured on B-dev and on the five development
+pages before it was kept. Development pages, links c / w / a / m: reference
+7 / 0 / 1 / 5, end-to-end on the saved OCR text 6 / 0 / 0 / 7, unless said.
+
+| Change | found / gold | spurious / extracted | links c / w / a / m | linkable | none |
+|---|---|---|---|---|---|
+| baseline | 52 / 152 | 65 / 129 | 23 / 3 / 22 / 90 | 1 / 0 / 22 / 68 | 22 / 3 / 0 / 22 |
+| "sainct" a title; "la"/"le"/"les" after "de" a particle | 55 / 152 | 65 / 134 | 23 / 3 / 25 / 87 | 1 / 0 / 25 / 65 | 22 / 3 / 0 / 22 |
+
+- **Lexicon.** Of the 33 capitalised B-dev names never proposed, 2 were lost
+  to a missing spelling of a title ("sainct Pol", "sainct Frãcois") and 1 to
+  "de la" breaking a run of capitals ("Rommant de la Rose"). All three are
+  now found and abstained on. Other spellings of the saint titles were
+  checked on B-dev and the development pages and not added, since no name
+  was lost for want of them: "sancto" (sc̃o Thome, sc̃o patͥc̃o: found
+  through other rules), "san" ("Sã rozi", no gold name), "sanctorum" (no
+  name follows), and "sainte", "saincte", "sant", "santa", "sanctum",
+  "beato" (absent). The other 30 have no rule that could take them: 22 are
+  a lone capitalised word with no title or preposition before it (a lone
+  capital mid-line is a gold name 64 times in 227 on B-dev, so no rule
+  proposes it), 8 a capitalised given name with a lowercase byname
+  ("Thomas de hereforde").
