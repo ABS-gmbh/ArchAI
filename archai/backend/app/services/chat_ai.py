@@ -530,10 +530,16 @@ def _retrieval_payload(
     retrieval["transcript_in_context"] = _transcript_in_context(context)
     return retrieval
 
-_RAG_INSPECTION_RE = re.compile(
-    r"\b(print|show|display|inspect)\b.*\b(rag|retrieval|evidence)\b|\bwhat did you retrieve\b",
-    re.IGNORECASE,
-)
+# "show ... evidence" on one line, or "what did you retrieve". It was one
+# pattern, `\b(print|show|display|inspect)\b.*\b(rag|retrieval|evidence)\b`,
+# which backtracks quadratically: a message of "show " repeated took 5.4 s at
+# 80k characters with the GIL held, stalling every other request. Now the
+# trigger is found first and the target searched after it, which is linear,
+# and the check reads at most _RAG_INSPECTION_MAX_CHARS: it is a typed command.
+_RAG_INSPECTION_TRIGGER_RE = re.compile(r"\b(?:print|show|display|inspect)\b", re.IGNORECASE)
+_RAG_INSPECTION_TARGET_RE = re.compile(r"\b(?:rag|retrieval|evidence)\b", re.IGNORECASE)
+_RAG_INSPECTION_PHRASE_RE = re.compile(r"\bwhat did you retrieve\b", re.IGNORECASE)
+_RAG_INSPECTION_MAX_CHARS = 2000
 _RAG_INSPECTION_DEBUG_RE = re.compile(r"\b(debug|detailed|verbose|json)\b", re.IGNORECASE)
 
 
@@ -779,7 +785,14 @@ def _structured_entity_sections(query: str, run_id: str, entity_hits: list[dict[
 
 
 def _is_rag_inspection_query(query: str) -> bool:
-    return bool(_RAG_INSPECTION_RE.search(str(query or "")))
+    text = str(query or "")[:_RAG_INSPECTION_MAX_CHARS]
+    if _RAG_INSPECTION_PHRASE_RE.search(text):
+        return True
+    for line in text.splitlines():
+        trigger = _RAG_INSPECTION_TRIGGER_RE.search(line)
+        if trigger and _RAG_INSPECTION_TARGET_RE.search(line, trigger.end()):
+            return True
+    return False
 
 
 def _format_rag_inspection_markdown(payload: dict[str, Any]) -> str:

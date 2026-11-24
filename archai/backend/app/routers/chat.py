@@ -9,8 +9,9 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
+from app.config import settings
 from app.agents.label_analysis_agent import LabelAnalysisAgent, LabelAnalysisAgentError
 from app.routers.errors import stream_error_message, unexpected_error
 from app.services.chat_ai import (
@@ -35,6 +36,19 @@ def _get_label_analysis_agent() -> LabelAnalysisAgent:
 class ChatMessage(BaseModel):
     role: str = Field(default="user")
     content: Any
+
+    @field_validator("content")
+    @classmethod
+    def _bounded_text(cls, value: Any) -> Any:
+        limit = int(settings.chat_max_message_chars)
+        texts: list[str] = []
+        if isinstance(value, str):
+            texts = [value]
+        elif isinstance(value, list):
+            texts = [part["text"] for part in value if isinstance(part, dict) and isinstance(part.get("text"), str)]
+        if any(len(text) > limit for text in texts):
+            raise ValueError(f"a chat message may carry at most {limit} characters of text (CHAT_MAX_MESSAGE_CHARS)")
+        return value
 
 
 class ChatCompletionRequest(BaseModel):
