@@ -1,0 +1,21 @@
+{
+ "query": "chanson de roland",
+ "result": [
+  {
+   "term": "Chanson de Roland",
+   "displayForm": "Chanson de Roland",
+   "nametype": "uniformtitlework",
+   "viafid": "5836165272458110690007",
+   "score": "2929",
+   "recordID": "5836165272458110690007"
+  },
+  {
+   "term": "Chanson de Roland. | English |",
+   "displayForm": "Chanson de Roland. | English |",
+   "nametype": "uniformtitleexpression",
+   "viafid": "23146937726813830376",
+   "score": "1020",
+   "recordID": "23146937726813830376"
+  }
+ ]
+}

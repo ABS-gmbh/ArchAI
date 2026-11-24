@@ -162,7 +162,7 @@ But final_script_hint is only bound 15 lines LATER, at line 2482: `final_script_
 - **Impact:** The entire uvicorn event loop stalls for the full duration of authority linking. Combined with AL-03 (up to 60s of serial VIAF I/O per query variant, uncapped), a single page OCR request makes the whole backend unresponsive — every other in-flight request, health check, and SSE/progress stream stops — for minutes to hours. There is no per-run wall-clock budget anywhere in `run_authority_linking` to bound this.
 - **Fix:** At routers/ocr.py:3523 and :4575 wrap the call: `linking_result = await anyio.to_thread.run_sync(_run_authority_linking_stage, run_id)` (or `starlette.concurrency.run_in_threadpool`). Also add a wall-clock budget inside the mention loop at authority_linking.py:1373 — e.g. break out and mark remaining mentions 'deferred' once `time.monotonic() - t0` exceeds a configured ceiling.
 
-### [AL-02] Every VIAF and GeoNames candidate is forced type_compatible=False and hard-gated out, making all VIAF/GeoNames traffic dead work — partly fixed (VIAF personal/corporate/geographic and GeoNames records now carry type QIDs; VIAF work name types still map to none)
+### [AL-02] Every VIAF and GeoNames candidate is forced type_compatible=False and hard-gated out, making all VIAF/GeoNames traffic dead work — **FIXED** (persons, corporate bodies, places and GeoNames records typed in ba37140; VIAF works, which VIAF writes as UniformTitleWork, typed from the observed values; expressions stay untyped on purpose)
 
 - **Where:** `vendor:app/services/authority_sources.py:106`  
 - **Category:** correctness  

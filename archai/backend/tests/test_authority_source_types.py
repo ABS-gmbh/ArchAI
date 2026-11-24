@@ -49,14 +49,14 @@ def test_an_unknown_geonames_code_still_reads_as_a_place() -> None:
 
 @pytest.mark.parametrize(
     ("name_type", "ent_type"),
-    [("Personal", "person"), ("Corporate", "org"), ("UniformTitle", "work"), ("Geographic", "place")],
+    [("Personal", "person"), ("Corporate", "org"), ("UniformTitleWork", "work"), ("Geographic", "place")],
 )
 def test_viaf_name_types_map_to_compatible_qids(name_type: str, ent_type: str) -> None:
     assert is_type_compatible(ent_type, viaf_type_qids(name_type))
 
 
 def test_viaf_name_type_matching_ignores_case_and_separators() -> None:
-    assert viaf_type_qids("uniform-title") == viaf_type_qids("UniformTitle")
+    assert viaf_type_qids("uniform-title-work") == viaf_type_qids("UniformTitleWork") == viaf_type_qids("uniformtitlework") == ["Q7725634"]
 
 
 def test_an_unknown_viaf_name_type_asserts_nothing() -> None:

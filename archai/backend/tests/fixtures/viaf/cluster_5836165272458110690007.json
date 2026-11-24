@@ -1,0 +1,17 @@
+{
+ "ns1:VIAFCluster": {
+  "xmlns:ns1": "http://viaf.org/viaf/terms#",
+  "ns1:viafID": 5836165272458110690007,
+  "ns1:nameType": "UniformTitleWork",
+  "ns1:mainHeadings": {
+   "ns1:data": [
+    {
+     "ns1:text": "Chanson de Roland."
+    },
+    {
+     "ns1:text": "Chanson de Roland | (wersja fr.)"
+    }
+   ]
+  }
+ }
+}
