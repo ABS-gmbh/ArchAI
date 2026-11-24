@@ -53,6 +53,15 @@ const MESSAGE_WORDS: [RegExp, (match: RegExpExecArray) => string][] = [
   [/^Auto-indexing into vector store\.$/, () => ""],
   [/^Indexed (\d+) chunks\.$/, (m) => `${plural(m[1], "passage", "passages")} indexed`],
   [/^Full-page pipeline completed successfully\.$/, () => ""],
+  [/^Full-page OCR text stored\.$/, () => ""],
+  [/^Running the full-page post-OCR pipeline\.$/, () => ""],
+  [/^Full-page OCR run received \(.+\)\.$/, () => ""],
+  // A reading the quality gate rates too uncertain to search or link.
+  [/^degraded_capture chunks=(\d+), mentions=(\d+)$/, (m) => `${plural(m[1], "passage", "passages")}, ${plural(m[2], "name", "names")} (names found with the cautious search used for an uncertain reading)`],
+  [/^Authority linking SKIPPED: token_search_allowed=False \(quality=(\w+)\)$/, (m) => `Skipped: the reading was rated ${m[1].toLowerCase()}, too uncertain to look names up.`],
+  [/^RAG auto-index SKIPPED: token_search_allowed=False \(quality=(\w+)\)$/, (m) => `Skipped: the reading was rated ${m[1].toLowerCase()}, too uncertain to search.`],
+  [/^token_search_allowed=False quality=\w+$/, () => ""],
+  [/^Deferred linking stored unresolved mentions: total=(\d+)$/, (m) => `${plural(m[1], "name", "names")} kept, not linked`],
 ];
 
 export function messageInWords(message: string | null | undefined): string {
