@@ -82,6 +82,24 @@ async def _save_upload(upload: UploadFile, path: str, *, empty_detail: str) -> N
         raise HTTPException(status_code=422, detail=empty_detail)
 
 
+_MIN_MEMBER_COST = 4096
+
+
+def _zip_entry_count(zip_path: str) -> int | None:
+    """The member count the archive's end record states, read without parsing its directory.
+
+    zipfile.ZipFile builds an object per member on open, so the count is checked
+    first: a 1 GB upload of empty members would be about 11 million of them.
+    None when the record cannot be read; the caller then counts after opening.
+    """
+    try:
+        with open(zip_path, "rb") as handle:
+            record = zipfile._EndRecData(handle)  # type: ignore[attr-defined]
+        return int(record[zipfile._ECD_ENTRIES_TOTAL]) if record else None  # type: ignore[attr-defined]
+    except (OSError, AttributeError, IndexError, TypeError, ValueError):
+        return None
+
+
 def _safe_extract_zip(zip_path: str, extract_dir: str) -> None:
     """
     Extract zip safely (prevents Zip Slip path traversal, and stops once the
@@ -89,8 +107,15 @@ def _safe_extract_zip(zip_path: str, extract_dir: str) -> None:
     memory or disk).
     """
     budget = max(1, int(settings.max_extracted_megabytes)) * (1 << 20)
+    limit = max(1, int(settings.max_zip_members))
+    entries = _zip_entry_count(zip_path)
+    if entries is not None and entries > limit:
+        raise ValueError(f"ZIP has {entries} members; at most {limit} are accepted (MAX_ZIP_MEMBERS).")
     with zipfile.ZipFile(zip_path, "r") as zf:
-        for member in zf.infolist():
+        members = zf.infolist()
+        if len(members) > limit:
+            raise ValueError(f"ZIP has {len(members)} members; at most {limit} are accepted (MAX_ZIP_MEMBERS).")
+        for member in members:
             member_name = member.filename
 
             # Skip obvious junk folders/files
@@ -106,9 +131,15 @@ def _safe_extract_zip(zip_path: str, extract_dir: str) -> None:
                 continue
 
             if member.is_dir():
-                os.makedirs(dest_path, exist_ok=True)
+                continue
+            # Only images are read from a batch, so nothing else is written.
+            if os.path.splitext(base)[1].lower() not in IMAGE_EXTENSIONS:
                 continue
 
+            # A file costs at least a disk block, even an empty one.
+            budget -= _MIN_MEMBER_COST
+            if budget < 0:
+                raise ValueError(f"ZIP expands past {settings.max_extracted_megabytes} MB; extraction stopped.")
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             with zf.open(member, "r") as src, open(dest_path, "wb") as dst:
                 while chunk := src.read(_COPY_CHUNK):

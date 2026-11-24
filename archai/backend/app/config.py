@@ -143,6 +143,11 @@ class Settings(BaseSettings):
     # largest legitimate one is a page image as a base64 data URL: an A4 page at
     # 600 dpi as PNG makes a 36 MB body.
     max_json_megabytes: int = 48
+    # Most members a batch ZIP may have. Empty members cost no extraction
+    # budget, so a 5.6 MB ZIP of 60,000 empty .png members created 60,000
+    # files in 3.5 s (security review C6). A batch is read page by page, a few
+    # seconds each, so 2,000 pages is already hours of work.
+    max_zip_members: int = 2000
 
     # Chat AI (GWDG OpenAI-compatible)
     chat_ai_api_key: str = ""
