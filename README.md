@@ -119,6 +119,10 @@ variables.
 
 ## Quick start — document workspace
 
+Upgrading an installation from the version of 2026-11-09? Read
+[`docs/upgrade-notes.md`](docs/upgrade-notes.md) first: what to do before the
+upgrade, the new settings, and what changes for users and scripts.
+
 Backend:
 
 ```bash
