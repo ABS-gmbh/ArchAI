@@ -1520,6 +1520,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     </button>
   );
 
+  // aria-disabled, not disabled, at the first and last page: a button that is
+  // disabled while it has focus drops a keyboard user on the document body.
   const pageNav =
     currentDocument && pageCount > 0 ? (
       <div className="flex items-center">
@@ -1527,8 +1529,12 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           variant="quiet"
           className="w-8 px-0"
           aria-label="Previous page"
-          disabled={currentPageIndex <= 0}
-          onClick={() => updateCurrentPageIndex(currentPageIndex - 1)}
+          aria-disabled={currentPageIndex <= 0 || undefined}
+          onClick={() => {
+            if (currentPageIndex > 0) {
+              updateCurrentPageIndex(currentPageIndex - 1);
+            }
+          }}
         >
           <Icon name="chevron-left" />
         </Button>
@@ -1548,8 +1554,12 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           variant="quiet"
           className="w-8 px-0"
           aria-label="Next page"
-          disabled={currentPageIndex >= pageCount - 1}
-          onClick={() => updateCurrentPageIndex(currentPageIndex + 1)}
+          aria-disabled={currentPageIndex >= pageCount - 1 || undefined}
+          onClick={() => {
+            if (currentPageIndex < pageCount - 1) {
+              updateCurrentPageIndex(currentPageIndex + 1);
+            }
+          }}
         >
           <Icon name="chevron-right" />
         </Button>
