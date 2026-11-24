@@ -314,13 +314,79 @@ as `?token=` on the two event streams.
 
 | Data | Default location | Notes |
 |---|---|---|
-| Pipeline database | `archai/backend/app/archai.sqlite` (`ARCHAI_DB_PATH`), plus its `-wal` and `-shm` files | Runs, transcriptions, mentions, links, evidence spans. Back up with `sqlite3 archai.sqlite ".backup /backup/archai.sqlite"` while running, or copy all three files with the server stopped. |
-| Vector store | `archai/backend/.data/chroma` (`CHROMA_PERSIST_DIR`) | Can be rebuilt from the database (`POST /api/index/run/{id}` per run), but that costs an embedding call per chunk. Copy it with the server stopped. |
+| Pipeline database | `archai/backend/app/archai.sqlite` (`ARCHAI_DB_PATH`), plus its `-wal` and `-shm` files | Runs, transcriptions, mentions, links, evidence spans. Not `archai.sqlite.lock`, the one-worker lock: it is recreated at startup. |
+| Vector store | `archai/backend/.data/chroma` (`CHROMA_PERSIST_DIR`) | Can be rebuilt from the database (`POST /api/index/run/{id}` per run), but that costs an embedding call per chunk. The server rewrites its files whenever it opens it, even to read, so copy it only with the server stopped. |
 | OCR evidence log | `archai/backend/data/evidence/ocr_evidence.jsonl` (`OCR_EVIDENCE_PATH`) | Append-only record of every OCR call's raw and final text. |
 | Authority cache | `archai/backend/app/.data/wikidata_cache.sqlite` (`ARCHAI_WIKIDATA_CACHE`) | A cache; losing it only costs requests. |
 | Analytics database | `archai/backend/analytics.db` (`ANALYTICS_DB_PATH`) | Read only by the backend; written by whatever records visits. |
 | Model weights | `archai/backend/models` (`MODEL_DIR`), `weights/kraken_models` at the repository root | Not data, and the server starts without them, but pages are then read with GLM-OCR only; see [`model_setup.md`](model_setup.md). |
 | Layout tasks | `archai/backend/.tasks` (`TASK_BASE_DIR`) | Temporary: uploads and outputs, removed after `TASK_TTL_MINUTES`. No backup needed; give it room for the largest upload batch. |
+
+### Backing up
+
+The vector store can only be copied with the server stopped, so stop it for
+the backup:
+
+1. Stop the backend (and with it every process using the data; see
+   [Run one worker](#run-one-worker)).
+2. Copy, keeping the names: the pipeline database with its `-wal` and `-shm`
+   files if they exist, the whole `CHROMA_PERSIST_DIR` directory, the OCR
+   evidence log, the authority cache and the analytics database, from the
+   paths the `Data paths:` startup line names.
+3. Start the backend.
+
+Without a stop, `sqlite3 <file> ".backup <target>"` takes a consistent copy of
+each SQLite file while the server runs: the pipeline database, the authority
+cache (`wikidata_cache.sqlite`) and the analytics database. A plain copy of a
+SQLite file in use can be torn. The evidence log is appended to: a copy taken
+while a page is being read can end in half a line. The vector store still
+needs the stop, or a rebuild after restoring.
+
+### Restoring
+
+1. Stop the backend.
+2. At each target path, remove what is there, and for the pipeline database
+   also `archai.sqlite-wal` and `archai.sqlite-shm`. A `-wal` left by a server
+   that stopped without cleaning up is replayed onto whatever database is put
+   next to it: in a test, a backup of 5 runs restored next to a crashed
+   server's `-wal` opened as 52 runs, and `PRAGMA integrity_check` still said
+   `ok`.
+3. Put the backed-up files there (a database taken with `.backup` is one
+   file), and point the settings at them if the paths changed.
+4. Start the backend and check the `Data paths:` line names the restored
+   files. Open a few runs (`GET /api/ocr/trace/{run_id}`) and run a search.
+
+Layout tasks are not backed up: a task finished before the backup answers 404
+afterwards. If you do move `TASK_BASE_DIR` with its tasks, the backend finds
+their files in the new place.
+
+This procedure was checked on 2026-11-24: an installation's data made with the
+code of 2026-11-09 (before pull request 90), upgraded, then backed up both
+ways above and restored into a new, empty directory,
+answered every run, transcription, name, authority link, evidence span,
+search and analytics login as before. The only differences were the expected
+ones: its layout task was gone.
+
+## Upgrading and rolling back
+
+Back up first. The upgrade to this version needs no migration: the pipeline
+database's schema is unchanged, and starting the new version rewrites none of
+it. Starting either version rewrites the vector store's index files (the
+same vectors). New files appear next to the database: `archai.sqlite.lock`,
+which the older version ignores.
+
+Rolling back to the version of 2026-11-09 works on data the new version has
+used: it starts, and answers the same runs, names, links, spans and searches.
+What it does not have, it drops without a word:
+- **`API_TOKEN`**: the older version has no token. Rolled back, the API answers
+  anyone who can reach it; keep it on localhost or behind a proxy that
+  authenticates.
+- **`ENABLE_API_DOCS`**: `/docs` is always on.
+- **`TASK_BASE_DIR`**: the older version keeps layout tasks in
+  `archai/backend/.tasks`, whatever the setting says.
+- **Run reservations** (`POST /api/ocr/runs`): a reserved run the new version
+  left behind stays `RESERVED`, and the older version's event stream for it
+  stays open until its one-hour limit.
 
 ## Health
 
