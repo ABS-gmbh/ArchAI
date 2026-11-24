@@ -71,6 +71,13 @@ Layout tasks keep their uploads and outputs in `TASK_BASE_DIR` (default
 it if missing and refuses to start, naming the variable, if it cannot write
 there. It needs no backup: task files expire after `TASK_TTL_MINUTES` (60).
 
+The other four data paths are checked at startup too: if the process could
+not write `ARCHAI_DB_PATH`, `CHROMA_PERSIST_DIR`, `ARCHAI_WIKIDATA_CACHE` or
+`OCR_EVIDENCE_PATH` (or create it, when it does not exist yet), the server
+refuses to start with an error naming the variable. Startup then logs one
+INFO line, `Data paths: ARCHAI_DB_PATH='…', CHROMA_PERSIST_DIR='…', …`, with
+every path in use; check it after changing the settings.
+
 ## What to put in front
 
 The backend speaks plain HTTP. Unless `API_TOKEN` is set it has **no
