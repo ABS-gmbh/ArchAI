@@ -13,6 +13,7 @@ import json
 import logging
 import re
 import sys
+from urllib.parse import unquote_plus
 from datetime import datetime, timezone
 from typing import Any, TextIO
 
@@ -39,7 +40,22 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload, ensure_ascii=False, default=str)
 
 
-_TOKEN_IN_QUERY = re.compile(r"([?&]token=)[^&\s\"]*")
+_QUERY = re.compile(r"\?([^\s\"#]*)")
+_PAIR_SEPARATOR = re.compile(r"([&;])")
+
+
+def _redact_query(match: re.Match[str]) -> str:
+    """Blank every parameter whose name, once decoded, is "token" in any case."""
+    parts = _PAIR_SEPARATOR.split(match.group(1))
+    for index in range(0, len(parts), 2):
+        name, equals, _ = parts[index].partition("=")
+        if equals and unquote_plus(name).strip().lower() == "token":
+            parts[index] = f"{name}=[redacted]"
+    return "?" + "".join(parts)
+
+
+def redact_token(text: str) -> str:
+    return _QUERY.sub(_redact_query, text)
 
 
 class RedactTokenFilter(logging.Filter):
@@ -47,15 +63,15 @@ class RedactTokenFilter(logging.Filter):
 
     The two event-stream routes accept the API token in the query string
     (app/auth.py), and uvicorn's access log writes each request's full path.
+    The parameter's name is decoded before it is compared: "?%74oken=" used to
+    be written in clear, because only the literal "token=" was matched.
     """
 
     def filter(self, record: logging.LogRecord) -> bool:
         if isinstance(record.args, tuple):
-            record.args = tuple(
-                _TOKEN_IN_QUERY.sub(r"\1[redacted]", arg) if isinstance(arg, str) else arg for arg in record.args
-            )
+            record.args = tuple(redact_token(arg) if isinstance(arg, str) else arg for arg in record.args)
         if isinstance(record.msg, str):
-            record.msg = _TOKEN_IN_QUERY.sub(r"\1[redacted]", record.msg)
+            record.msg = redact_token(record.msg)
         return True
 
 
