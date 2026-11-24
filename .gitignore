@@ -37,6 +37,8 @@ tmp/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
+# The single-process guard beside the pipeline database (app/process_guard.py).
+*.sqlite.lock
 
 # ---- Thesis writing workspace (LaTeX sources + build artefacts, ~121 MB) ----
 # Kept outside version control deliberately; the reproducible figure payloads
