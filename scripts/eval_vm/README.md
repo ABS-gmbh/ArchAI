@@ -141,9 +141,9 @@ python scripts/calibrate_quality_gate.py      # the committed set: pins the verd
 - **Time.** Seconds.
 - **Needs nothing** on the committed `eval/quality_gate/readings.json`.
 - **Fresh readings.** These are new recogniser output, so they need 3c's page
-  images and layout weights. `benchmark_recognizers.py` reports error rates but
-  not the text it read. To rebuild `readings.json` from a fresh run, it needs a
-  small addition that saves each reading's text. That is not written yet.
+  images and layout weights. `benchmark_recognizers.py --save-readings
+  fresh.json` writes the texts read in the `readings.json` format, and
+  `calibrate_quality_gate.py --readings fresh.json` checks the gate on them.
 - **Alternative.** `--db <pipeline sqlite>` runs the held-out check on any
   pipeline database. There is none on the VM, and the live
   `app/archai.sqlite` must not be copied there without the user's say.
@@ -182,7 +182,7 @@ the gain.
 3. **Page images:** none of the five reference images is tracked in the repo or its history (checked by SHA-256 against the manifest), and none was found outside the offloaded Desktop folder. 3c and fresh 3d readings are blocked on the same iCloud step. They are not re-downloaded from e-codices: a copy at a guessed size would not match the manifest's SHA-256, and its CERs would not be comparable.
 4. **Demo pages** `french.JPEG` and `Latin.png`: may be copied once readable (test with a short read first); not found outside the offloaded folder.
 5. **Ollama:** after 3a and 3b, install the current stable release with Ollama's official install script, record the exact version (`ollama --version`) here and in every result, and pull `glm-ocr:latest` (the name in `settings.glmocr_ollama_model`). Its GLM numbers are a first look: no committed baseline exists for that version.
-6. **Saving the text read:** `benchmark_recognizers.py` gets an option to save the text it read (its own commit, still to do).
+6. **Saving the text read:** `benchmark_recognizers.py --save-readings PATH` (3d).
 
 ## Order on the VM
 

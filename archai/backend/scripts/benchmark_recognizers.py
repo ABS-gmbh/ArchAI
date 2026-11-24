@@ -4,6 +4,7 @@ Usage::
 
     python scripts/benchmark_recognizers.py --images /path/to/page/images
     python scripts/benchmark_recognizers.py --images DIR --engines segmented glmocr --json
+    python scripts/benchmark_recognizers.py --images DIR --save-readings fresh_readings.json
 
 Each engine reads a page exactly as /ocr/extract_full_page would - layout
 segmentation then line recognition ("segmented", optionally pinned to one
@@ -15,6 +16,11 @@ matter. Reported per page and engine: character error rate under the
 diplomatic policy (case, punctuation and abbreviation marks kept), word error
 rate, and the CER of the search keys the retrieval index is built from - the
 view that decides whether a query finds the page at all.
+
+``--save-readings PATH`` also writes the text each engine read, in the format
+of ``eval/quality_gate/readings.json``, so ``scripts/calibrate_quality_gate.py
+--readings PATH`` can check the gate on fresh readings. Readings are keyed by
+engine name; an engine that failed on a page is left out of that page.
 
 Exit status is 0 on success, 2 when the manifest or an image is missing.
 """
@@ -128,6 +134,11 @@ def search_key(text: str) -> str:
 
 
 def score(engine: str, page: Page) -> Reading:
+    return read_and_score(engine, page)[0]
+
+
+def read_and_score(engine: str, page: Page) -> tuple[Reading, str]:
+    """The scored reading and the text the engine read ("" if it failed)."""
     started = time.perf_counter()
     try:
         text, model = read_page(engine, page)
@@ -136,7 +147,7 @@ def score(engine: str, page: Page) -> Reading:
         text, model, error = "", "", f"{type(exc).__name__}: {exc}"
     seconds = time.perf_counter() - started
     chars: ErrorCounts = cer(page.reference, text, DIPLOMATIC)
-    return Reading(
+    reading = Reading(
         engine=engine,
         page_id=page.page_id,
         model=model,
@@ -148,6 +159,18 @@ def score(engine: str, page: Page) -> Reading:
         char_errors=chars.distance,
         error=error,
     )
+    return reading, text
+
+
+def readings_file(pages: list[Page], results: list[tuple[Reading, str]]) -> dict:
+    """The texts read, in the format of eval/quality_gate/readings.json."""
+    out = []
+    for page in pages:
+        texts = {r.engine: text for r, text in results if r.page_id == page.page_id and not r.error}
+        # language_hint "old_french" -> "french", as readings.json records the language.
+        language = (page.language_hint or "unknown").rsplit("_", 1)[-1]
+        out.append({"page_id": page.page_id, "language": language, "reference": page.reference, "readings": texts})
+    return {"description": "Readings saved by scripts/benchmark_recognizers.py --save-readings.", "pages": out}
 
 
 def render(readings: list[Reading]) -> str:
@@ -179,6 +202,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--engines", nargs="+", default=list(DEFAULT_ENGINES))
     parser.add_argument("--json", action="store_true", help="print JSON instead of a table")
+    parser.add_argument("--save-readings", type=Path, help="also write the texts read, in readings.json format")
     args = parser.parse_args(argv)
 
     try:
@@ -192,7 +216,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # The layout models print progress to stdout; keep it for the report alone.
     with contextlib.redirect_stdout(sys.stderr):
-        readings = [score(engine, page) for engine in args.engines for page in pages]
+        results = [read_and_score(engine, page) for engine in args.engines for page in pages]
+    readings = [reading for reading, _text in results]
+    if args.save_readings:
+        args.save_readings.write_text(
+            json.dumps(readings_file(pages, results), ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
     if args.json:
         print(json.dumps([asdict(item) for item in readings], ensure_ascii=False, indent=2))
     else:
