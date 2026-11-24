@@ -29,6 +29,11 @@ These behave differently from the first start:
   `API_TOKEN` (at least 24 characters), `RUN_RETENTION_DAYS`,
   `RUN_RETENTION_MAX_PER_SWEEP`, `CHAT_AI_TIMEOUT_SECONDS`. A `JWT_SECRET`
   shorter than 32 characters is only logged as an ERROR.
+- **A frontend opened under a name needs `FRONTEND_ORIGINS`.** The `/api`
+  proxy answers only requests sent to loopback, an IP address or a host named
+  in `FRONTEND_ORIGINS` (DNS rebinding); under any other name every `/api`
+  request is refused with 403. A listed name accepts only the listed origins,
+  scheme included. Opening it at `localhost` or an IP address needs nothing.
 - **The port is 8010.** The READMEs and `make backend` used 8000 while the
   frontend expected 8010; all now say 8010. If you start the backend
   elsewhere, set the frontend's `BACKEND_URL`.
@@ -106,7 +111,7 @@ Frontend (environment of `npm start`), all new except `BACKEND_URL`:
 | `BACKEND_API_TOKEN` | The backend's `API_TOKEN`, added by the proxy; never sent to the browser. `NEXT_PUBLIC_BACKEND_API_TOKEN` makes the build refuse to run. |
 | `TRUSTED_PROXY_HOPS` | Reverse proxies in front that append to X-Forwarded-For. Default 0. |
 | `TRUST_FORWARDED_HOST` | `true` when a proxy rewrites Host. |
-| `FRONTEND_ORIGINS` | Further origins the frontend is opened at. |
+| `FRONTEND_ORIGINS` | The origins the frontend is opened at by name; required for any name. |
 
 See [deployment.md, "Behind a reverse proxy"](deployment.md#behind-a-reverse-proxy).
 

@@ -2,7 +2,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { backendTarget, clientAddress, crossSiteRefusal, downstreamHeaders, tokenRefusal, upstreamHeaders } from "./proxyRules";
+import {
+  backendTarget,
+  clientAddress,
+  crossSiteRefusal,
+  downstreamHeaders,
+  hostRefusal,
+  tokenRefusal,
+  upstreamHeaders,
+} from "./proxyRules";
 
 // A security review found that the proxy passed the client's own
 // X-Forwarded-For to the backend, whose uvicorn trusts that header from
@@ -256,5 +264,77 @@ describe("crossSiteRefusal and Sec-Fetch-Site", () => {
   it("the value is read without regard to case or spaces", () => {
     assert.equal(accepted(" Same-Origin ", foreign), true);
     assert.equal(accepted("CROSS-SITE", null), false);
+  });
+});
+
+// Second security review (2026-11-24): DNS rebinding. A page on evil.example
+// whose name is made to resolve to the frontend's address is same-origin with
+// itself: Host evil.example:3000, Origin http://evil.example:3000 and
+// Sec-Fetch-Site same-origin were accepted, also with FRONTEND_ORIGINS set, and
+// the proxy attached the token, to reads too. A name cannot be rebound when the
+// browser was given an address, so the proxy now answers only requests for
+// loopback, an IP address, or a host named in FRONTEND_ORIGINS.
+describe("hostRefusal", () => {
+  const none = { trustForwardedHost: false, allowedOrigins: [] as string[] };
+  const listed = { trustForwardedHost: false, allowedOrigins: ["https://archai.example"] };
+  const forHost = (host: string, extra: Record<string, string> = {}) => new Headers({ host, ...extra });
+  const accepted = (host: string, options = none, extra: Record<string, string> = {}) =>
+    hostRefusal(forHost(host, extra), options) === null;
+
+  it("accepts loopback and IP addresses, the default install's", () => {
+    for (const host of ["localhost:3000", "LOCALHOST:3000", "127.0.0.1:3000", "[::1]:3000", "192.168.1.20:3000", "10.0.0.5", "app.localhost:3000"]) {
+      assert.equal(accepted(host), true, host);
+    }
+  });
+
+  it("refuses a name it was not given, for reads too, with the operator's pointer", () => {
+    for (const host of ["evil.example:3000", "archai.example", "127.0.0.1.evil.example", "localhost.evil.example:3000"]) {
+      assert.equal(accepted(host), false, host);
+    }
+    const refusal = hostRefusal(forHost("evil.example:3000", { origin: "http://evil.example:3000", "sec-fetch-site": "same-origin" }), none);
+    assert.ok(refusal);
+    assert.match(refusal.detail, /see docs\/deployment\.md, 'Behind a reverse proxy'\.$/);
+    assert.doesNotMatch(refusal.detail, /evil\.example/);
+    assert.match(refusal.log, /Host "evil\.example:3000"/);
+    assert.match(refusal.log, /FRONTEND_ORIGINS/);
+    assert.doesNotMatch(refusal.log, /\n/);
+  });
+
+  it("accepts a name listed in FRONTEND_ORIGINS, and only that one", () => {
+    assert.equal(accepted("archai.example", listed), true);
+    assert.equal(accepted("archai.example:443", listed), true);
+    assert.equal(accepted("evil.example:3000", listed), false);
+    assert.equal(accepted("archai.example:3000", listed), false);
+    assert.equal(accepted("127.0.0.1:3000", listed), true);
+  });
+
+  it("refuses a Host that is not a host", () => {
+    for (const host of ["", "evil.example/x", "a b", "user@127.0.0.1"]) {
+      assert.equal(accepted(host), false, JSON.stringify(host));
+    }
+  });
+
+  it("judges the forwarded host when told to trust it, and only then", () => {
+    const proxied = { "x-forwarded-host": "archai.example" };
+    assert.equal(accepted("127.0.0.1:3000", none, proxied), true); // not trusted: Host is what counts
+    assert.equal(accepted("127.0.0.1:3000", { ...none, trustForwardedHost: true }, proxied), false);
+    assert.equal(accepted("127.0.0.1:3000", { ...listed, trustForwardedHost: true }, proxied), true);
+    assert.equal(accepted("127.0.0.1:3000", { ...listed, trustForwardedHost: true }, { "x-forwarded-host": "evil.example" }), false);
+  });
+});
+
+describe("crossSiteRefusal with FRONTEND_ORIGINS", () => {
+  const listed = { trustForwardedHost: false, allowedOrigins: ["https://archai.example"] };
+
+  it("compares the whole origin, scheme included, for a listed host", () => {
+    const request = (origin: string) => new Headers({ host: "archai.example", origin });
+    assert.equal(crossSiteRefusal("POST", request("https://archai.example"), listed), null);
+    assert.notEqual(crossSiteRefusal("POST", request("http://archai.example"), listed), null);
+    assert.notEqual(crossSiteRefusal("POST", request("http://archai.example:443"), listed), null);
+  });
+
+  it("still lets the server's own address through", () => {
+    const local = new Headers({ host: "127.0.0.1:3000", origin: "http://127.0.0.1:3000" });
+    assert.equal(crossSiteRefusal("POST", local, listed), null);
   });
 });

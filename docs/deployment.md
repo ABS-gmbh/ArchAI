@@ -184,8 +184,8 @@ it starts (`npm start`), not at build time:
 |---|---|
 | `BACKEND_URL` | Where the backend listens. Default `http://127.0.0.1:8010`. |
 | `BACKEND_API_TOKEN` | The backend's `API_TOKEN`. The proxy adds it to every request as `X-API-Token`; it is never sent to the browser. Leave unset if the backend has no token. |
-| `TRUST_FORWARDED_HOST` | `true` if a reverse proxy in front rewrites `Host` (nginx's default `proxy_set_header Host $proxy_host`) and sets `X-Forwarded-Host` to the public host. Set it only if the frontend cannot be reached except through that proxy. |
-| `FRONTEND_ORIGINS` | Further origins the frontend is opened at, comma-separated (`https://archai.example`), when neither `Host` nor a trusted `X-Forwarded-Host` names them. |
+| `TRUST_FORWARDED_HOST` | `true` if a reverse proxy in front rewrites `Host` (nginx's default `proxy_set_header Host $proxy_host`) and sets `X-Forwarded-Host` to the public host, which the `/api` proxy then checks instead of `Host`. Set it only if the frontend cannot be reached except through that proxy. |
+| `FRONTEND_ORIGINS` | The origins the frontend is opened at by name, comma-separated (`https://archai.example`). Required for any name: the `/api` proxy answers only loopback, IP addresses and these ([Behind a reverse proxy](#behind-a-reverse-proxy)). |
 | `TRUSTED_PROXY_HOPS` | How many reverse proxies in front of the frontend append the client's address to `X-Forwarded-For` (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). Default 0. Set it only if the frontend cannot be reached except through them. |
 
 Never name it `NEXT_PUBLIC_BACKEND_API_TOKEN`: a `NEXT_PUBLIC_` variable is
@@ -236,27 +236,40 @@ that terminates TLS.
 
 #### Behind a reverse proxy
 
-A reverse proxy in front of the frontend (TLS, a login) changes two things the
-frontend's `/api` proxy looks at: the `Host` header and the client's address.
-Tell it about them with these settings of the Next server:
+The frontend's `/api` proxy adds the API token to whatever reaches it, so it
+checks two things before passing a request on: the host the request was sent
+to, and the site it came from.
 
+**The host**, for every request, reads included. The proxy answers only
+requests sent to loopback (`localhost`, `127.0.0.1`, `[::1]`), to an IP
+address (a LAN address such as `192.168.1.20`), or to a host named in
+`FRONTEND_ORIGINS`. This stops DNS rebinding: a site whose name an attacker
+points at this server's address is same-origin with itself, and its requests
+would otherwise get the token. **A frontend opened under a name must list
+that name's origin**, `FRONTEND_ORIGINS=https://archai.example` (several,
+comma-separated). Otherwise every `/api` request is answered 403 "Refused:
+the frontend was opened at an address it does not know … see
+docs/deployment.md, 'Behind a reverse proxy'", and the frontend server's log
+says once which host it saw. A listed name accepts only the listed origins,
+scheme included: `http://archai.example` is not a page of an
+`https://archai.example` frontend.
+
+A reverse proxy in front of the frontend (TLS, a login) changes the `Host`
+header and the client's address. Tell the Next server about them:
+
+- `FRONTEND_ORIGINS=https://archai.example`, the public origin.
 - `TRUST_FORWARDED_HOST=true` when the proxy rewrites `Host` (nginx does by
   default: `proxy_set_header Host $proxy_host`) and sets `X-Forwarded-Host`
-  to the public host; or `FRONTEND_ORIGINS=https://archai.example`, the
-  public origin itself. Current browsers do not need either: they mark the
-  workspace's own requests `Sec-Fetch-Site: same-origin`, which the frontend
-  accepts whatever `Host` says. They are still needed for browsers that send
-  no `Sec-Fetch-Site` (Chrome before 76, Firefox before 90, Safari before
-  16.4), and when the proxy serves the workspace's pages and its `/api` from
-  different origins, so the browser does not see them as one. Without them, in those cases, every
-  change the workspace makes (reading a page, a layout run) is refused with
-  403.
+  to the public host; the host check then reads `X-Forwarded-Host`. Without
+  it, the check reads the proxy's `Host` (`127.0.0.1:3000` below), which
+  passes as an address, so the proxy itself must answer only its own
+  `server_name` (in nginx, a `default_server` block with `return 444;`), or a
+  rebound name reaches the frontend through it.
 - `TRUSTED_PROXY_HOPS=1` when the proxy appends the client's address to
   `X-Forwarded-For`, so the backend logs and rate-limits real addresses.
 
-Set the first and last only if the frontend cannot be reached except through
-the proxy. An nginx location that needs `TRUST_FORWARDED_HOST=true` and
-`TRUSTED_PROXY_HOPS=1`:
+Set the last two only if the frontend cannot be reached except through the
+proxy. An nginx location that needs all three:
 
 ```nginx
 location / {
@@ -269,18 +282,18 @@ location / {
 (With `proxy_set_header Host $host;` as well, `Host` is the public host and
 `TRUST_FORWARDED_HOST` is not needed.)
 
-The proxy refuses with 403 a `POST`, `PUT`, `PATCH` or `DELETE` that comes
-from another site: it adds the API token to whatever reaches it, so without
-the check any site a user visits could make their browser send uploads and run
-reservations through it. The browser says where a request comes from in
-`Sec-Fetch-Site`, a header no page can set: `same-origin` is accepted,
-`cross-site` is refused. With `same-site`, `none` or no `Sec-Fetch-Site` at
-all, the request's `Origin` must be the frontend's own: the host in its `Host`
-header, which is right when the browser talks to `npm start` directly, by name
-or by IP address, or a trusted `X-Forwarded-Host`, or one of
-`FRONTEND_ORIGINS`. A refused request is answered "Refused: this request came
-from another site … see docs/deployment.md, 'Behind a reverse proxy'", and the
-frontend server's log says once which `Origin` and `Host` it compared.
+**The site.** The proxy refuses with 403 a `POST`, `PUT`, `PATCH` or `DELETE`
+that comes from another site: without the check any site a user visits could
+make their browser send uploads and run reservations through it. The browser
+says where a request comes from in `Sec-Fetch-Site`, a header no page can
+set: `same-origin` is accepted, `cross-site` is refused. With `same-site`,
+`none` or no `Sec-Fetch-Site` at all (Chrome before 76, Firefox before 90,
+Safari before 16.4), the request's `Origin` must be the frontend's own: one
+of `FRONTEND_ORIGINS`, or, for a frontend opened at an address, the host in
+its `Host` header or a trusted `X-Forwarded-Host`. A refused request is
+answered "Refused: this request came from another site … see
+docs/deployment.md, 'Behind a reverse proxy'", and the frontend server's log
+says once which `Origin` and `Host` it compared.
 Requests without `Origin` (scripts, server-side clients) are not affected.
 
 The proxy never passes on what a client says about its own address
