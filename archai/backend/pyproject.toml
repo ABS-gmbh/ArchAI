@@ -43,3 +43,13 @@ addopts = "-ra --strict-markers --strict-config"
 markers = [
   "requires_models: test needs real YOLO/Kraken weights or the inference stack (deselected in CI)",
 ]
+
+# Non-strict type checking of the application (audit HYG-15). Run from this
+# directory with `mypy`; it is not a CI check. The baseline it reports is in
+# README.md ("Type checking"). Untyped function bodies are not checked
+# (check_untyped_defs is off), so the count covers annotated code only.
+[tool.mypy]
+python_version = "3.10"
+files = ["app"]
+ignore_missing_imports = true
+warn_unused_ignores = true
