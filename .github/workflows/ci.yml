@@ -91,6 +91,39 @@ jobs:
         working-directory: archai/backend
         run: python -m pytest -q -m "not requires_models"
 
+  frontend:
+    name: frontend (lint, types, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: archai/frontend
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # The oldest Node that package.json's "engines" accepts (>=20.9),
+          # so a change that needs a newer one fails here.
+          node-version: "20.9.0"
+          cache: npm
+          cache-dependency-path: archai/frontend/package-lock.json
+
+      - name: Install the locked dependencies
+        run: npm ci
+
+      - name: Lint (eslint)
+        run: npx eslint --max-warnings=0
+
+      - name: Type check (tsc)
+        run: npx tsc --noEmit
+
+      - name: Production build
+        # Needs no secret and no backend: the fonts are bundled (src/fonts),
+        # and BACKEND_URL / BACKEND_API_TOKEN are read when the server runs.
+        run: npx next build --webpack
+
   secret-scan:
     name: no committed secrets
     runs-on: ubuntu-latest
