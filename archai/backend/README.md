@@ -155,6 +155,14 @@ python -m pytest tests -q
 
 CI runs the whole suite on every push, without the inference stack
 (ultralytics, torch, kraken): `python -m pytest -q -m "not requires_models"`.
+Its install comes from `pyproject.toml`: `scripts/ci_requirements.py` prints the
+dependencies less ultralytics, plus the `dev` and `headless` (OpenCV) extras.
+To reproduce it in a fresh venv:
+
+```bash
+python scripts/ci_requirements.py > /tmp/requirements-ci.txt
+pip install -r /tmp/requirements-ci.txt
+```
 Mark a test that needs model weights or that stack `@pytest.mark.requires_models`.
 The suite runs offline: `tests/conftest.py` refuses every connection that is
 not loopback, so stub the SAIA, GWDG, Ollama or Wikidata client in the test.

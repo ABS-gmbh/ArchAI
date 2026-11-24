@@ -40,14 +40,35 @@ def test_sources_parse_with_the_declared_grammar() -> None:
         ast.parse(path.read_text(encoding="utf-8"), filename=str(path), feature_version=_floor())
 
 
+def _guarded_tomllib_imports(tree: ast.AST) -> set[int]:
+    """`import tomllib` nodes inside `try: ... except ModuleNotFoundError/ImportError: import tomli`.
+
+    That is the backport's documented pattern, and runs on 3.10 with tomli installed.
+    """
+    guarded: set[int] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Try):
+            continue
+        falls_back = any(
+            isinstance(handler.type, ast.Name)
+            and handler.type.id in {"ModuleNotFoundError", "ImportError"}
+            and any(isinstance(stmt, ast.Import) and any(a.name == "tomli" for a in stmt.names) for stmt in handler.body)
+            for handler in node.handlers
+        )
+        if falls_back:
+            guarded.update(id(stmt) for stmt in node.body if isinstance(stmt, ast.Import))
+    return guarded
+
+
 def test_no_3_11_only_standard_library_names() -> None:
     found = []
     for path in SOURCES:
         tree = ast.parse(path.read_text(encoding="utf-8"))
+        guarded = _guarded_tomllib_imports(tree)
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module in _NEW_IN_311:
                 found += [f"{path.name}: from {node.module} import {a.name}" for a in node.names if a.name in _NEW_IN_311[node.module]]
-            elif isinstance(node, ast.Import):
+            elif isinstance(node, ast.Import) and id(node) not in guarded:
                 found += [f"{path.name}: import {a.name}" for a in node.names if a.name == "tomllib"]
             elif (
                 isinstance(node, ast.Attribute)
@@ -56,3 +77,10 @@ def test_no_3_11_only_standard_library_names() -> None:
             ):
                 found.append(f"{path.name}:{node.lineno} {node.value.id}.{node.attr}")
     assert found == []
+
+
+def test_a_bare_tomllib_import_is_still_refused() -> None:
+    bare = ast.parse("import tomllib\n")
+    guarded = ast.parse("try:\n    import tomllib\nexcept ModuleNotFoundError:\n    import tomli as tomllib\n")
+    assert _guarded_tomllib_imports(bare) == set()
+    assert len(_guarded_tomllib_imports(guarded)) == 1

@@ -69,20 +69,17 @@ jobs:
         run: python -m compileall -q archai/backend/app
 
       - name: Install the backend's dependencies, without the inference stack
-        # pyproject.toml's dependencies, less ultralytics (which brings torch);
-        # kraken is not a declared dependency either. Tests that need them are
-        # marked requires_models and deselected below. OpenCV is imported by
-        # the app itself (binarisation, multi-view variants) but only arrives
-        # through ultralytics, so the headless build is installed here.
+        # From pyproject.toml (scripts/ci_requirements.py): its dependencies
+        # less ultralytics (which brings torch), plus the dev extra and the
+        # headless extra (OpenCV, which otherwise arrives through ultralytics).
+        # kraken is not a declared dependency either. Tests that need them
+        # are marked requires_models and deselected below.
         working-directory: archai/backend
         run: |
           python -m pip install --upgrade pip
-          python -m pip install \
-            "fastapi>=0.115.0" "uvicorn[standard]>=0.30.0" "python-multipart>=0.0.18" \
-            "python-jose[cryptography]>=3.3.0" "pydantic-settings>=2.0.0" "numpy<2.0" \
-            "pillow>=10.0.0" "matplotlib>=3.6.0" "shapely>=2.0.0" "rtree>=1.0.0" \
-            "langdetect>=1.0.9" "openai>=1.51.0" "chromadb>=0.5.0" "requests>=2.31.0" \
-            "opencv-python-headless>=4.8,<5" "pytest>=7.0.0" "httpx>=0.24.0"
+          python scripts/ci_requirements.py > "$RUNNER_TEMP/requirements-ci.txt"
+          cat "$RUNNER_TEMP/requirements-ci.txt"
+          python -m pip install -r "$RUNNER_TEMP/requirements-ci.txt"
 
       - name: Backend test suite
         # The whole suite, offline: tests/conftest.py refuses any connection
