@@ -72,8 +72,8 @@ in `archai/backend` or pass them as environment variables.
 
 | Variable | Why it must be set |
 |---|---|
-| `API_TOKEN` | Without it the API has no authentication (startup logs a warning). Set at least 24 random characters, e.g. `python -c 'import secrets; print(secrets.token_urlsafe(32))'`. |
-| `CORS_ORIGINS` | The default allows only `localhost`/`127.0.0.1` on ports 3000 and 3001. Set the frontend's real origin, or leave it unset only if the browser reaches the backend through the frontend's `/api` proxy (same origin). |
+| `API_TOKEN` | Without it the API has no authentication (startup logs a warning); a value of only spaces stops startup. Set at least 24 random characters, e.g. `python -c 'import secrets; print(secrets.token_urlsafe(32))'`. |
+| `CORS_ORIGINS` | The default allows only `localhost`/`127.0.0.1` on ports 3000 and 3001. Set the frontend's real origin, or leave it unset only if the browser reaches the backend through the frontend's `/api` proxy (same origin). `*` stops startup: credentials are allowed, so it would let any site read the API's answers. |
 | `CHAT_AI_API_KEY` | Without it, chat, translation, SAIA OCR and provider embeddings fail ("Chat API key not configured"). |
 | `GLMOCR_OLLAMA_HOST` | The Ollama server running `glm-ocr`, if GLM-OCR or the segmented engine's fallback is to work. |
 | `ANALYTICS_USERNAME`, `ANALYTICS_PASSWORD`, `JWT_SECRET` | Analytics login refuses with 503 until the first two are set. Set `JWT_SECRET` too, at least 32 characters (with a shorter one the server starts, and logs an ERROR at startup naming the setting and the minimum): without it the tokens are signed with a random per-process secret, so sessions end at every restart, and startup logs an ERROR saying so. A session token is accepted only for `ANALYTICS_USERNAME`. |
@@ -89,7 +89,8 @@ every route, are on while `API_TOKEN` is unset (development) and off once it is
 set. `ENABLE_API_DOCS=true` switches them on with a token too, and then they
 answer without it, since a browser opening `/docs` cannot send one; `false`
 switches them off either way. A setting of the wrong type, or out of range, stops
-startup with an error that names the variable.
+startup with an error that names the variable: every size, count and time
+limit must be at least 1, and `OCR_RUN_RESERVATION_TTL_SECONDS` at most 86400.
 
 Layout tasks keep their uploads and outputs in `TASK_BASE_DIR` (default
 `archai/backend/.tasks`). It must be a writable directory: the server creates
