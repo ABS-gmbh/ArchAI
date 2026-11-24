@@ -1,9 +1,12 @@
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    public detail: string,
-  ) {
+  status: number;
+  detail: string;
+
+  // Fields, not constructor parameter properties: Node's type stripping (npm test) does not take those.
+  constructor(status: number, detail: string) {
     super(detail);
+    this.status = status;
+    this.detail = detail;
     this.name = "ApiError";
   }
 }
@@ -203,7 +206,9 @@ export async function readErrorDetail(res: Response): Promise<string> {
       return message.trim();
     }
   }
-  return raw.trim() || res.statusText || `HTTP ${res.status}`;
+  // A JSON body with nothing to say ("{}", {"detail": null}) is not a reason to show.
+  const text = body !== null && typeof body === "object" ? "" : raw.trim();
+  return text || `The server answered ${res.status}${res.statusText ? ` ${res.statusText}` : ""} without giving a reason.`;
 }
 
 export async function apiFetch<T>(

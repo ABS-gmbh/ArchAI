@@ -80,7 +80,9 @@ export function TranscriptionPane({
       return;
     }
     const row = listRef.current.querySelector<HTMLElement>(`[data-line-id="${CSS.escape(scrollToLineId)}"]`);
-    row?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    // Someone who asked for less motion gets the row at once, not a glide to it.
+    const still = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    row?.scrollIntoView({ block: "nearest", behavior: still ? "auto" : "smooth" });
   }, [scrollToLineId]);
 
   const hasText = lines.length > 0;
@@ -128,7 +130,7 @@ export function TranscriptionPane({
             </p>
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-well" aria-hidden="true">
               {ratio !== null ? (
-                <div className="h-full rounded-full bg-brand transition-[width] duration-300" style={{ width: `${ratio * 100}%` }} />
+                <div className="h-full rounded-full bg-brand transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${ratio * 100}%` }} />
               ) : null}
             </div>
             <p className="mt-2 text-xs text-ink-muted">
@@ -233,6 +235,7 @@ export function TranscriptionPane({
                       <span className="font-sans">
                         {active && typeof line.confidence === "number" ? (
                           <span className="text-xs tabular-nums text-ink-muted" title="The recogniser's own confidence in this line. Not an accuracy measurement.">
+                            <span className="sr-only">Recogniser confidence </span>
                             {Math.round(line.confidence * 100)}%
                           </span>
                         ) : null}

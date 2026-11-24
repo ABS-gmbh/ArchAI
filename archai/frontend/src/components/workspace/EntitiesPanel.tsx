@@ -88,6 +88,7 @@ function Mention({ mention }: { mention: MentionResult }) {
           {url ? (
             <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium underline decoration-control underline-offset-2 hover:decoration-ink">
               {selected.label || recordId(selected)} <Icon name="external" className="text-ink-muted" />
+              <span className="sr-only">(opens in a new tab)</span>
             </a>
           ) : (
             <span className="font-medium">{selected.label || recordId(selected)}</span>
@@ -128,6 +129,7 @@ function Mention({ mention }: { mention: MentionResult }) {
                         {link ? (
                           <a href={link} target="_blank" rel="noreferrer" className="underline decoration-control underline-offset-2 hover:decoration-ink">
                             {candidate.label || recordId(candidate)}
+                            <span className="sr-only"> (opens in a new tab)</span>
                           </a>
                         ) : (
                           candidate.label || recordId(candidate)
