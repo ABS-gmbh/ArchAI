@@ -2477,19 +2477,23 @@ async def _trace_events(run_id: str):
 
 
 @router.get("/ocr/trace/{run_id}/tables")
-def ocr_trace_tables(run_id: str) -> dict[str, Any]:
+def ocr_trace_tables(run_id: str, limit: int = Query(default=1000, ge=1, le=10000)) -> dict[str, Any]:
+    """The run's tables, each its first *limit* rows in its usual order (default 1,000, at most 10,000).
+
+    Every table was returned whole (security review S3).
+    """
     if get_run(run_id) is None:
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
     return {
         "run_id": run_id,
         "tables": [
-            table_view_for_run(run_id),
-            table_view_for_events(run_id),
-            table_view_for_ocr_backend_results(run_id),
-            table_view_for_chunks(run_id),
-            table_view_for_entity_mentions(run_id),
-            table_view_for_entity_candidates(run_id),
-            table_view_for_entity_decisions(run_id),
-            table_view_for_entity_attempts(run_id),
+            table_view_for_run(run_id, limit),
+            table_view_for_events(run_id, limit),
+            table_view_for_ocr_backend_results(run_id, limit),
+            table_view_for_chunks(run_id, limit),
+            table_view_for_entity_mentions(run_id, limit),
+            table_view_for_entity_candidates(run_id, limit),
+            table_view_for_entity_decisions(run_id, limit),
+            table_view_for_entity_attempts(run_id, limit),
         ],
     }

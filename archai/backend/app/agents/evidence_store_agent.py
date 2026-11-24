@@ -70,6 +70,6 @@ def create_span(payload: EvidenceSpanCreateRequest) -> EvidenceSpanRecord:
     return _record_from_row(row)
 
 
-def list_spans(page_id: str) -> list[EvidenceSpanRecord]:
-    rows = pipeline_db.list_evidence_spans(page_id=page_id)
+def list_spans(page_id: str, *, limit: int | None = None) -> list[EvidenceSpanRecord]:
+    rows = pipeline_db.list_evidence_spans(page_id=page_id, limit=limit)
     return [_record_from_row(row) for row in rows]
