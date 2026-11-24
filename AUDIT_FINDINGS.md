@@ -1149,7 +1149,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** A malformed config.yaml — a common editing slip, e.g. deleting the newline after `runtime:` — combined with any use of --outdir or --main-class yields 'Unexpected pipeline failure.' plus a traceback pointing into config.py internals, with no indication that the YAML shape is wrong or which section is at fault.
 - **Fix:** In config.py:152-153, check the intermediate value's type: if `not isinstance(target.get(part), dict)` raise `ValueError(f"Config section '{part}' must be a mapping, got {type(target.get(part)).__name__}")`. Add TypeError to the caught tuple at cli.py:95 as a backstop.
 
-### [OCR-018] Hand-rolled NMS and confidence filter in layout_yolo duplicate work ultralytics already did
+### [OCR-018] Hand-rolled NMS and confidence filter in layout_yolo duplicate work ultralytics already did — partly fixed (the per-lane score check is no longer redundant: the model is queried once at the lowest lane threshold and each lane applies its own. Regions the dedup removes are now logged per lane; it still shares iou_threshold with the model call, and a separate dedup threshold would change output, which needs a measurement on real pages)
 
 - **Where:** `src/archai_ocr/pipeline/layout_yolo.py:74`  
 - **Category:** architecture  

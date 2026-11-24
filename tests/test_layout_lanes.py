@@ -265,3 +265,18 @@ def test_the_coco_file_records_every_zone(
         "MarginTextZone",
         "StampZone",
     ]
+
+
+def test_overlapping_regions_removed_by_the_dedup_are_logged(caplog: pytest.LogCaptureFixture) -> None:
+    """Audit OCR-018: the post-model suppression dropped overlapping boxes without a word."""
+    logger = logging.getLogger("test.layout")
+    detections = [
+        det("MainZone", (100, 100, 500, 900), 0.9),
+        det("MainZone", (110, 110, 500, 900), 0.8),
+        det("MainZone", (600, 100, 900, 900), 0.9),
+    ]
+    with caplog.at_level(logging.INFO, logger="test.layout"):
+        layout = split_lanes(detections, LANES, LAYOUT, logger=logger)
+    assert len(layout.main) == 2
+    removed = [r for r in caplog.records if r.getMessage() == "layout.overlapping_regions_removed"]
+    assert [(r.lane, r.count) for r in removed] == [("main", 1)]  # type: ignore[attr-defined]

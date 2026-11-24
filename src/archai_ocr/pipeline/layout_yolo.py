@@ -213,8 +213,10 @@ def split_lanes(
     main, dropped = _drop_degenerate(main, layout.min_region_size)
     if dropped and logger is not None:
         logger.warning("layout.degenerate_regions_dropped", extra={"stage": "layout", "count": dropped})
+    deduplicated_main = _nms(main, layout.iou_threshold)
+    _log_suppressed(logger, "main", len(main) - len(deduplicated_main))
     ordered_main = order_regions(
-        _nms(main, layout.iou_threshold),
+        deduplicated_main,
         mode=layout.reading_order,
         column_overlap_ratio=layout.column_overlap_ratio,
     )[: layout.max_regions]
@@ -224,7 +226,9 @@ def split_lanes(
     # Suppression runs across the secondary classes: the model reports one strip
     # of marginal text as MarginTextZone and RunningTitleZone at once, and it is
     # one piece of text, not two.
+    before = len(secondary)
     secondary = _nms(secondary, layout.iou_threshold)
+    _log_suppressed(logger, "secondary", before - len(secondary))
     # Text lying inside a main zone (an interlinear gloss) is already recognised
     # there, as lines of that zone. Recognising it again would duplicate it.
     secondary = [d for d in secondary if _contained_fraction(d, ordered_main) < _CONTAINED_IN_MAIN]
@@ -232,9 +236,23 @@ def split_lanes(
 
     other = [d for d in by_lane["layout"] if d.score >= layout.confidence_threshold]
     other, _ = _drop_degenerate(other, layout.min_region_size)
-    ordered_other = _by_position(_nms_per_class(other, layout.iou_threshold))
+    deduplicated_other = _nms_per_class(other, layout.iou_threshold)
+    _log_suppressed(logger, "layout", len(other) - len(deduplicated_other))
+    ordered_other = _by_position(deduplicated_other)
 
     return PageLayout(tuple(ordered_main), tuple(ordered_secondary), tuple(ordered_other))
+
+
+def _log_suppressed(logger: logging.Logger | None, lane: str, count: int) -> None:
+    """Say how many overlapping regions the dedup removed: they used to vanish silently.
+
+    Two overlapping boxes can be one zone reported twice or a column and a
+    sub-block inside it; the count makes a drop visible when text goes missing.
+    """
+    if count and logger is not None:
+        logger.info(
+            "layout.overlapping_regions_removed", extra={"stage": "layout", "lane": lane, "count": count}
+        )
 
 
 # A secondary zone with at least this share of its area inside one main zone is
