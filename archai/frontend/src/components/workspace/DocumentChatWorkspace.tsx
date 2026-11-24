@@ -203,7 +203,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [activeLineId, setActiveLineId] = useState<string | null>(null);
   const [scrollToLineId, setScrollToLineId] = useState<string | null>(null);
   // Which region is shown where the screen has room for one: the page, its text, or a panel.
-  const [pane, setPane] = useState<WorkspacePane>("text");
+  // On a phone the page comes first; wider screens start on its text. (The
+  // workspace renders in the browser only; `window` is checked for the server.)
+  const [pane, setPane] = useState<WorkspacePane>(() =>
+    typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "page" : "text",
+  );
   const runFollowersRef = useRef<Set<AbortController>>(new Set());
   // The run each page's latest read reserved: an older run's follower may not write over it.
   const latestRunByPageRef = useRef<Record<string, string | null>>({});
@@ -1383,13 +1387,6 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     return () => {
       followers.forEach((controller) => controller.abort());
     };
-  }, []);
-
-  // On a phone the page comes first; wider screens start on its text.
-  useEffect(() => {
-    if (window.matchMedia("(max-width: 767px)").matches) {
-      setPane("page");
-    }
   }, []);
 
   const currentPageId = currentPage?.id ?? null;
