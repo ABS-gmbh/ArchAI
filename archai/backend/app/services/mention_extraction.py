@@ -176,6 +176,17 @@ def _is_roman_numeral_token(token: str) -> bool:
     return bool(value) and re.fullmatch(r"[IVXLCDM]+", value) is not None
 
 
+_ABBREVIATION_LETTERS = "ꝑꝓꝗꝙꝯꝰꝭꝫłđħ"
+
+
+def _is_abbreviation_point(word: str, between: str) -> bool:
+    """*between* is one point (with spaces) after *word*, and *word* is written abbreviated."""
+    if between.strip() != ".":
+        return False
+    last = word[-1:]
+    return bool(last) and (bool(re.match(f"[{_MARK_CHARS}]", last)) or last in _ABBREVIATION_LETTERS or any(c in _ABBREVIATION_LETTERS for c in word))
+
+
 def _is_particle(tokens: list[re.Match[str]], k: int) -> bool:
     """Token *k* is a particle of a name: de, du, des, d', or la/le/les right after "de"."""
     word = tokens[k].group(0).lower()
@@ -204,7 +215,12 @@ def _extract_person_mentions(base_text: str) -> list[dict[str, Any]]:
                 prev_end = token_matches[j - 1].end()
                 cur_start = token_matches[j].start()
                 between = line[prev_end:cur_start]
-                if not re.fullmatch(r"[\s,.;:()\-–—]*", between):
+                # Sentence punctuation ends a name: "Sancti Marci. In" is a name and
+                # a word. A point after an abbreviated word (a mark over it, or an
+                # abbreviation letter: "Theob̃. Walt̃") abbreviates; it does not end.
+                if not re.fullmatch(r"[\s,()\-–—]*", between) and not (
+                    _is_abbreviation_point(token_matches[j - 1].group(0), between)
+                ):
                     break
                 token_j = token_matches[j].group(0)
                 if _is_particle(token_matches, j):
