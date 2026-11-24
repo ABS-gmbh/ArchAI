@@ -1,9 +1,22 @@
 // Why a name was not linked, in the Names panel's words, from the reasons the
 // linker writes (app/services/entity_scoring.py, authority_linking.py).
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
+import { fileURLToPath } from "node:url";
 
-import { linkingSummary, mentionStatus, reasonInWords, summaryOfMentions } from "./linkReason";
+import {
+  isName,
+  KIND_WORDS,
+  kindLabel,
+  linkingSummary,
+  mentionStatus,
+  otherMarksSummary,
+  reasonInWords,
+  splitMentions,
+  summaryOfMentions,
+} from "./linkReason";
 
 describe("reasonInWords", () => {
   it("keeps the reasons it already put in words", () => {
@@ -81,5 +94,96 @@ describe("why a name was not looked up", () => {
     assert.equal(mentionStatus("unresolved_low_quality").label, "Not linked");
     assert.equal(mentionStatus("linked").label, "Linked");
     assert.equal(mentionStatus("ambiguous").label, "Ambiguous");
+  });
+});
+
+// The backend's kinds, read from its sources: every literal it gives ent_type.
+// (pipeline_hardening's _HIGH_RECALL_TRIGGERS also maps words to "context", but
+// only its person and place triggers make mentions, so it is not scanned.)
+function backendKinds(): Set<string> {
+  const app = join(fileURLToPath(new URL(".", import.meta.url)), "../../../../backend/app");
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const path = join(dir, name);
+      if (statSync(path).isDirectory()) walk(path);
+      else if (name.endsWith(".py")) files.push(path);
+    }
+  };
+  walk(app);
+  const kinds = new Set<string>();
+  const patterns = [
+    /["']ent_type["']\]?\s*[:=]\s*["']([A-Za-z_]+)["']/g, // "ent_type": "x", mention["ent_type"] = "x"
+    /\bent_type\s*=\s*["']([A-Za-z_]+)["']/g, // ent_type="X" (keyword), ent_type = "x"
+    /\bent_type\s*=\s*["']([A-Za-z_]+)["']\s+if\b[^\n]*\belse\s+["']([A-Za-z_]+)["']/g, // ent_type = "a" if ... else "b"
+    /get\(["']ent_type["'](?:,\s*["'][A-Za-z_]+["'])?\)\s*or\s*["']([A-Za-z_]+)["']/g, // m.get("ent_type") or "unknown"
+    /get\(["']ent_type["'],\s*["']([A-Za-z_]+)["']\)/g, // m.get("ent_type", "unknown")
+    /_LINKABLE_TYPES\s*=\s*\{([^}]*)\}/g,
+  ];
+  for (const file of files) {
+    const text = readFileSync(file, "utf8");
+    for (const pattern of patterns) {
+      for (const match of text.matchAll(pattern)) {
+        for (const group of match.slice(1)) {
+          if (!group) continue;
+          if (group.includes('"') || group.includes("'") || group.includes(":")) {
+            // A set or dict body: its quoted kinds (values of a dict, members of a set).
+            for (const item of group.matchAll(/:\s*["']([A-Za-z_]+)["']|^\s*["']([A-Za-z_]+)["']|,\s*["']([A-Za-z_]+)["']/g)) {
+              const kind = item[1] ?? item[2] ?? item[3];
+              if (kind && !group.includes(`"${kind}":`) && !group.includes(`'${kind}':`)) kinds.add(kind.toLowerCase());
+            }
+          } else {
+            kinds.add(group.toLowerCase());
+          }
+        }
+      }
+    }
+  }
+  return kinds;
+}
+
+describe("the kinds of mention", () => {
+  it("has words for every kind the backend sends", () => {
+    const kinds = backendKinds();
+    for (const expected of ["person", "place", "work", "date", "title", "role", "unknown", "grammatical_term", "verb_paradigm_example"]) {
+      assert.ok(kinds.has(expected), `the scan no longer finds ${expected}: did the backend change how it sets ent_type?`);
+    }
+    const missing = [...kinds].filter((kind) => !KIND_WORDS[kind]);
+    assert.deepEqual(missing, [], `kinds found: ${[...kinds].sort().join(", ")}`);
+  });
+
+  it("labels each row, and an unknown kind as a name", () => {
+    assert.equal(kindLabel("title"), "Title");
+    assert.equal(kindLabel("PLACE"), "Place");
+    assert.equal(kindLabel("something_new"), "Name");
+    assert.equal(kindLabel(null), "Name");
+  });
+
+  // The Antitus page as the live regression read it (2026-11-24).
+  const antitus = [
+    { surface: "La satyre megere.", ent_type: "work", status: "linked" },
+    { surface: "pere", ent_type: "title", status: "unresolved" },
+    { surface: "euesque", ent_type: "title", status: "unresolved" },
+    { surface: "prince", ent_type: "title", status: "unresolved" },
+    { surface: "lausanne", ent_type: "place", status: "linked" },
+    { surface: "lan de grace Mille anq", ent_type: "date", status: "skipped" },
+  ];
+
+  it("counts names only, and the rest by what a reader calls them", () => {
+    const { names, others } = splitMentions(antitus);
+    assert.deepEqual(names.map((m) => m.surface), ["La satyre megere.", "lausanne"]);
+    assert.equal(linkingSummary(summaryOfMentions(names)), "2 linked, 0 not linked");
+    assert.equal(otherMarksSummary(others), "3 roles or titles, 1 date");
+    assert.equal(otherMarksSummary([{ ent_type: "role" }]), "1 role or title");
+    assert.equal(otherMarksSummary([{ ent_type: "date" }, { ent_type: "date" }]), "2 dates");
+  });
+
+  it("treats persons, places, works and unknown kinds as names", () => {
+    for (const kind of ["person", "place", "work", "unknown", "", null, "organization"]) {
+      assert.equal(isName(kind), true, String(kind));
+    }
+    for (const kind of ["title", "role", "date", "DATE"]) {
+      assert.equal(isName(kind), false, kind);
+    }
   });
 });
