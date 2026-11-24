@@ -858,3 +858,20 @@ def test_versal_initials_are_joined_in_the_region_texts_and_the_spans_stay_exact
     assert len(body) == 6
     for line in body:
         assert line.char_start is not None and result.text[line.char_start : line.char_end] == line.text
+
+
+def test_an_unclaimed_reservation_expires_within_minutes_by_default(route: dict[str, Any], db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    # One client could hold all 100 reservations for an hour (security review
+    # C9). A reservation is claimed by the upload that follows it, so the
+    # default TTL covers a slow upload, not an hour.
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150)))
+    stale = asyncio.run(ocr_router.ocr_reserve_run())["run_id"]
+    _age_reservation(db, stale, 11 * 60)
+    with pytest.raises(HTTPException) as refused:
+        _extract(run_id=stale)
+    assert refused.value.status_code == 410
+    fresh = asyncio.run(ocr_router.ocr_reserve_run())["run_id"]
+    _age_reservation(db, fresh, 9 * 60)
+    assert _extract(run_id=fresh).ocr_engine == "segmented"

@@ -331,7 +331,12 @@ class Settings(BaseSettings):
     # unauthenticated, so reservations are bounded: one not used within the TTL
     # can no longer be claimed and is deleted by the next reservation, and no
     # more than the cap may wait at once (beyond it the route answers 429).
-    ocr_run_reservation_ttl_seconds: int = 3600
+    # The client reserves a run and posts the page straight after; the
+    # reservation is claimed as soon as the request body has arrived. Ten
+    # minutes covers a large page over a slow line (75 MB at 1 Mbit/s). It was
+    # an hour, so one client could hold all 100 reservations that long
+    # (security review C9).
+    ocr_run_reservation_ttl_seconds: int = 600
     ocr_run_reservation_max_live: int = 100
 
     # Kraken recognition
