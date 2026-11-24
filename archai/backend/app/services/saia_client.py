@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Sequence, cast
 
 from app.config import settings
 
@@ -37,6 +37,15 @@ class LazySaiaClient:
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self._resolve(), name)
+
+
+def lazy_saia_client(factory: Callable[[], Any] | None = None) -> "SaiaClient":
+    """A LazySaiaClient, typed as the SaiaClient it stands in for.
+
+    Every attribute reaches a real SaiaClient, so callers typed for one accept
+    it; without the cast, each of them needed `SaiaClient | LazySaiaClient`.
+    """
+    return cast("SaiaClient", LazySaiaClient(factory))
 
 
 class SaiaClient:
