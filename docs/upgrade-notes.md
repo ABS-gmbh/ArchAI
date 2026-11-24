@@ -151,6 +151,10 @@ See [deployment.md, "Behind a reverse proxy"](deployment.md#behind-a-reverse-pro
   each line lit up on the page, and Ask, Names, Steps and Document panels.
   On narrower screens they become tabs; below 768 px the page is a tab too,
   and the first one.
+- The open document survives a reload, a closed tab or a browser crash:
+  its pages, readings, names, steps and conversation are kept in the
+  browser's IndexedDB and restored without reading again. "Close document"
+  in the Document tab removes them.
 - A banner when the backend is unreachable or missing an engine. Optional
   notices can be hidden.
 - Layout regions drawn on the page with a legend of their kinds.
@@ -182,9 +186,11 @@ an hour.
 - **Not exercised live in this work:** chat, translation and label analysis
   against the provider (only with stubs and recorded answers), and GLM-OCR,
   whose accuracy was not re-measured.
-- **A reload loses the open document.** The workspace keeps documents in the
-  browser tab only: after a reload the pages must be opened and read again,
-  and readings already finished are not reused.
+- **Only the last open document survives a reload**, and only in the browser
+  that opened it (IndexedDB): another browser or device starts empty, and so
+  does one that refuses storage (the Document tab says so). Its annotated
+  layout image is not kept (the regions are), and a read or question still
+  running when the page goes is lost.
 - **Not backed up:** layout tasks, which expire after `TASK_TTL_MINUTES`.
 - **Development tooling** has one `npm audit` finding (in eslint's
   dependencies). The production dependencies have none.

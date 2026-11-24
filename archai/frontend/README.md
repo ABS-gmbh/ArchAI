@@ -68,6 +68,33 @@ With `BACKEND_API_TOKEN` set, the frontend itself must sit behind the
 deployment's own login, since anyone who can reach the frontend can use the
 backend through it. See [`docs/deployment.md`](../../docs/deployment.md#the-frontend).
 
+## What the browser keeps
+
+The open document is kept in the browser's IndexedDB (database
+`archai-workspace`), so a reload, a closed tab reopened or a browser crash
+does not lose it: its page images (as Blobs), each page's finished reading
+(lines with their boxes, quality badges, recogniser, run id, steps, names
+once loaded), the layout regions, the conversation, the zoom and the current
+page. It is restored without any request beyond `/health` and
+`/chat/models`.
+
+- One document is kept: the one last open. Opening another replaces it, and
+  "Close document" in the Document tab removes it.
+- It is saved when a read or answer has finished and when the page or zoom
+  changes, never while a read or question is under way.
+- Where storage is unavailable, refused or full, the workspace works as
+  before and the Document tab says the document will not survive a reload.
+- The record has a schema version (`WORKSPACE_SCHEMA_VERSION` in
+  `src/components/workspace/workspacePersistence.ts`). A record that fails
+  its check, or comes from another version, is discarded with one console
+  line. Raise the version when the record's shape changes, and add the step
+  from the old one in `migrateRecord`.
+- A run kept here may have been removed on the server (`RUN_RETENTION_DAYS`).
+  The reading is still shown, and what needs the run (its names, if they
+  were never loaded) says so.
+- Not kept: the annotated layout image (a link to the server's task files,
+  which expire), a failed read's message, and anything still running.
+
 ## Related Backend
 
 Run the paired API service from:

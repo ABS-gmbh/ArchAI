@@ -64,6 +64,13 @@ import { MetadataDialog } from "./MetadataDialog";
 import { PageViewer } from "./PageViewer";
 import { RunPanel, stageInWords } from "./RunPanel";
 import { IDLE_READ_STATE, type ReadState, type TranscriptionLine, TranscriptionPane } from "./TranscriptionPane";
+import {
+  type PageStateMaps,
+  readingsFromState,
+  stateFromReadings,
+  type WorkspaceSnapshot,
+} from "./workspacePersistence";
+import { clearWorkspace, loadWorkspace, saveWorkspace, type StoreStatus } from "./workspaceStore";
 import { Button, Icon, Mark } from "./ui";
 import {
   type ExtractionBadge,
@@ -139,6 +146,18 @@ function readPersistedState(): WorkspacePersistedState | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Why a page's names could not be loaded, in words. A reading kept in this
+ * browser can outlive its run on the server (RUN_RETENTION_DAYS removes old
+ * runs): the reading is still shown, and only what needs the run says so.
+ */
+function linkingFailure(err: unknown): string {
+  if (err instanceof ApiError && err.status === 404) {
+    return "The server no longer has this reading's run, so its names cannot be shown. Read the page again to find them.";
+  }
+  return err instanceof Error ? err.message : "The request failed.";
 }
 
 const subscribeToNothing = () => () => {};
@@ -1445,7 +1464,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       .catch((err: unknown) =>
         setLinkingByRunId((prev) => ({
           ...prev,
-          [runId]: { phase: "failed", error: err instanceof Error ? err.message : "The request failed." },
+          [runId]: { phase: "failed", error: linkingFailure(err) },
         })),
       );
   };
@@ -1477,6 +1496,143 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     fetched.set(currentOcrRunId, entry);
     fetchLinking(currentOcrRunId);
   }, [pane, currentOcrRunId, linkingByRunId]);
+
+  // ── The open document, kept in this browser (task T) ──────────────────
+  // workspaceStore.ts keeps the selected document in IndexedDB; the record is
+  // built and checked by workspacePersistence.ts. Loaded once on mount: it
+  // sends no request. Saved a moment after the state settles, never while a
+  // read or a reply is under way, so a half-finished one is never kept.
+  const [keepStatus, setKeepStatus] = useState<StoreStatus | null>(null);
+  const [restoreDone, setRestoreDone] = useState(false);
+  // The document whose page images are in storage: only the record is
+  // rewritten for it; another document replaces them.
+  const storedDocumentIdRef = useRef<string | null>(null);
+  const documentCountRef = useRef(0);
+  useEffect(() => {
+    documentCountRef.current = documents.length;
+  }, [documents.length]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadWorkspace().then(({ snapshot, status }) => {
+      if (cancelled) {
+        return;
+      }
+      setKeepStatus(status);
+      // Pages opened while the store was being read win over the kept ones.
+      if (snapshot && documentCountRef.current === 0) {
+        const maps = stateFromReadings(snapshot.readings);
+        const doc = snapshot.document;
+        storedDocumentIdRef.current = doc.id;
+        setDocuments([doc]);
+        setSelectedDocumentId(doc.id);
+        setPageIndexByDocument({ [doc.id]: snapshot.pageIndex });
+        setZoomByDocument({ [doc.id]: snapshot.zoom });
+        setMessagesByDocument({ [doc.id]: snapshot.messages });
+        setOcrTextByPageId(maps.text);
+        setOcrRunIdByPageId(maps.runId);
+        setAuthorityReportByPageId(maps.authorityReport);
+        setPageLinesByPageId(maps.lines);
+        setTextLinesByPageId(maps.textLines);
+        setMarginLinesByPageId(maps.marginLines);
+        setPageSizeByPageId(maps.frame);
+        setBadgesByPageId(maps.badges);
+        setRunSnapshotByPageId(maps.steps);
+        setLinkingByRunId(maps.names as Record<string, LinkingState>);
+        setSegmentationLabelsByPageId(snapshot.regions);
+        setReadStateByPageId(
+          Object.fromEntries(
+            Object.entries(maps.readState).map(([pageId, read]) => [pageId, { ...IDLE_READ_STATE, phase: "done", readBy: read.readBy }]),
+          ),
+        );
+      }
+      setRestoreDone(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const anyPageReading = Object.values(readStateByPageId).some((read) => read.phase === "reading");
+  useEffect(() => {
+    if (!restoreDone || !currentDocument || sending || anyPageReading) {
+      return;
+    }
+    const doc = currentDocument;
+    const timer = window.setTimeout(() => {
+      const readings = readingsFromState(
+        doc.pages.map((page) => page.id),
+        {
+          text: ocrTextByPageId,
+          runId: ocrRunIdByPageId,
+          authorityReport: authorityReportByPageId,
+          readState: readStateByPageId,
+          lines: pageLinesByPageId,
+          textLines: textLinesByPageId,
+          marginLines: marginLinesByPageId,
+          frame: pageSizeByPageId,
+          badges: badgesByPageId,
+          steps: runSnapshotByPageId,
+          names: linkingByRunId as PageStateMaps["names"],
+        },
+      );
+      const snapshot: WorkspaceSnapshot = {
+        document: doc,
+        pageIndex: pageIndexByDocument[doc.id] ?? 0,
+        zoom: zoomByDocument[doc.id] ?? 1,
+        messages: (messagesByDocument[doc.id] ?? []).filter((message) => message.content || message.imageUrl),
+        readings,
+        regions: segmentationLabelsByPageId,
+      };
+      const withPages = storedDocumentIdRef.current !== doc.id;
+      void saveWorkspace(snapshot, withPages).then((status) => {
+        if (status === "kept") {
+          storedDocumentIdRef.current = doc.id;
+        }
+        setKeepStatus(status);
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [
+    restoreDone,
+    currentDocument,
+    sending,
+    anyPageReading,
+    pageIndexByDocument,
+    zoomByDocument,
+    messagesByDocument,
+    ocrTextByPageId,
+    ocrRunIdByPageId,
+    authorityReportByPageId,
+    readStateByPageId,
+    pageLinesByPageId,
+    textLinesByPageId,
+    marginLinesByPageId,
+    pageSizeByPageId,
+    badgesByPageId,
+    runSnapshotByPageId,
+    linkingByRunId,
+    segmentationLabelsByPageId,
+  ]);
+
+  /** "Close document": the document leaves the workspace and this browser's storage. */
+  const closeCurrentDocument = () => {
+    if (!currentDocument) {
+      return;
+    }
+    const closing = currentDocument.id;
+    const rest = documents.filter((doc) => doc.id !== closing);
+    storedDocumentIdRef.current = null;
+    void clearWorkspace();
+    setDocuments(rest);
+    setSelectedDocumentId(rest[0]?.id ?? null);
+    setMessagesByDocument((prev) => {
+      const next = { ...prev };
+      delete next[closing];
+      return next;
+    });
+    focusWhenShown("[data-open-pages]");
+  };
 
   const choosePages = () => {
     dialogOpenerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -1826,7 +1982,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                     onRetry={() => currentOcrRunId && loadLinking(currentOcrRunId)}
                   />
                 ) : null}
-                {panel === "about" ? <DocumentPanel document={currentDocument} /> : null}
+                {panel === "about" ? (
+                  <DocumentPanel document={currentDocument} keep={keepStatus} onClose={closeCurrentDocument} />
+                ) : null}
                 {panel === "run" ? (
                   <RunPanel snapshot={currentPageId ? runSnapshotByPageId[currentPageId] ?? null : null} runId={currentOcrRunId || null} />
                 ) : null}
