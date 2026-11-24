@@ -3,6 +3,7 @@ import type { RunSnapshot } from "@/lib/api/ocrAgent";
 import { Pill, type PillTone } from "./ui";
 
 const STAGE_WORDS: Record<string, string> = {
+  RESERVED: "Sending the page",
   RECEIVED: "Request received",
   OCR_RUNNING: "Reading the lines",
   OCR_DONE: "Lines read",
@@ -13,10 +14,12 @@ const STAGE_WORDS: Record<string, string> = {
   ANALYZE_DONE: "Passages and names found",
   STORED: "Saved",
   AUTHORITY_LINKING_RUNNING: "Linking names to authority records",
+  AUTHORITY_LINKING_DONE: "Names checked against authority records",
   AUTHORITY_LINKING_DEFERRED: "Names not linked: the reading is too uncertain",
   AUTHORITY_LINKING_ERROR: "Linking failed",
   LINKING_SKIPPED: "Linking skipped",
   INDEX_RUNNING: "Indexing for search",
+  INDEX_DONE: "Indexed for search",
   INDEX_SKIPPED: "Not indexed for search",
   INDEX_ERROR: "Indexing failed",
   DONE: "Finished",
@@ -42,6 +45,41 @@ function statusPill(status: string | undefined): { tone: PillTone; label: string
     default:
       return { tone: "neutral", label: status ? status.toLowerCase() : "Not started" };
   }
+}
+
+const plural = (count: string, one: string, many: string) => `${count} ${count === "1" ? one : many}`;
+
+/**
+ * The backend's event messages are written for its log ("chunks=13,
+ * mentions=0", "Run results persisted in SQLite."). Known ones are put in the
+ * reader's words, or dropped where they only repeat the step's name; an
+ * unknown message is shown as it came.
+ */
+const MESSAGE_WORDS: [RegExp, (match: RegExpExecArray) => string][] = [
+  [/^Full-page OCR request received\.$/, () => ""],
+  [/^Full-page OCR running\.$/, () => ""],
+  [/^Full-page OCR done \(segmented\)\.$/, () => "The page's layout was found and each line read on its own."],
+  [/^Full-page OCR done \((.+)\)\.$/, (m) => `Read with ${m[1]}.`],
+  [/^Running chunk\/entity analysis\.$/, () => ""],
+  [/^MENTION_RECALL_LOW: mentions=(\d+) < expected_min=(\d+)/, (m) => `Fewer names than a text this long usually has: ${m[1]} found, at least ${m[2]} expected.`],
+  [/^chunks=(\d+), mentions=(\d+)$/, (m) => `${plural(m[1], "passage", "passages")}, ${plural(m[2], "name", "names")}`],
+  [/^Run results persisted in SQLite\.$/, () => ""],
+  [/^Running authority linking \(Wikidata\)\.$/, () => ""],
+  [/^Authority linking complete: linked=(\d+), unresolved=(\d+), ambiguous=(\d+)\.$/, (m) => `${m[1]} linked, ${m[2]} not linked, ${m[3]} ambiguous`],
+  [/^Auto-indexing into vector store\.$/, () => ""],
+  [/^Indexed (\d+) chunks\.$/, (m) => `${plural(m[1], "passage", "passages")} indexed`],
+  [/^Full-page pipeline completed successfully\.$/, () => ""],
+];
+
+export function messageInWords(message: string | null | undefined): string {
+  const text = String(message || "").trim();
+  for (const [pattern, words] of MESSAGE_WORDS) {
+    const match = pattern.exec(text);
+    if (match) {
+      return words(match);
+    }
+  }
+  return text;
 }
 
 function clock(ts: string | undefined): string {
@@ -77,7 +115,7 @@ export function RunPanel({ snapshot, runId }: { snapshot: RunSnapshot | null; ru
     .filter((event, index) => event.stage !== "OCR_RUNNING" || index === lastReading)
     .map((event) => {
       const count = /^lines (\d+)\/(\d+)$/.exec(event.message);
-      return count ? { ...event, message: `${count[1]} of ${count[2]} lines` } : event;
+      return { ...event, message: count ? `${count[1]} of ${count[2]} lines` : messageInWords(event.message) };
     });
   const pill = statusPill(snapshot.run?.status ?? snapshot.status);
   return (

@@ -36,6 +36,8 @@ export interface WorkspaceChatMessage {
   retrieval?: ChatRetrievalStatus | null;
   /** Quality badges of a finished extraction, on its status message. */
   extractionBadges?: { tone: "ok" | "warn" | "error" | "neutral"; label: string; detail: string }[];
+  /** No answer came: the content says why. */
+  failed?: boolean;
 }
 
 export interface WorkspacePersistedState {
