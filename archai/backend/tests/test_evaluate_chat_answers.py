@@ -130,8 +130,9 @@ def test_e5_local_embeds_here_and_instructs_the_query(ev, tmp_path: Path, monkey
     seen: list[str] = []
 
     class _FakeModel:
-        def __init__(self, name: str) -> None:
+        def __init__(self, name: str, model_kwargs: dict) -> None:
             assert name == ev.E5_LOCAL_MODEL
+            assert model_kwargs == {"dtype": "float32"}  # the float16 checkpoint is slow on a CPU
 
         def encode(self, texts, batch_size, normalize_embeddings):
             seen.extend(texts)

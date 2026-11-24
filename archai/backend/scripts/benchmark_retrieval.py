@@ -246,6 +246,10 @@ def _cid(target: str, chunk: dict) -> str:
 
 
 E5_LOCAL_MODEL = "intfloat/multilingual-e5-large-instruct"
+# The checkpoint is float16, and sentence-transformers 6 loads it as such: on a
+# CPU that encodes about 5 times slower than float32, with the same vectors
+# (cosine 1.000 on the evaluation VM).
+_FLOAT32 = {"dtype": "float32"}
 
 
 def _embedder(kind: str) -> Callable[[list[str]], list[list[float]]]:
@@ -254,7 +258,7 @@ def _embedder(kind: str) -> Callable[[list[str]], list[list[float]]]:
             from sentence_transformers import SentenceTransformer
         except ImportError as exc:
             raise SystemExit("error: --embedder e5-local needs sentence-transformers installed") from exc
-        model = SentenceTransformer(E5_LOCAL_MODEL)
+        model = SentenceTransformer(E5_LOCAL_MODEL, model_kwargs=_FLOAT32)
         return lambda batch: [list(v) for v in model.encode(batch, batch_size=16, normalize_embeddings=True)]
     if kind == "local":
         from chromadb.utils import embedding_functions
