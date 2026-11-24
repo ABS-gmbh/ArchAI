@@ -40,6 +40,9 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setattr(settings, "glmocr_ollama_host", "http://127.0.0.1:11434")
     monkeypatch.setattr(health, "_last_ok", {})
     monkeypatch.setattr(health.requests, "get", lambda url, timeout: _Response({"version": "0.6.0"}))
+    # The model checks are tested in test_health_models.py; here the models count as installed.
+    monkeypatch.setattr(health.model_files, "missing_layout", lambda: [])
+    monkeypatch.setattr(health.model_files, "missing_recogniser", lambda: [])
     app = FastAPI()
     app.include_router(health.router, prefix="/api")
     return TestClient(app)
@@ -55,9 +58,11 @@ def test_all_dependencies_up_is_ok(client: TestClient, monkeypatch: pytest.Monke
         "database": True,
         "ollama": True,
         "chat_api_key": True,
+        "layout_models": True,
+        "line_recognizer": True,
     }
     assert body["checks"]["ollama"]["version"] == "0.6.0"
-    assert "models_loaded" in body
+    assert body["models_loaded"] is True
 
 
 def test_the_key_itself_is_never_returned(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:

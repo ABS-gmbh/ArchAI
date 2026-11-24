@@ -11,9 +11,20 @@ no OCR run can be recorded without it.
 - ``chat_api_key`` (optional): a SAIA / Chat AI key is configured. Whether it
   is valid is not checked - that would cost a request per probe - and the key
   itself is never returned.
+- ``layout_models`` (optional): the three YOLO layout weights are in MODEL_DIR
+  and ultralytics is installed. Without them the segmented engine cannot read
+  a page (GLM-OCR still can) and /api/predict fails.
+- ``line_recognizer`` (optional): the CATMuS Medieval Kraken recogniser is
+  where KRAKEN_CATMUS_MODEL_PATH points and kraken is installed.
+
+``models_loaded`` is true when both model checks pass: everything the
+segmented engine needs is installed. The models themselves are loaded on first
+use. (It used to report whether a worker process pool existed, which said
+nothing about the weights.)
 
 The endpoint is unauthenticated, so each check returns only ``ok``, a fixed
-``detail`` and, for Ollama, the version. Exception text (a SQLite error can
+``detail`` (the model checks name missing files and packages, never paths)
+and, for Ollama, the version. Exception text (a SQLite error can
 carry the database path) and the Ollama host go to the log instead.
 """
 
@@ -29,7 +40,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.db import pipeline_db
-from app.services import inference
+from app.services import model_files
 from app.services.saia_client import SaiaClient, SaiaConfigError
 
 router = APIRouter(tags=["health"])
@@ -89,6 +100,28 @@ def _check_chat_api_key() -> dict[str, Any]:
     return {"ok": True, "detail": "A chat API key is configured; it is not validated here."}
 
 
+def _check_layout_models() -> dict[str, Any]:
+    missing = model_files.missing_layout()
+    if missing:
+        return {
+            "ok": False,
+            "detail": "Pages cannot be read with the segmented engine: the layout models are not installed "
+            f"({', '.join(missing)}). See docs/model_setup.md.",
+        }
+    return {"ok": True, "detail": "The layout models are installed."}
+
+
+def _check_line_recognizer() -> dict[str, Any]:
+    missing = model_files.missing_recogniser()
+    if missing:
+        return {
+            "ok": False,
+            "detail": "Lines cannot be read with Kraken: the line recogniser is not installed "
+            f"({', '.join(missing)}). See docs/model_setup.md.",
+        }
+    return {"ok": True, "detail": "The line recogniser is installed."}
+
+
 # A plain def: the checks are a SQLite query and an HTTP request, which FastAPI
 # runs in its threadpool instead of on the event loop.
 @router.get("/health")
@@ -97,6 +130,8 @@ def health_check() -> JSONResponse:
         "database": _check_database(),
         "ollama": _check_ollama(),
         "chat_api_key": _check_chat_api_key(),
+        "layout_models": _check_layout_models(),
+        "line_recognizer": _check_line_recognizer(),
     }
     if not checks["database"]["ok"]:
         status, code = "unavailable", 503
@@ -108,7 +143,7 @@ def health_check() -> JSONResponse:
         status_code=code,
         content={
             "status": status,
-            "models_loaded": inference._model_pool is not None,
+            "models_loaded": checks["layout_models"]["ok"] and checks["line_recognizer"]["ok"],
             "checks": checks,
         },
     )

@@ -95,12 +95,18 @@ Health endpoint:
 curl http://127.0.0.1:8010/api/health
 ```
 
-`status` is `ok` when every check passes; `degraded` (HTTP 200) when Ollama is
-unreachable or no chat key is configured, so GLM-OCR or chat will fail; and
-`unavailable` (HTTP 503) when the pipeline database cannot be used. Each entry
-under `checks` (`database`, `ollama`, `chat_api_key`) has `ok` and a short
-`detail`; the endpoint is unauthenticated, so error text and hosts go to the
-log, not the response. The chat key's presence is checked, not its validity.
+`status` is `ok` when every check passes. It is `degraded` (HTTP 200) when
+Ollama is unreachable, no chat key is configured, or the layout weights or the
+line recogniser are not installed, so GLM-OCR, chat or the segmented engine
+will fail. It is `unavailable` (HTTP 503) when the pipeline database cannot be
+used.
+
+Each entry under `checks` (`database`, `ollama`, `chat_api_key`,
+`layout_models`, `line_recognizer`) has `ok` and a short `detail`. The
+endpoint is unauthenticated, so error text, hosts and paths go to the log, not
+the response; the model checks name missing files and packages only. The chat
+key's presence is checked, not its validity. `models_loaded` is true when both
+model checks pass. The models themselves load on first use.
 
 ## Retention
 
