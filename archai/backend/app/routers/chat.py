@@ -9,7 +9,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from app.config import settings
 from app.agents.label_analysis_agent import LabelAnalysisAgent, LabelAnalysisAgentError
@@ -37,18 +37,14 @@ class ChatMessage(BaseModel):
     role: str = Field(default="user")
     content: Any
 
-    @field_validator("content")
-    @classmethod
-    def _bounded_text(cls, value: Any) -> Any:
-        limit = int(settings.chat_max_message_chars)
-        texts: list[str] = []
-        if isinstance(value, str):
-            texts = [value]
-        elif isinstance(value, list):
-            texts = [part["text"] for part in value if isinstance(part, dict) and isinstance(part.get("text"), str)]
-        if any(len(text) > limit for text in texts):
-            raise ValueError(f"a chat message may carry at most {limit} characters of text (CHAT_MAX_MESSAGE_CHARS)")
-        return value
+    def text_length(self) -> int:
+        """Characters of text the message carries: the string, or the longest text part."""
+        if isinstance(self.content, str):
+            return len(self.content)
+        if isinstance(self.content, list):
+            parts = [part["text"] for part in self.content if isinstance(part, dict) and isinstance(part.get("text"), str)]
+            return max((len(text) for text in parts), default=0)
+        return 0
 
 
 class ChatCompletionRequest(BaseModel):
@@ -119,8 +115,20 @@ def _sse_events(payload: ChatCompletionRequest) -> Iterator[str]:
         yield f"data: {json.dumps(error_event, ensure_ascii=False)}\n\n"
 
 
+def _check_message_lengths(payload: ChatCompletionRequest) -> None:
+    """Refuse a message over CHAT_MAX_MESSAGE_CHARS with a sentence the workspace shows as is.
+
+    Checked here, not as a field validator, so the 422's detail is that sentence
+    rather than a list of validation errors.
+    """
+    limit = int(settings.chat_max_message_chars)
+    if any(message.text_length() > limit for message in payload.messages):
+        raise HTTPException(status_code=422, detail=f"The message is longer than the server accepts ({limit} characters).")
+
+
 @router.post("/chat/completions")
 async def chat_completions(payload: ChatCompletionRequest) -> Any:
+    _check_message_lengths(payload)
     try:
         if payload.stream:
             return StreamingResponse(
