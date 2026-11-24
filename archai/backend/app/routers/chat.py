@@ -38,13 +38,35 @@ class ChatMessage(BaseModel):
     content: Any
 
     def text_length(self) -> int:
-        """Characters of text the message carries: the string, or the longest text part."""
+        """Characters of text the message carries: the string, or all its text parts together.
+
+        The longest part was counted, so forty parts of 200,000 characters each
+        passed the cap (second security review, L).
+        """
         if isinstance(self.content, str):
             return len(self.content)
         if isinstance(self.content, list):
-            parts = [part["text"] for part in self.content if isinstance(part, dict) and isinstance(part.get("text"), str)]
-            return max((len(text) for text in parts), default=0)
+            return sum(
+                len(part["text"]) for part in self.content if isinstance(part, dict) and isinstance(part.get("text"), str)
+            )
         return 0
+
+    def shape_problem(self) -> str | None:
+        """A sentence when the content is neither text nor a list of parts with string text, else None.
+
+        A part whose text was a list passed every check and went on to the
+        provider (second security review, L).
+        """
+        if self.content is None or isinstance(self.content, str):
+            return None
+        if not isinstance(self.content, list):
+            return "A message's content must be text or a list of parts."
+        for part in self.content:
+            if not isinstance(part, dict):
+                return "A message's content must be text or a list of parts."
+            if "text" in part and not isinstance(part["text"], str):
+                return "A text part's text must be a string."
+        return None
 
 
 class ChatCompletionRequest(BaseModel):
@@ -121,6 +143,10 @@ def _check_message_lengths(payload: ChatCompletionRequest) -> None:
     Checked here, not as a field validator, so the 422's detail is that sentence
     rather than a list of validation errors.
     """
+    for message in payload.messages:
+        problem = message.shape_problem()
+        if problem is not None:
+            raise HTTPException(status_code=422, detail=problem)
     limit = int(settings.chat_max_message_chars)
     if any(message.text_length() > limit for message in payload.messages):
         raise HTTPException(status_code=422, detail=f"The message is longer than the server accepts ({limit} characters).")

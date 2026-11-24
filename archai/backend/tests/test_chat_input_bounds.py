@@ -54,3 +54,41 @@ def test_message_content_is_bounded_with_a_sentence_the_workspace_shows() -> Non
     # An attached page image is bounded by the request body limit, not by this one.
     image = [{"type": "text", "text": "read"}, {"type": "image_url", "image_url": {"url": "data:image/png;base64," + "A" * (limit * 2)}}]
     assert chat.ChatCompletionRequest(messages=[{"role": "user", "content": image}]).messages[0].text_length() == 4
+
+
+def _chat_client():
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from app.routers import chat
+
+    app = FastAPI()
+    app.include_router(chat.router)
+    return TestClient(app)
+
+
+def test_the_cap_counts_every_text_part_of_a_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Second review, L: forty parts of 200,000 characters each passed, since
+    # only the longest part was counted.
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "chat_max_message_chars", 1000)
+    parts = [{"type": "text", "text": "a" * 600}, {"type": "text", "text": "b" * 600}]
+    response = _chat_client().post("/chat/completions", json={"stream": False, "messages": [{"role": "user", "content": parts}]})
+    assert response.status_code == 422
+    assert response.json()["detail"] == "The message is longer than the server accepts (1000 characters)."
+
+
+@pytest.mark.parametrize(
+    ("content", "detail"),
+    [
+        ([{"type": "text", "text": ["a" * 10, "b"]}], "A text part's text must be a string."),
+        ([{"type": "text", "text": {"nested": "x"}}], "A text part's text must be a string."),
+        (["a bare string part"], "A message's content must be text or a list of parts."),
+        ({"text": "x"}, "A message's content must be text or a list of parts."),
+    ],
+)
+def test_a_text_part_that_is_not_a_string_is_refused(content: object, detail: str) -> None:
+    response = _chat_client().post("/chat/completions", json={"stream": False, "messages": [{"role": "user", "content": content}]})
+    assert response.status_code == 422
+    assert response.json()["detail"] == detail
