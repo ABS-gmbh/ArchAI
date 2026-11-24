@@ -174,10 +174,12 @@ class Settings(BaseSettings):
         return value
 
     # Longest text a chat message may carry, per message and per text part (an
-    # attached page image is bounded by the request body limit instead). A typed
-    # question is a few hundred characters; an earlier answer or a pasted
-    # passage a few thousand. Longer text was only an input-side cost.
-    chat_max_message_chars: int = 20000
+    # attached page image is bounded by the request body limit instead). The
+    # workspace's translation and names requests put the page transcription and
+    # the authority-linking report into one message: on the five reference pages
+    # the largest is 4,627 characters. The default is far above that; it is a
+    # second line of defence behind the request body limit.
+    chat_max_message_chars: int = 200000
 
     # SAIA OCR Agent configuration
     saia_api_key: str = ""

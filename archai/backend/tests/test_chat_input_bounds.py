@@ -35,17 +35,22 @@ def test_the_inspection_check_is_linear_on_adversarial_input() -> None:
     assert time.perf_counter() - started < 0.2
 
 
-def test_message_content_is_bounded() -> None:
+def test_message_content_is_bounded_with_a_sentence_the_workspace_shows() -> None:
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
     from app.config import settings
-    from app.routers.chat import ChatCompletionRequest
+    from app.routers import chat
 
     limit = settings.chat_max_message_chars
-    ChatCompletionRequest(messages=[{"role": "user", "content": "a" * limit}])
-    with pytest.raises(ValidationError):
-        ChatCompletionRequest(messages=[{"role": "user", "content": "a" * (limit + 1)}])
-    with pytest.raises(ValidationError):
-        ChatCompletionRequest(messages=[{"role": "user", "content": [{"type": "text", "text": "a" * (limit + 1)}]}])
+    assert limit >= 200_000  # ten times the largest message the workspace builds, at least
+    app = FastAPI()
+    app.include_router(chat.router)
+    client = TestClient(app)
+    for content in ("a" * (limit + 1), [{"type": "text", "text": "a" * (limit + 1)}]):
+        response = client.post("/chat/completions", json={"stream": False, "messages": [{"role": "user", "content": content}]})
+        assert response.status_code == 422
+        assert response.json()["detail"] == f"The message is longer than the server accepts ({limit} characters)."
     # An attached page image is bounded by the request body limit, not by this one.
-    ChatCompletionRequest(
-        messages=[{"role": "user", "content": [{"type": "text", "text": "read"}, {"type": "image_url", "image_url": {"url": "data:image/png;base64," + "A" * (limit * 2)}}]}]
-    )
+    image = [{"type": "text", "text": "read"}, {"type": "image_url", "image_url": {"url": "data:image/png;base64," + "A" * (limit * 2)}}]
+    assert chat.ChatCompletionRequest(messages=[{"role": "user", "content": image}]).messages[0].text_length() == 4
