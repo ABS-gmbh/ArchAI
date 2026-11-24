@@ -429,11 +429,36 @@ key: pages are then read but not indexed, and the workspace marks each one
 "Not indexed". Either set the key, or set `RAG_EMBEDDING_MODEL=` (empty) to
 index with ChromaDB's local embedder (an English MiniLM; it ranks Old French
 and Latin worse than the default, `archai/backend/app/config.py` has the
-measurements). ChromaDB downloads that model, an 83 MB archive, the first time it
-is used, into `~/.cache/chroma` (166 MB unpacked, the archive kept). The two embedders' vectors are kept in
-separate collections and never mixed, so pages indexed with one are not found
-with the other until they are read (or indexed with `POST /api/index/run/{id}`)
-again. The workspace shows degraded checks in
+measurements). The two embedders' vectors are kept in separate collections
+and never mixed, so pages indexed with one are not found with the other until
+they are read (or indexed with `POST /api/index/run/{id}`) again.
+
+**The local embedder downloads its model the first time a page is indexed**:
+`onnx.tar.gz` (83 MB, from
+`https://chroma-onnx-models.s3.amazonaws.com/all-MiniLM-L6-v2/onnx.tar.gz`),
+unpacked into `~/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx/` (87 MB) in
+the home directory of the user the backend runs as. The archive stays beside
+it. Without internet access that first index fails, and the page is not
+indexed. For such a server, fill the directory in advance, from a machine
+that has access:
+
+```bash
+curl -fLO https://chroma-onnx-models.s3.amazonaws.com/all-MiniLM-L6-v2/onnx.tar.gz
+sha256sum onnx.tar.gz   # (shasum -a 256 on macOS) 913d7300ceae3b2dbc2c50d1de4baacab4be7b9380491c27fab7418616a16ec3
+# on the server, as the backend's user:
+mkdir -p ~/.cache/chroma/onnx_models/all-MiniLM-L6-v2
+tar -xzf onnx.tar.gz -C ~/.cache/chroma/onnx_models/all-MiniLM-L6-v2
+ls ~/.cache/chroma/onnx_models/all-MiniLM-L6-v2/onnx
+# config.json  model.onnx  special_tokens_map.json  tokenizer.json  tokenizer_config.json  vocab.txt
+```
+
+Those six files are all it reads; the archive is not needed. The path follows
+`HOME`: a service with its own `HOME` reads the model from there. Checked on
+2026-11-24 with ChromaDB 1.5.9: with `HOME` holding only that `onnx/` folder
+and all network denied to the process, passages were indexed and searched;
+with an empty `HOME`, the same process failed on the download. The commands above, run on that archive, give the same folder.
+
+The workspace shows degraded checks in
 a banner a user can hide; it cannot hide an unavailable backend. Point a load
 balancer or monitor at it and alert on 503. The response carries no secrets,
 paths or hosts. A dependency going down is logged once, not on every poll.
