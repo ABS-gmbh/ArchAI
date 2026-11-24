@@ -230,8 +230,10 @@ as `?token=` on the two event streams.
 curl -s http://127.0.0.1:8010/api/health
 ```
 
-`status` is `ok`, `degraded` (HTTP 200: Ollama unreachable or no chat key) or
-`unavailable` (HTTP 503: the pipeline database cannot be used). Point a load
+`status` is `ok`, `degraded` (HTTP 200: Ollama unreachable, no chat key, or
+layout weights or line recogniser not installed) or `unavailable` (HTTP 503:
+the pipeline database cannot be used). The workspace shows degraded checks in
+a banner a user can hide; it cannot hide an unavailable backend. Point a load
 balancer or monitor at it and alert on 503. The response carries no secrets,
 paths or hosts. A dependency going down is logged once, not on every poll.
 
