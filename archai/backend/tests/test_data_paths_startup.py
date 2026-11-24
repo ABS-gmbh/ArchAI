@@ -124,3 +124,27 @@ def test_startup_logs_the_paths_in_use(monkeypatch: pytest.MonkeyPatch, tmp_path
     for variable in ("ARCHAI_DB_PATH", "CHROMA_PERSIST_DIR", "ARCHAI_WIKIDATA_CACHE", "OCR_EVIDENCE_PATH", "TASK_BASE_DIR"):
         assert f"{variable}=" in lines[0]
     assert str(tmp_path / "chroma") in lines[0]
+
+
+def test_the_analytics_database_is_logged_as_read_only_and_not_checked(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caplog
+) -> None:
+    """An operator backs it up with the rest (docs/deployment.md), so the line names it too.
+
+    The server only reads it (the visits are written by whatever records them),
+    so a read-only or missing file must not stop startup.
+    """
+    _quiet_lifespan(monkeypatch)
+    analytics = tmp_path / "readonly" / "analytics.db"
+    analytics.parent.mkdir()
+    analytics.write_bytes(b"")
+    analytics.chmod(0o444)
+    analytics.parent.chmod(0o555)
+    monkeypatch.setattr(settings, "analytics_db_path", str(analytics))
+    try:
+        with caplog.at_level(logging.INFO, logger="app.services.data_paths"):
+            _start_and_stop()
+    finally:
+        analytics.parent.chmod(0o755)
+    lines = [record.getMessage() for record in caplog.records if record.name == "app.services.data_paths"]
+    assert f"ANALYTICS_DB_PATH={str(analytics)!r} (read only)" in lines[0]
