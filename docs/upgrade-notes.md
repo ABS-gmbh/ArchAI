@@ -132,6 +132,8 @@ See [deployment.md, "Behind a reverse proxy"](deployment.md#behind-a-reverse-pro
 - `POST /api/predict/batch` answers 429, with `Retry-After`, while
   `MAX_ACTIVE_BATCHES` batches are queued or running; it used to queue every
   batch without bound.
+- `GET /api/health` answers `limits` (`json_bytes`, `decode_pixels`) and a
+  `search_index` check besides the others.
 - `GET /api/evidence/spans/{page_id}` and `GET /api/ocr/trace/{run_id}/tables`
   take a `limit`. `extract_full_page` answers `line_regions` too.
 - The token goes in `X-API-Token` or `Authorization: Bearer`. As `?token=`

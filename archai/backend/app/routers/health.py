@@ -24,6 +24,11 @@ no OCR run can be recorded without it.
   (rag_store: the two spaces never mix, so pages indexed in one are not found
   from the other until read again).
 
+``limits`` are the request limits a client needs to refuse a page before
+sending it: the JSON body limit in bytes (MAX_JSON_MEGABYTES) and the most
+pixels an image may have (OCR_MAX_DECODE_PIXELS). The workspace sent an 85 MB
+page before the server refused it as over 48 MB (live regression, 2026-11-24).
+
 ``models_loaded`` is true when both model checks pass: everything the
 segmented engine needs is installed. The models themselves are loaded on first
 use. (It used to report whether a worker process pool existed, which said
@@ -49,7 +54,9 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.db import pipeline_db
+from app.body_limit import max_json_bytes
 from app.services import model_files
+from app.services.image_limits import max_decode_pixels
 from app.services.saia_client import SaiaClient, SaiaConfigError
 
 router = APIRouter(tags=["health"])
@@ -200,5 +207,6 @@ def health_check() -> JSONResponse:
             "status": status,
             "models_loaded": checks["layout_models"]["ok"] and checks["line_recognizer"]["ok"],
             "checks": checks,
+            "limits": {"json_bytes": max_json_bytes(), "decode_pixels": max_decode_pixels()},
         },
     )

@@ -9,6 +9,7 @@ import {
   type ChatMessagePayload,
 } from "@/lib/api/chat";
 import { ApiError } from "@/lib/api/client";
+import { getRequestLimits } from "@/lib/api/health";
 import {
   type FullPageLine,
   type RunSnapshot,
@@ -31,7 +32,9 @@ import {
   clamp,
   makeId,
   pageToFile,
-  pageTooLargeMessage,
+  PageRefused,
+  pageRefusal,
+  type RequestLimits,
   readFileAsDataUrl,
   sortedImages,
   toBase64,
@@ -211,6 +214,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   );
   const runFollowersRef = useRef<Set<AbortController>>(new Set());
   // The run each page's latest read reserved: an older run's follower may not write over it.
+  // For the check before a read (workspaceFiles.ts pageRefusal): each page's
+  // natural size once its image has loaded, and the server's request limits
+  // from /api/health, asked once (again after a failure).
+  const naturalSizeByPageIdRef = useRef<Record<string, { width: number; height: number }>>({});
+  const requestLimitsRef = useRef<Promise<RequestLimits | null> | null>(null);
   const latestRunByPageRef = useRef<Record<string, string | null>>({});
   // The control that opened the file picker, to give focus back to when the dialog closes.
   const dialogOpenerRef = useRef<HTMLElement | null>(null);
@@ -1066,6 +1074,21 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       // A reserved run lets this client follow its own request: lines read so
       // far, then each later step. Without one (an older backend) the page is
       // read all the same, only without live progress.
+      // Before a run is reserved or anything is sent: a page the server would
+      // refuse as too large is refused here, from the limits it states.
+      const limitsRequest = (requestLimitsRef.current ??= getRequestLimits());
+      const limits = await limitsRequest;
+      if (!limits) {
+        requestLimitsRef.current = null;
+      }
+      const refusal = pageRefusal(
+        { base64Length: toBase64(currentPage.dataUrl).length, ...naturalSizeByPageIdRef.current[pageId] },
+        limits,
+      );
+      if (refusal) {
+        throw new PageRefused(refusal);
+      }
+
       let reservedRunId: string | null = null;
       try {
         reservedRunId = await reserveRun();
@@ -1265,11 +1288,10 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       );
       return { text: storedText, runId, authorityReport };
     } catch (err: unknown) {
-      let message = err instanceof Error ? err.message : "request failed";
-      if (err instanceof ApiError && err.status === 413) {
-        // The page travels as text inside the request, a third larger than the file; the server caps that.
-        message = `${pageTooLargeMessage(currentPage.dataUrl.length)} ${message}`;
-      }
+      // A page refused before sending (PageRefused) says why; a 413 from the
+      // server carries its own sentence (the JSON or the pixel limit), shown
+      // alone: the size advice was prefixed to both, wrong for the pixels.
+      const message = err instanceof Error ? err.message : "request failed";
       setExtractionStatus(`Extraction failed: ${message}`);
       patchRead({ phase: "failed", progress: null, stage: null, error: message });
       // A read that failed may never have claimed its run; its stream would stay open for an hour.
@@ -1708,6 +1730,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
             ) : null}
             <PageViewer
               page={currentPage}
+              onNaturalSize={(id, width, height) => {
+                naturalSizeByPageIdRef.current[id] = { width, height };
+              }}
               zoom={currentZoom}
               onZoom={updateZoom}
               regions={currentSegmentationLabels}
