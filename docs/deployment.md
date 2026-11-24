@@ -191,11 +191,16 @@ refuse to run with that variable set.
 
 If the backend has `API_TOKEN` set and `BACKEND_API_TOKEN` is missing or
 different, the backend refuses the proxy's requests. The proxy then answers
-401 with a message naming the setting ("The backend requires an API token,
-and the frontend server sends none. Set BACKEND_API_TOKEN …"), which the
-workspace shows where the request failed. The frontend server's log gets one
-line saying the same. `/api/health` needs no token, so the status banner stays
-green in that case.
+401 with "The frontend server could not authenticate to the backend. The
+frontend server's log says which setting to check.", which the workspace shows
+where the request failed; the browser is not told whether a token is set. The
+frontend server's log gets one line naming the setting: `BACKEND_API_TOKEN is
+not set`, or that the backend refused it. `/api/health` needs no token, so the
+status banner stays green in that case.
+
+The proxy does not pass the browser's `Origin` to the backend, nor the
+backend's `Access-Control-*` headers to the browser: the browser talks to the
+frontend, same-origin, and needs no CORS answer.
 
 With `BACKEND_API_TOKEN` set, **the frontend must itself sit behind the
 deployment's own login** (single sign-on, basic auth at the reverse proxy, a

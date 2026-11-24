@@ -22,6 +22,9 @@ export const TOKEN_HEADER = "x-api-token";
 // login limit on it: passed on as the client sent them, these let a client
 // choose its own address for every guess.
 const CLIENT_FORWARDING = new Set([
+  // Not forwarding, but the browser's: the backend's CORS answer to it was
+  // passed back to the browser from the frontend's own origin.
+  "origin",
   "forwarded",
   "x-forwarded-for",
   "x-forwarded-host",
@@ -152,4 +155,49 @@ export function backendTarget(backendUrl: string, pathname: string, search: stri
   const target = new URL(`${base}${pathname}${search}`);
   const apiRoot = `${new URL(base).pathname.replace(/\/+$/, "")}/api/`;
   return target.pathname.startsWith(apiRoot) ? target : null;
+}
+
+export function downstreamHeaders(res: http.IncomingHttpHeaders): Headers {
+  const headers = new Headers();
+  for (const [name, value] of Object.entries(res)) {
+    // "server" names the backend's software (uvicorn): nothing a browser needs.
+    // The backend's CORS headers answer an origin the browser never sees: the
+    // browser talks to the frontend, same-origin.
+    if (
+      value === undefined ||
+      HOP_BY_HOP.has(name) ||
+      name === TOKEN_HEADER ||
+      name === "server" ||
+      name.startsWith("access-control-")
+    ) {
+      continue;
+    }
+    for (const item of Array.isArray(value) ? value : [value]) {
+      headers.append(name, item);
+    }
+  }
+  if ((headers.get("content-type") || "").includes("text/event-stream")) {
+    // no-transform keeps Next's gzip from holding events back until a buffer
+    // fills; X-Accel-Buffering does the same for nginx in front of Next.
+    headers.set("cache-control", "no-cache, no-transform");
+    headers.set("x-accel-buffering", "no");
+  }
+  return headers;
+}
+
+/**
+ * The backend refused the token this server sends (or the absence of one).
+ * The browser is told only that the frontend could not authenticate, the same
+ * whether a token is configured or not; which setting is missing or wrong is
+ * for the operator, in the server log.
+ */
+export function tokenRefusal(configured: boolean): { status: number; detail: string; log: string } {
+  return {
+    status: 401,
+    detail:
+      "The frontend server could not authenticate to the backend. The frontend server's log says which setting to check.",
+    log: configured
+      ? "the backend answered 401 to BACKEND_API_TOKEN. Set BACKEND_API_TOKEN on the frontend server to the backend's API_TOKEN, and restart it."
+      : "the backend answered 401 to a request without a token (BACKEND_API_TOKEN is not set). Set BACKEND_API_TOKEN on the frontend server to the backend's API_TOKEN, and restart it.",
+  };
 }

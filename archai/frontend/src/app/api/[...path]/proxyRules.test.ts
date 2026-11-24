@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { backendTarget, clientAddress, crossSiteRefusal, upstreamHeaders } from "./proxyRules";
+import { backendTarget, clientAddress, crossSiteRefusal, downstreamHeaders, tokenRefusal, upstreamHeaders } from "./proxyRules";
 
 // A security review found that the proxy passed the client's own
 // X-Forwarded-For to the backend, whose uvicorn trusts that header from
@@ -123,5 +123,49 @@ describe("backendTarget", () => {
       assert.equal(backendTarget("http://127.0.0.1:8010", pathname, ""), null, pathname);
     }
     assert.equal(backendTarget("http://backend.internal/archai", "/api/%2e%2e/%2e%2e/docs", ""), null);
+  });
+});
+
+// The review found the backend's CORS answer (Access-Control-Allow-Origin:
+// http://localhost:3000, -Allow-Credentials: true) passed on to the browser
+// from the frontend's public origin, and the proxy's 401 telling any visitor
+// whether the frontend server has BACKEND_API_TOKEN set.
+describe("what crosses the proxy", () => {
+  it("does not send the browser's Origin to the backend", () => {
+    const headers = upstreamHeaders(new Headers({ origin: "https://archai.example" }), "127.0.0.1:8010", { trustedProxyHops: 0, token: "" });
+    assert.equal(headers.origin, undefined);
+  });
+
+  it("does not pass the backend's CORS headers, software name or token header back", () => {
+    const headers = downstreamHeaders({
+      "content-type": "application/json",
+      "access-control-allow-origin": "http://localhost:3000",
+      "access-control-allow-credentials": "true",
+      "access-control-expose-headers": "Content-Disposition",
+      server: "uvicorn",
+      "x-api-token": "never",
+      connection: "close",
+      "content-disposition": "attachment; filename=results.zip",
+      "set-cookie": ["a=1", "b=2"],
+    });
+    assert.deepEqual([...new Set(headers.keys())].sort(), ["content-disposition", "content-type", "set-cookie"]);
+    assert.deepEqual(headers.getSetCookie(), ["a=1", "b=2"]);
+  });
+
+  it("keeps a stream unbuffered", () => {
+    const headers = downstreamHeaders({ "content-type": "text/event-stream" });
+    assert.equal(headers.get("cache-control"), "no-cache, no-transform");
+    assert.equal(headers.get("x-accel-buffering"), "no");
+  });
+
+  it("tells the browser the same about a refused token whether or not one is configured", () => {
+    const missing = tokenRefusal(false);
+    const wrong = tokenRefusal(true);
+    assert.equal(missing.detail, wrong.detail);
+    assert.equal(missing.status, wrong.status);
+    assert.doesNotMatch(missing.detail, /BACKEND_API_TOKEN|API_TOKEN|sends none/);
+    // The operator's hint goes to the server log, where it names the setting.
+    assert.match(missing.log, /BACKEND_API_TOKEN is not set/);
+    assert.match(wrong.log, /answered 401 to BACKEND_API_TOKEN/);
   });
 });
