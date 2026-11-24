@@ -127,6 +127,25 @@ const EMPTY_DOCUMENT_METADATA: WorkspaceDocumentMetadata = {
   notes: "",
 };
 
+/**
+ * Focus the first element matching *selector* once it is on screen, unless
+ * focus has gone somewhere meaningful meanwhile (anywhere but the body). For a
+ * control that disappears or is disabled while it has focus.
+ */
+function focusWhenShown(selector: string, frames = 20): void {
+  requestAnimationFrame(() => {
+    if (document.activeElement && document.activeElement !== document.body) {
+      return;
+    }
+    const target = document.querySelector<HTMLElement>(selector);
+    if (target) {
+      target.focus();
+    } else if (frames > 0) {
+      focusWhenShown(selector, frames - 1);
+    }
+  });
+}
+
 export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspaceProps) {
   const [clientReady, setClientReady] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -1420,6 +1439,10 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     if (found) {
       setShowSegmentationOverlay(true);
     }
+    // The button had focus, was disabled while the regions were found, and is
+    // replaced by the legend when they are: focus fell to the document body.
+    // Put it on the legend, or back on the button if nothing was found.
+    focusWhenShown("#pane-page details > summary, #pane-page [data-find-regions]");
   };
 
   const translate = () => {
@@ -1622,7 +1645,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                 the bottom of the page, as it is placed; z-10 keeps it painted on top. */}
             {currentPage && !currentSegmentedPreview ? (
               <div className="absolute left-4 top-4 z-10">
-                <Button variant="secondary" onClick={() => void findRegions()} disabled={findingRegions || sending}>
+                <Button data-find-regions variant="secondary" onClick={() => void findRegions()} disabled={findingRegions || sending}>
                   {findingRegions ? "Finding regions" : "Find layout regions"}
                 </Button>
               </div>
