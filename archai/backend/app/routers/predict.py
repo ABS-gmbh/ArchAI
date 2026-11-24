@@ -24,7 +24,16 @@ from app.config import settings
 from app.core.model_runner import combine_and_filter_predictions
 from app.services.coco_utils import filter_coco_by_classes, merge_coco_list, stats_from_coco
 from app.services.public_errors import public_failure
-from app.services.file_manager import TaskState, create_task, discard_task, get_task, get_task_dir, save_task_state
+from app.services.file_manager import (
+    TaskState,
+    create_task,
+    discard_task,
+    get_task,
+    get_task_dir,
+    hold_task,
+    release_task,
+    save_task_state,
+)
 from app.services.inference import run_models_parallel
 from app.services.visualization import draw_coco_on_image
 
@@ -431,6 +440,7 @@ def _process_batch(task: TaskState, zip_path: str, conf: float, iou: float, sele
     except OSError:
         pass
     save_task_state(task)
+    release_task(task.task_id)
 
 
 def _run_batch(task: TaskState, zip_path: str, conf: float, iou: float, selected_classes: list[str]):
@@ -521,16 +531,26 @@ async def predict_batch(
     selected_classes = _parse_classes(classes)
 
     task = create_task()
+    # Counted from here until the batch ends, queued or running. Past the
+    # limit the upload (already spooled by the form parser) is not kept.
+    limit = max(1, int(settings.max_active_batches))
+    if not hold_task(task.task_id, limit=limit):
+        discard_task(task.task_id)
+        raise HTTPException(
+            status_code=429,
+            detail=f"{limit} batches are already queued or running (MAX_ACTIVE_BATCHES). Try again when one has finished.",
+            headers={"Retry-After": "60"},
+        )
     task_dir = get_task_dir(task.task_id)
 
     zip_path = os.path.join(task_dir, "upload.zip")
     try:
         await _save_upload(zip_file, zip_path, empty_detail="Empty ZIP upload.")
-    except HTTPException:
+        _batch_executor().submit(_process_batch, task, zip_path, confidence, iou, selected_classes)
+    except BaseException:
+        release_task(task.task_id)
         discard_task(task.task_id)
         raise
-
-    _batch_executor().submit(_process_batch, task, zip_path, confidence, iou, selected_classes)
 
     return {
         "task_id": task.task_id,

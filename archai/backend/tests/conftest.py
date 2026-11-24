@@ -165,3 +165,15 @@ def _fresh_login_limiter():
 
     analytics._login_limiter = FailedLoginLimiter()
     yield
+
+
+@pytest.fixture(autouse=True)
+def _no_held_tasks():
+    """A test that stubs a batch out never releases its task; the next test starts with none held."""
+    yield
+    from app.services import file_manager
+
+    held = getattr(file_manager, "_held", None)
+    if held is not None:
+        with file_manager._lock:
+            held.clear()
