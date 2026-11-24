@@ -1175,7 +1175,7 @@ def _full_page_engine(payload: SaiaFullPageExtractRequest) -> str:
 
 
 def _require_readable_image(image_bytes: bytes) -> None:
-    """Refuse bytes PIL cannot identify (a PDF, a text file) with 422.
+    """Refuse bytes PIL cannot identify (a PDF, a text file) with 422, and an image over OCR_MAX_DECODE_PIXELS with 413.
 
     They used to go through segmentation, fail there, fall back to GLM-OCR and
     come back as 502 "Unreadable image payload." - reported as an upstream
@@ -1183,11 +1183,15 @@ def _require_readable_image(image_bytes: bytes) -> None:
     """
     from PIL import Image, UnidentifiedImageError
 
+    from app.services.image_limits import too_many_pixels
+
     try:
-        with Image.open(io.BytesIO(image_bytes)):
-            pass
+        with Image.open(io.BytesIO(image_bytes)) as image:
+            refusal = too_many_pixels(image)
     except (UnidentifiedImageError, OSError, ValueError) as exc:
         raise HTTPException(status_code=422, detail="The uploaded file is not an image the server can read. Use PNG, JPEG or TIFF.") from exc
+    if refusal is not None:
+        raise HTTPException(status_code=413, detail=refusal)
 
 
 def _upright_page_bytes(image_bytes: bytes) -> bytes:

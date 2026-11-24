@@ -23,6 +23,7 @@ from app.agents.segmentation_agent import run_single_segmentation
 from app.config import settings
 from app.core.model_runner import combine_and_filter_predictions
 from app.services.coco_utils import filter_coco_by_classes, merge_coco_list, stats_from_coco
+from app.services.image_limits import too_many_pixels
 from app.services.public_errors import public_failure
 from app.services.file_manager import (
     TaskState,
@@ -252,6 +253,10 @@ def rescale_coco_to_original(coco: dict[str, Any], scale: float) -> dict[str, An
     return out
 
 
+class _TooManyPixels(Exception):
+    """The image's header declares more pixels than OCR_MAX_DECODE_PIXELS; the message is for the client."""
+
+
 def _prepare_image_for_segmentation(image_path: str) -> PreparedImage:
     """
     Ensure image is valid for YOLO inference:
@@ -263,6 +268,10 @@ def _prepare_image_for_segmentation(image_path: str) -> PreparedImage:
     """
     try:
         with Image.open(image_path) as im:
+            # From the header, before load() decodes a pixel.
+            refusal = too_many_pixels(im)
+            if refusal is not None:
+                raise _TooManyPixels(refusal)
             im.load()
             width, height = im.size
             if width <= 0 or height <= 0:
@@ -293,6 +302,8 @@ def _prepare_image_for_segmentation(image_path: str) -> PreparedImage:
             normalized_path = f"{image_path}.seg.jpg"
             working.save(normalized_path, format="JPEG", quality=95)
             return PreparedImage(normalized_path, True, scale)
+    except _TooManyPixels as exc:
+        raise HTTPException(status_code=413, detail=exc.args[0]) from exc
     except Exception as exc:
         # The exception text names the file's path on the server; the UI shows
         # this detail verbatim, so it says what is wrong, not where.
@@ -304,8 +315,12 @@ def _prepare_image_for_segmentation(image_path: str) -> PreparedImage:
 
 
 def _is_valid_image_file(image_path: str) -> bool:
+    """A readable image within OCR_MAX_DECODE_PIXELS; a larger one is skipped from its header, undecoded."""
     try:
         with Image.open(image_path) as im:
+            if too_many_pixels(im) is not None:
+                _LOGGER.info("Skipped a batch image over OCR_MAX_DECODE_PIXELS: %s", os.path.basename(image_path))
+                return False
             im.load()
             width, height = im.size
             return width > 0 and height > 0
