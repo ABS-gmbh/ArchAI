@@ -673,6 +673,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       id: makeId("msg-user"),
       role: "user",
       content: text,
+      // eslint-disable-next-line react-hooks/purity -- sendMessage runs only from onSend (a key or a button press), never during render.
       createdAt: Date.now(),
     };
 
