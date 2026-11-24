@@ -43,7 +43,7 @@ from app.services.ocr_evidence import (
     write_ocr_evidence_jsonl,
 )
 
-from app.services.saia_client import SaiaClient, is_model_not_found_error
+from app.services.saia_client import LazySaiaClient, SaiaClient, is_model_not_found_error
 from app.agents.ocr_agent_errors import (
     OCRAgentError,
 )
@@ -206,7 +206,8 @@ class OcrAgent(BaseAgent):
     name = "ocr-agent"
 
     def __init__(self) -> None:
-        self.client = SaiaClient()
+        # Built on first use: the segmented route with a local backend never needs it.
+        self.client = LazySaiaClient(lambda: SaiaClient())
         self.upscale_factor = max(
             1,
             int(settings.ocr_crop_upscale or os.getenv("OCR_CROP_UPSCALE", "2") or "2"),
@@ -1146,7 +1147,7 @@ def _run_ocr_extraction(
     upscale_factor: int = 2,
     progress: LineProgress | None = None,
 ) -> OCRExtractAnyResponse:
-    saia = client or SaiaClient()
+    saia = client or LazySaiaClient(lambda: SaiaClient())
 
     if _iter_region_inputs(payload):
         return _run_segmented_ocr_extraction(payload, client=saia, upscale_factor=upscale_factor, progress=progress)

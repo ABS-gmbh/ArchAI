@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Sequence
+from typing import Any, Callable, Sequence
 
 from app.config import settings
 
@@ -13,6 +13,30 @@ class SaiaConfigError(RuntimeError):
 
 class SaiaClientError(RuntimeError):
     """Raised when SAIA request/response handling fails."""
+
+
+class LazySaiaClient:
+    """A SaiaClient built on first use, so a missing chat key fails only the calls that need it.
+
+    The OCR agent holds a chat client for its provider paths (tiled VLM OCR,
+    proofreading, the SAIA line backend). Building it up front raised
+    SaiaConfigError for every request, so a deployment without a chat key could
+    not read a page with local OCR (layout + Kraken, or GLM-OCR) either. Any
+    attribute access builds the client; a missing key then raises the same
+    SaiaConfigError at the call that needed the provider.
+    """
+
+    def __init__(self, factory: Callable[[], Any] | None = None) -> None:
+        self._factory = factory
+        self._client: Any = None
+
+    def _resolve(self) -> Any:
+        if self._client is None:
+            self._client = self._factory() if self._factory is not None else SaiaClient()
+        return self._client
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._resolve(), name)
 
 
 class SaiaClient:
