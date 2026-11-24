@@ -115,6 +115,7 @@ from app.services.mention_report import (
     _build_mention_extraction_report,
 )
 from app.services.trace_pipeline import (
+    run_downstream_stages,
     _assign_chunk_id_for_span,
     _auto_index_run,
     _get_ocr_agent,
@@ -2162,155 +2163,27 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
         )
 
         # ══════════════════════════════════════════════════════════════
-        # DOWNSTREAM: ANALYZE (check ner_allowed)
+        # DOWNSTREAM: analysis, authority linking, search decision, index
+        # (trace_pipeline.run_downstream_stages, shared with the other two
+        # pipelines; audit OCR-011). In a worker thread: all of it blocks.
         # ══════════════════════════════════════════════════════════════
-        if not gate_decisions.get("ner_allowed", True):
-            log_event(
-                run_id,
-                "ANALYZE_DEGRADED",
-                "INFO",
-                f"NER gate blocked full analysis; running degraded mention capture only "
-                f"(quality={hardened_quality_label})",
-            )
-            update_run_fields(run_id, current_stage="ANALYZE_RUNNING")
-            base_text_source = "proofread" if str(proofread_text or "").strip() else "ocr"
-            base_text = str(proofread_text or "").strip() if base_text_source == "proofread" else str(ocr_payload["text"] or "")
-            chunks, mentions, _candidates, salvage_debug = _run_trace_analysis(run_id, base_text)
-            salvage_debug = dict(salvage_debug or {})
-            salvage_debug["degraded_mode"] = True
-            salvage_debug["reason"] = "ner_not_allowed_degraded_capture"
-            chunks_count = len(chunks)
-            mentions_count = len(mentions)
-            update_run_fields(
-                run_id,
-                current_stage="ANALYZE_DONE",
-                base_text_source=base_text_source,
-                chunks_count=chunks_count,
-                mentions_count=mentions_count,
-            )
-            log_event(run_id, "ANALYZE_DONE", "END",
-                      f"degraded_capture chunks={chunks_count}, mentions={mentions_count}")
-        else:
-            log_event(run_id, "ANALYZE_RUNNING", "START",
-                      "Running chunk/entity analysis.")
-            update_run_fields(run_id, current_stage="ANALYZE_RUNNING")
-
-            base_text_source = "proofread" if str(proofread_text or "").strip() else "ocr"
-            base_text = str(proofread_text or "").strip() if base_text_source == "proofread" else str(ocr_payload["text"] or "")
-            chunks, mentions, _candidates, salvage_debug = _run_trace_analysis(
-                run_id, base_text,
-            )
-            chunks_count = len(chunks)
-            mentions_count = len(mentions)
-
-            # ── Mention recall check + high-recall fallback ───────────
-            mention_recall_result = check_mention_recall(
-                base_text, mentions_count, hardened_quality_label,
-            )
-            if not mention_recall_result["mention_recall_ok"]:
-                ocr_payload["warnings"] = list(dict.fromkeys(
-                    [*ocr_payload["warnings"], mention_recall_result["reason"]]
-                ))
-                log_event(run_id, "QUALITY_GATES", "INFO",
-                          mention_recall_result["reason"])
-
-            if mention_recall_result.get("trigger_high_recall"):
-                hr_mentions = extract_high_recall_mentions(
-                    base_text,
-                    script=ocr_quality_report.script_family,
-                    quality_label=hardened_quality_label,
-                )
-                if hr_mentions:
-                    existing_spans = {
-                        (m.get("start_offset"), m.get("end_offset"))
-                        for m in mentions
-                    }
-                    new_hr = [
-                        m for m in hr_mentions
-                        if (m.get("start_offset"), m.get("end_offset")) not in existing_spans
-                    ]
-                    if new_hr:
-                        for m in new_hr:
-                            m["chunk_id"] = _assign_chunk_id_for_span(
-                                int(m.get("start_offset", 0)),
-                                int(m.get("end_offset", 0)),
-                                chunks,
-                            )
-                        new_rows = insert_entity_mentions(run_id, new_hr)
-                        mentions.extend(new_rows)
-                        mentions_count = len(mentions)
-                        log_event(run_id, "ANALYZE_RUNNING", "INFO",
-                                  f"High-recall extraction added {len(new_rows)} mentions.")
-                        salvage_debug["high_recall_added"] = len(new_rows)
-
-            update_run_fields(
-                run_id,
-                current_stage="ANALYZE_DONE",
-                base_text_source=base_text_source,
-                chunks_count=chunks_count,
-                mentions_count=mentions_count,
-            )
-            log_event(run_id, "ANALYZE_DONE", "END",
-                      f"chunks={chunks_count}, mentions={mentions_count}")
-
-        # Build mention extraction report
-        mention_report = _build_mention_extraction_report(
-            run_id, asset_ref, mentions, salvage_debug,
-        ) if mentions or not salvage_debug.get("skipped") else None
-
-        # ── Mention recall (for response) ─────────────────────────────
-        if gate_decisions.get("ner_allowed", True):
-            base_text = str(proofread_text or "").strip() or str(ocr_payload["text"] or "")
-            mention_recall = check_mention_recall(
-                base_text, mentions_count, hardened_quality_label,
-            )
-        else:
-            mention_recall = {
-                "mention_recall_ok": True,
-                "reason": "Degraded mention capture only (ner_allowed=False)",
-                "trigger_high_recall": False,
-            }
-
-        log_event(run_id, "STORED", "END", "Run results persisted in SQLite.")
-        update_run_fields(run_id, current_stage="STORED", proofread_text=proofread_text)
-
-        # ══════════════════════════════════════════════════════════════
-        # DOWNSTREAM: AUTHORITY LINKING (check token_search_allowed)
-        # ══════════════════════════════════════════════════════════════
-        if not gate_decisions.get("token_search_allowed", True):
-            log_event(run_id, "LINKING_SKIPPED", "INFO",
-                      f"Authority linking SKIPPED: token_search_allowed=False "
-                      f"(quality={hardened_quality_label})")
-            linking_result, _authority_report = _persist_deferred_authority_links(
-                run_id,
-                reason=f"token_search_allowed=False quality={hardened_quality_label}",
-            )
-        else:
-            # Authority linking is synchronous: urllib with 10-15s timeouts per request
-            # plus a 0.25s time.sleep rate limiter between them. Called directly from an
-            # async function it blocks the one event loop for the whole stage, freezing
-            # every other request on the process - the trace endpoint, the SSE stream,
-            # /health - not just this run. The GLM path already does this via to_thread.
-            linking_result = await asyncio.to_thread(_run_authority_linking_stage, run_id)
-
-        # Build consolidated report
-        consolidated_report = _build_consolidated_report(
-            run_id, asset_ref, mentions, salvage_debug, linking_result,
-        ) if mentions or linking_result else None
-
-        # ══════════════════════════════════════════════════════════════
-        # DOWNSTREAM: AUTO-INDEX (check token_search_allowed)
-        # ══════════════════════════════════════════════════════════════
-        _record_search_decision(run_id, bool(gate_decisions.get("token_search_allowed", True)))
-        if not gate_decisions.get("token_search_allowed", True):
-            log_event(run_id, "INDEX_SKIPPED", "INFO",
-                      f"RAG auto-index SKIPPED: token_search_allowed=False "
-                      f"(quality={hardened_quality_label})")
-        else:
-            _auto_index_run(run_id)
-
-        log_event(run_id, "DONE", "END", "Pipeline completed successfully.")
-        update_run_fields(run_id, status="COMPLETED", current_stage="DONE", error=None)
+        base_text_source = "proofread" if str(proofread_text or "").strip() else "ocr"
+        downstream = await asyncio.to_thread(
+            run_downstream_stages,
+            run_id,
+            asset_ref,
+            base_text=(
+                str(proofread_text or "").strip() if base_text_source == "proofread" else str(ocr_payload["text"] or "")
+            ),
+            base_text_source=base_text_source,
+            recall_text=str(proofread_text or "").strip() or str(ocr_payload["text"] or ""),
+            stored_proofread_text=proofread_text,
+            quality_label=hardened_quality_label,
+            gate_decisions=gate_decisions,
+            script_family=ocr_quality_report.script_family,
+            high_recall=True,
+            ocr_payload=ocr_payload,
+        )
 
         return {
             "run_id": run_id,
@@ -2326,13 +2199,14 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
             "sanity_metrics": ocr_payload.get("sanity_metrics", {}),
             "quality_gates": gate_decisions,
             "ocr_attempts": list_ocr_attempts(run_id),
-            "mention_recall": mention_recall,
-            "chunks_count": chunks_count,
-            "mentions_count": mentions_count,
-            "top_mentions": mentions[:20],
-            "mention_report": mention_report,
-            "linking_result": linking_result,
-            "consolidated_report": consolidated_report,
+            "mention_recall": downstream["mention_recall"],
+            "chunks_count": downstream["chunks_count"],
+            "mentions_count": downstream["mentions_count"],
+            "top_mentions": downstream["top_mentions"],
+            "mention_report": downstream["mention_report"],
+            "linking_result": downstream["linking_result"],
+            "consolidated_report": downstream["consolidated_report"],
+            "authority_report": downstream["authority_report"],
         }
     except Exception as exc:
         err = str(exc)

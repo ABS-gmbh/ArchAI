@@ -62,7 +62,31 @@ def linking_call_lines() -> list[tuple[str, int]]:
 
 
 def test_the_call_sites_are_still_where_we_think() -> None:
-    assert len(linking_call_lines()) == 3
+    # One since audit OCR-011: trace_pipeline.run_downstream_stages, a plain def
+    # that the three pipelines share. It replaced three copies, two of them in
+    # async functions that dispatched the stage with asyncio.to_thread.
+    assert [name for name, _line in linking_call_lines()] == ["trace_pipeline.py"]
+    assert enclosing_function("trace_pipeline.py", linking_call_lines()[0][1]).name == "run_downstream_stages"
+
+
+def test_async_callers_reach_the_shared_downstream_stages_through_a_thread() -> None:
+    """run_downstream_stages blocks (analysis, database, linking): async code must not call it directly."""
+    found = 0
+    for name, tree in TREES.items():
+        threaded = {
+            id(node.args[0])
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call) and ast.unparse(node.func) == "asyncio.to_thread" and node.args
+        }
+        for function in ast.walk(tree):
+            if not isinstance(function, ast.AsyncFunctionDef):
+                continue
+            for node in ast.walk(function):
+                if isinstance(node, ast.Name) and node.id == "run_downstream_stages":
+                    found += 1
+                    assert id(node) in threaded, f"{name}:{node.lineno} {function.name} calls run_downstream_stages on the event loop"
+    # The segmented trace pipeline and ocr_page_with_trace.
+    assert found == 2
 
 
 @pytest.mark.parametrize(("name", "line"), linking_call_lines())
