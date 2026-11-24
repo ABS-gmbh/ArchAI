@@ -13,7 +13,20 @@ const HEADLINES: Record<Exclude<BackendHealth["status"], "ok">, string> = {
 };
 
 const BUTTON =
-  "shrink-0 rounded border border-current px-2 py-0.5 text-xs font-medium outline-none hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-1 disabled:opacity-50 dark:hover:bg-white/10";
+  "shrink-0 rounded border border-current px-2 py-0.5 text-xs font-medium outline-none hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-1 aria-disabled:opacity-50 dark:hover:bg-white/10";
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+
+/** The first control after *root* in the document that can take focus now. */
+function nextFocusableAfter(root: HTMLElement): HTMLElement | null {
+  for (const element of document.querySelectorAll<HTMLElement>(FOCUSABLE)) {
+    const after = root.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING;
+    if (after && !root.contains(element) && element.getClientRects().length > 0) {
+      return element;
+    }
+  }
+  return null;
+}
 
 /**
  * A banner that says what is wrong with the backend before a request fails:
@@ -32,6 +45,7 @@ export function BackendStatusBanner() {
   // The problems on screen when Hide was pressed; in memory only, so a reload shows them again.
   const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
   const controllerRef = useRef<AbortController | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const check = useCallback(async () => {
     controllerRef.current?.abort();
@@ -68,8 +82,16 @@ export function BackendStatusBanner() {
   if (!severe && health.problems.length > 0 && health.problems.every((problem) => hidden.has(problem))) {
     return null;
   }
+  // Hide removes the banner, and with it the focused button: without a target,
+  // a keyboard user is left on the document body. Focus the next control instead.
+  const hide = () => {
+    const next = rootRef.current ? nextFocusableAfter(rootRef.current) : null;
+    setHidden(new Set(health.problems));
+    requestAnimationFrame(() => next?.focus());
+  };
   return (
     <div
+      ref={rootRef}
       className={`flex flex-wrap items-start gap-x-3 gap-y-1 border-b px-4 py-2 text-sm ${
         severe
           ? "border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100"
@@ -88,13 +110,24 @@ export function BackendStatusBanner() {
         ) : null}
       </div>
       <div className="flex shrink-0 gap-2">
-        <button type="button" onClick={() => void check()} disabled={checking} className={BUTTON}>
+        {/* aria-disabled, not disabled: a disabled button loses focus, and the
+            keyboard user who pressed it would be left on the document body. */}
+        <button
+          type="button"
+          onClick={() => {
+            if (!checking) {
+              void check();
+            }
+          }}
+          aria-disabled={checking || undefined}
+          className={BUTTON}
+        >
           {checking ? "Checking…" : "Check again"}
         </button>
         {severe ? null : (
           <button
             type="button"
-            onClick={() => setHidden(new Set(health.problems))}
+            onClick={hide}
             aria-label="Hide these notices until another problem appears"
             className={BUTTON}
           >
