@@ -8,6 +8,12 @@ client sends. Every body is now limited to MAX_UPLOAD_MEGABYTES plus the base64
 overhead (4/3) and 1 MB for the JSON around it, and a larger one is answered
 413 - from Content-Length when the client sends it, and by counting the bytes
 as they arrive otherwise.
+
+That upload limit (about 1.3 GB by default) applies to multipart bodies only.
+Every other body - JSON - is limited to MAX_JSON_MEGABYTES (48 MB by default):
+the largest JSON request the frontend sends carries one page image as a base64
+data URL, and an A4 page scanned at 600 dpi and saved as PNG (27 MB) makes a
+36 MB body; the same page as JPEG makes 10.5 MB.
 """
 
 from __future__ import annotations
@@ -30,6 +36,17 @@ def max_request_bytes() -> int:
     return upload * 4 // 3 + (1 << 20)
 
 
+def max_json_bytes() -> int:
+    return max(1, int(settings.max_json_megabytes)) * (1 << 20)
+
+
+def _limit_for(scope: Scope) -> int:
+    content_type = dict(scope.get("headers") or []).get(b"content-type", b"")
+    if content_type.lower().startswith(b"multipart/form-data"):
+        return max_request_bytes()
+    return max_json_bytes()
+
+
 class RequestBodyLimit:
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
@@ -38,7 +55,7 @@ class RequestBodyLimit:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        limit = max_request_bytes()
+        limit = _limit_for(scope)
         declared = dict(scope.get("headers") or []).get(b"content-length")
         if declared is not None and declared.isdigit() and int(declared) > limit:
             await _send_413(send, limit)
