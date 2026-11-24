@@ -61,3 +61,42 @@ readings of latin-abaton and old-french-verse keep the detached initials. The
 gate gives the same verdicts on the joined readings, so the file was not
 regenerated.
 
+
+### GLM-OCR (2026-11-24, dev machine, not the evaluation VM)
+
+Read on a MacBook with an Apple M4 and 16 GB, Ollama 0.40.6, model
+`glm-ocr:latest` (Ollama id 6effedd0dc8a), at the queue tip of 2026-11-24:
+`scripts/benchmark_recognizers.py --images <the five pages> --engines glmocr
+--json --save-readings`. The model repeats the page's text until Ollama's
+token limit, so a reading is 2,961 to 4,135 characters against references of
+246 to 1,256:
+
+| Page | reference, characters | reading, characters | CER, whole reading | CER, first pass | gate |
+|---|---|---|---|---|---|
+| old-french | 1,256 | 4,047 | 252% | 42.9% | UNRELIABLE, blocked |
+| latin-abaton | 1,052 | 4,135 | 313% | 38.7% | UNRELIABLE, blocked |
+| latin-apocalypse | 389 | 2,961 | 676% | 39.2% | UNRELIABLE, blocked |
+| middle-french-antitus | 246 | 3,547 | 1,350% | 41.2% | UNRELIABLE, blocked |
+| old-french-verse | 1,955 | – | – | – | – (502 after 94 s) |
+
+"First pass" is the reading cut to its first `int(1.1 × reference length)`
+characters, scored with the same CER (`app.services.evaluation.cer`,
+diplomatic policy); it is a measure of the text before the repetition, not a
+reading the product makes. On old-french-verse Ollama aborts every image
+variant with "token repeat limit reached" and the route answers 502.
+
+At this version GLM-OCR is not a usable fallback for these pages: even its
+first pass is three to six times CATMuS Medieval's error. The quality gate
+labels all four readings UNRELIABLE and blocks them, so a page read this way
+is not searched or linked. The VM install is still pending
+(`scripts/eval_vm/README.md`, Decision 5).
+
+### Considered, not shipped
+
+- **Cutting GLM-OCR's repetition.** A guard that stops a reading where it
+  starts to repeat would turn a blocked reading at 250% to 1,350% CER into an
+  allowed one at about 40%: on these four pages the first passes are
+  38.7% to 42.9% CER, the range where the gate already lets fluent wrong
+  readings through on held-out pages (`eval/heldout/README.md`, section 2).
+  A wrong reading the gate blocks is better than one it allows, so the GLM
+  code path is unchanged.

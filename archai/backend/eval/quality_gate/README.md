@@ -44,7 +44,11 @@ somewhat better than they are. No palaeographer has checked the references.
   instructions, until the token limit, at 3 to 15 times the page's length;
   `latin-apocalypse` came back as 13 characters, and `old-french-verse` failed
   with a 502 and has no reading. They are kept as real decoding loops, not as a
-  measure of GLM-OCR.
+  measure of GLM-OCR. Every GLM-OCR figure in this file is from these Ollama
+  0.35.0 readings. With Ollama 0.40.6 (dev machine, 2026-11-24) all four
+  readings repeat the page to 2,961-4,135 characters, latin-apocalypse
+  included, and the gate blocks all four as UNRELIABLE
+  (`eval/recognizers/README.md`, "GLM-OCR").
 
 ## What the gate decides
 
@@ -77,7 +81,7 @@ the 72. The database holds users' transcriptions and is not committed.
   `app/services/ocr_quality_config.py` gives the share of page windows blocked
   at each length.
 - The gate judges what was read, not how much of the page: GLM-OCR's
-  13-character reading of `latin-apocalypse` is graded HIGH.
+  13-character reading of `latin-apocalypse` (Ollama 0.35.0) is graded HIGH.
 - Trigram profiles (`app/services/lexicon_trust.py`). The lexical contrast
   is always the best of Latin, Old French, Middle French and French, plus the
   detected language's own profile; the hit-rate floor takes the best of the
