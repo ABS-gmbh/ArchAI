@@ -205,7 +205,8 @@ class Settings(BaseSettings):
     # local MiniLM, four pages) the answer reached the evidence for 53 at 5
     # and 56 at 8; mean evidence 1,739 characters at 5 unmerged, 1,620 at 8
     # merged. The 9 misses at 5 are English questions sharing no word with the
-    # Old French or Latin passage; the multilingual embedder is unmeasured.
+    # Old French or Latin passage. With multilingual-e5 (--embedder e5-local)
+    # it reached the evidence for 55 at 5 and all 62 at 8 (eval/chat/README.md).
     rag_top_k: int = 8
     rag_entity_top_k: int = 4
     rag_auto_index: bool = True
@@ -233,9 +234,11 @@ class Settings(BaseSettings):
     # question lookups (--questions, 4 pages) MRR +0.037 [+0.011, +0.063],
     # Hit@1 +0.056 [+0.011, +0.099]; 222 passage lookups (--readings) MRR
     # +0.040 [+0.019, +0.063], Hit@1 +0.068 [+0.029, +0.105]. Weight 3 was no
-    # better on passages. The e5 space keeps rag_lexical_weight until e5 is
-    # measured on the larger question set. In the local space rag_lexical_weight
-    # is not read: set this one (RAG_LEXICAL_WEIGHT_LOCAL) to change the weight.
+    # better on passages. The e5 space keeps rag_lexical_weight (1): with e5 on
+    # the 270 question lookups, hybrid MRR is 0.601 / 0.611 / 0.598 / 0.591 at
+    # weights 0.5 / 1 / 2 / 3, a flat curve (eval/retrieval/README.md). In the
+    # local space rag_lexical_weight is not read: set this one
+    # (RAG_LEXICAL_WEIGHT_LOCAL) to change the weight.
     rag_lexical_weight_local: float = 2.0
     # Candidates each ranker contributes to the fusion.
     rag_fusion_pool: int = 50
