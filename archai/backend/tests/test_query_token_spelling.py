@@ -57,3 +57,23 @@ def test_only_the_literal_key_authenticates(monkeypatch: pytest.MonkeyPatch) -> 
     pipeline_db.update_run_fields(run_id, status="COMPLETED", current_stage="DONE")
     assert client.get(f"/api/ocr/trace/stream/{run_id}?token={TOKEN}").status_code == 200
     assert client.get(f"/api/ocr/trace/stream/{run_id}?%74oken={TOKEN}").status_code == 401
+
+
+# Second security review (2026-11-24): the redaction stopped at a double quote,
+# so "?a=\"&token=<value>" kept the token in the access log. uvicorn's parsers
+# both pass a raw quote into the query (httptools 0.9 and h11 0.16, checked
+# live), and h11 a raw "#" too; only the token's holder can craft such a URL.
+@pytest.mark.parametrize("before", ['a="', "a=#", "a='", 'a="x"#y', "a=%22"])
+def test_a_quote_or_hash_before_the_token_does_not_stop_the_redaction(before: str) -> None:
+    line = _access_line(f"/api/ocr/trace/stream/r1?{before}&token={TOKEN}")
+    assert TOKEN not in line
+    assert line.endswith(' HTTP/1.1" 200')
+
+
+def test_a_whole_line_is_redacted_too() -> None:
+    record = logging.LogRecord(
+        "uvicorn.access", logging.INFO, "", 0, f'127.0.0.1:5000 - "GET /api/x?a="&token={TOKEN} HTTP/1.1" 200', None, None
+    )
+    RedactTokenFilter().filter(record)
+    assert TOKEN not in record.getMessage()
+    assert record.getMessage().endswith(' HTTP/1.1" 200')
