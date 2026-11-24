@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
+from app.services.public_errors import RequestRefused
 from app.config import settings
 from app.agents.label_analysis_agent import LabelAnalysisAgent, LabelAnalysisAgentError
 from app.routers.errors import stream_error_message, unexpected_error
@@ -174,7 +175,7 @@ async def chat_completions(payload: ChatCompletionRequest) -> Any:
             temperature=payload.temperature,
             context=payload.context,
         )
-    except ValueError as exc:
+    except RequestRefused as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ChatConfigError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

@@ -21,7 +21,7 @@ from app.agents.ocr_proofreader_agent import OcrProofreaderAgent
 from app.agents.saia_ocr_agent import SaiaOCRAgent
 from app.agents.segmentation_agent import run_single_segmentation
 from app.core.constants import FINAL_CLASSES
-from app.services.public_errors import public_failure
+from app.services.public_errors import RequestRefused, public_failure
 from app.routers.errors import configuration_message, provider_failure, unexpected_error
 from app.db.pipeline_db import (
     claim_reserved_run,
@@ -1079,7 +1079,7 @@ async def ocr_extract(
         # OcrAgent.run is synchronous - model calls and image work - so it
         # runs in a worker thread, not on the event loop (audit OCR-004).
         return await asyncio.to_thread(_get_ocr_agent().run, effective_payload)
-    except ValueError as exc:
+    except RequestRefused as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except SaiaConfigError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -1128,7 +1128,7 @@ async def ocr_saia(payload: SaiaOCRRequest) -> SaiaOCRResponse:
         )
     except HTTPException:
         raise
-    except ValueError as exc:
+    except RequestRefused as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except GlmOllamaOcrError as exc:
         raise _glm_failure(exc) from exc
@@ -1367,7 +1367,7 @@ async def _run_glm_full_page(
                 ),
                 prompt=glm_prompt,
             )
-    except ValueError as exc:
+    except RequestRefused as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except GlmOllamaOcrError as exc:
         raise _glm_failure(exc) from exc

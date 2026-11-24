@@ -90,8 +90,10 @@ def test_index_routes_keep_exception_text_out_of_the_response(
 
 
 def test_index_keeps_its_not_found_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.services.public_errors import RequestRefused
+
     def missing(run_id: str):
-        raise ValueError(f"Pipeline run {run_id!r} not found.")
+        raise RequestRefused(f"Pipeline run {run_id!r} not found.")
 
     monkeypatch.setattr(index.rag_store, "index_run", missing)
     response = _client(index.router).post("/index/run/nope")
@@ -141,8 +143,10 @@ def test_the_report_keeps_its_not_found_message(monkeypatch: pytest.MonkeyPatch)
     from app.routers import authority
     from app.services import authority_linking
 
+    from app.services.public_errors import RequestRefused
+
     def missing(run_id: str):
-        raise ValueError(f"Run not found: {run_id}")
+        raise RequestRefused(f"Run not found: {run_id}")
 
     monkeypatch.setattr(authority_linking, "build_report_from_db", missing)
     response = _client(authority.router).get("/authority/report/nope")

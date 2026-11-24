@@ -36,6 +36,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as LookupTimeout
 from typing import Any
 
+from app.services.public_errors import RequestRefused
 from app.db import pipeline_db
 from app.services.entity_scoring import (
     disambiguate,
@@ -1832,7 +1833,7 @@ def build_report_from_db(run_id: str) -> dict[str, Any]:
     """
     run = pipeline_db.get_run(run_id)
     if run is None:
-        raise ValueError(f"Run not found: {run_id}")
+        raise RequestRefused(f"Run not found: {run_id}")
 
     asset_ref = str(run.get("asset_ref") or "")
     base_text = str(run.get("proofread_text") or run.get("ocr_text") or "")

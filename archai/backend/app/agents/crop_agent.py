@@ -7,10 +7,19 @@ from typing import NamedTuple
 from PIL import Image, ImageDraw
 
 from app.schemas.agents_ocr import OCRRegionInput
+from app.services.public_errors import RequestRefused
 
 
 class CropAgentError(RuntimeError):
     """Raised when a region crop cannot be generated."""
+
+
+class UnreadableImage(RequestRefused):
+    """The page sent is not base64 or not an image PIL can read; the message is for the client (422).
+
+    It was a CropAgentError, a RuntimeError, so /ocr/extract answered a text
+    file or a cut-off PNG with 500 "OCR extraction failed on the server".
+    """
 
 
 def decode_image_bytes(image_b64: str) -> bytes:
@@ -20,7 +29,7 @@ def decode_image_bytes(image_b64: str) -> bytes:
     try:
         return base64.b64decode(payload, validate=False)
     except Exception as exc:
-        raise CropAgentError("Invalid image_b64 payload.") from exc
+        raise UnreadableImage("Invalid image_b64 payload: not base64, or not an image.") from exc
 
 
 def encode_png_base64(image: Image.Image) -> str:
@@ -91,7 +100,7 @@ def decode_page(image_b64: str) -> Image.Image:
             if refusal is None:
                 return image.convert("RGB")
     except Exception as exc:
-        raise CropAgentError("Could not decode source image.") from exc
+        raise UnreadableImage("The uploaded file is not an image the server can read. Use PNG, JPEG or TIFF.") from exc
     raise ImageTooLarge(refusal)
 
 

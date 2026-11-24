@@ -139,7 +139,7 @@ def test_crop_region_still_takes_an_encoded_page() -> None:
 
 
 def test_a_page_that_is_not_an_image_is_refused() -> None:
-    with pytest.raises(crop_agent.CropAgentError):
+    with pytest.raises(crop_agent.UnreadableImage, match="not an image the server can read"):
         decode_page(base64.b64encode(b"not an image").decode("ascii"))
 
 

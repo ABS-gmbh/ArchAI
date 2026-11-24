@@ -9,6 +9,7 @@ import re
 import time
 from typing import Any
 
+from app.services.public_errors import RequestRefused
 from app.config import settings
 from app.services.model_router import (
     chat_stage_from_context,
@@ -1144,7 +1145,7 @@ def _prepare_messages(
     context: dict[str, Any] | None,
 ) -> tuple[list[dict[str, Any]], str]:
     if not messages:
-        raise ValueError("At least one message is required.")
+        raise RequestRefused("At least one message is required.")
 
     prepared = [_normalize_message(msg) for msg in messages]
     if chat_stage_from_context(context) == "translation":
