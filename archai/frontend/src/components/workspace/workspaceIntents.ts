@@ -27,9 +27,11 @@ export function isSegmentationIntent(text: string): boolean {
     value === "show segmentation" ||
     value.startsWith("segment ") ||
     value.includes("segmentation") ||
-    value.includes("labels") ||
-    value.includes("regions") ||
-    value.includes("bounding boxes")
+    // "regions", "labels" and "bounding boxes" ask for the layout only after a
+    // command verb: "show the regions", not "which regions of France does it
+    // mention?", which is a question about the text.
+    /\b(show|find|detect|draw|mark|highlight|display|get)\b.*\b(regions?|labels?|bounding boxes|layout)\b/.test(value) ||
+    /\b(what|which)\b.*\b(regions?|labels?)\b.*\b(on|in) (this|the) (page|image)\b/.test(value)
   );
 }
 
@@ -45,7 +47,8 @@ export function isExtractionIntent(text: string): boolean {
     /\bextract\b.*\btext\b/.test(value) ||
     /\bextract\b.*\b(manuscript|page|latin|french|english|old french|middle french|anglo norman|italian|spanish|iberian|portuguese|catalan)\b/.test(value) ||
     value.includes("transcribe") ||
-    value.includes("ocr") ||
+    // A word, not a substring: "mediocre" contains "ocr".
+    /\bocr\b/.test(value) ||
     value.includes("read the text") ||
     value.includes("what does it say")
   );
@@ -64,7 +67,8 @@ export function isTranslationIntent(text: string): boolean {
 
 export function isCropIntent(text: string): boolean {
   const value = normalizeLabelText(text);
-  return value.includes("crop") || value.includes("cut out") || value.includes("isolate");
+  // Words, not substrings: "crops" in an account is not a request to crop.
+  return /\b(crop|cut out|isolate)\b/.test(value);
 }
 
 export function isLabelAnalysisPrompt(text: string): boolean {

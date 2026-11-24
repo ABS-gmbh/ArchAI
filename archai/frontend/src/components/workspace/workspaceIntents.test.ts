@@ -41,6 +41,34 @@ describe("detectWorkspaceIntent", () => {
   }
 });
 
+// A command word inside another word, or a layout word used about the text, is
+// a question: it goes to chat (or to names), not to a command.
+const questions: [string, ReturnType<typeof detectWorkspaceIntent>][] = [
+  ["What crops are listed in this account?", null],
+  ["Is the hand mediocre or careful?", null],
+  ["Which regions of France does it mention?", "entities"],
+  ["Are the labels on the casks named in the text?", "entities"],
+];
+// The same words as commands still work.
+const commands: [string, ReturnType<typeof detectWorkspaceIntent>][] = [
+  ["crop out the initial", "crop"],
+  ["OCR this page", "extract"],
+  ["show the regions", "segment"],
+  ["find the layout regions", "segment"],
+  ["draw the bounding boxes", "segment"],
+  ["show the labels", "segment"],
+  ["What labels are on this page?", "segment"],
+  ["Which regions are on the image?", "segment"],
+];
+
+describe("detectWorkspaceIntent, words inside questions", () => {
+  for (const [text, intent] of [...questions, ...commands]) {
+    it(`${JSON.stringify(text)} -> ${intent ?? "chat"}`, () => {
+      assert.equal(detectWorkspaceIntent(text), intent);
+    });
+  }
+});
+
 describe("OCR hints", () => {
   it("take the language from the document's metadata when the request names none", () => {
     const hints = resolveOcrPromptHints("read the page", {
