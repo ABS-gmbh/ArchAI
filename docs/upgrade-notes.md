@@ -48,7 +48,11 @@ These behave differently from the first start:
   the layout models or the line recogniser is missing, or when pages cannot
   be indexed for search (`RAG_EMBEDDING_MODEL` needs the chat key and there
   is none; `RAG_EMBEDDING_MODEL=` indexes locally, see deployment.md,
-  "Health"). It used to say "ok" regardless. A monitor that expects "ok" will now alert on a deployment
+  "Health"). It used to say "ok" regardless. The local embedder downloads its
+  model (83 MB, from chroma-onnx-models.s3.amazonaws.com) the first time a
+  page is indexed, into `~/.cache/chroma/onnx_models/all-MiniLM-L6-v2/`. On
+  a server without internet access, fill that directory in advance
+  (deployment.md, "Health", has the commands), or that first index fails. A monitor that expects "ok" will now alert on a deployment
   without models.
 - **With `API_TOKEN` set**, the API docs are off unless `ENABLE_API_DOCS` is
   true, and every route but `/api/health` answers 401 without the token,
