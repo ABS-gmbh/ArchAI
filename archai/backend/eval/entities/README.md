@@ -316,9 +316,9 @@ Gold, one annotator, without the images:
 
 `scripts/benchmark_names_heldout.py`, current code. Authority responses were
 recorded live (1,107 requests, none failed) to `heldout_linking_cache.json.gz`
-(gzip; SHA-256 of the uncompressed JSON e3f1030bc9533d85e72e5fb76356a2b335b8bbb2477b71bc29ea471492f0e59a), so
+(gzip; SHA-256 of the uncompressed JSON 962c39963ca38f767762cfeeb6ee82f128b060c4143ad4d8a67951027a9b246a), so
 reruns are offline. The changes below added the requests their new queries
-make (1,538 distinct requests after the spurious-mention rules). Unsure gold mentions are left out. Intervals are 95%,
+make (1,653 distinct requests after the B-test run). Unsure gold mentions are left out. Intervals are 95%,
 resampled over manuscripts.
 
 | | gold | found | spurious / extracted | links c / w / a / m |
@@ -451,6 +451,49 @@ pages before it was kept. Development pages, links c / w / a / m: reference
   mention of its own; the person mention still covers it. A run of
   capitals is at most five names, so in a longer witness list a later
   byname still comes out as a place.
+
+### B-test, once, on all the changes above (2026-11-24)
+
+B-test was run once, on the whole chain (lexicon, sentence points, query
+trimming with the one-name check, the spurious-mention rules, bynames; not
+the title attempt below), next to its baseline. It is now spent: it will
+not be used to choose or tune anything again, and a later change needs a
+new held-out set.
+
+| B-test | found / gold | spurious / extracted | links c / w / a / m | linkable | none |
+|---|---|---|---|---|---|
+| baseline | 28 / 120 | 35 / 87 | 18 / 0 / 7 / 87 | 1 / 0 / 7 / 61 | 17 / 0 / 0 / 26 |
+| all changes | 27 / 120 | 25 / 70 | 18 / 0 / 6 / 88 | 1 / 0 / 6 / 62 | 17 / 0 / 0 / 26 |
+
+| Language | found, baseline / now | spurious, baseline / now | links c / w / a / m, baseline / now |
+|---|---|---|---|
+| Latin | 19 / 18 of 54 | 23 / 17 | 12/0/4/34 / 12/0/3/35 |
+| French | 6 / 6 of 17 | 3 / 3 | 5/0/1/11 / 5/0/1/11 |
+| Castilian | 2 / 2 of 15 | 7 / 5 | 1/0/1/10 / 1/0/1/10 |
+| Venetian | 1 / 1 of 31 | 2 / 0 | 0/0/1/30 / 0/0/1/30 |
+| Catalan, Italian | 0 / 0 of 3 | 0 / 0 | 0/0/0/2 / 0/0/0/2 |
+
+Every link that changed, with sure gold names: one. *Pancraciꝰ* (Paris,
+BnF, lat. 14650, linkable) had been found only inside "Sunt. Pancraciꝰ", a
+span across a sentence point, and abstained on; after the cut it is a lone
+capital, which no rule proposes, so it is now missed. No link became
+correct or wrong; no name with a record was linked wrongly, before or
+after. "R. de Baileux" and "G. de Porta" (no record) are still found and
+rightly left unlinked, through a shorter mention. Spurious mentions
+removed: "Anno Nonagesimo Septimo" (twice, number words and the sentence
+point), "beate Marie uirginis" and "sancti andree aplĩ" (feasts),
+"R. Pictauensi. P", "U. S", "Icado. Ano", "M̾.Cxuiii. In" (sentence
+points) and "Illͫͦ Sͫͦ Señor" (titles alone). Of the unsure gold names, the
+abbreviated witnesses "Gui.", "Bal.", "Bri.", "Gual." are no longer found
+(each sat in a span across a point), and three saints' names in church
+dedications ("Sc̃i iouim", "Sc̃i sergii", "Sc̃i albim") are newly found.
+
+On held-out text the changes remove a third of the spurious mentions and
+leave the links where they were: they clean the extraction, they do not
+link more names. The largest lever is still cause 1, the 67 of 100 missed
+B-dev names missed at baseline that are written in lowercase, which no
+rule here proposes; it needs a
+gazetteer or a model, not another rule.
 
 Tried on B-dev, not shipped:
 
