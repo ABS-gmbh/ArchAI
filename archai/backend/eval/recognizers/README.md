@@ -34,3 +34,30 @@ engines, rather than versions of one engine, weight the first two pages most.
 None of the references has been checked by a palaeographer, so some readings
 will be wrong. Five pages are enough to rank engines whose error rates differ
 by a factor of two or more. They do not give a corpus-level accuracy figure.
+
+## Results
+
+CER (diplomatic policy) through the full-page route, on the evaluation VM
+(2026-11-24, `scripts/eval_vm/`), with versal initials kept apart as Kraken
+reads them (`OCR_JOIN_DETACHED_INITIALS=false`) and joined (the default):
+
+| Engine | old-french | latin-abaton | latin-apocalypse | middle-french-antitus | old-french-verse | micro |
+|---|---|---|---|---|---|---|
+| CATMuS Medieval (`segmented`) | 6.5 / 6.5 | 6.6 / **5.5** | 18.0 / 18.0 | 4.1 / 4.1 | 7.2 / **5.4** | 7.6 / **6.7** |
+| CREMMA Medieval | 9.9 / 9.9 | 14.6 / 13.0 | 46.9 / 46.9 | 19.6 / 19.6 | 11.8 / 10.1 | 15.1 / 14.1 |
+| McCATMuS | 34.0 / 34.0 | 38.8 / 38.3 | 41.0 / 41.0 | 40.0 / 40.0 | 35.4 / 34.9 | 36.5 / 36.2 |
+
+Only the two pages that set their initials in a column of their own change
+(`app/services/detached_initials.py`). latin-apocalypse keeps its two misreads
+"R Rian" and "R habe bat", since only 2 of its 21 lines start with a
+detached glyph. The join's three thresholds were set on latin-abaton and
+old-french-verse, the two development pages with versals, with one
+annotator. On those two pages it also joins six one-letter words set as
+versals (*Q sperat*, *A superis*, *H uestis*, *A point*, and two versal ⁊
+misread as L and I).
+
+`eval/quality_gate/readings.json` was read before the join, so its CATMuS
+readings of latin-abaton and old-french-verse keep the detached initials. The
+gate gives the same verdicts on the joined readings, so the file was not
+regenerated.
+
