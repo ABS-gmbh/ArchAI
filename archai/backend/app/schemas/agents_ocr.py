@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 DEFAULT_SAIA_OCR_MODEL_PREFERENCES = [
     "internvl3.5-30b-a3b",
@@ -89,13 +90,23 @@ class OCRDocumentMetadata(BaseModel):
     notes: str | None = None
 
 
+# Each region or location suggestion costs a recogniser or provider call, and
+# these lists had no limit (security review S2). A manuscript page has tens of
+# lines, rarely more than 300; the workspace sends none (the segmented engine
+# finds them itself).
+MAX_REGIONS_PER_REQUEST = 1000
+# Evidence spans quote a stretch of a page; a page is a few thousand characters.
+MAX_EVIDENCE_TEXT_CHARS = 20000
+MAX_EVIDENCE_META_BYTES = 65536
+
+
 class OCRExtractRequest(BaseModel):
     image_id: str | None = None
     page_id: str | None = None
     image_b64: str | None = None
     cropped_image_b64: str | None = None
     region: OCRRegionInput | None = None
-    regions: list[OCRRegionInput] | None = None
+    regions: list[OCRRegionInput] | None = Field(default=None, max_length=MAX_REGIONS_PER_REQUEST)
     prefer_model: str | None = None
     mode: Literal["full", "simple"] = "full"
     options: OCRExtractOptions = Field(default_factory=OCRExtractOptions)
@@ -209,7 +220,7 @@ class SaiaOCRRequest(BaseModel):
     image_b64: str | None = None
     script_hint_seed: str | None = None
     apply_proofread: bool = True
-    location_suggestions: list[SaiaOCRLocationSuggestion] = Field(default_factory=list)
+    location_suggestions: list[SaiaOCRLocationSuggestion] = Field(default_factory=list, max_length=MAX_REGIONS_PER_REQUEST)
 
     @model_validator(mode="after")
     def _validate_image(self) -> "SaiaOCRRequest":
@@ -244,8 +255,8 @@ class SaiaFullPageExtractRequest(BaseModel):
     image_b64: str | None = None
     script_hint_seed: str | None = None
     apply_proofread: bool = True
-    location_suggestions: list[SaiaOCRLocationSuggestion] = Field(default_factory=list)
-    regions: list[OCRRegionInput] = Field(default_factory=list)
+    location_suggestions: list[SaiaOCRLocationSuggestion] = Field(default_factory=list, max_length=MAX_REGIONS_PER_REQUEST)
+    regions: list[OCRRegionInput] = Field(default_factory=list, max_length=MAX_REGIONS_PER_REQUEST)
     ocr_backend: OCR_BACKEND_ID = "auto"
     compare_backends: list[OCR_BACKEND_ID] = Field(default_factory=list)
     language_hint: str | None = None
@@ -349,9 +360,9 @@ class EvidenceSpanCreateRequest(BaseModel):
     region_id: str | None = None
     chunk_id: str | None = None
     mention_id: str | None = None
-    text: str = ""
-    raw_text: str | None = None
-    normalized_text: str | None = None
+    text: str = Field(default="", max_length=MAX_EVIDENCE_TEXT_CHARS)
+    raw_text: str | None = Field(default=None, max_length=MAX_EVIDENCE_TEXT_CHARS)
+    normalized_text: str | None = Field(default=None, max_length=MAX_EVIDENCE_TEXT_CHARS)
     start_offset: int | None = None
     end_offset: int | None = None
     bbox_xyxy: list[float] | None = None
@@ -361,6 +372,13 @@ class EvidenceSpanCreateRequest(BaseModel):
     prompt_version: str | None = None
     crop_sha256: str | None = None
     meta_json: dict[str, Any] | None = None
+
+    @field_validator("meta_json")
+    @classmethod
+    def _bounded_meta(cls, value: dict[str, Any] | None) -> dict[str, Any] | None:
+        if value is not None and len(json.dumps(value, default=str)) > MAX_EVIDENCE_META_BYTES:
+            raise ValueError(f"meta_json may be at most {MAX_EVIDENCE_META_BYTES} bytes as JSON")
+        return value
 
 
 class EvidenceSpanRecord(BaseModel):
