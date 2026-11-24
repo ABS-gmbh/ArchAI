@@ -9,8 +9,13 @@ overhead (4/3) and 1 MB for the JSON around it, and a larger one is answered
 413 - from Content-Length when the client sends it, and by counting the bytes
 as they arrive otherwise.
 
-That upload limit (about 1.3 GB by default) applies to multipart bodies only.
-Every other body - JSON - is limited to MAX_JSON_MEGABYTES (48 MB by default):
+That upload limit (about 1.3 GB by default) applies to multipart bodies sent
+to a route that takes an upload (an UploadFile parameter: /predict/single and
+/predict/batch), found from the routes themselves. Every other body - JSON, or
+a multipart body sent to any other route - is limited to MAX_JSON_MEGABYTES
+(48 MB by default). The limit used to follow the Content-Type alone, so a 200
+MB body sent to /chat/completions as multipart was read whole (second security
+review, 2026-11-24). JSON bodies are limited to MAX_JSON_MEGABYTES because
 the largest JSON request the frontend sends carries one page image as a base64
 data URL, and an A4 page scanned at 600 dpi and saved as PNG (27 MB) makes a
 36 MB body; the same page as JPEG makes 10.5 MB.
@@ -19,8 +24,14 @@ data URL, and an A4 page scanned at 600 dpi and saved as PNG (27 MB) makes a
 from __future__ import annotations
 
 import json
-from collections.abc import Awaitable, Callable, MutableMapping
+import re
+from collections.abc import Awaitable, Callable, Iterable, MutableMapping, Sequence
 from typing import Any
+
+from fastapi import APIRouter, params
+from fastapi.dependencies.models import Dependant
+from fastapi.routing import APIRoute
+from starlette.routing import BaseRoute, compile_path
 
 from app.config import settings
 
@@ -40,22 +51,52 @@ def max_json_bytes() -> int:
     return max(1, int(settings.max_json_megabytes)) * (1 << 20)
 
 
-def _limit_for(scope: Scope) -> int:
+def takes_upload(route: BaseRoute) -> bool:
+    """True for a route with a File or UploadFile parameter, its dependencies' included."""
+    return isinstance(route, APIRoute) and _takes_file(route.dependant)
+
+
+def _takes_file(dependant: Dependant) -> bool:
+    return any(isinstance(field.field_info, params.File) for field in dependant.body_params) or any(
+        _takes_file(sub) for sub in dependant.dependencies
+    )
+
+
+def upload_paths(routers: Iterable[tuple[str, APIRouter]]) -> tuple[re.Pattern[str], ...]:
+    """The path patterns of the routes that take an upload, for (prefix, router) pairs."""
+    return tuple(
+        compile_path(prefix + route.path)[0]
+        for prefix, router in routers
+        for route in router.routes
+        if isinstance(route, APIRoute) and takes_upload(route)
+    )
+
+
+def _route_path(scope: Scope) -> str:
+    # As Starlette matches routes: the path below root_path.
+    path, root = scope.get("path", ""), scope.get("root_path", "")
+    return path[len(root) :] if root and path.startswith(root) else path
+
+
+def _limit_for(scope: Scope, uploads: Sequence[re.Pattern[str]]) -> int:
     content_type = dict(scope.get("headers") or []).get(b"content-type", b"")
     if content_type.lower().startswith(b"multipart/form-data"):
-        return max_request_bytes()
+        path = _route_path(scope)
+        if any(pattern.match(path) for pattern in uploads):
+            return max_request_bytes()
     return max_json_bytes()
 
 
 class RequestBodyLimit:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGIApp, upload_paths: Sequence[re.Pattern[str]] = ()) -> None:
         self.app = app
+        self.upload_paths = tuple(upload_paths)
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
             await self.app(scope, receive, send)
             return
-        limit = _limit_for(scope)
+        limit = _limit_for(scope, self.upload_paths)
         declared = dict(scope.get("headers") or []).get(b"content-length")
         if declared is not None and declared.isdigit() and int(declared) > limit:
             await _send_413(send, limit)
