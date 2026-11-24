@@ -751,3 +751,51 @@ def test_a_reserved_run_logs_ocr_once_through_the_real_post_ocr_stages(route: di
     assert stages[:5] == [("RECEIVED", "START"), ("OCR_RUNNING", "START"), ("OCR_RUNNING", "INFO"), ("OCR_DONE", "END"), ("ANALYZE_RUNNING", "START")]
     assert stages.count(("RECEIVED", "START")) == 1 and stages.count(("OCR_DONE", "END")) == 1
     assert stages[-1] == ("DONE", "END") and db.get_run(run_id)["status"] == "COMPLETED"
+
+
+# ------------------------------------------------------------- no chat key --
+
+_CHAT_KEY_SETTINGS = ("chat_ai_api_key", "saia_api_key", "archai_chat_ai_api_key", "archai_saia_api_key")
+_CHAT_KEY_ENV = ("CHAT_AI_API_KEY", "SAIA_API_KEY", "ARCHAI_CHAT_AI_API_KEY", "ARCHAI_SAIA_API_KEY")
+
+
+@pytest.fixture
+def no_chat_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.config import settings
+
+    for name in _CHAT_KEY_SETTINGS:
+        monkeypatch.setattr(settings, name, "")
+    for name in _CHAT_KEY_ENV:
+        monkeypatch.delenv(name, raising=False)
+
+
+def test_the_segmented_route_reads_a_page_without_a_chat_key(no_chat_key: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Local OCR (layout + Kraken) never calls the chat provider, so a deployment
+    # without a chat key must still read pages. The OCR agent built its chat
+    # client up front, and that raised SaiaConfigError before any line was read.
+    from app.services import trace_pipeline
+
+    def recognize(self: Any, _crop_b64: str, metadata: Any) -> Any:
+        return ocr_backends.OCRBackendResult(
+            text=f"line {metadata.region_id}",
+            confidence=0.9,
+            backend_name=self.backend_name,
+            model_name=self.model_name,
+            raw_metadata={},
+            region_id=metadata.region_id,
+            page_id=metadata.page_id,
+            script_hint=None,
+        )
+
+    monkeypatch.setattr(trace_pipeline, "_ocr_agent_instance", None)
+    monkeypatch.setattr(ocr_backends.KrakenBackend, "recognize", recognize)
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150), _line(250)))
+    monkeypatch.setattr(ocr_router, "run_glm_ollama_ocr", lambda *_a, **_k: pytest.fail("must not fall back to GLM-OCR"))
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", lambda *_a, **_k: {})
+    monkeypatch.setattr(ocr_router, "get_test_ocr_fixture", lambda _data: None)
+    monkeypatch.setattr(ocr_router, "get_test_ocr_override", lambda _data: None)
+
+    result = _extract()
+
+    assert result.ocr_engine == "segmented"
+    assert result.lines == ["line a1", "line a2"]
