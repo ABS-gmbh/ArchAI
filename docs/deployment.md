@@ -144,6 +144,14 @@ Never name it `NEXT_PUBLIC_BACKEND_API_TOKEN`: a `NEXT_PUBLIC_` variable is
 copied into the JavaScript every browser downloads. The build and `npm start`
 refuse to run with that variable set.
 
+If the backend has `API_TOKEN` set and `BACKEND_API_TOKEN` is missing or
+different, the backend refuses the proxy's requests. The proxy then answers
+401 with a message naming the setting ("The backend requires an API token,
+and the frontend server sends none. Set BACKEND_API_TOKEN …"), which the
+workspace shows where the request failed. The frontend server's log gets one
+line saying the same. `/api/health` needs no token, so the status banner stays
+green in that case.
+
 With `BACKEND_API_TOKEN` set, **the frontend must itself sit behind the
 deployment's own login** (single sign-on, basic auth at the reverse proxy, a
 VPN), since anyone who can reach the frontend can use the backend through it.
@@ -159,6 +167,24 @@ reverse proxy in front that replaces the header (nginx:
 directly; it is fixed at build time. Against a backend with `API_TOKEN` set,
 the browser's direct requests are refused with 401, and it falls back to the
 `/api` proxy.
+
+### Checking a deployment
+
+`archai/backend/scripts/smoke_api.py` drives every route over HTTP and exits 1
+if one answers differently from what it expects. Run it against a backend on
+**scratch data**, not a live one: it writes runs, tasks and evidence spans,
+and expects `MAX_UPLOAD_MEGABYTES=2`, no chat key, no Ollama and no layout
+models. Its docstring has the command for such a backend. Then run it
+directly, with the token, and through the frontend, without it:
+
+```bash
+cd archai/backend
+python scripts/smoke_api.py --base http://127.0.0.1:8010 --db /tmp/smoke/archai.sqlite --token "$API_TOKEN"
+python scripts/smoke_api.py --base http://127.0.0.1:3000 --db /tmp/smoke/archai.sqlite
+```
+
+`--token` adds the authentication checks: no token, a wrong one, the token
+as `?token=` on the two event streams.
 
 ## Data to back up
 
