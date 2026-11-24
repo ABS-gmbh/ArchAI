@@ -12,8 +12,17 @@ function isAbortError(err: unknown): boolean {
   return err instanceof DOMException && err.name === "AbortError";
 }
 
+/** Names the address that was tried, which NEXT_PUBLIC_BACKEND_URL may have set, not a fixed one. */
 function unreachableMessage(direct: string): string {
-  return `Backend API unreachable at ${direct}. Start the backend on 127.0.0.1:8010 and retry.`;
+  let origin = "";
+  try {
+    origin = /^https?:\/\//i.test(direct) ? new URL(direct).origin : "";
+  } catch {
+    origin = "";
+  }
+  return origin
+    ? `The backend did not answer at ${origin}. Check that it is running there, then try again.`
+    : "The backend did not answer. Check that it is running, then try again.";
 }
 
 type Transport = "direct" | "proxy";

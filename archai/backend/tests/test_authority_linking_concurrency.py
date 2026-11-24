@@ -21,7 +21,7 @@ from app.db import pipeline_db
 from app.services import authority_linking
 
 
-def _seed_run(text: str) -> str:
+def _seed_run(text: str, surface: str = "Merlin") -> str:
     run_id = pipeline_db.create_run(asset_ref="page-1", asset_sha256="sha")
     with pipeline_db._connect() as conn:
         conn.execute(
@@ -39,9 +39,9 @@ def _seed_run(text: str) -> str:
                 "mention_id": f"{run_id}-m",
                 "chunk_id": f"{run_id}-c",
                 "start_offset": 0,
-                "end_offset": 6,
-                "surface": "Merlin",
-                "norm": "merlin",
+                "end_offset": len(surface),
+                "surface": surface,
+                "norm": surface.lower(),
                 "label": "PERSON",
                 "ent_type": "person",
                 "confidence": 0.92,
@@ -125,16 +125,34 @@ def test_concurrent_calls_for_one_run_leave_one_set_of_candidates(slow_sources: 
     assert _candidate_count(together) == expected
 
 
-def test_different_runs_still_link_in_parallel(slow_sources: None) -> None:
-    text = "Merlin medieval legendary wizard arthurian Merlinus"
-    started = time.perf_counter()
-    authority_linking.run_authority_linking(_seed_run(text), top_k=3)
-    one_run = time.perf_counter() - started
+def test_different_runs_still_link_in_parallel(slow_sources: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    # Each run looks up its own name, which is how the lookup below tells the
+    # runs apart: a run's lookups are made from pool threads, several per run,
+    # so the calling thread does not identify it.
+    first = _seed_run("Merlin medieval legendary wizard arthurian Merlinus", "Merlin")
+    second = _seed_run("Arthur medieval legendary king arthurian Arturus", "Arthur")
 
-    first, second = _seed_run(text), _seed_run(text)
-    started = time.perf_counter()
+    # Both runs must be inside a Wikidata lookup at the same moment. If runs
+    # were serialised, the first would wait here for a second that cannot
+    # start, and the barrier would break. No clock is compared: on a loaded CI
+    # runner, "two runs take less than 1.5 times one run" failed by 2 ms.
+    together = threading.Barrier(2, timeout=10)
+    guard = threading.Lock()
+    waited: set[str] = set()
+    lookup = authority_linking.search_wikidata
+
+    def search_wikidata(*args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+        asked = f"{args} {kwargs}".lower()
+        name = next((known for known in ("merlin", "arthur") if known in asked), None)
+        with guard:
+            first_lookup_of_its_run = name is not None and name not in waited
+            if first_lookup_of_its_run:
+                waited.add(str(name))
+        if first_lookup_of_its_run:
+            together.wait()
+        return lookup(*args, **kwargs)
+
+    monkeypatch.setattr(authority_linking, "search_wikidata", search_wikidata)
     assert _in_threads(first, second) == []
-    two_runs = time.perf_counter() - started
-    assert _candidate_count(first) == _candidate_count(second) > 0
-    # Serialised, two runs would take twice as long as one.
-    assert two_runs < 1.5 * one_run
+    # A lookup's own error handling swallows a broken barrier, so ask the barrier.
+    assert waited == {"merlin", "arthur"} and not together.broken
