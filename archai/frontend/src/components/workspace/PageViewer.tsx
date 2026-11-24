@@ -252,6 +252,10 @@ export function PageViewer({
                   onClick={() => setPinnedKind(pinned === kind ? null : { pageId: page.id, kind })}
                   className={`flex w-full items-center justify-between gap-3 rounded px-2 py-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand ${
                     focusKind === kind ? "bg-brand-wash" : "hover:bg-well"
+                  } ${
+                    // Pressed is more than a tint (1.1:1 on the sheet): a brand bar
+                    // on the left edge (5.1:1 on the tint) and a heavier name.
+                    pinned === kind ? "font-medium shadow-[inset_3px_0_0_var(--aa-brand)]" : ""
                   }`}
                 >
                   <span className="min-w-0 truncate">{kind.replace(/\s+/g, " ").trim()}</span>
