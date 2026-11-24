@@ -3,6 +3,7 @@
 Usage::
 
     python scripts/evaluate_chat_answers.py                       # retrieval only, no chat model
+    python scripts/evaluate_chat_answers.py --embedder e5-local   # the same, with e5 on this machine
     python scripts/evaluate_chat_answers.py --live --out answers.jsonl
     python scripts/evaluate_chat_answers.py --score answers.jsonl
 
@@ -20,6 +21,13 @@ a temporary directory, as one gate-approved run chunked as the pipeline chunks.
 Questions then go through the chat path itself, ``chat_ai._prepare_messages``,
 with the run as context, so retrieval, the evidence blocks and the grounding
 instructions are the production ones.
+
+``--embedder`` picks the embedding space: ``local`` (ChromaDB's MiniLM, the
+default), ``provider`` (the configured model through the provider) or
+``e5-local`` (multilingual-e5-large-instruct run here with sentence-transformers,
+the configured model family without the provider). With ``e5-local`` the store
+embeds through that model, and queries get the e5-instruct instruction exactly
+as with the provider, since ``rag_embedding_model`` is set to its name.
 
 Without ``--live`` no chat model is called. The report then says, per item,
 whether the evidence put in front of the model holds the answer span (for an
@@ -100,6 +108,25 @@ def score_answer(item: dict[str, Any], text: str, relevant_chunk_ids: set[str]) 
     return {"outcome": outcome, "cited": any(chunk_id in (text or "") for chunk_id in relevant_chunk_ids)}
 
 
+E5_LOCAL_MODEL = "intfloat/multilingual-e5-large-instruct"
+
+
+def _use_local_e5() -> None:
+    """Embed through multilingual-e5-large-instruct on this machine instead of the provider."""
+    try:
+        from sentence_transformers import SentenceTransformer
+    except ImportError as exc:
+        raise SystemExit("error: --embedder e5-local needs sentence-transformers installed") from exc
+    from app.config import settings
+    from app.services import rag_store
+
+    model = SentenceTransformer(E5_LOCAL_MODEL)
+    settings.rag_embedding_model = E5_LOCAL_MODEL
+    rag_store._embed = lambda texts: [
+        [float(x) for x in v] for v in model.encode(list(texts), batch_size=16, normalize_embeddings=True)
+    ]
+
+
 def build_store(tmp: Path, references: dict[str, str], pages: set[str], *, embedder: str) -> dict[str, dict[str, Any]]:
     """One searchable run per page in a throwaway DB and vector store under *tmp*."""
     os.environ["ARCHAI_DB_PATH"] = str(tmp / "archai.sqlite")
@@ -113,6 +140,8 @@ def build_store(tmp: Path, references: dict[str, str], pages: set[str], *, embed
     rag_store._CLIENT = None
     if embedder == "local":
         settings.rag_embedding_model = ""
+    elif embedder == "e5-local":
+        _use_local_e5()
     runs: dict[str, dict[str, Any]] = {}
     for page_id in sorted(pages):
         reference = references[page_id]
@@ -224,7 +253,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--items", type=Path, default=BACKEND / "eval" / "chat" / "answers.json")
     parser.add_argument("--readings", type=Path, default=BACKEND / "eval" / "quality_gate" / "readings.json")
     parser.add_argument(
-        "--embedder", choices=("local", "provider"), default="local", help="local: ChromaDB's default model; provider: the configured one"
+        "--embedder",
+        choices=("local", "provider", "e5-local"),
+        default="local",
+        help=f"local: ChromaDB's default model; provider: the configured one; e5-local: {E5_LOCAL_MODEL} on this machine",
     )
     parser.add_argument("--live", action="store_true", help="ask the configured chat model and score its answers")
     parser.add_argument("--out", type=Path, help="with --live, where to save the answers (JSONL)")

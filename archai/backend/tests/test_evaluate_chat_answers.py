@@ -121,3 +121,38 @@ class _Dir:
 
     def __exit__(self, *exc) -> None:
         return None
+
+
+def test_e5_local_embeds_here_and_instructs_the_query(ev, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import sys
+    import types
+
+    seen: list[str] = []
+
+    class _FakeModel:
+        def __init__(self, name: str) -> None:
+            assert name == ev.E5_LOCAL_MODEL
+
+        def encode(self, texts, batch_size, normalize_embeddings):
+            seen.extend(texts)
+            return _embed(list(texts))
+
+    monkeypatch.setitem(sys.modules, "sentence_transformers", types.SimpleNamespace(SentenceTransformer=_FakeModel))
+    monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "unused.sqlite"))
+    monkeypatch.setattr(pipeline_db, "_DB_READY", False)
+    monkeypatch.setattr(settings, "chroma_persist_dir", settings.chroma_persist_dir)
+    monkeypatch.setattr(settings, "rag_embedding_model", settings.rag_embedding_model)
+    monkeypatch.setattr(rag_store, "_CLIENT", None)
+    monkeypatch.setattr(rag_store, "_embed", rag_store._embed)
+    monkeypatch.setattr("app.db.pipeline_db.list_mention_links_for_run", lambda run_id: [])
+
+    references = ev.load_references(BACKEND / "eval/quality_gate/readings.json")
+    runs = ev.build_store(tmp_path, references, {"old-french"}, embedder="e5-local")
+    assert runs["old-french"]["index_status"] == "ok"
+    assert settings.rag_embedding_model == ev.E5_LOCAL_MODEL
+    assert seen and not any(text.startswith("Instruct:") for text in seen)  # documents as they are
+
+    items = [i for i in ev.load_items(BACKEND / "eval/chat/answers.json") if i["page_id"] == "old-french"][:1]
+    rows = ev.evaluate_retrieval(items, runs, references)
+    assert rows[0]["retrieval"] == "ok"
+    assert seen[-1] == f"Instruct: {rag_store.E5_RETRIEVAL_TASK}\nQuery: {items[0]['question']}"

@@ -7,6 +7,7 @@ context, and scores the result.
 
 ```bash
 python scripts/evaluate_chat_answers.py                                  # retrieval only, no chat model
+python scripts/evaluate_chat_answers.py --embedder e5-local              # the same, with multilingual-e5-large-instruct run locally
 python scripts/evaluate_chat_answers.py --live --out /tmp/answers.jsonl  # ask the configured chat model
 python scripts/evaluate_chat_answers.py --score /tmp/answers.jsonl       # re-score saved answers
 ```
