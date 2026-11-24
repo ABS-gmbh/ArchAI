@@ -21,13 +21,10 @@ REF="${2:?usage: setup.sh <repo-source> <ref> [checkout-dir]}"
 CHECKOUT="${3:-$HOME/ArchAI}"
 VENV="${ARCHAI_VENV:-$HOME/archai-venv}"
 PYTHON_VERSION="3.11"
-
-# Versions of the environment the existing benchmarks were measured in.
-TORCH_VERSION="2.9.0"
-TORCHVISION_VERSION="0.24.0"
-KRAKEN_VERSION="6.0.3"
-ULTRALYTICS_VERSION="8.4.13"
-NUMPY_VERSION="2.0.2"
+# The inference stack's versions (torch, torchvision, kraken, ultralytics, NumPy)
+# are pinned once, in archai/backend/pyproject.toml's `models` extra: the set the
+# benchmarks were measured with. PyTorch's CPU index supplies the CPU build of
+# torch, which an extra cannot name.
 TORCH_CPU_INDEX="https://download.pytorch.org/whl/cpu"
 
 log() { printf '\n== %s\n' "$*"; }
@@ -42,7 +39,7 @@ retry sudo apt-get install -y --no-install-recommends \
   libspatialindex-dev software-properties-common
 
 if ! command -v "python${PYTHON_VERSION}" >/dev/null 2>&1; then
-  log "Python ${PYTHON_VERSION} (Ubuntu 24.04 ships 3.12; kraken ${KRAKEN_VERSION} is used with 3.11 here)"
+  log "Python ${PYTHON_VERSION} (Ubuntu 24.04 ships 3.12; the pinned kraken is used with 3.11 here)"
   # deadsnakes is the usual source of other CPython versions for Ubuntu.
   retry sudo add-apt-repository -y ppa:deadsnakes/ppa
   retry sudo apt-get update -y
@@ -64,27 +61,12 @@ fi
 PIP="${VENV}/bin/python -m pip"
 ${PIP} install --upgrade pip wheel setuptools
 
-# torch from the CPU wheel index first, then a constraints file so that no later
-# package (kraken, ultralytics, sentence-transformers) can replace it with a CUDA
-# build from PyPI.
-CONSTRAINTS="${VENV}/archai-constraints.txt"
-cat > "${CONSTRAINTS}" <<CONS
-torch==${TORCH_VERSION}+cpu
-torchvision==${TORCHVISION_VERSION}+cpu
-numpy==${NUMPY_VERSION}
-CONS
-
-log "torch ${TORCH_VERSION} (CPU)"
-${PIP} install --index-url "${TORCH_CPU_INDEX}" "torch==${TORCH_VERSION}+cpu" "torchvision==${TORCHVISION_VERSION}+cpu"
-
-log "Backend dependencies (the CI list), the inference stack and the test runner"
-${PIP} install -c "${CONSTRAINTS}" --extra-index-url "${TORCH_CPU_INDEX}" \
-  "fastapi>=0.115.0" "uvicorn[standard]>=0.30.0" "python-multipart>=0.0.18" \
-  "python-jose[cryptography]>=3.3.0" "pydantic-settings>=2.0.0" "numpy==${NUMPY_VERSION}" \
-  "pillow>=10.0.0" "matplotlib>=3.6.0" "shapely>=2.0.0" "rtree>=1.0.0" \
-  "langdetect>=1.0.9" "openai>=1.51.0" "chromadb>=0.5.0" "requests>=2.31.0" \
-  "opencv-python-headless>=4.8,<5" "pytest>=7.0.0" "httpx>=0.24.0" \
-  "kraken==${KRAKEN_VERSION}" "ultralytics==${ULTRALYTICS_VERSION}" "sentence-transformers"
+# One install, so the resolver sees every pin at once. With the CPU index as an
+# extra index, torch==2.9.0 resolves to 2.9.0+cpu (the local version sorts
+# above PyPI's CUDA build), and nothing installed later can replace it.
+log "Backend with its models, dev and headless extras (archai/backend/pyproject.toml), and sentence-transformers"
+${PIP} install --extra-index-url "${TORCH_CPU_INDEX}" \
+  -e "${CHECKOUT}/archai/backend[models,dev,headless]" "sentence-transformers"
 
 log "Check: torch is the CPU build, and the backend imports"
 "${VENV}/bin/python" - <<'PY'

@@ -20,13 +20,22 @@ Ollama, is its fallback.
 ### 1. Packages
 
 `pip install -e .` installs ultralytics (layout) but not kraken (line
-recognition), which the segmented engine needs.
+recognition), which the segmented engine needs. The `models` extra installs
+the whole inference stack at the versions the benchmarks were measured with:
+torch 2.9.0, torchvision 0.24.0, kraken 6.0.3, ultralytics 8.4.13 and
+NumPy 2.0.2.
 
-Installing kraken into that environment is not yet a single command.
-`pip install kraken` resolves kraken 7.2 with NumPy 2.4, while the backend's
-`pyproject.toml` pins `numpy<2.0`. The combination the evaluation VM runs is in
-`scripts/eval_vm/setup.sh`: Python 3.11, torch 2.9.0, kraken 6.0.3,
-ultralytics 8.4.13 and NumPy 2.0.2.
+```bash
+cd archai/backend
+pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[models]"
+```
+
+An extra cannot name a package index. Without PyTorch's CPU index, pip on Linux
+installs the CUDA build of torch, several gigabytes more. Verified with Python
+3.11 on Ubuntu 24.04 (CPU): it resolves with no conflict, installs torch
+2.9.0+cpu, and the full test suite passes. A plain `pip install kraken`
+instead resolves kraken 7.2 with NumPy 2.4, which the backend's
+`numpy<2.1` does not allow.
 
 ### 2. Layout weights
 
