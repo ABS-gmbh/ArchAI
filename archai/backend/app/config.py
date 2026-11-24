@@ -355,4 +355,29 @@ class Settings(BaseSettings):
     model_config = {"env_file": (".env", ".env.local"), "extra": "ignore"}
 
 
+# Read with os.getenv where they are used, not through Settings, which reads
+# .env into its own fields only: set in .env, as .env.example shows, they were
+# ignored, and ARCHAI_DB_PATH there left the database inside the checkout.
+ENV_ONLY_VARIABLES = ("ARCHAI_DB_PATH", "ARCHAI_WIKIDATA_CACHE", "ARCHAI_DEBUG_RAG", "ARCHAI_DISABLE_PROCESS_POOL")
+
+
+def export_env_only_variables(env_files: tuple[str, ...] = (".env", ".env.local")) -> None:
+    """Copy ENV_ONLY_VARIABLES from the .env files into the environment.
+
+    The files are read as Settings reads them: from the working directory, a
+    later file overriding an earlier one, and the process environment winning
+    over both.
+    """
+    from dotenv import dotenv_values  # a dependency of pydantic-settings
+
+    found: dict[str, str] = {}
+    for env_file in env_files:
+        if os.path.isfile(env_file):
+            values = dotenv_values(env_file)
+            found.update({key: value for key, value in values.items() if key in ENV_ONLY_VARIABLES and value is not None})
+    for key, value in found.items():
+        os.environ.setdefault(key, value)
+
+
+export_env_only_variables()
 settings = Settings()
