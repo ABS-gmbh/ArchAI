@@ -78,8 +78,23 @@ the 72. The database holds users' transcriptions and is not committed.
   at each length.
 - The gate judges what was read, not how much of the page: GLM-OCR's
   13-character reading of `latin-apocalypse` is graded HIGH.
-- Trigram profiles exist for Latin and French only. German, English and other
-  languages are not judged lexically.
+- Trigram profiles (`app/services/lexicon_trust.py`). The lexical contrast
+  is always the best of Latin, Old French, Middle French and French, plus the
+  detected language's own profile; the hit-rate floor takes the best of the
+  same. What each detected language is scored against:
+
+  | detected as | profile |
+  |---|---|
+  | latin, old_french, middle_french, french | its own, hand-picked (73-102 trigrams) |
+  | spanish | its own, generated from the CATMuS train split (since 016a998) |
+  | dutch | its own, generated from the CATMuS train split (since 016a998) |
+  | anglo_norman | Old French |
+  | italian, portuguese | Latin |
+  | catalan, occitan | Middle French |
+  | german, english, any other language | none: no lexical check at all |
+
+  A page detected as a language with no profile skips both lexical gates and
+  is judged on structure alone.
 - **The figures below do not hold on manuscripts outside this set.** On 93
   pseudo-pages from 48 held-out manuscripts (`eval/heldout/README.md`,
   2026-11-24), the gate blocks 6 of 76 CATMuS Medieval readings at
@@ -87,6 +102,35 @@ the 72. The database holds users' transcriptions and is not committed.
   and Navarrese pages), and allows 77 of 128 readings at CER >= 25% from the
   two recognisers pages are not routed to. This set has no Spanish page and
   only 59 rows, so it could show neither.
+- **Medieval Spanish and Dutch profiles** (016a998,
+  `scripts/build_trigram_profiles.py`). The profiles were built from the
+  CATMuS Medieval train split, text only, with the 100 most frequent trigrams
+  through the gate's own tokenisation and no threshold touched. They were
+  measured once on the held-out pseudo-pages:
+
+  | | CER <= 10% blocked | CER >= 25% allowed |
+  |---|---|---|
+  | before | 6/80 (CATMuS 6/76) | 77/128 (CREMMA 31/47, McCATMuS 46/81) |
+  | after | 1/80 (CATMuS 1/76) | 81/128 (CREMMA 31/47, McCATMuS 50/81) |
+
+  - **What changed.** Spanish rescues all five good CATMuS readings it
+    blocked (Castilian 4/8 -> 0/8, Navarrese 1/2 -> 0/2).
+  - **The cost.** Four bad McCATMuS readings now pass (Castilian 1/6 -> 4/6
+    allowed, Navarrese 0/2 -> 1/2); McCATMuS reads a line only when CATMuS
+    Medieval reads nothing.
+  - **Independent check.** 93 Castilian pages of the dev split: clean
+    allowed 88 -> 93, reversed-word and random-letter 0/93 -> 0/93.
+  - **Dutch.** No held-out verdict changes. It replaces no lexical check with
+    one: reversed-word Dutch allowed 21/40 -> 3/40 (still 3, not 0), clean
+    40/40, random letters 0/40. Those 40 pages are from 4 manuscripts the
+    profile was built from.
+  - **Not shipped.** Italian, Catalan and Occitan profiles built the same way
+    rescued no good reading and let 5, 1 and 0 more bad ones through.
+  - **What it rests on.** 4 Castilian manuscripts and 1 Navarrese in the
+    held-out sample, 93 dev-split pages, and one sampling seed.
+  - **The held-out sample is now spent for gate decisions.** It has been used
+    once to decide whether to ship a gate change, so the next gate change must
+    be judged on a fresh sample (another seed, other blocks), not on this one.
 - Measured on the calibration set with langdetect seeded (59 rows,
   2026-11-23). On these rows no reading at CER <= 10% is blocked, and 4
   readings at CER >= 25% are allowed:
@@ -117,6 +161,17 @@ the 72. The database holds users' transcriptions and is not committed.
   give a corpus-level error rate.
 
 ## Tried, not shipped
+
+- **A per-recogniser confidence floor against bad readings** (seen
+  2026-11-24, not built). On the held-out pages, 77 of 128 readings at
+  CER >= 25% pass the gate, all from the two recognisers pages are not routed
+  to. Within each recogniser, page confidence follows page CER closely
+  (Spearman -0.86 for CREMMA Medieval, -0.70 for McCATMuS, -0.67 for CATMuS
+  Medieval; `eval/heldout/README.md` section 3), so a floor per recogniser
+  could separate them. It cannot be calibrated here: those two recognisers
+  produced only 4 pages at CER <= 10% in the sample, and the sample is now
+  spent for gate decisions (see above). Confidence is not comparable across
+  recognisers, so one floor for all would not do.
 
 - **Lexical contrast for languages without a profile** (2026-11-23).
   `ocr_text_metrics.lexical_contrast` returns nothing for a detected language
