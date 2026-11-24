@@ -209,6 +209,44 @@ export function bestMatchingSegmentationLabel(text: string, labels: string[]): s
   return bestScore > 0 ? bestLabel : null;
 }
 
+/**
+ * The layout label a question is about, or null when it names none.
+ *
+ * Stricter than bestMatchingSegmentationLabel, which is for a request that is
+ * already known to be about a region ("crop the initial"). Here one shared
+ * word is not enough: "What is this page about?" shares "page" with "Page
+ * Number" and was answered with a label analysis instead of from the text.
+ * A label counts when the question holds its whole name, or every word of it,
+ * or says "initial" and the label is a kind of initial.
+ */
+export function labelNamedInPrompt(text: string, labels: string[]): string | null {
+  const prompt = normalizeLabelText(text);
+  const words = new Set(prompt.split(/\s+/).filter(Boolean));
+  const said = (token: string) => words.has(token) || words.has(`${token}s`);
+  let bestLabel: string | null = null;
+  let bestScore = 0;
+  for (const label of labels) {
+    const normalized = normalizeLabelText(label);
+    const tokens = normalized.split(" ").filter((token) => token.length >= 3);
+    if (!tokens.length) {
+      continue;
+    }
+    let score = 0;
+    if (` ${prompt} `.includes(` ${normalized} `)) {
+      score = 100 + tokens.length;
+    } else if (tokens.every(said)) {
+      score = 50 + tokens.length;
+    } else if (said("initial") && tokens.includes("initial")) {
+      score = 20 + tokens.filter(said).length;
+    }
+    if (score > bestScore) {
+      bestScore = score;
+      bestLabel = label;
+    }
+  }
+  return bestLabel;
+}
+
 /** A polygon outline: at least three x,y points, every coordinate a finite number. */
 function isPolygon(value: unknown): value is number[] {
   return (
