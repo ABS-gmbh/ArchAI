@@ -25,6 +25,8 @@ from app.routers.errors import configuration_message, provider_failure, unexpect
 from app.db.pipeline_db import (
     claim_reserved_run,
     count_chunks,
+    count_reserved_runs,
+    delete_expired_reservations,
     count_entity_mentions,
     create_run,
     get_run,
@@ -1352,7 +1354,31 @@ async def ocr_reserve_run() -> dict[str, str]:
     can open /ocr/trace/stream/{run_id} before sending it. A reserved run can be
     used once.
     """
-    return {"run_id": await asyncio.to_thread(reserve_run)}
+    return {"run_id": await asyncio.to_thread(_reserve_bounded_run)}
+
+
+def _reservation_cutoff() -> str:
+    from datetime import datetime, timedelta, timezone
+
+    ttl = max(1, int(_app_settings.ocr_run_reservation_ttl_seconds))
+    return (datetime.now(timezone.utc) - timedelta(seconds=ttl)).isoformat()
+
+
+def _reserve_bounded_run() -> str:
+    """Reserve a run, after deleting expired reservations, unless too many are waiting."""
+    delete_expired_reservations(created_before=_reservation_cutoff())
+    cap = max(1, int(_app_settings.ocr_run_reservation_max_live))
+    waiting = count_reserved_runs()
+    if waiting >= cap:
+        minutes = max(1, int(_app_settings.ocr_run_reservation_ttl_seconds) // 60)
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Too many reserved runs are waiting to be used ({waiting}). Use one, or try again once "
+                f"unused reservations expire ({minutes} minutes after they were made)."
+            ),
+        )
+    return reserve_run()
 
 
 @router.post("/ocr/extract_full_page", response_model=SaiaFullPageExtractResponse)
@@ -1382,7 +1408,15 @@ def _claim_client_run(payload: SaiaFullPageExtractRequest, image_bytes: bytes) -
         or str(payload.document_id or "").strip()
         or "inline:image_b64"
     )
-    outcome = claim_reserved_run(run_id, asset_ref=asset_ref, asset_sha256=hashlib.sha256(image_bytes).hexdigest())
+    outcome = claim_reserved_run(
+        run_id, asset_ref=asset_ref, asset_sha256=hashlib.sha256(image_bytes).hexdigest(), not_before=_reservation_cutoff()
+    )
+    if outcome == "expired":
+        minutes = max(1, int(_app_settings.ocr_run_reservation_ttl_seconds) // 60)
+        raise HTTPException(
+            status_code=410,
+            detail=f"run_id {run_id!r} expired: a reservation lasts {minutes} minutes. Reserve a new one with POST /ocr/runs.",
+        )
     if outcome == "unknown":
         raise HTTPException(status_code=404, detail=f"Unknown run_id {run_id!r}: reserve one with POST /ocr/runs.")
     if outcome == "used":

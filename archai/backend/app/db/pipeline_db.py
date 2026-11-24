@@ -573,26 +573,57 @@ def reserve_run() -> str:
     return run_id
 
 
-def claim_reserved_run(run_id: str, *, asset_ref: str, asset_sha256: str | None) -> str:
-    """Start a reserved run for one request: ``"claimed"``, ``"unknown"`` or ``"used"``.
+def claim_reserved_run(
+    run_id: str, *, asset_ref: str, asset_sha256: str | None, not_before: str | None = None
+) -> str:
+    """Start a reserved run for one request: ``"claimed"``, ``"unknown"``, ``"expired"`` or ``"used"``.
 
     The claim is one conditional UPDATE, so two requests naming the same run
-    cannot both start it: only a run this server reserved and nothing has used
-    yet can be claimed.
+    cannot both start it: only a run this server reserved, that nothing has used
+    yet and, given *not_before*, that was reserved at or after it can be claimed.
     """
     _init_db_if_needed()
     ts = now_iso()
+    sql = (
+        "UPDATE pipeline_runs SET status='RUNNING', current_stage='RECEIVED', asset_ref=?, asset_sha256=?, updated_at=? "
+        "WHERE run_id=? AND status=?"
+    )
+    params: list[Any] = [str(asset_ref or ""), asset_sha256, ts, str(run_id), RESERVED_RUN_STATUS]
+    if not_before is not None:
+        sql += " AND created_at >= ?"
+        params.append(not_before)
     with _connect() as conn:
-        cursor = conn.execute(
-            "UPDATE pipeline_runs SET status='RUNNING', current_stage='RECEIVED', asset_ref=?, asset_sha256=?, updated_at=? "
-            "WHERE run_id=? AND status=?",
-            (str(asset_ref or ""), asset_sha256, ts, str(run_id), RESERVED_RUN_STATUS),
-        )
+        cursor = conn.execute(sql, params)
         conn.commit()
         if cursor.rowcount == 1:
             return "claimed"
-        exists = conn.execute("SELECT 1 FROM pipeline_runs WHERE run_id=?", (str(run_id),)).fetchone()
-    return "used" if exists else "unknown"
+        row = conn.execute("SELECT status FROM pipeline_runs WHERE run_id=?", (str(run_id),)).fetchone()
+    if row is None:
+        return "unknown"
+    return "expired" if str(row["status"]) == RESERVED_RUN_STATUS else "used"
+
+
+def delete_expired_reservations(*, created_before: str) -> int:
+    """Delete reserved runs no request claimed, reserved before *created_before*; the count.
+
+    Matches status RESERVED and nothing else: such a run holds only its own row
+    (no events, text or results are written before a claim), so this deletes no
+    one's work. A claimed run is RUNNING or later and is never matched.
+    """
+    _init_db_if_needed()
+    with _connect() as conn:
+        cursor = conn.execute(
+            "DELETE FROM pipeline_runs WHERE status=? AND created_at < ?", (RESERVED_RUN_STATUS, created_before)
+        )
+        conn.commit()
+    return int(cursor.rowcount)
+
+
+def count_reserved_runs() -> int:
+    _init_db_if_needed()
+    with _connect() as conn:
+        row = conn.execute("SELECT COUNT(*) FROM pipeline_runs WHERE status=?", (RESERVED_RUN_STATUS,)).fetchone()
+    return int(row[0])
 
 
 def log_event(run_id: str, stage: str, event: str, message: str | None = None) -> None:
