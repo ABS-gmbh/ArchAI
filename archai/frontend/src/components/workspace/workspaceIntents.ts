@@ -3,7 +3,7 @@
 // and the translation and contextual prompts. Moved out of
 // DocumentChatWorkspace.tsx.
 
-import { type WorkspaceDocumentMetadata } from "@/lib/workspace/types";
+import type { WorkspaceDocumentMetadata } from "@/lib/workspace/types";
 import { normalizeCommandText, normalizeLabelText } from "./workspaceSegmentation";
 
 export type WorkspaceIntent = "segment" | "extract" | "translate" | "entities" | "crop" | "label_analysis" | null;

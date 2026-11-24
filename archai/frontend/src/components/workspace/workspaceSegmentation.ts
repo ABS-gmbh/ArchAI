@@ -2,7 +2,7 @@
 // suggestions, summaries, stored label regions and transparent crop overlays.
 // Moved out of DocumentChatWorkspace.tsx.
 
-import { type LabelRegionPayload } from "@/lib/api/chat";
+import type { LabelRegionPayload } from "@/lib/api/chat";
 
 export const TEXT_LABEL_INCLUDE_TOKENS = [
   "script",

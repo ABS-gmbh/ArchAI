@@ -125,6 +125,27 @@ jobs:
         # and BACKEND_URL / BACKEND_API_TOKEN are read when the server runs.
         run: npx next build --webpack
 
+  frontend-unit:
+    name: frontend (unit tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: archai/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Not the engines floor (20.9) the frontend job builds with: the tests
+          # run the TypeScript sources with Node's own test runner, which strips
+          # types itself from Node 23.6 (22.6 behind a flag). Node 20 cannot.
+          # 24.11.0 is the version the tests were written and checked with.
+          node-version: "24.11.0"
+
+      - name: Unit tests (node --test)
+        # No npm ci: the tests import only source modules and node:* built-ins.
+        run: npm test
+
   secret-scan:
     name: no committed secrets
     runs-on: ubuntu-latest
