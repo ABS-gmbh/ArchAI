@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import ApiTokenGate, require_api_token
 from app.body_limit import RequestBodyLimit, upload_paths
-from app.error_handlers import install_error_handlers
+from app.error_handlers import UnhandledErrors, install_error_handlers
 from app.security_headers import SecurityHeaders
 from app.config import JWT_SECRET_MIN_LENGTH, api_docs_enabled, settings
 from app.logging_setup import configure_logging
@@ -140,6 +140,9 @@ PROTECTED_ROUTERS = tuple(
 )
 
 install_error_handlers(app)
+# Innermost: an exception no route handles is answered in JSON here, so the
+# answer passes through every middleware below (app/error_handlers.py).
+app.add_middleware(UnhandledErrors)
 # Added first so it sits inside CORS: a 413 still carries the CORS headers the
 # browser needs to read it. Multipart bodies get the upload limit only on the
 # routes that take an upload; every other body gets the JSON limit.
