@@ -63,7 +63,12 @@ def check_data_paths() -> None:
 
 
 def log_data_paths(task_base_dir: str) -> None:
-    """One INFO line with every path the server writes to, so a deployment can confirm them."""
+    """One INFO line with every path the server keeps data in, so a deployment can confirm them.
+
+    The analytics database is named too, as read only: the server never writes
+    it, so it is not checked, but it is backed up with the rest.
+    """
     entries = [f"{variable}={str(path)!r}" for variable, path, _ in _paths()]
     entries.append(f"TASK_BASE_DIR={task_base_dir!r}")
+    entries.append(f"ANALYTICS_DB_PATH={str(Path(settings.analytics_db_path).expanduser())!r} (read only)")
     _LOGGER.info("Data paths: %s", ", ".join(entries))

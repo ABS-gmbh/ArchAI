@@ -101,7 +101,9 @@ not write `ARCHAI_DB_PATH`, `CHROMA_PERSIST_DIR`, `ARCHAI_WIKIDATA_CACHE` or
 `OCR_EVIDENCE_PATH` (or create it, when it does not exist yet), the server
 refuses to start with an error naming the variable. Startup then logs one
 INFO line, `Data paths: ARCHAI_DB_PATH='…', CHROMA_PERSIST_DIR='…', …`, with
-every path in use; check it after changing the settings.
+every path in use, ending with `ANALYTICS_DB_PATH='…' (read only)`, which the
+server only reads and does not check; check the line after changing the
+settings.
 
 ## What to put in front
 
