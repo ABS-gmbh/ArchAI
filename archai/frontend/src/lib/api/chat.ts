@@ -13,7 +13,6 @@ export interface ChatModelListResponse {
     verifier_model: string;
     embedding_model: string;
   };
-  base_url: string;
 }
 
 export interface ChatMessagePayload {
