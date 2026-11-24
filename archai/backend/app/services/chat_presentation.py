@@ -122,8 +122,8 @@ def _normalize_translation_output(text: str, *, source_text: str = "") -> str:
         "",
         body,
     ).strip()
-    body = re.sub(r"(?is)\s+\bnote:\s+.*$", "", body).strip()
-    body = re.sub(r"(?is)\s+\btranslator'?s note:\s+.*$", "", body).strip()
+    body = re.sub(r"(?is)(?<!\s)\s+\bnote:\s+.*$", "", body).strip()
+    body = re.sub(r"(?is)(?<!\s)\s+\btranslator'?s note:\s+.*$", "", body).strip()
     if source_text:
         source_norm = re.sub(r"\s+", " ", str(source_text or "")).strip().lower()
         if source_norm and body.lower() == source_norm:
@@ -354,7 +354,7 @@ def _clean_verification_value(value: Any) -> str:
         return ""
     text = re.sub(r"(?is)<\s*(think|analysis|scratchpad)\b[^>]*>.*?<\s*/\s*\1\s*>", " ", text)
     text = re.sub(
-        r"(?im)^\s*(reasoning|analysis|scratchpad|chain[\s-]*of[\s-]*thought|internal reasoning|thought process)\s*:\s*.*$",
+        r"(?im)^[ \t]*(reasoning|analysis|scratchpad|chain[\s-]*of[\s-]*thought|internal reasoning|thought process)\s*:\s*.*$",
         " ",
         text,
     )

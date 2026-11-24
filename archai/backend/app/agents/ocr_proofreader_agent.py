@@ -75,7 +75,7 @@ def _clean_plain_text(value: str) -> str:
         return ""
     if text.startswith("```"):
         text = re.sub(r"^```[a-zA-Z0-9_-]*\s*", "", text)
-        text = re.sub(r"\s*```$", "", text).strip()
+        text = re.sub(r"(?<!\s)\s*```$", "", text).strip()
     if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
         text = text[1:-1].strip()
     if text.startswith("{") and text.endswith("}"):

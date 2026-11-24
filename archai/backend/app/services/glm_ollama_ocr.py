@@ -443,7 +443,7 @@ def clean_model_output(text: str) -> str:
             cleaned = match.group(1).strip()
             break
 
-    cleaned = re.split(r"\n\s*Note\s*:", cleaned, flags=re.IGNORECASE)[0].strip()
+    cleaned = re.split(r"\n[ \t]*Note\s*:", cleaned, flags=re.IGNORECASE)[0].strip()
     lines: list[str] = []
     for line in cleaned.splitlines():
         stripped = line.strip()
