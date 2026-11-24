@@ -124,9 +124,14 @@ Backend:
 ```bash
 cd archai/backend
 pip install -e .
-cp .env.example .env    # then fill in ANALYTICS_USERNAME / ANALYTICS_PASSWORD / JWT_SECRET
+cp .env.example .env    # then fill in CHAT_AI_API_KEY, and ANALYTICS_USERNAME / ANALYTICS_PASSWORD / JWT_SECRET
 uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
+
+Without `CHAT_AI_API_KEY` the backend starts, but chat, translation and SAIA OCR
+answer that the key is not configured, and `/api/health` reports `degraded`.
+GLM-OCR needs an Ollama server with `glm-ocr` at `GLMOCR_OLLAMA_HOST`.
+`archai/backend/README.md` lists the other settings.
 
 The analytics endpoints fail closed with HTTP 503 until credentials are
 configured; there are deliberately no default credentials. Generate a secret with:
@@ -147,7 +152,7 @@ cd archai/frontend && npm install && npm run dev
 ruff check src tests        # lint
 ruff format src tests      # format
 mypy                       # strict type check
-pytest tests -q            # 84 tests, no model weights required
+pytest tests -q            # no model weights or Kraken required
 ```
 
 The `archai_ocr` test suite runs without model weights or Kraken installed. So
