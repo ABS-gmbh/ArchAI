@@ -552,6 +552,149 @@ _QUERY_STOPWORDS: set[str] = {
 }
 
 
+# Words that stand beside a name in a mention span but are not part of the
+# name: titles and roles, liturgical rubric words, and function words a run
+# of capitals picks up at a sentence start. Compared on the search key, so
+# "Sainct", "scĩ" (sancti) and "BEATI" match. The span shown to the user keeps
+# them; only the authority query drops them.
+_NAME_QUERY_DROP_KEYS: frozenset[str] = frozenset(
+    {
+        # saints and the blessed
+        "saint", "sainct", "sainz", "sains", "sainte", "saincte", "seint", "seinte",
+        "san", "sant", "santa", "santo", "sanctus", "sancti", "sancta", "sancte",
+        "sancto", "sanctum", "sanctam", "sanctorum", "beatus", "beati", "beata",
+        "beate", "beato", "beatum",
+        # rulers, clergy, nobility and their Latin cases
+        "roi", "rois", "roy", "roys", "roya", "rey", "re", "rex", "regis", "regem",
+        "regina", "reine", "royne", "dux", "ducis", "ducem", "duci", "duc", "dus",
+        "comes", "comitis", "conte", "comte", "cuens", "sire", "messire",
+        "monseigneur", "monsieur", "dominus", "domini", "dominum", "domino",
+        "dominos", "domine", "dom", "dame", "dompna", "episcopus", "episcopi",
+        "episcopum", "euesque", "euesques", "papa", "pape", "abbas", "abbatis",
+        "frater", "fratris", "fratres", "magister", "magistri", "maistre", "mestre",
+        "apostolus", "apostoli", "apostle", "euangelista", "euangeliste",
+        "euangelistae", "martyr", "martir", "martiris", "martyris", "confessor",
+        "confessoris", "presbiter", "presbyter", "clericus", "clerico", "cl",
+        # rubric words
+        "capitulum", "oratio", "lectio", "antiphona", "ant", "ps", "psalmus",
+        "uigilia", "feria", "alius", "alia", "item", "incipit", "explicit",
+        # function words at a sentence start
+        "aussi", "et", "est", "in", "ad", "de", "que", "qui", "le", "la", "li", "lo",
+        "les", "el", "al", "del", "a", "o",
+    }
+)
+
+
+# A point after an abbreviated word abbreviates; any other sentence mark ends
+# the name ("Sancti Marci. In").
+_NAME_QUERY_SENTENCE_RE = re.compile(r"[.;:!?¶]")
+_COMBINING_RE = re.compile("[\u0300-\u036f\u1ab0-\u1aff\u1dc0-\u1dff\u20d0-\u20ff\ufe20-\ufe2f]")
+
+
+def _strip_marks(text: str) -> str:
+    """Drop the combining abbreviation marks left after NFC: "Rog̾o" -> "Rogo", "Frãcois" kept, "mͣrcadigas" -> "marcadigas".
+
+    _build_query_variants turned them into spaces ("Rog o"). A letter that has
+    a precomposed form (ã, é) keeps it.
+    """
+    import unicodedata
+
+    text = unicodedata.normalize("NFC", text).translate(_SUPERSCRIPT_LETTERS)
+    return _COMBINING_RE.sub("", text)
+
+
+# Combining superscript letters stand for letters ("mͣrcadigas" is marcadigas).
+_SUPERSCRIPT_LETTERS = {0x0363 + i: letter for i, letter in enumerate("aeioucdhmrtvx")}
+
+
+_NAME_PARTICLE_KEYS = frozenset({"de", "d", "du", "des"})
+_ARTICLE_AFTER_DE_KEYS = frozenset({"la", "le", "les"})
+# Dropped words that are not titles: a name never starts right after them.
+_NAME_QUERY_FUNCTION_KEYS = frozenset(
+    {"aussi", "et", "est", "in", "ad", "de", "que", "qui", "le", "la", "li", "lo", "les", "el", "al", "del", "a", "o", "item"}
+)
+
+
+def _name_query(surface: str) -> str:
+    """The name in a person mention's span, as the authority query.
+
+    Titles, roles, rubric words and sentence-start function words are dropped
+    and the span is cut at a sentence mark (a point after an abbreviated word
+    excepted): "Sainct Pierre" -> "Pierre", "Rey Rodrigo" -> "Rodrigo", "Aussi
+    de Bar" -> "Bar", "Sancti Marci. In" -> "Marci". After a title only its
+    name is kept, since the words after it are the sentence ("beati iohannis
+    obtutibus presentatus" -> "iohannis"); so it is in a span written all in
+    capitals, where capitals tell nothing. A particle keeps the word after it,
+    whatever its case ("Thomas de hereforde", "Rommant de la Rose"). Returns
+    the surface itself when nothing would be left.
+    """
+    from app.services.medieval_text import build_search_key
+
+    kept: list[str] = []
+    for word in str(surface or "").split():
+        core = word.rstrip(".;:!?¶,")
+        mark = word[len(core):]
+        if core:
+            kept.append(core)
+        if _NAME_QUERY_SENTENCE_RE.search(mark):
+            abbreviated = mark == "." and (
+                _COMBINING_RE.search(core[-1:]) is not None or any(c in "ꝑꝓꝗꝙꝯꝰꝭꝫłđħ" for c in core)
+            )
+            if abbreviated:
+                continue
+            if any(build_search_key(w) not in _NAME_QUERY_DROP_KEYS for w in kept):
+                break
+            kept = []  # only dropped words so far: the name is after the mark
+    tokens = [w.strip(",()") for w in kept if w.strip(",()")]
+    keys = [build_search_key(w) for w in tokens]
+    if not tokens:
+        return str(surface or "").strip()
+    all_caps = all(w.upper() == w for w in tokens)
+    dropped = [k in _NAME_QUERY_DROP_KEYS or not k for k in keys]
+    # The name starts right after the first title that has a word after it
+    # ("DISCIPLINIS BEATI COLUMBANI" -> COLUMBANI), else at the first word
+    # not dropped.
+    start = next(
+        (
+            i + 1
+            for i, d in enumerate(dropped)
+            if d and keys[i] not in _NAME_QUERY_FUNCTION_KEYS and i + 1 < len(tokens) and not dropped[i + 1]
+        ),
+        None,
+    )
+    after_title = start is not None
+    if start is None:
+        start = next((i for i, d in enumerate(dropped) if not d), None)
+    if start is None:
+        return str(surface or "").strip()
+    # After a title the following words are the sentence ("beati iohannis
+    # obtutibus"), unless capitals mark them as the name ("Domini Martini Iusti").
+    capitals_tell = not all_caps and tokens[start][:1].isupper()
+    name = [tokens[start]]
+    i = start + 1
+    while i < len(tokens):
+        key, word = keys[i], tokens[i]
+        is_particle = key in _NAME_PARTICLE_KEYS or (key in _ARTICLE_AFTER_DE_KEYS and keys[i - 1] == "de")
+        if is_particle and not all_caps:
+            name.append(word)
+            i += 1
+            continue
+        if name and build_search_key(name[-1]) in (_NAME_PARTICLE_KEYS | _ARTICLE_AFTER_DE_KEYS):
+            if key in _NAME_QUERY_DROP_KEYS and key not in _ARTICLE_AFTER_DE_KEYS:
+                break
+            name.append(word)  # the word after a particle, whatever its case
+            i += 1
+            continue
+        if key in _NAME_QUERY_DROP_KEYS or all_caps or not word[:1].isupper() or (after_title and not capitals_tell):
+            break
+        name.append(word)
+        i += 1
+    while name and build_search_key(name[-1]) in (_NAME_PARTICLE_KEYS | _ARTICLE_AFTER_DE_KEYS):
+        name.pop()
+    query = _strip_marks(" ".join(name)).strip()
+    return query or str(surface or "").strip()
+
+
 def _prefilter_candidates(
     candidates: list[dict[str, Any]],
     surface: str,

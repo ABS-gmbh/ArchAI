@@ -63,6 +63,7 @@ from app.services.authority_scoring import (
     _MEDIEVAL_DOMAIN_KEYWORDS,
     _WEAK_PLACE_LEXICAL_BLACKLIST,
     _build_query_variants,
+    _name_query,
     _check_canonical_match,
     _compute_name_likeness,
     _deferred_reason_for_mention,
@@ -167,9 +168,13 @@ def _score_breakdown_for_mention(
     ocr_quality: str,
     status: str,
     reason: str,
+    name_query: str | None = None,
 ) -> dict[str, Any]:
     return {
         "mention_surface": str(mention.get("surface") or ""),
+        # The name the authorities were asked for and candidates compared with,
+        # when it differs from the span ("Sainct Pierre" -> "Pierre").
+        "name_query": name_query,
         "mention_confidence": float(mention.get("confidence", 0.0)),
         "ent_type": str(mention.get("ent_type") or "unknown"),
         "status": status,
@@ -1189,7 +1194,12 @@ def _run_authority_linking(
             )
 
         # ── Query generation (progressive simplification) ─────────────
-        queries = _build_query_variants(surface, method)
+        # A person's span can carry a title, a role, a rubric word or the next
+        # sentence ("beati iohannis obtutibus presentatus"); the authorities are
+        # asked for the name alone, and candidates compared with it. The span
+        # shown stays as extracted.
+        name_query = _name_query(surface) if ent_type == "person" else surface
+        queries = _build_query_variants(name_query, method)
         if canon_match:
             canon_queries = canon_match["queries"]
             canon_set = {cq.lower() for cq in canon_queries}
@@ -1298,7 +1308,7 @@ def _run_authority_linking(
             wikidata_candidates = [
                 candidate for candidate in candidates if _candidate_source(candidate) == "wikidata"
             ]
-            filtered_wikidata = _prefilter_candidates(wikidata_candidates, surface, ent_type)
+            filtered_wikidata = _prefilter_candidates(wikidata_candidates, name_query, ent_type)
             allowed_keys = {_candidate_identity_key(candidate) for candidate in filtered_wikidata}
             candidates = [
                 candidate
@@ -1345,7 +1355,7 @@ def _run_authority_linking(
                 domain_bonus = min(0.22, domain_bonus + 0.02)
 
             score, score_parts = _score_candidate(
-                mention=mention,
+                mention={**mention, "surface": name_query},
                 candidate=enriched_candidate,
                 context=context,
                 canonical_norm=canonical_norm,
@@ -1382,6 +1392,23 @@ def _run_authority_linking(
         selected = result["selected"]
         status = result["status"]
         reason = result["reason"]
+        # A person asked for by one name ("Pierre", "Marc", "Rodrigo") matches
+        # every bearer of it: on B-dev the scorer gave Pierre Abélard 0.81 for
+        # "Sainct Pierre", over the threshold, and only the margin to the next
+        # Pierre kept it unlinked. One name is never enough: the page around
+        # the mention must bear out the candidate's description.
+        if (
+            selected is not None
+            and ent_type == "person"
+            and len(name_query.split()) == 1
+            and not _context_supports(context, selected, name_query)
+        ):
+            reason = (
+                f"one name ({name_query!r}) and nothing in the page's context supports "
+                f"{selected.get('label') or _candidate_authority_id(selected)!r}"
+            )
+            status = "ambiguous"
+            selected = None
 
         for i, cand in enumerate(result["all"]):
             is_selected = selected is not None and cand is selected
@@ -1423,6 +1450,7 @@ def _run_authority_linking(
             ocr_quality=ocr_quality,
             status=status,
             reason=reason,
+            name_query=name_query if name_query != surface else None,
         )
 
         if selected and _candidate_authority_id(selected):
@@ -1552,6 +1580,35 @@ def _run_authority_linking(
 
 
 # ── Helpers ────────────────────────────────────────────────────────────
+
+
+# Words too common to count as the page bearing out a description, and the
+# words VIAF writes into every description ("Personal | <label>").
+_SUPPORT_STOPWORDS = frozenset(
+    {
+        "avec", "dans", "pour", "sous", "with", "from", "that", "this", "which", "were", "their", "also",
+        "della", "delle", "degli", "nella", "über", "eine", "einer",
+        "personal", "corporate", "geographic", "authority", "record", "viaf", "work", "expression",
+    }
+)
+
+
+def _context_supports(context: str, candidate: dict[str, Any], name: str) -> bool:
+    """A word of the candidate's description occurs in the mention's context, other than the name itself.
+
+    Words of four letters or more, leaving out the candidate's label and the
+    queried name (a VIAF description repeats the label, so the name would
+    always support itself) and the words every description of its source
+    carries.
+    """
+    from app.services.entity_scoring import _tokenise
+
+    description = " ".join(
+        str(candidate.get(key) or "") for key in ("description", "canonical_description", "parent_location")
+    )
+    own = _tokenise(str(candidate.get("label") or "")) | _tokenise(name)
+    words = {w for w in _tokenise(description) - own if len(w) >= 4 and w not in _SUPPORT_STOPWORDS}
+    return bool(words & _tokenise(context))
 
 
 def _build_context(
