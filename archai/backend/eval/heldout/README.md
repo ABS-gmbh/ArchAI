@@ -2,8 +2,9 @@
 
 Every other accuracy figure in this repository rests on five development
 pages read by one annotator. This one does not: it reads lines from 48
-manuscripts that none of this project's tuning ever saw, with ground truth
-made by other people.
+manuscripts that none of this project's tuning had seen, with ground truth
+made by other people. (It has since been used once, to accept the Spanish
+and Dutch gate profiles in section 2, and is spent for gate decisions.)
 
 ```bash
 python scripts/benchmark_heldout.py sample --data DIR --manifest eval/heldout/manifest.jsonl
@@ -39,7 +40,8 @@ writes the same manifest from the same data, and `run` checks the hashes.
   BnF French manuscripts that may overlap. Their figures are an upper bound on
   how well they do, not a clean held-out number.
 - **Sample.** Per manuscript, two blocks of 30 consecutive main-text lines at
-  random offsets: 2,764 lines, 93 blocks. Each line image is read as its own
+  random offsets (one block for 3 short manuscripts, and two blocks shorter
+  than 30, of 25 and 9 lines): 2,764 lines, 93 blocks. Each line image is read as its own
   crop through `KrakenBackend.recognize`, the code the full-page route uses.
   No line failed for any model.
 - **Not covered.** The page layout step (line images are given), the
@@ -66,7 +68,7 @@ Micro CER, diplomatic policy, with 95% intervals resampled over manuscripts
 CATMuS Medieval is the best of the three on every language, century and
 script stratum, and the paired difference of each other model against it has
 its whole interval above zero in every stratum with more than one manuscript.
-The closest is Humanistica script, where McCATMuS reads 20.9% against 6.3%
+The closest for McCATMuS is Humanistica script, where it reads 20.9% against 6.3%
 (difference +14.6 points [+9.4, +22.2]). Catalan, Middle Dutch, Navarrese,
 Occitan, Venetian, print and uncial have one manuscript each and no real
 interval.
@@ -81,6 +83,9 @@ Each block's lines, joined, are one pseudo-page of about 30 lines; the gate is
 run on it as the pipeline runs it. "Blocked" means names are not extracted and
 the text is not indexed for search.
 
+Before the Spanish and Dutch profiles (the gate at 13e7ffdc; the shipped
+gate's figures follow under "After 7879792c"):
+
 | reading by | pages at CER ≤ 10% | of them blocked | pages at CER ≥ 25% | of them allowed |
 |---|---|---|---|---|
 | CATMuS Medieval (routed) | 76 | **6** | 0 | – |
@@ -88,7 +93,8 @@ the text is not indexed for search.
 | McCATMuS | 1 | 0 | 81 | **46** |
 
 The claim made from the five development pages, "no reading at CER ≤ 10% is
-blocked, and 4 of 59 at CER ≥ 25% are allowed", **does not survive**:
+blocked, and 4 of the 30 at CER ≥ 25% are allowed" (59 rows in all),
+**does not survive**:
 
 - **Good readings blocked.** Six of 76 good CATMuS readings are blocked, and
   five of the six are medieval Spanish: both blocks of Madrid, BNE, MSS. 3995
@@ -108,9 +114,10 @@ blocked, and 4 of 59 at CER ≥ 25% are allowed", **does not survive**:
   fallback recogniser reads a page or some of its lines.
 
 The two findings need different work: the first a lexical profile that knows
-medieval Castilian, the second a signal that the gate does not have at all.
+medieval Castilian (added in 7879792c, below), the second a signal that the
+gate does not have at all.
 
-**After 016a998** (Spanish and Dutch profiles built from the dataset's train
+**After 7879792c** (Spanish and Dutch profiles built from the dataset's train
 split, `scripts/build_trigram_profiles.py`; see
 `eval/quality_gate/README.md`), on the same pseudo-pages:
 
@@ -120,8 +127,9 @@ split, `scripts/build_trigram_profiles.py`; see
 | CREMMA Medieval | 0/3 → 0/3 | 31/47 → 31/47 |
 | McCATMuS | 0/1 → 0/1 | 46/81 → 50/81 |
 
-- **What changed.** The five Spanish pages pass; the remaining block is the
-  Latin page detected as Catalan.
+- **What changed.** The five Spanish pages pass (0 of the 10 Castilian and
+  Navarrese pages blocked); the remaining block is the Latin page detected as
+  Catalan. In all, 81 of 128 readings at CER ≥ 25% are allowed, against 77.
 - **The cost.** Four more McCATMuS readings at CER ≥ 25% pass (Castilian
   1/6 → 4/6, Navarrese 0/2 → 1/2).
 - **What it rests on.** 4 Castilian manuscripts and 1 Navarrese here, 93

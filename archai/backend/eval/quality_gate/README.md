@@ -86,8 +86,8 @@ the 72. The database holds users' transcriptions and is not committed.
   | detected as | profile |
   |---|---|
   | latin, old_french, middle_french, french | its own, hand-picked (73-102 trigrams) |
-  | spanish | its own, generated from the CATMuS train split (since 016a998) |
-  | dutch | its own, generated from the CATMuS train split (since 016a998) |
+  | spanish | its own, generated from the CATMuS train split (since 7879792c) |
+  | dutch | its own, generated from the CATMuS train split (since 7879792c) |
   | anglo_norman | Old French |
   | italian, portuguese | Latin |
   | catalan, occitan | Middle French |
@@ -97,12 +97,14 @@ the 72. The database holds users' transcriptions and is not committed.
   is judged on structure alone.
 - **The figures below do not hold on manuscripts outside this set.** On 93
   pseudo-pages from 48 held-out manuscripts (`eval/heldout/README.md`,
-  2026-11-24), the gate blocks 6 of 76 CATMuS Medieval readings at
-  CER <= 10%, five of them medieval Spanish (half of the well-read Castilian
-  and Navarrese pages), and allows 77 of 128 readings at CER >= 25% from the
-  two recognisers pages are not routed to. This set has no Spanish page and
-  only 59 rows, so it could show neither.
-- **Medieval Spanish and Dutch profiles** (016a998,
+  2026-11-24), the gate before the Spanish and Dutch profiles blocked 6 of
+  76 CATMuS Medieval readings at CER <= 10%, five of them medieval Spanish
+  (half of the well-read Castilian and Navarrese pages), and allowed 77 of
+  128 readings at CER >= 25% from the two recognisers pages are not routed
+  to. With the profiles (shipped, next item) it blocks 1 of 76 and allows 81
+  of 128. This set has no Spanish page and only 59 rows, so it could show
+  neither.
+- **Medieval Spanish and Dutch profiles** (7879792c,
   `scripts/build_trigram_profiles.py`). The profiles were built from the
   CATMuS Medieval train split, text only, with the 100 most frequent trigrams
   through the gate's own tokenisation and no threshold touched. They were
@@ -120,10 +122,14 @@ the 72. The database holds users' transcriptions and is not committed.
     Medieval reads nothing.
   - **Independent check.** 93 Castilian pages of the dev split: clean
     allowed 88 -> 93, reversed-word and random-letter 0/93 -> 0/93.
-  - **Dutch.** No held-out verdict changes. It replaces no lexical check with
-    one: reversed-word Dutch allowed 21/40 -> 3/40 (still 3, not 0), clean
-    40/40, random letters 0/40. Those 40 pages are from 4 manuscripts the
-    profile was built from.
+  - **Dutch.** No held-out reading's verdict changes; of the two held-out
+    Middle Dutch references reversed word by word, one that was allowed is
+    now blocked. It replaces no lexical check with one: reversed-word Dutch
+    allowed 21/40 -> 3/40 (still 3, not 0), clean 40/40, random letters
+    0/40. Those 40 pages come from the first 4 train files of Middle Dutch,
+    3 manuscripts, which the profile was built from.
+  - **Still let through.** 1 of the 43 held-out Latin references reversed
+    word by word is allowed by the shipped gate.
   - **Not shipped.** Italian, Catalan and Occitan profiles built the same way
     rescued no good reading and let 5, 1 and 0 more bad ones through.
   - **What it rests on.** 4 Castilian manuscripts and 1 Navarrese in the
@@ -132,7 +138,11 @@ the 72. The database holds users' transcriptions and is not committed.
     once to decide whether to ship a gate change, so the next gate change must
     be judged on a fresh sample (another seed, other blocks), not on this one.
 - Measured on the calibration set with langdetect seeded (59 rows,
-  2026-11-23). On these rows no reading at CER <= 10% is blocked, and 4
+  2026-11-23). The committed readings keep versal initials detached, as
+  Kraken wrote them before the join became the default (75181719); on fresh
+  readings with the join (55 rows, no GLM-OCR; `scripts/eval_vm/README.md`,
+  3c and 3d) the verdicts are the same and 3 readings at CER >= 25% are
+  allowed. On the committed rows no reading at CER <= 10% is blocked, and 4
   readings at CER >= 25% are allowed:
 
   | Label | n | allowed | CER range |
@@ -156,15 +166,17 @@ the 72. The database holds users' transcriptions and is not committed.
   (`select_backend_plan`; backend election is off). McCATMuS reads a line
   there only when every earlier backend fails, or when it is asked for
   explicitly.
-- Five pages in two languages, transcribed by non-specialists, are enough to
-  show that the old gate was inverted and to place the thresholds. They do not
-  give a corpus-level error rate.
+- Five pages in two languages, transcribed by non-specialists, were enough to
+  show that the old gate was inverted and to place the thresholds on them.
+  They do not give a corpus-level error rate, and the thresholds placed on
+  them do not transfer: on held-out manuscripts the shipped gate allows 81 of
+  128 readings at CER >= 25% (`eval/heldout/README.md`, section 2).
 
 ## Tried, not shipped
 
 - **A per-recogniser confidence floor against bad readings** (seen
-  2026-11-24, not built). On the held-out pages, 77 of 128 readings at
-  CER >= 25% pass the gate, all from the two recognisers pages are not routed
+  2026-11-24, not built). On the held-out pages, 81 of 128 readings at
+  CER >= 25% pass the shipped gate, all from the two recognisers pages are not routed
   to. Within each recogniser, page confidence follows page CER closely
   (Spearman -0.86 for CREMMA Medieval, -0.70 for McCATMuS, -0.67 for CATMuS
   Medieval; `eval/heldout/README.md` section 3), so a floor per recogniser
@@ -175,7 +187,7 @@ the 72. The database holds users' transcriptions and is not committed.
 
 - **Lexical contrast for languages without a profile** (2026-11-23).
   `ocr_text_metrics.lexical_contrast` returns nothing for a detected language
-  with no trigram profile (German, Dutch, ...), so such a page skips the
+  with no trigram profile (German, Italian, ...), so such a page skips the
   lexical gates. The idea was to measure it as the best fit over the four
   profiles instead. On this set it changes 0 of 59 verdicts: with langdetect
   seeded, no reading here is detected as a language without a profile. The
@@ -204,6 +216,6 @@ the 72. The database holds users' transcriptions and is not committed.
 - **The uncertainty-density double count (SVC-17), shipped.** For the record,
   scripts/calibrate_uncertainty_markers.py builds a synthetic marked set from
   these readings. Across 29 marked pairs the fix changes no verdict and
-  lowers every density by about a quarter. None of the 59 real readings
-  contains a marker.
+  lowers every density by about a quarter. None of the 24 real readings among
+  the 59 rows (5 references, 19 recogniser readings) contains a marker.
 

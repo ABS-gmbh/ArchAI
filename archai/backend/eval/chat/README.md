@@ -90,11 +90,12 @@ VM, 2026-11-24, BM25 weight 1 as in the e5 space):
 
 At top_k 5, MiniLM misses a00, a06, a09, a39, a41, a42, a56, a58 and a61, and
 e5 misses a06, a08, a31, a39, a41, a49 and a58. e5 recovers five of MiniLM's
-nine misses and loses three others. Each lookup searches a single page of 7
+nine misses and loses three others. Each lookup searches a single page of 4
 to 17 windows, so top_k 8 is a large share of the page, and 62/62 comes
-easily there. The question benchmark (`eval/retrieval/README.md`), which ranks
-every window of every reading, is the stronger evidence: e5 dense MRR 0.590
-against MiniLM's 0.398.
+easily there. The question benchmark (`eval/retrieval/README.md`) also
+searches one reading of one page, but over 270 lookups on OCR readings, and
+scores the whole ranking (MRR); it is the stronger evidence: e5 dense MRR
+0.590 against MiniLM's 0.398.
 
 No live answers have been scored yet: the chat provider key returns 401.
 

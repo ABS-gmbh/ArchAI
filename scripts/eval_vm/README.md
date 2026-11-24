@@ -1,7 +1,7 @@
 # Evaluation VM runbook
 
 Runs ArchAI's offline benchmarks on a CPU-only GWDG VM: Ubuntu 24.04, 8 vCPU,
-16 GB RAM, 80 GB disk. The VM gets no secrets. Nothing here calls a chat or
+15 GB RAM, 80 GB disk. The VM gets no secrets. Nothing here calls a chat or
 embedding provider, and every step that would need one is marked as blocked.
 With sentence-transformers 6, e5 is loaded as float32. Its float16 checkpoint
 encodes about 5 times slower on a CPU.
@@ -37,7 +37,8 @@ cd ~/ArchAI/archai/backend && source ~/archai-venv/bin/activate
 - **Checks.** torch is the CPU build, `app.main` imports, and the offline suite
   passes (`pytest -m "not requires_models"`; 1,545 tests in 180 s on the VM).
 
-Disk use is roughly 6 GB (estimate) for the venv and 1.5 GB for the models below.
+Disk use is roughly 6 GB (estimate) for the venv; the models below take
+about 1.35 GB, 1.9 GB with the layout weights.
 
 ## 2. Models (`download_models.sh`)
 
@@ -62,9 +63,10 @@ three are there.
 
 ## 3. Measurements
 
-The run times are **estimates for 8 vCPU, not measured**: the first run is the
-measurement. For scale, the MiniLM retrieval benchmark below takes 9 s on the
-dev laptop. e5-large is about 25 times larger (560M parameters against 22M).
+The run times below were measured on the VM on 2026-11-24 (`run_3ab.log`,
+3c's command log), sharing the CPU with a live backend. For scale, the MiniLM
+retrieval benchmark takes 9 s on the dev laptop; e5-large is about 25 times
+larger (560M parameters against 22M).
 
 ### 3a. Does e5 close the cross-lingual retrieval gap?
 
@@ -86,8 +88,8 @@ python scripts/benchmark_retrieval.py --readings eval/quality_gate/readings.json
   over 270 question lookups, with 95% intervals resampled over readings, and
   the change against dense.
 - **Baseline (MiniLM).** Hybrid MRR 0.475 [0.415, 0.533], Hit@5 0.770.
-- **Time.** About 10 s for MiniLM. For e5, 1 to 2 min to load the model plus
-  roughly 3 to 10 min of encoding, per run.
+- **Time.** 15 to 27 s per MiniLM run, 42 to 78 s per e5 run, loading
+  included.
 - **Needs.** Nothing the VM lacks.
 
 ### 3b. Does e5 put the answer into the chat evidence?
@@ -105,7 +107,7 @@ RAG_TOP_K=5 python scripts/evaluate_chat_answers.py --embedder e5-local   # afte
 - **The question.** Do the 6 answers still missing at top_k 8 (9 at top_k 5)
   come in? All of them are English questions that share no word with the Old
   French or Latin passage.
-- **Time.** About 2 to 5 min per e5 run.
+- **Time.** 39 to 48 s per run, MiniLM or e5.
 - **Needs.** Nothing the VM lacks. `--embedder e5-local` is new in this
   change.
 - **Blocked.** `--live`, which scores the answers themselves, needs the chat
@@ -119,8 +121,8 @@ python scripts/benchmark_recognizers.py --images ~/pages --engines segmented seg
 
 - **Output.** Per page and engine: CER (diplomatic policy), WER and search-key
   CER.
-- **Time.** About 2 to 5 min per page per engine for Kraken on CPU. For 5 pages
-  and 3 engines, 30 to 75 min.
+- **Time.** 595 s for 5 pages and 3 engines (about 40 s an engine-page);
+  the later runs without and with the initial join took 324 s and 268 s.
 - **Needs page images.** `eval/recognizers/manifest.jsonl` matches them by
   SHA-256, so file names don't matter:
   - `old-french` and `latin-abaton` are the thesis demo pages `french.JPEG`
@@ -135,11 +137,12 @@ python scripts/benchmark_recognizers.py --images ~/pages --engines segmented seg
 - **Run on 2026-11-24** with `--save-readings` (595 s for 15 engine-pages,
   sharing the CPU with a live backend). Micro CER over the five pages:
   CATMuS Medieval (the `segmented` default) 7.6%, CREMMA Medieval 15.1%,
-  McCATMuS 36.5%. CATMuS is best on every page. 13 of the 15 texts are
+  McCATMuS 36.5%, with versal initials kept apart (see the next item; with
+  the join, now the default, 6.7%, 14.1% and 36.2%). CATMuS is best on every page. 13 of the 15 texts are
   byte-identical to the committed `eval/quality_gate/readings.json`, which was
   read on the dev machine. The other two are McCATMuS, at CER 34.0% against
   34.3% and an identical CER.
-- **Versal initials** (2026-11-24): joined by default since 4f68977. Micro CER
+- **Versal initials** (2026-11-24): joined by default since 75181719. Micro CER
   for CATMuS goes from 7.6% to 6.7% (latin-abaton 6.6 -> 5.5,
   old-french-verse 7.2 -> 5.4; see `eval/recognizers/README.md`).
 - **Memory.** By default each run starts the layout process pool (three
@@ -178,7 +181,7 @@ the gain.
 
 | Finding | Before / after measurement | On this VM |
 |---|---|---|
-| SVC-09: Kraken confidence is a mean pooled over all characters | Run 3c with every Kraken record's per-character confidences kept (`scripts/eval_vm/svc09_measure.py`). Compare the current pooling, a per-line mean and an all-characters mean against CER at page level (Spearman over engines × pages) and line level. | **Measured 2026-11-24.** The segmented route reads one crop per line, and none of the 549 crops gave more than one Kraken record, so the current pooling and a per-line mean are identical (largest difference 0.00000). The change would do nothing on this route. Confidence against page CER: rho -0.70 (current and per-line) and -0.78 (all characters), over 15 engine-pages. Line level: rho -0.23 over 549 lines (CATMuS -0.16, CREMMA -0.35, McCATMuS -0.08). Confidence stays between 0.959 and 0.982 for CERs from 4% to 47%: McCATMuS at 41% CER scores 0.977 on a page where CATMuS at 18% scores 0.970. It cannot rank models or gate a reading; the lexical gate does that. No change. |
+| SVC-09: Kraken confidence is a mean pooled over all characters | Run 3c with every Kraken record's per-character confidences kept (`scripts/eval_vm/svc09_measure.py`). Compare the current pooling, a per-line mean and an all-characters mean against CER at page level (Spearman over engines × pages) and line level. | **Measured 2026-11-24.** The segmented route reads one crop per line, and none of the 549 crops gave more than one Kraken record, so the current pooling and a per-line mean are identical (largest difference 0.00000). The change would do nothing on this route. Confidence against page CER: rho -0.70 (current and per-line) and -0.78 (all characters), over 15 engine-pages. Line level: rho -0.23 over 549 lines (CATMuS -0.16, CREMMA -0.35, McCATMuS -0.08). Confidence stays between 0.959 and 0.981 for CERs from 4% to 47%: McCATMuS at 41% CER scores 0.976 on a page where CATMuS at 18% scores 0.970. It cannot rank models or gate a reading; the lexical gate does that. No change. |
 | SVC-12: multi-view ranking always picks the binarized variant | On the SAIA VLM path: read the same crops with each variant forced first. Compare CER and how often each variant wins. | **Blocked.** It needs the SAIA provider key, which the VM won't get. The ranking itself (binarized always first) can be shown offline, but that shows nothing about OCR quality. |
 | SVC-13: seam_fragment_ratio never gets the seam geometry | On the tiled SAIA path: count seam-triggered retries and check the RISKY labels against the lines that touch a seam. Compare page-wide against seam-only, with CER after the retry. | **Blocked**, for the same reason (tiled SAIA reads). |
 | SVC-16: trailing_fragment_ratio uses the Latin vowel set for every script | Needs pages in a non-Latin script (Greek, Cyrillic, Hebrew, Arabic, CJK) with references, run through `calibrate_quality_gate.py` before and after. | **No data.** Every reference page is in Latin script, so the change is a no-op on the whole set by construction. |

@@ -340,7 +340,8 @@ latin-apocalypse has four chunks, so every ranker puts its answer in the top
 There is no relevance floor. On 17 questions the pages do not answer (77
 lookups), the top hit scores no lower than on the answerable ones: the AUC is
 0.44 for dense cosine, 0.47 for its z-score and 0.51 for BM25 with ChromaDB's
-model (`--separation`, see `eval/retrieval/README.md`). e5 is not measured yet.
+model (`--separation`, see `eval/retrieval/README.md`). e5 does a little
+better on dense cosine (AUC 0.61) and gives no usable floor either (same README).
 
 The configured embedding model, `multilingual-e5-large-instruct`, expects every
 query to state its task: `Instruct: <task>\nQuery: <text>`. Documents are
