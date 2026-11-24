@@ -21,7 +21,15 @@ import { Readable } from "node:stream";
 
 import type { NextRequest } from "next/server";
 
-import { HOP_BY_HOP, TOKEN_HEADER, crossSiteRefusal, originOptions, trustedProxyHops, upstreamHeaders } from "./proxyRules";
+import {
+  HOP_BY_HOP,
+  TOKEN_HEADER,
+  backendTarget,
+  crossSiteRefusal,
+  originOptions,
+  trustedProxyHops,
+  upstreamHeaders,
+} from "./proxyRules";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,11 +43,6 @@ const PROXY_STATUS_HEADER = "x-archai-proxy";
 // (a page upload) cannot be sent again. A live read was lost this way. A new
 // connection to a backend on the same host or network costs a handshake.
 const NO_REUSE = { http: new http.Agent({ keepAlive: false }), https: new https.Agent({ keepAlive: false }) };
-
-function backendTarget(req: NextRequest): URL {
-  const base = (process.env.BACKEND_URL || "http://127.0.0.1:8010").replace(/\/+$/, "");
-  return new URL(`${base}${req.nextUrl.pathname}${req.nextUrl.search}`);
-}
 
 function downstreamHeaders(res: http.IncomingMessage): Headers {
   const headers = new Headers();
@@ -104,7 +107,13 @@ function tokenRefused(method: string, path: string): Response {
 }
 
 async function proxy(req: NextRequest): Promise<Response> {
-  const target = backendTarget(req);
+  const target = backendTarget(process.env.BACKEND_URL || "http://127.0.0.1:8010", req.nextUrl.pathname, req.nextUrl.search);
+  if (!target) {
+    return Response.json(
+      { detail: "Not found." },
+      { status: 404, headers: { [PROXY_STATUS_HEADER]: "path-refused", "cache-control": "no-store" } },
+    );
+  }
   const transport = target.protocol === "https:" ? https : http;
   const method = req.method.toUpperCase();
 

@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { clientAddress, crossSiteRefusal, upstreamHeaders } from "./proxyRules";
+import { backendTarget, clientAddress, crossSiteRefusal, upstreamHeaders } from "./proxyRules";
 
 // A security review found that the proxy passed the client's own
 // X-Forwarded-For to the backend, whose uvicorn trusts that header from
@@ -103,5 +103,25 @@ describe("crossSiteRefusal", () => {
     assert.equal(crossSiteRefusal("POST", behindProxy, { ...own, allowedOrigins: ["https://archai.example"] }), null);
     const forged = new Headers({ host: "127.0.0.1:3000", "x-forwarded-host": "evil.example", origin: "https://archai.example" });
     assert.notEqual(crossSiteRefusal("POST", forged, { ...own, trustForwardedHost: true }), null);
+  });
+});
+
+// new URL() resolves dot segments, encoded ones included: a pathname of
+// "/api/%2e%2e/docs" became the backend's /docs. Next normalises such a path
+// before it routes the request (under `next start`, /api/%2e%2e/docs is the
+// frontend's own /docs page and never reaches the proxy), but the proxy does
+// not rely on that.
+describe("backendTarget", () => {
+  it("builds the backend URL for an /api path", () => {
+    assert.equal(backendTarget("http://127.0.0.1:8010", "/api/classes", "?a=1")?.href, "http://127.0.0.1:8010/api/classes?a=1");
+    assert.equal(backendTarget("http://127.0.0.1:8010/", "/api/x", "")?.href, "http://127.0.0.1:8010/api/x");
+    assert.equal(backendTarget("http://backend.internal/archai", "/api/health", "")?.href, "http://backend.internal/archai/api/health");
+  });
+
+  it("refuses a path that resolves outside the backend's /api", () => {
+    for (const pathname of ["/api/%2e%2e/docs", "/api/%2E%2E/%2e%2e/openapi.json", "/api/../docs", "/api/x/%2e%2e/%2e%2e/redoc"]) {
+      assert.equal(backendTarget("http://127.0.0.1:8010", pathname, ""), null, pathname);
+    }
+    assert.equal(backendTarget("http://backend.internal/archai", "/api/%2e%2e/%2e%2e/docs", ""), null);
   });
 });

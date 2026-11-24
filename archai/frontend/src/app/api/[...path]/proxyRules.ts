@@ -141,3 +141,15 @@ export function crossSiteRefusal(method: string, headers: Headers, options: Orig
   const originHost = withoutDefaultPort(parsed.host);
   return hosts.some((host) => host && withoutDefaultPort(host) === originHost) ? null : refusal;
 }
+
+/**
+ * The backend URL for a request to the proxy, or null when the path would
+ * leave the backend's /api: new URL() resolves dot segments, encoded ones
+ * included ("/api/%2e%2e/docs" is "/docs").
+ */
+export function backendTarget(backendUrl: string, pathname: string, search: string): URL | null {
+  const base = backendUrl.replace(/\/+$/, "");
+  const target = new URL(`${base}${pathname}${search}`);
+  const apiRoot = `${new URL(base).pathname.replace(/\/+$/, "")}/api/`;
+  return target.pathname.startsWith(apiRoot) ? target : null;
+}
