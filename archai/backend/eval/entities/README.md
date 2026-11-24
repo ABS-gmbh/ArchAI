@@ -451,3 +451,24 @@ pages before it was kept. Development pages, links c / w / a / m: reference
   mention of its own; the person mention still covers it. A run of
   capitals is at most five names, so in a longer witness list a later
   byname still comes out as a place.
+
+Tried on B-dev, not shipped:
+
+- **Letting a dropped title choose among the namesakes** (2026-11-24). When
+  the title trimmed off a person's span is a saint's ("sainct", "beati"), a
+  ruler's ("rey", "dux") or a church office ("episcopus"), only candidates
+  whose label or description says they are of that kind were rivals in the
+  margin comparison, the one-name context check still applying and no
+  threshold changed. B-dev did not move: 0 links gained, 0 wrong (links
+  22 / 0 / 27 / 89 before and after). Of the 34 titled person mentions,
+  32 reached the scorer and 14 of those had a candidate of the kind among
+  the answers, some only by a word ("Saint-Pierre" in a surname, Cyrus II
+  of Persia for "Çiro Rey" at 0.788). Where the right one was found it
+  still could not link: Mark the Evangelist (Q31966) for "Sainct Marc"
+  and Andrew the Apostle (Q43399) for "Sainct Andre" were never enriched
+  (the linker enriches at most 3 Wikidata candidates a mention, in the
+  order of a pre-sort that does not know the title), so their type was
+  unknown and they were turned away as type-incompatible; Saint George
+  (Q48438), enriched, became the only rival for "Sainct George" but scored
+  0.770, under the 0.80 threshold. A title could only help with the
+  enrichment order changed as well, which this attempt did not try.
