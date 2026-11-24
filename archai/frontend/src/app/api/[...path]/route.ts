@@ -79,7 +79,8 @@ function tokenRefused(method: string, path: string): Response {
 }
 
 async function proxy(req: NextRequest): Promise<Response> {
-  const target = backendTarget(process.env.BACKEND_URL || "http://127.0.0.1:8010", req.nextUrl.pathname, req.nextUrl.search);
+  const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8010";
+  const target = backendTarget(backendUrl, req.nextUrl.pathname, req.nextUrl.search);
   if (!target) {
     return Response.json(
       { detail: "Not found." },
@@ -144,7 +145,7 @@ async function proxy(req: NextRequest): Promise<Response> {
         new Response(noBody ? null : (Readable.toWeb(res) as ReadableStream<Uint8Array>), {
           status,
           statusText: res.statusMessage,
-          headers: downstreamHeaders(res.headers),
+          headers: downstreamHeaders(res.headers, new URL(backendUrl)),
         }),
       );
     });

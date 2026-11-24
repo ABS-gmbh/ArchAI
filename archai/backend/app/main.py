@@ -124,6 +124,10 @@ app = FastAPI(
     docs_url="/docs" if _docs else None,
     redoc_url="/redoc" if _docs else None,
     openapi_url="/openapi.json" if _docs else None,
+    # A trailing slash was redirected (307) to a URL built from the Host the
+    # frontend proxy sends: the backend's own address, passed to the browser.
+    # No route ends in a slash and nothing calls one (tests/test_no_slash_redirects.py).
+    redirect_slashes=False,
 )
 
 # /api/health stays open for monitors and load balancers. Every other router
