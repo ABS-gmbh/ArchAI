@@ -168,6 +168,10 @@ with valid, invalid and oversized input, streams, a client disconnecting and
 python scripts/smoke_api.py --base http://127.0.0.1:8765 --db /tmp/smoke/archai.sqlite
 ```
 
+Against a backend with `API_TOKEN` set, add `--token <the token>`. Every
+request then carries it, and the authentication checks run too. Through the
+frontend's `/api` proxy, which adds the token itself, leave it out.
+
 It exits 1 if any route answers differently from what it expects. Never
 point it at a live backend: it writes runs, tasks and evidence spans.
 
