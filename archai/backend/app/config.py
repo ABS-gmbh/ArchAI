@@ -151,6 +151,10 @@ class Settings(BaseSettings):
     # Batches read at the same time, each in its own thread outside FastAPI's
     # threadpool; more wait their turn as "pending".
     max_concurrent_batches: int = 2
+    # Batches queued or running at once, across all clients; one more is
+    # refused with 429 and its upload not kept. The queue had no bound: one
+    # client's twelve batches kept another user's waiting past the task TTL.
+    max_active_batches: int = 8
 
     # Chat AI (GWDG OpenAI-compatible)
     chat_ai_api_key: str = ""

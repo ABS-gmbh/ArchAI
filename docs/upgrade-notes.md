@@ -79,6 +79,7 @@ changed: `RAG_TOP_K` from 5 to 8. `.env.example` no longer lists
 | `MAX_JSON_MEGABYTES` | `48` | pages larger than an A4 PNG at 600 dpi are sent |
 | `MAX_ZIP_MEMBERS` | `2000` | batches have more pages |
 | `MAX_CONCURRENT_BATCHES` | `2` | the machine has memory for more |
+| `MAX_ACTIVE_BATCHES` | `8` | more batches may wait in the queue at once |
 | `CHAT_AI_TIMEOUT_SECONDS` | `180` | the chat provider is slower |
 | `CHAT_MAX_MESSAGE_CHARS` | `200000` | rarely |
 | `ANALYTICS_LOGIN_MAX_FAILURES` | `5` | many people share one address |
@@ -115,6 +116,9 @@ See [deployment.md, "Behind a reverse proxy"](deployment.md#behind-a-reverse-pro
   `POST /api/ocr/extract_full_page` or `/api/ocr/page_with_trace` to follow
   the read. Errors: 409 if it is unknown or used, 410 if it expired, 429 if
   too many are waiting.
+- `POST /api/predict/batch` answers 429, with `Retry-After`, while
+  `MAX_ACTIVE_BATCHES` batches are queued or running; it used to queue every
+  batch without bound.
 - `GET /api/evidence/spans/{page_id}` and `GET /api/ocr/trace/{run_id}/tables`
   take a `limit`. `extract_full_page` answers `line_regions` too.
 - The token goes in `X-API-Token` or `Authorization: Bearer`. As `?token=`

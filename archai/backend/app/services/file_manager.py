@@ -61,6 +61,26 @@ class TaskState:
 
 _task_store: Dict[str, TaskState] = {}
 _lock = Lock()
+# Tasks with work queued or running on them (a batch from submission until it
+# ends). The TTL sweep leaves them alone: it deleted a batch that had waited
+# 61 minutes in the queue, upload and all, and the batch then failed with
+# FileNotFoundError (second security review, D).
+_held: set[str] = set()
+
+
+def hold_task(task_id: str, *, limit: int | None = None) -> bool:
+    """Mark *task_id* as having work queued or running; False, and nothing held, when *limit* tasks already are."""
+    with _lock:
+        if limit is not None and len(_held) >= limit:
+            return False
+        _held.add(task_id)
+        return True
+
+
+def release_task(task_id: str) -> None:
+    """The work on *task_id* has ended (or was never started)."""
+    with _lock:
+        _held.discard(task_id)
 
 
 def create_task() -> TaskState:
@@ -174,6 +194,9 @@ def cleanup_expired_tasks() -> dict[str, int]:
     Measured on a real deployment before this change: 462 directories totalling
     3.0 GB, 460 of them past a 60-minute TTL, the oldest 218 days old.
 
+    A task whose batch is still queued or running (:func:`hold_task`) is kept
+    however old it is; it becomes sweepable when the batch ends.
+
     Returns a count of what was removed, so callers can log it.
     """
     cutoff = time.time() - max(1, int(settings.task_ttl_minutes)) * 60
@@ -181,12 +204,12 @@ def cleanup_expired_tasks() -> dict[str, int]:
     removed_orphans = 0
 
     with _lock:
-        expired = [tid for tid, t in _task_store.items() if t.created_at < cutoff]
+        expired = [tid for tid, t in _task_store.items() if t.created_at < cutoff and tid not in _held]
         for tid in expired:
             del _task_store[tid]
             shutil.rmtree(os.path.join(TASK_BASE_DIR, tid), ignore_errors=True)
             removed_tracked += 1
-        live_ids = set(_task_store)
+        live_ids = set(_task_store) | _held
 
     # Orphan sweep, outside the lock: directory mtime is the only evidence left
     # once the in-memory entry is gone.
