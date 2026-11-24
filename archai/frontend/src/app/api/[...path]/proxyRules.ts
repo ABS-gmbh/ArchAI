@@ -122,6 +122,73 @@ function quoted(value: string | null): string {
   return JSON.stringify(String(value ?? "").slice(0, 200));
 }
 
+const HOST_REFUSAL_DETAIL =
+  "Refused: the frontend was opened at an address it does not know. " +
+  "If this is the app's own address, the frontend's settings must name it: " +
+  "see docs/deployment.md, 'Behind a reverse proxy'.";
+
+/** The host a request was sent to: the reverse proxy's X-Forwarded-Host when it is trusted and present, else Host. */
+function servedHost(headers: Headers, options: OriginOptions): string {
+  const forwarded = (headers.get("x-forwarded-host") || "").split(",")[0].trim();
+  return options.trustForwardedHost && forwarded ? forwarded : (headers.get("host") || "").trim();
+}
+
+type HostKind = "address" | "name" | "invalid";
+
+/** "address" for loopback and IP literals, which DNS rebinding cannot borrow; "name" for any other host. */
+function hostKind(host: string): { kind: HostKind; host: string } {
+  if (!/^[^\s/?#@\\]+$/.test(host)) {
+    return { kind: "invalid", host: "" };
+  }
+  let url: URL;
+  try {
+    url = new URL(`http://${host}`);
+  } catch {
+    return { kind: "invalid", host: "" };
+  }
+  const name = url.hostname.toLowerCase();
+  const address =
+    name === "localhost" || name.endsWith(".localhost") || /^\d{1,3}(\.\d{1,3}){3}$/.test(name) || name.startsWith("[");
+  return { kind: address ? "address" : "name", host: withoutDefaultPort(url.host) };
+}
+
+function listedHosts(options: OriginOptions): string[] {
+  return options.allowedOrigins.flatMap((origin) => {
+    try {
+      return [withoutDefaultPort(new URL(origin).host)];
+    } catch {
+      return [];
+    }
+  });
+}
+
+/**
+ * Why a request must be refused for the host it was sent to, or null. For every
+ * method, reads included.
+ *
+ * DNS rebinding: a page on evil.example whose name an attacker makes resolve to
+ * this server is same-origin with itself (Host evil.example, Origin
+ * evil.example, Sec-Fetch-Site same-origin), and the proxy would add the API
+ * token to its requests. A browser given an address (loopback, a LAN IP) cannot
+ * be rebound, so those are accepted, which keeps the default install working;
+ * a name must be one of FRONTEND_ORIGINS.
+ */
+export function hostRefusal(headers: Headers, options: OriginOptions): CrossSiteRefusal | null {
+  const served = servedHost(headers, options);
+  const { kind, host } = hostKind(served);
+  if (kind === "address" || (kind === "name" && listedHosts(options).includes(host))) {
+    return null;
+  }
+  return {
+    detail: HOST_REFUSAL_DETAIL,
+    log:
+      `refused a request for ${options.trustForwardedHost ? "X-Forwarded-Host or Host" : "Host"} ${quoted(served)}: ` +
+      "it is not loopback, an IP address, or a host named in FRONTEND_ORIGINS. If the app is opened at that " +
+      "name, add its origin (e.g. https://archai.example) to FRONTEND_ORIGINS; behind a proxy that rewrites " +
+      "Host, also set TRUST_FORWARDED_HOST=true (docs/deployment.md, 'Behind a reverse proxy').",
+  };
+}
+
 /**
  * Why a request must be refused as coming from another site, or null.
  *
@@ -132,7 +199,8 @@ function quoted(value: string | null): string {
  * refused, and otherwise (an older browser sends no Sec-Fetch-Site) a
  * state-changing request whose Origin is not the frontend's own Host is
  * refused. A request with no Origin is not a browser's cross-site request,
- * and is let through.
+ * and is let through. hostRefusal runs first, so "same-origin" cannot come from
+ * a page on a name rebound to this server.
  */
 export function crossSiteRefusal(method: string, headers: Headers, options: OriginOptions): CrossSiteRefusal | null {
   if (SAFE_METHODS.has(method.toUpperCase())) {
@@ -173,6 +241,12 @@ export function crossSiteRefusal(method: string, headers: Headers, options: Orig
   }
   if (options.allowedOrigins.includes(parsed.origin.toLowerCase())) {
     return null;
+  }
+  // A host listed in FRONTEND_ORIGINS accepts only the origins listed, scheme
+  // included: http://archai.example is not the https frontend's page.
+  const served = hostKind(servedHost(headers, options));
+  if (served.kind === "name" && listedHosts(options).includes(served.host)) {
+    return refuse();
   }
   const hosts = [headers.get("host") || ""];
   if (options.trustForwardedHost) {

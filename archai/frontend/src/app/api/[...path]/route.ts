@@ -25,6 +25,7 @@ import {
   backendTarget,
   crossSiteRefusal,
   downstreamHeaders,
+  hostRefusal,
   originOptions,
   tokenRefusal,
   trustedProxyHops,
@@ -63,6 +64,7 @@ let tokenRefusalLogged = false;
 // The first cross-site refusal only: one line tells the operator, and a site
 // that keeps trying does not fill the log.
 let crossSiteLogged = false;
+let hostLogged = false;
 
 function tokenRefused(method: string, path: string): Response {
   const refusal = tokenRefusal(Boolean(process.env.BACKEND_API_TOKEN));
@@ -87,7 +89,21 @@ async function proxy(req: NextRequest): Promise<Response> {
   const transport = target.protocol === "https:" ? https : http;
   const method = req.method.toUpperCase();
 
-  const crossSite = crossSiteRefusal(method, req.headers, originOptions());
+  // Before anything reaches the backend with the token: a host the frontend
+  // does not know (DNS rebinding), then a page of another site.
+  const options = originOptions();
+  const wrongHost = hostRefusal(req.headers, options);
+  if (wrongHost) {
+    if (!hostLogged) {
+      hostLogged = true;
+      console.error(`[api proxy] ${req.nextUrl.pathname}: ${wrongHost.log}`);
+    }
+    return Response.json(
+      { detail: wrongHost.detail },
+      { status: 403, headers: { [PROXY_STATUS_HEADER]: "host-refused", "cache-control": "no-store" } },
+    );
+  }
+  const crossSite = crossSiteRefusal(method, req.headers, options);
   if (crossSite) {
     if (!crossSiteLogged) {
       crossSiteLogged = true;
