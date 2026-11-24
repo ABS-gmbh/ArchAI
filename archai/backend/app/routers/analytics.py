@@ -55,22 +55,26 @@ def _verify_token(credentials: HTTPAuthorizationCredentials = Depends(security))
         raise HTTPException(status_code=401, detail="Invalid or expired token.") from exc
 
 
+def _username_key(username: str) -> str:
+    """One key per user name however it is spelled, and of bounded size."""
+    return "user:" + " ".join(username.split()).casefold()[:128]
+
+
 @router.post("/analytics/login")
 def analytics_login(body: LoginRequest, request: Request):
     _require_configured_auth()
-    # No lockout existed: the password could be guessed at the speed of the
-    # network. After too many failures from one address, refuse for a while.
-    address = request.client.host if request.client else "unknown"
-    limits = {
-        "max_failures": settings.analytics_login_max_failures,
-        "window_seconds": settings.analytics_login_window_seconds,
+    # A limit per client address, and one per user name that a client changing
+    # its address cannot step around (app/services/login_limiter.py).
+    keys = {
+        "addr:" + (request.client.host if request.client else "unknown"): settings.analytics_login_max_failures,
+        _username_key(body.username): settings.analytics_login_max_failures_per_username,
     }
-    wait = _login_limiter.retry_after(address, **limits)
+    wait = _login_limiter.attempt(keys, window_seconds=settings.analytics_login_window_seconds)
     if wait is not None:
         seconds = max(1, math.ceil(wait))
         raise HTTPException(
             status_code=429,
-            detail=f"Too many failed logins from this address. Try again in {seconds} seconds.",
+            detail=f"Too many failed logins. Try again in {seconds} seconds.",
             headers={"Retry-After": str(seconds)},
         )
     # compare_digest keeps the comparison constant-time so a caller cannot infer
@@ -80,9 +84,8 @@ def analytics_login(body: LoginRequest, request: Request):
     username_ok = secrets.compare_digest(body.username.encode(), settings.analytics_username.encode())
     password_ok = secrets.compare_digest(body.password.encode(), settings.analytics_password.encode())
     if username_ok and password_ok:
-        _login_limiter.reset(address)
+        _login_limiter.succeeded(keys)
         return LoginResponse(token=_create_token(body.username))
-    _login_limiter.record_failure(address, window_seconds=limits["window_seconds"])
     raise HTTPException(status_code=401, detail="Invalid credentials.")
 
 

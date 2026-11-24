@@ -144,14 +144,23 @@ the frontend's server and its `/api` proxy adds it (see
   127.0.0.1. If the proxy runs on another address, add
   `--forwarded-allow-ips=<proxy address>` so the access log shows the client's
   address.
-- **Rate limiting:** the backend refuses analytics logins from an address
-  with 429 after `ANALYTICS_LOGIN_MAX_FAILURES` (5) failures within
-  `ANALYTICS_LOGIN_WINDOW_SECONDS` (900). It keys on the client address it
-  sees, so behind a proxy uvicorn must trust the proxy's `X-Forwarded-For`
-  (see client addresses above); otherwise every client shares the proxy's
-  address, and one guesser locks everyone out. If that cannot be arranged,
-  limit at the proxy instead. The OCR and chat routes are expensive and have
-  no limit of their own; limit them at the proxy.
+- **Rate limiting:** the backend counts failed analytics logins in two ways
+  within `ANALYTICS_LOGIN_WINDOW_SECONDS` (900): per client address, up to
+  `ANALYTICS_LOGIN_MAX_FAILURES` (5), and per user name from any address, up
+  to `ANALYTICS_LOGIN_MAX_FAILURES_PER_USERNAME` (10). Past either it answers
+  429 until the oldest failure leaves the window, even to the right password;
+  a successful login clears both counts. **What this means for the operator:**
+  anyone who can reach the login can lock the analytics user out for up to 15
+  minutes, by sending ten wrong passwords for its name, from any address, and
+  can keep it locked by repeating that. Only the analytics page is affected;
+  a restart of the backend clears the counts. That is the price of a limit a
+  client cannot escape by changing its address. If it matters, put the
+  analytics login behind the deployment's own login or an IP allow-list at
+  the proxy. The per-address count needs the real client address (see client
+  addresses above, and `TRUSTED_PROXY_HOPS` for the frontend below); otherwise
+  every client shares the proxy's address and five wrong guesses by anyone
+  lock that address for everyone. The OCR and chat routes are expensive and
+  have no limit of their own; limit them at the proxy.
 
 ### The frontend
 
@@ -170,6 +179,7 @@ it starts (`npm start`), not at build time:
 |---|---|
 | `BACKEND_URL` | Where the backend listens. Default `http://127.0.0.1:8010`. |
 | `BACKEND_API_TOKEN` | The backend's `API_TOKEN`. The proxy adds it to every request as `X-API-Token`; it is never sent to the browser. Leave unset if the backend has no token. |
+| `TRUSTED_PROXY_HOPS` | How many reverse proxies in front of the frontend append the client's address to `X-Forwarded-For` (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). Default 0. Set it only if the frontend cannot be reached except through them. |
 
 Never name it `NEXT_PUBLIC_BACKEND_API_TOKEN`: a `NEXT_PUBLIC_` variable is
 copied into the JavaScript every browser downloads. The build and `npm start`
@@ -188,11 +198,15 @@ deployment's own login** (single sign-on, basic auth at the reverse proxy, a
 VPN), since anyone who can reach the frontend can use the backend through it.
 The token then only keeps the backend from being used without the frontend.
 
-The proxy passes `X-Forwarded-For` on as it receives it. If the frontend is
-reachable without a reverse proxy in front, a client can set that header and
-the backend logs and rate-limits that address instead of its own. Put a
-reverse proxy in front that replaces the header (nginx:
-`proxy_set_header X-Forwarded-For $remote_addr;`).
+The proxy never passes on what a client says about its own address
+(`X-Forwarded-For`, `Forwarded`, `X-Real-IP`, `X-Forwarded-Host`/`-Proto`/`-Port`).
+Next fills `X-Forwarded-For` from the connection only when the client sent
+none, and the proxy cannot see the connection, so by default the backend gets
+no client address from it, and every browser counts as the frontend server's
+address (127.0.0.1) in the backend's log and login limit. With
+`TRUSTED_PROXY_HOPS=1` and one reverse proxy in front that appends the address
+it saw, the proxy sends the backend that last entry, which a client cannot
+choose; with two proxies in a chain, `2`, and so on.
 
 `NEXT_PUBLIC_BACKEND_URL` instead makes the browser call the backend
 directly; it is fixed at build time. Against a backend with `API_TOKEN` set,

@@ -1,12 +1,22 @@
-"""Failed-login limit for the analytics login, per client address, in process memory.
+"""Failed-login limit for the analytics login, in process memory.
 
-After ANALYTICS_LOGIN_MAX_FAILURES failed logins from one address within
-ANALYTICS_LOGIN_WINDOW_SECONDS, further attempts from it are refused with 429
-until the oldest failure leaves the window, even with the right password. A
-successful login clears the address. The address is the one the app sees:
-behind a reverse proxy, uvicorn must be told to trust the proxy's
-X-Forwarded-For (--forwarded-allow-ips), or every client shares the proxy's
-address; otherwise let the proxy do the limiting (docs/deployment.md).
+Two limits apply to every attempt, within ANALYTICS_LOGIN_WINDOW_SECONDS:
+ANALYTICS_LOGIN_MAX_FAILURES failures from one client address, and
+ANALYTICS_LOGIN_MAX_FAILURES_PER_USERNAME failures for one user name from any
+address. Past either, attempts are refused with 429 until the oldest failure
+leaves the window, even with the right password. A successful login clears both.
+
+The user-name limit is the one an attacker cannot step around: a client that
+changes its address for every guess (a botnet, IPv6, or a forwarded-for header
+someone trusts) still meets it. Its cost is that the same guesses lock the
+operator out of analytics until the window passes (docs/deployment.md).
+
+An attempt is counted as a failure when it is checked, in one step under the
+lock, and the count is taken back if the password was right: checking first
+and recording after let about 40 parallel guesses through before the first
+failure was recorded. The table is ordered by each key's last failure, so
+expired keys leave from the front without a scan, and it holds at most
+max_entries keys; past that the key whose last failure is oldest is dropped.
 
 In process memory, like the rest of the backend's state: one worker, one
 limiter (docs/deployment.md).
@@ -16,43 +26,65 @@ from __future__ import annotations
 
 import threading
 import time
-from collections import deque
-from collections.abc import Callable
+from collections import OrderedDict, deque
+from collections.abc import Callable, Iterable, Mapping
 
-# Addresses with no failure left in the window are dropped once the table is
-# this large, so a scan from many addresses cannot grow it without bound.
-_PRUNE_AT = 10_000
+_MAX_ENTRIES = 10_000
 
 
 class FailedLoginLimiter:
-    def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
+    def __init__(self, clock: Callable[[], float] = time.monotonic, *, max_entries: int = _MAX_ENTRIES) -> None:
         self._clock = clock
-        self._failures: dict[str, deque[float]] = {}
+        self._max_entries = max(1, int(max_entries))
+        self._failures: OrderedDict[str, deque[float]] = OrderedDict()
         self._lock = threading.Lock()
 
-    def retry_after(self, address: str, *, max_failures: int, window_seconds: float) -> float | None:
-        """Seconds until *address* may try again, or None if it may try now."""
+    def __len__(self) -> int:
+        return len(self._failures)
+
+    def attempt(self, limits: Mapping[str, int], *, window_seconds: float) -> float | None:
+        """Count an attempt against each key's limit, or refuse it.
+
+        *limits* maps each key (an address, a user name) to the failures it may
+        have in the window. Returns None when the attempt may go ahead (it is
+        then counted as a failure until ``succeeded`` takes it back), or the
+        seconds until every key that is full has room again.
+        """
         now = self._clock()
         with self._lock:
-            failures = self._recent(address, now, window_seconds)
-            if len(failures) < max_failures:
-                return None
-            return max(0.0, failures[0] + window_seconds - now)
+            self._expire(now, window_seconds)
+            waits = [
+                failures[0] + window_seconds - now
+                for key, max_failures in limits.items()
+                if len(failures := self._recent(key, now, window_seconds)) >= max_failures
+            ]
+            if waits:
+                return max(0.0, max(waits))
+            for key in limits:
+                self._failures.setdefault(key, deque()).append(now)
+                self._failures.move_to_end(key)
+            while len(self._failures) > self._max_entries:
+                self._failures.popitem(last=False)
+            return None
 
-    def record_failure(self, address: str, *, window_seconds: float) -> None:
-        now = self._clock()
+    def succeeded(self, keys: Iterable[str]) -> None:
+        """The attempt was right: clear these keys, the attempt's own count included."""
         with self._lock:
-            self._recent(address, now, window_seconds).append(now)
-            if len(self._failures) > _PRUNE_AT:
-                for key in [k for k, v in self._failures.items() if not v or v[-1] <= now - window_seconds]:
-                    del self._failures[key]
+            for key in keys:
+                self._failures.pop(key, None)
 
-    def reset(self, address: str) -> None:
-        with self._lock:
-            self._failures.pop(address, None)
-
-    def _recent(self, address: str, now: float, window_seconds: float) -> deque[float]:
-        failures = self._failures.setdefault(address, deque())
+    def _recent(self, key: str, now: float, window_seconds: float) -> deque[float]:
+        failures = self._failures.get(key)
+        if failures is None:
+            return deque()
         while failures and failures[0] <= now - window_seconds:
             failures.popleft()
         return failures
+
+    def _expire(self, now: float, window_seconds: float) -> None:
+        # Ordered by last failure: the first key still in the window ends the sweep.
+        while self._failures:
+            key, failures = next(iter(self._failures.items()))
+            if failures and failures[-1] > now - window_seconds:
+                break
+            del self._failures[key]
