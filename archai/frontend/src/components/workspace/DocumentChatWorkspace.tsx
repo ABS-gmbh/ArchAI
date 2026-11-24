@@ -1566,8 +1566,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       </div>
     ) : null;
 
+  // A fixed-height shell: its panes scroll, the page does not. Below 30rem of
+  // height (a phone on its side, or a small window at 200% zoom) the panes
+  // would be slits, so the shell keeps that height and the page scrolls.
   return (
-    <div className="flex h-dvh min-h-0 flex-col bg-ground text-ink">
+    <div className="flex h-dvh min-h-[30rem] flex-col bg-ground text-ink">
       {/* A page change is otherwise silent for a screen reader: the buttons keep
           focus and the new page is an image. Announced when it changes. */}
       <p role="status" className="sr-only">
