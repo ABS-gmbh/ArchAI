@@ -15,7 +15,27 @@ from app.config import settings
 
 _LOGGER = logging.getLogger(__name__)
 
-TASK_BASE_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".tasks")
+# From TASK_BASE_DIR (settings.task_base_dir); default archai/backend/.tasks.
+# A module attribute, read at each use, so tests can point it elsewhere.
+TASK_BASE_DIR = settings.task_base_dir
+
+
+def check_task_base_dir() -> str:
+    """Create the task directory if missing and make sure it is writable; called at startup.
+
+    Raises RuntimeError naming TASK_BASE_DIR, so a wrong path stops the server at
+    startup instead of failing the first upload.
+    """
+    path = TASK_BASE_DIR
+    try:
+        os.makedirs(path, exist_ok=True)
+    except OSError as exc:
+        raise RuntimeError(f"TASK_BASE_DIR={path!r} cannot be created: {exc}") from exc
+    if not os.path.isdir(path):
+        raise RuntimeError(f"TASK_BASE_DIR={path!r} is not a directory")
+    if not os.access(path, os.W_OK | os.X_OK):
+        raise RuntimeError(f"TASK_BASE_DIR={path!r} is not writable by this process")
+    return path
 
 
 @dataclass

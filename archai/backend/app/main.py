@@ -13,7 +13,7 @@ from app.config import settings
 from app.logging_setup import configure_logging
 from app.process_guard import guard_for_database
 from app.db import pipeline_db
-from app.services.file_manager import cleanup_expired_tasks
+from app.services.file_manager import check_task_base_dir, cleanup_expired_tasks
 from app.services.inference import init_model_pool, shutdown_model_pool
 from app.services.run_retention import RetentionSweeper
 from app.routers import health, classes, predict, download, analytics, chat, agents_ocr, ocr, evidence, index, rag_debug, authority
@@ -51,6 +51,8 @@ async def _retention_sweep(retention: RetentionSweeper) -> None:
 async def lifespan(app: FastAPI):
     """Initialize model pool on startup, clean up on shutdown."""
     configure_logging(settings.log_level, settings.log_format)
+    # A wrong TASK_BASE_DIR stops startup here, naming the variable.
+    check_task_base_dir()
     # One worker process is supported (docs/deployment.md); a second one using
     # the same pipeline database is logged as an error, not refused.
     process_guard = guard_for_database(pipeline_db._db_config().path)
