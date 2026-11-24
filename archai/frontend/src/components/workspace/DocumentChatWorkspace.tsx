@@ -1412,8 +1412,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const reading = currentReadState.phase === "reading";
   const findingRegions = Boolean(currentPageId) && segmentingPageId === currentPageId;
 
-  const loadLinking = (runId: string) => {
-    setLinkingByRunId((prev) => ({ ...prev, [runId]: { phase: "loading" } }));
+  // Sets state only when the report arrives (or fails).
+  const fetchLinking = (runId: string) => {
     fetchLinkingReport(runId)
       .then((report) => setLinkingByRunId((prev) => ({ ...prev, [runId]: { phase: "ready", report } })))
       .catch((err: unknown) =>
@@ -1424,11 +1424,32 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       );
   };
 
-  // The names of a run are fetched when its panel is first opened.
+  // Retry, from the names panel.
+  const loadLinking = (runId: string) => {
+    setLinkingByRunId((prev) => ({ ...prev, [runId]: { phase: "loading" } }));
+    fetchLinking(runId);
+  };
+
+  // The names of a run are fetched when its panel is first opened. The run
+  // stays "idle" while they are fetched (the panel shows idle as loading), so
+  // the effect sets no state itself (react-hooks/set-state-in-effect); the ref
+  // remembers which idle entry was fetched for, so each is fetched once, and a
+  // re-read, which puts a new idle entry in its place, is fetched again.
+  const linkingFetchedForRef = useRef(new Map<string, LinkingState | undefined>());
   useEffect(() => {
-    if (pane === "names" && currentOcrRunId && (linkingByRunId[currentOcrRunId]?.phase ?? "idle") === "idle") {
-      loadLinking(currentOcrRunId);
+    if (pane !== "names" || !currentOcrRunId) {
+      return;
     }
+    const entry = linkingByRunId[currentOcrRunId];
+    if ((entry?.phase ?? "idle") !== "idle") {
+      return;
+    }
+    const fetched = linkingFetchedForRef.current;
+    if (fetched.has(currentOcrRunId) && fetched.get(currentOcrRunId) === entry) {
+      return;
+    }
+    fetched.set(currentOcrRunId, entry);
+    fetchLinking(currentOcrRunId);
   }, [pane, currentOcrRunId, linkingByRunId]);
 
   const choosePages = () => {
