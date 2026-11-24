@@ -724,7 +724,7 @@ def test_a_failed_post_ocr_pipeline_marks_its_run_failed(tmp_path: Path, monkeyp
 
     run = pipeline_db.get_run(raised.value.run_id)
     assert (run["status"], run["current_stage"]) == ("FAILED", "FAILED")
-    assert "RuntimeError: schema mismatch" in run["error"]
+    assert "(RuntimeError)" in run["error"] and "schema mismatch" not in run["error"]  # the text goes to the log
 
 
 def test_extract_full_page_logs_the_failure_and_returns_the_run(monkeypatch: Any, caplog: Any) -> None:

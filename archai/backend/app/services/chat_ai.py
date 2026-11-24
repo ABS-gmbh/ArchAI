@@ -297,7 +297,6 @@ def list_available_models() -> dict[str, Any]:
         "default_model": assignments.chat_rag_model,
         "vision_models": [model for model in unique_models if is_vision_model(model)],
         "task_models": assignments.as_payload(),
-        "base_url": _base_url(),
     }
 
 

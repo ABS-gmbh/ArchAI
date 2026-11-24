@@ -31,6 +31,7 @@ from app.schemas.agents_ocr import (
 )
 from app.services.ocr_backends import (
     OCRBackendError,
+    OCRBackendUnavailable,
     OCRBackendPlan,
     OCRRecognitionMetadata,
     build_backend_runtime,
@@ -525,7 +526,7 @@ def _reorder_attempt_backends_from_samples(
                     )
                 )
             except OCRBackendError as exc:
-                prefetched_errors[index][backend_id] = str(exc)
+                prefetched_errors[index][backend_id] = _backend_error_text(backend_id, exc)
 
     ranked_backends = sorted(
         plan.attempt_backends,
@@ -553,6 +554,18 @@ def _with_progress(items: Sequence[Any], progress: LineProgress | None) -> Itera
         yield index, item
         if progress is not None:
             progress(index + 1, total)
+
+
+def _backend_error_text(backend_id: str, exc: BaseException) -> str:
+    """What a client is told when a backend fails on a line; the exception goes to the log.
+
+    The exception's own text named absolute model paths ("Calamari model
+    directory not found: /srv/...") and upstream messages (security review C8).
+    """
+    log.warning("OCR backend %s failed: %s", backend_id, exc)
+    if isinstance(exc, OCRBackendUnavailable):
+        return f"{backend_id} is not installed or not configured; see the server log."
+    return f"{backend_id} could not read the line; see the server log."
 
 
 def _join_detached_initials(
@@ -681,8 +694,8 @@ def _run_segmented_ocr_extraction(
                 try:
                     backend_result = backend.recognize(crop_b64, metadata)
                 except OCRBackendError as exc:
-                    attempt_errors[backend_id] = str(exc)
-                    fallback_records.append(OCRFallback(model=backend_id, reason=f"BACKEND_ERROR:{exc}"))
+                    attempt_errors[backend_id] = _backend_error_text(backend_id, exc)
+                    fallback_records.append(OCRFallback(model=backend_id, reason=f"BACKEND_ERROR:{attempt_errors[backend_id]}"))
                     fallbacks_used.append(backend_id)
                     region_flags.append(f"BACKEND_ERROR:{backend_id}")
                     continue
@@ -761,7 +774,7 @@ def _run_segmented_ocr_extraction(
                 try:
                     backend_result = runtime[backend_id].recognize(crop_b64, metadata)
                 except OCRBackendError as exc:
-                    attempt_errors[backend_id] = str(exc)
+                    attempt_errors[backend_id] = _backend_error_text(backend_id, exc)
                     comparison_results.append(
                         OCRComparisonResult(
                             page_id=payload.page_id,
@@ -771,7 +784,7 @@ def _run_segmented_ocr_extraction(
                             text="",
                             confidence=0.0,
                             selected=False,
-                            raw_metadata={"error": str(exc)},
+                            raw_metadata={"error": attempt_errors[backend_id]},
                         )
                     )
                     continue
@@ -869,7 +882,7 @@ def _run_segmented_ocr_extraction(
                             text="",
                             confidence=0.0,
                             selected=False,
-                            raw_metadata={"error": str(exc)},
+                            raw_metadata={"error": _backend_error_text(backend_id, exc)},
                         )
                     )
                     continue
