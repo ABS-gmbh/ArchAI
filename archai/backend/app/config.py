@@ -165,6 +165,12 @@ class Settings(BaseSettings):
             raise ValueError(f"CHAT_AI_TIMEOUT_SECONDS must be greater than 0, got {value}")
         return value
 
+    # Longest text a chat message may carry, per message and per text part (an
+    # attached page image is bounded by the request body limit instead). A typed
+    # question is a few hundred characters; an earlier answer or a pasted
+    # passage a few thousand. Longer text was only an input-side cost.
+    chat_max_message_chars: int = 20000
+
     # SAIA OCR Agent configuration
     saia_api_key: str = ""
     saia_base_url: str = "https://chat-ai.academiccloud.de/v1"
