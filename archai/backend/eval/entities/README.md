@@ -1,5 +1,7 @@
 # Entity extraction benchmark
 
+**On held-out reference text, names that have an authority record are linked correctly 2 times in 153, never wrongly, and most are never extracted; the five development pages (7 of 9 linked) badly overstated it** (2026-11-24, "Held-out name set" below).
+
 `gold.json` marks the named entities - people, places, works, dates - in the
 five reference transcriptions of `eval/quality_gate/readings.json`.
 `scripts/benchmark_entities.py` runs each page through the full-page
@@ -222,3 +224,133 @@ and a second *mͣrcadigas* are found. Over all pages, on the OCR text:
 Five pages and one annotator, with 14 gold entities on three pages: this
 locates the losses, but it is not a corpus-level score.
 
+
+## Held-out name set (B-dev, B-test)
+
+**On held-out reference text, names that have an authority record are linked correctly 2 times in 153, never wrongly, and most are never extracted; the five development pages (7 of 9 linked) badly overstated it** (2026-11-24).
+
+The five pages above set the extraction rules and the linking thresholds, so
+they cannot judge a change to either. `heldout_pages.json` and `heldout_gold.json`
+are a second set, built 2026-11-24 from the reference transcriptions of the
+CATMuS Medieval **test** manuscripts (Hugging Face `CATMuS/medieval`, CC-BY 4.0,
+revision e119659; text only). None of these manuscripts is in the dataset's
+train or dev split, and none was used to build anything in this repository.
+
+- **Pages.** Each pseudo-page is a block of up to 30 consecutive main-text
+  lines of one manuscript, with the line ids (`<parquet file>#<row>`) it came
+  from. Blocks were chosen to contain names, by a count of capitalised words
+  and of titles and roles (rex, comes, sanctus, roy, conte, don, rey...), then
+  read. They were not chosen by running the extractor, which would favour pages
+  it already handles.
+- **Split.** By manuscript: no manuscript is in both halves. **B-dev** may be
+  read case by case to find what loses names. **B-test** is used once, to
+  judge a change chosen on B-dev, and its errors are not inspected one by one.
+
+### Annotation guidelines
+
+Written before any page was annotated.
+
+1. **What is a mention.** A name of:
+   - a **person**: individuals, saints and biblical figures named in the
+     text, including a name used in a genitive or other inflected form;
+   - a **place**: towns, regions, countries, rivers, churches and abbeys
+     named as places;
+   - a **work**: a book or text named by its title.
+   Not mentions: titles and roles without a name ("le roy", "abbas"),
+   peoples and adjectives ("Franci", "françois"), God and Christ as divine
+   names ("deus", "dieu", "ihesu crist"), and dates. Feast days formed on a
+   saint's name ("la saint iehan") are not mentions of the saint.
+2. **The span** is the name as written, abbreviations and all, including
+   the parts that belong to it ("iohannes de monte", "saint denis",
+   "Robertus dictus Bigot"), without a leading title or role ("rex",
+   "messire", "don"). A name split across lines is one mention, with the
+   line break in its span. `occurrence` gives the nth occurrence of the same
+   surface on the page, when it repeats.
+3. **Type**: person, place or work. A saint named as a church or abbey
+   ("sancti dyonisii" meaning the abbey) is a place.
+4. **Authority.**
+   - `linkable` with Wikidata QIDs, and VIAF ids where the Wikidata item
+     gives them (P214), when the person, place or work is identifiable from
+     the page and has an item. Places get the place's item; GeoNames is not
+     used.
+   - `none` when no record can be expected: most individuals in charters,
+     witnesses, tenants, characters of fiction without an item.
+   - `uncertain` when a record may exist but the page does not settle which
+     (a common name, an ambiguous place). These are scored as found or
+     missed, not as linked or not.
+5. **Doubt.** `unsure: true` marks a mention whose reading, span or type the
+   annotator is not sure of. Unsure mentions are reported apart and do not
+   count against the extractor.
+6. **Who.** One annotator (Claude, an AI model), reading diplomatic
+   transcriptions without the page images, with no specialist check.
+   Authority ids were looked up with Wikidata's search API, and every choice
+   is recorded in `how`.
+
+### The set (2026-11-24)
+
+38 pseudo-pages from 22 manuscripts, 1,135 lines:
+
+- **B-dev:** 21 pages, 11 manuscripts. Latin charters and statutes, an
+  11th-century office, French narrative and verse, Castilian, Navarrese,
+  Occitan and Italian.
+- **B-test:** 17 pages, 11 manuscripts. Latin charters, a passio, French
+  narrative, Castilian chronicle and treatise, Venetian chronicle, Italian
+  and Catalan.
+
+Gold, one annotator, without the images:
+
+| | sure mentions | unsure | linkable | uncertain | none |
+|---|---|---|---|---|---|
+| B-dev | 152 | 96 | 108 | 83 | 57 |
+| B-test | 120 | 67 | 81 | 58 | 48 |
+
+- **Line order.** The dataset's row order is not the reading order of a page:
+  lines of a block come out of sequence. A name split across two lines can
+  rarely be rejoined, so only names within a line are annotated.
+- **Authority ids.** Looked up with wbsearchentities. Six searches found no
+  item (Mars, Pan, Arcadia, Solomon, Stephen of Bar, the abbey of
+  Saint-Victor). Those mentions are `uncertain`, not filled in from memory.
+
+### Result on the reference text (2026-11-24)
+
+`scripts/benchmark_names_heldout.py`, current code. Authority responses were
+recorded live (1,107 requests, none failed) to `heldout_linking_cache.json.gz`
+(gzip; 1107 distinct requests; SHA-256 of the uncompressed JSON 303737059a98836fb705c840c6a12b54a7eed2abb7cd5eed9d50981509fdeaa7), so
+reruns are offline. Unsure gold mentions are left out. Intervals are 95%,
+resampled over manuscripts.
+
+| | gold | found | spurious / extracted | links c / w / a / m |
+|---|---|---|---|---|
+| five development pages (above) | 14 | 9 (fuzzy) | 0 spurious | 7 / 0 / 1 / 5 (n=13) |
+| B-dev, all | 152 | 52 [0.14, 0.51] | 65 / 129 | 23 / 3 / 22 / 90 (n=138) |
+| B-dev, linkable only | 91 | 23 | | 1 / 0 / 22 / 68 |
+| B-dev, no record (`none`) | 47 | 25 | | 22 / 3 / 0 / 22 |
+| B-test, all | 120 | 28 [0.07, 0.44] | 35 / 87 | 18 / 0 / 7 / 87 (n=112) |
+| B-test, linkable only | 62 | 8 | | 1 / 0 / 7 / 61 |
+| B-test, no record (`none`) | 43 | 17 | | 17 / 0 / 0 / 26 |
+
+By language, found / gold, B-dev and B-test together:
+
+| Language | Found / gold |
+|---|---|
+| Latin | 56/120 |
+| French | 12/42 |
+| Castilian | 4/51 |
+| Italian | 6/14 |
+| Navarrese | 1/4 |
+| Occitan | 0/7 |
+| Catalan | 0/3 |
+| Venetian | 1/31 |
+
+On pages the rules and thresholds were not set on, the extractor finds about
+a third of the names. On the five development pages it found about two
+thirds. Of the names that have an authority record, 2 of 153 are linked
+correctly. None is linked wrongly; the rest are abstained (29) or never
+found (129). Of the names with no record (`none`), 39 of the 42 found were
+rightly left unlinked; 3, all in B-dev, were linked to something.
+
+These figures rest on 22 manuscripts and one annotator reading without the
+images. Many intervals are wide, and single-manuscript languages have none.
+No rule or threshold was changed for this measurement. B-test's errors have
+not been inspected one by one; it is kept to judge one change chosen on
+B-dev.
