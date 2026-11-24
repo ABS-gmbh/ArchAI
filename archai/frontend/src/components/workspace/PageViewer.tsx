@@ -141,7 +141,14 @@ export function PageViewer({
 
   return (
     <div {...dropHandlers} className={`relative h-full min-h-64 overflow-hidden rounded-2xl bg-well ${dropping ? "ring-2 ring-brand" : ""}`}>
-      <div className="h-full overflow-auto p-4">
+      {/* A named tab stop, so the arrow keys scroll a zoomed page: Chrome makes a
+          scroller focusable by itself but gives it no name, Safari not at all. */}
+      <div
+        tabIndex={0}
+        role="region"
+        aria-label="Page image"
+        className="h-full overflow-auto p-4 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
+      >
         <div className="relative mx-auto" style={{ width: `${zoom * 100}%` }}>
           <Image
             src={page.dataUrl}
