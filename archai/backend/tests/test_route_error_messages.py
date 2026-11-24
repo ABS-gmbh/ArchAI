@@ -40,8 +40,8 @@ def _openai_error(cls: type[openai.APIStatusError], status: int) -> openai.APISt
 @pytest.mark.parametrize(
     ("exc", "status", "phrase"),
     [
-        (_openai_error(openai.AuthenticationError, 401), 502, "rejected the API key"),
-        (_openai_error(openai.PermissionDeniedError, 403), 502, "rejected the API key"),
+        (_openai_error(openai.AuthenticationError, 401), 502, "refused this server's key"),
+        (_openai_error(openai.PermissionDeniedError, 403), 502, "refused this server's key"),
         (_openai_error(openai.RateLimitError, 429), 429, "limiting requests"),
         (openai.APITimeoutError(httpx.Request("POST", "https://internal.example/v1")), 504, "did not answer in time"),
         (socket.timeout(LEAKY), 504, "did not answer in time"),
@@ -109,7 +109,7 @@ def test_an_embedding_provider_rejecting_the_key_is_a_502(monkeypatch: pytest.Mo
     monkeypatch.setattr(index.rag_store, "index_run", rejected)
     response = _client(index.router).post(f"/index/run/{pipeline_db.create_run(asset_ref='p')}")
     assert response.status_code == 502
-    assert response.json()["detail"] == "The embedding provider rejected the API key."
+    assert response.json()["detail"] == "The embedding provider refused this server's key. Tell whoever runs it."
 
 
 # ──────────────────────────────────────────────────────── authority ──
@@ -243,7 +243,7 @@ def test_ocr_extract_reports_a_rejected_key_through_the_agents_wrapper(monkeypat
             raise OCRAgentError(f"OCR failed on model internvl: {inner}") from inner
     except OCRAgentError as wrapped:
         response = _ocr_extract(monkeypatch, wrapped)
-    assert (response.status_code, response.json()["detail"]) == (502, "The OCR provider rejected the API key.")
+    assert (response.status_code, response.json()["detail"]) == (502, "The OCR provider refused this server's key. Tell whoever runs it.")
 
 
 def test_ocr_extract_keeps_its_configuration_message(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -302,7 +302,7 @@ def test_a_trace_run_without_a_key_still_says_so(monkeypatch: pytest.MonkeyPatch
     response = _trace(monkeypatch, key="")
     assert response.status_code == 500
     assert response.json()["detail"]["error"] == (
-        "Chat API key not configured. Set CHAT_AI_API_KEY (or SAIA_API_KEY) in backend/.env or environment."
+        "Reading with the OCR provider is not set up on this server. Tell whoever runs it."
     )
 
 
@@ -353,17 +353,18 @@ def test_a_rejected_chat_key_is_a_502(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(chat, "create_chat_completion", _raise(_openai_error(openai.AuthenticationError, 401)))
     response = _client(chat.router).post("/chat/completions", json={**MESSAGES, "stream": False})
-    assert (response.status_code, response.json()["detail"]) == (502, "The chat provider rejected the API key.")
+    assert (response.status_code, response.json()["detail"]) == (502, "The chat provider refused this server's key. Tell whoever runs it.")
 
 
-def test_the_chat_configuration_message_is_unchanged(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_the_chat_configuration_message_is_for_the_reader(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The setting names go to the log (tests/test_chat_not_set_up.py), not to the reader."""
     from app.routers import chat
     from app.services.chat_ai import ChatConfigError
 
     message = "Chat API key not configured. Set CHAT_AI_API_KEY (or SAIA_API_KEY) in backend/.env or environment."
     monkeypatch.setattr(chat, "list_available_models", _raise(ChatConfigError(message)))
     response = _client(chat.router).get("/chat/models")
-    assert (response.status_code, response.json()["detail"]) == (422, message)
+    assert (response.status_code, response.json()["detail"]) == (422, "Chat is not set up on this server. Tell whoever runs it.")
 
 
 def test_a_streamed_failure_keeps_exception_text_out(monkeypatch: pytest.MonkeyPatch) -> None:

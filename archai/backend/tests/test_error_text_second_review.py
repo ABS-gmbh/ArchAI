@@ -112,8 +112,8 @@ _OWN_REFUSALS = {
     "RequestRefused",  # app/services/public_errors.py, and its subclasses:
     "ImageTooLarge",
     "UnreadableImage",
-    "ChatConfigError",  # configuration errors naming the variable to set
-    "SaiaConfigError",
+    "ChatConfigError",  # configuration errors: answered with the reader's sentence
+    "SaiaConfigError",  # (routers/errors.py configuration_message), never their text
     "LabelAnalysisAgentError",  # its provider text goes through public_failure
     "_SegmentedPageUnread",  # a code ("no_text"), not a message
 }

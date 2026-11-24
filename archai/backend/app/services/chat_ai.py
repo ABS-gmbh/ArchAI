@@ -11,6 +11,7 @@ from typing import Any
 
 from app.services.public_errors import RequestRefused
 from app.config import settings
+from app.services import setup_notices
 from app.services.model_router import (
     chat_stage_from_context,
     fallback_models_for_stage,
@@ -65,6 +66,8 @@ def _require_api_key() -> str:
         raise ChatConfigError(
             "Chat API key not configured. Set CHAT_AI_API_KEY (or SAIA_API_KEY) in backend/.env or environment."
         )
+    # A key again: a later failure is a new streak, logged again (setup_notices).
+    setup_notices.resolved(setup_notices.CHAT_KEY)
     return key
 
 

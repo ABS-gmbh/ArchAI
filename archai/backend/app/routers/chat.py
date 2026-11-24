@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from app.services.public_errors import RequestRefused
 from app.config import settings
 from app.agents.label_analysis_agent import LabelAnalysisAgent, LabelAnalysisAgentError
-from app.routers.errors import stream_error_message, unexpected_error
+from app.routers.errors import configuration_message, stream_error_message, unexpected_error
 from app.services.chat_ai import (
     ChatConfigError,
     create_chat_completion,
@@ -117,7 +117,7 @@ async def chat_models() -> dict[str, Any]:
         # here; it froze the process for the whole round trip (audit CHAT-001).
         return await asyncio.to_thread(list_available_models)
     except ChatConfigError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(status_code=422, detail=configuration_message(exc)) from exc
     except Exception as exc:
         unexpected_error(exc, what="Listing the chat models", provider="chat provider")
 
@@ -178,7 +178,7 @@ async def chat_completions(payload: ChatCompletionRequest) -> Any:
     except RequestRefused as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ChatConfigError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(status_code=422, detail=configuration_message(exc)) from exc
     except HTTPException:
         raise
     except Exception as exc:
@@ -192,9 +192,9 @@ async def chat_label_analysis(payload: LabelAnalysisRequest) -> LabelAnalysisRes
     except LabelAnalysisAgentError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ChatConfigError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(status_code=422, detail=configuration_message(exc)) from exc
     except SaiaConfigError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(status_code=422, detail=configuration_message(exc)) from exc
     except HTTPException:
         raise
     except Exception as exc:
