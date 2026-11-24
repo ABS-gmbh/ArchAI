@@ -37,12 +37,19 @@ router produced before they were moved out of it.
 
 ## Setup
 
+Python 3.10 or newer (CI uses 3.11):
+
 ```bash
 cd archai/backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -e .
 ```
+
+This installs the API and ultralytics, not the model files or kraken: see
+[`docs/model_setup.md`](../../docs/model_setup.md). Without them the backend
+still starts, serves chat and retrieval and reads pages with GLM-OCR, and its
+startup log names what is missing.
 
 ## Configure
 
@@ -69,7 +76,7 @@ error that names the variable. The ones to look at first:
 | `MAX_UPLOAD_MEGABYTES`, `TASK_TTL_MINUTES` | Upload limit, and how long layout task files are kept |
 | `CHAT_AI_TIMEOUT_SECONDS` | How long the chat client waits for an answer (default 180) |
 | `LOG_LEVEL`, `LOG_FORMAT` | Log level, and `text` or `json` lines on stderr |
-| `ENABLE_TEST_OCR_FIXTURES` | Canned answers for four test images; keep it `false` |
+| `ENABLE_TEST_OCR_FIXTURES` | Canned answers for three test images; keep it `false` |
 | `ENABLE_API_DOCS` | `true` serves `/docs`, `/redoc` and `/openapi.json`; set `false` on a server |
 | `API_TOKEN` | Off when empty. When set (24+ characters), every route but `/api/health` needs `X-API-Token: <token>` or `Authorization: Bearer <token>`; the two event streams also accept `?token=` |
 
