@@ -146,11 +146,13 @@ Recognition model for the CLI (CATMuS Medieval for medieval manuscripts;
 McCATMuS covers the late 16th century onwards):
   ln -sfn "${TARGET_DIR}/catmus_medieval.mlmodel" "${REPO_ROOT}/weights/kraken_recognition.mlmodel"
 
-Backward-compatible defaults:
-  ARCHAI_KRAKEN_REC_WEIGHTS=weights/kraken_recognition.mlmodel
-  ARCHAI_KRAKEN_MODELS_DIR=weights/kraken_models
+The defaults already point at these files; set a variable only to move them.
+Command-line pipeline (.env at the repository root):
+  ARCHAI_OCR_KRAKEN_RECOGNITION=weights/kraken_recognition.mlmodel
+Backend (archai/backend/.env; relative paths resolve against the repository root):
+  KRAKEN_MODELS_DIR=weights/kraken_models
 
-Manual LAT model wiring:
-  ARCHAI_KRAKEN_CREMMA_LAT_MODEL_PATH=weights/kraken_models/cremma_medieval_lat.mlmodel
+Manual LAT model wiring (backend):
+  KRAKEN_CREMMA_LAT_MODEL_PATH=weights/kraken_models/cremma_medieval_lat.mlmodel
   Source archive: ${URL_CREMMA_LAT_ARCHIVE}
 EOF
