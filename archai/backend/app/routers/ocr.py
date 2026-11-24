@@ -1313,7 +1313,7 @@ def _run_segmented_full_page(
             if isinstance(secondary_result, OCRExtractResponse):
                 secondary_regions = list(secondary_result.regions)
         except Exception as exc:
-            warnings.append(f"SECONDARY_TEXT_FAILED:{exc}")
+            warnings.append(f"SECONDARY_TEXT_FAILED:{public_failure('The second reading', exc, logger=_LOGGER)}")
 
     from PIL import Image
 
@@ -2121,7 +2121,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                                   f"Inserted {markers_count} uncertainty markers.")
                 except Exception as stab_exc:
                     log_event(run_id, "CROSS_PASS_STABILITY", "WARN",
-                              f"Stability pass failed: {stab_exc}")
+                              public_failure("The stability pass", stab_exc, logger=_LOGGER))
 
         # Overlay hardened fields
         ocr_payload["quality_label_v2"] = hardened_quality_label

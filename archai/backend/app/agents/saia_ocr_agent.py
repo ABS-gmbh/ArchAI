@@ -19,6 +19,7 @@ from app.schemas.agents_ocr import (
     SaiaOCRResponse,
 )
 from app.services.saia_client import SaiaClient, is_model_not_found_error
+from app.services.public_errors import public_failure
 from app.agents.saia_ocr_errors import (
     SaiaOCRAgentError,
 )
@@ -1063,7 +1064,7 @@ class SaiaOCRAgent:
                     total_tiles=2,
                 )
             except Exception as exc:
-                all_warnings.append(f"col_{idx}: OCR failed: {exc}")
+                all_warnings.append(f"col_{idx}: {public_failure('OCR', exc, logger=_tile_logger)}")
                 continue
 
             tile_lines = [str(ln) for ln in parsed.get("lines", []) if str(ln).strip()]
@@ -1173,8 +1174,7 @@ class SaiaOCRAgent:
                     total_tiles=len(rects),
                 )
             except Exception as exc:
-                all_warnings.append(f"tile_{idx}: OCR failed: {exc}")
-                _tile_logger.warning("Tile %d OCR failed: %s", idx, exc)
+                all_warnings.append(f"tile_{idx}: {public_failure(f'OCR of tile {idx}', exc, logger=_tile_logger)}")
                 continue
 
             tile_lines = [str(line) for line in parsed.get("lines", []) if str(line).strip()]
@@ -1520,7 +1520,7 @@ class SaiaOCRAgent:
                                 continue
                         raise
             except Exception as exc:
-                err = "MODEL_NOT_FOUND" if is_model_not_found_error(exc) else str(exc)
+                err = "MODEL_NOT_FOUND" if is_model_not_found_error(exc) else public_failure(model, exc, logger=_tile_logger)
                 fallbacks.append(SaiaOCRFallback(model=model, error=err))
                 continue
             lines = [str(line) for line in parsed["lines"] if str(line).strip()]

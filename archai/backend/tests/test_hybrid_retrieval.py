@@ -208,7 +208,8 @@ def test_an_unembeddable_query_is_answered_lexically(runs: dict[str, Any], monke
     assert _ids(hits)[0] == "c1"
     assert hits[0]["distance"] is None and hits[0]["lexical_rank"] == 1
     assert runs["collection"].queries == 0
-    assert any("401 Unauthorized" in note for note in hits.notes)
+    # The reason reaches the client; the provider's text stays in the log (second review, C).
+    assert hits.notes == ["dense ranking unavailable"]
 
 
 def test_an_unembeddable_query_with_fusion_off_finds_nothing(runs: dict[str, Any], monkeypatch) -> None:

@@ -15,6 +15,7 @@ from app.agents.base import BaseAgent
 from app.agents.crop_agent import decode_image_bytes, encode_png_base64
 from app.config import settings
 from app.core.constants import FINAL_CLASSES
+from app.services.public_errors import public_failure
 from app.services.glm_ollama_ocr import GlmOllamaOcrError, build_glm_ocr_prompt, run_glm_ollama_ocr
 from app.services.model_router import get_task_model_assignments
 from app.services.saia_client import SaiaClient, is_model_not_found_error
@@ -498,7 +499,8 @@ class LabelAnalysisAgent(BaseAgent):
     def _friendly_error(exc: Exception) -> str:
         if LabelAnalysisAgent._is_transient_error(exc):
             return "Upstream visual-analysis provider timed out or returned a transient proxy error. Please retry."
-        return str(exc)
+        # The provider's own text (hosts, ports, request details) goes to the log.
+        return public_failure("The provider call", exc, logger=log)
 
     @staticmethod
     def _is_timeout_error(exc: Exception) -> bool:
@@ -1249,7 +1251,7 @@ class LabelAnalysisAgent(BaseAgent):
                 ocr_text = self._sanitize_direct_ocr_text(label_name, str(ocr_result.text or "").strip())
                 warnings.extend(list(ocr_result.warnings or []))
             except (ValueError, GlmOllamaOcrError, LabelAnalysisAgentError) as exc:
-                warnings.append(f"LABEL_OCR_FAILED:{exc}")
+                warnings.append(f"LABEL_OCR_FAILED:{public_failure('Label OCR', exc, logger=log)}")
 
         if routing.direct_ocr_text:
             direct_text = ocr_text
