@@ -53,7 +53,7 @@ about 1.35 GB, 1.9 GB with the layout weights.
 | multilingual-e5-large-instruct | retrieval with `--embedder e5-local` | about 1.1 GB | Hugging Face `intfloat/multilingual-e5-large-instruct` (`benchmark_retrieval.py`, `E5_LOCAL_MODEL`) | downloaded |
 | all-MiniLM-L6-v2 (ONNX) | ChromaDB's default embedder, the `local` space | about 170 MB in cache | fetched by chromadb itself on first use | pre-fetched |
 | Layout YOLO: `best_catmus.pt`, `best_emanuskript_segmentation.pt`, `best_zone_detection.pt` | segmented route (line and zone detection) | 365 + 122 + 83 MB | **no public source in the repo** (audit HYG-13); the only copies are in the dev machine | copied by hand to `~/layout_weights` and linked into `archai/backend/models` (2026-11-24) |
-| GLM-OCR `glm-ocr:latest` (Ollama) | `glmocr` engine | about 2.2 GB | the Ollama tag named by `settings.glmocr_ollama_model`; Ollama itself from its official install script | **not installed**: the install (a remote script run with sudo) needs the user's approval |
+| GLM-OCR `glm-ocr:latest` (Ollama) | `glmocr` engine | about 2.2 GB | the Ollama tag named by `settings.glmocr_ollama_model`; Ollama itself from its official install script | **not installed on the VM**: the install (a remote script run with sudo) needs the user's approval. Measured on the dev machine instead (Ollama 0.40.6, `eval/recognizers/README.md`) |
 
 The Kraken script fills `<repo>/weights`. The backend reads `weights/...`
 relative to `archai/backend`, so the download script links
@@ -149,7 +149,9 @@ python scripts/benchmark_recognizers.py --images ~/pages --engines segmented seg
   workers). Next to a running backend with its own pool, the VM (15 GB, no
   swap) ran out of memory. Run benchmarks one at a time with
   `ARCHAI_DISABLE_PROCESS_POOL=1`, which keeps the layout models in process.
-- **Still blocked.** `glmocr` needs Ollama (Decision 5).
+- **GLM-OCR.** Measured on the dev machine, not the VM (Ollama 0.40.6,
+  `glm-ocr:latest` 6effedd0dc8a; `eval/recognizers/README.md`, "GLM-OCR").
+  The VM install is still pending (Decision 5).
 - **Chat key.** Before 7bd8c99, the OCR agent needed a chat key even for local
   OCR. The run used `CHAT_AI_API_KEY=offline-placeholder-not-a-key` in the
   command's environment, never in a file.
@@ -194,7 +196,7 @@ the gain.
 | 3b chat evidence, offline | run (`eval/chat/README.md`) |
 | 3b chat answers (`--live`) | blocked: needs the chat provider key |
 | 3c recognisers, Kraken | run |
-| 3c recognisers, GLM-OCR | blocked: Ollama not installed (Decision 5) |
+| 3c recognisers, GLM-OCR | measured on the dev machine, not the VM (Ollama 0.40.6); VM install pending (Decision 5) |
 | 3d quality gate, committed set and fresh readings | run |
 | SVC-09 | run: no effect on the segmented route |
 | SVC-12, SVC-13 | blocked: need the SAIA provider key |
@@ -206,7 +208,7 @@ the gain.
 2. **Layout YOLO weights:** copied from the dev machine on 2026-11-24, once iCloud had them local again, to `~/layout_weights`, and linked into `archai/backend/models`.
 3. **Page images:** none is tracked in the repo. The five were copied from the dev machine to `~/pages` on 2026-11-24, and all five SHA-256 values match `eval/recognizers/manifest.jsonl`. They are not re-downloaded from e-codices: a copy at another size would not match, and its CERs would not be comparable.
 4. **Demo pages** `french.JPEG` and `Latin.png`: copied with the others (3).
-5. **Ollama:** install the current stable release with Ollama's official install script, record the exact version (`ollama --version`) here and in every result, and pull `glm-ocr:latest` (the name in `settings.glmocr_ollama_model`). Its GLM numbers are a first look: no committed baseline exists for that version. **Not done yet:** the install runs a remote script with sudo and waits for the user's approval.
+5. **Ollama:** install the current stable release with Ollama's official install script, record the exact version (`ollama --version`) here and in every result, and pull `glm-ocr:latest` (the name in `settings.glmocr_ollama_model`). Its GLM numbers are a first look: no committed baseline exists for that version. **Not done yet on the VM:** the install runs a remote script with sudo and waits for the user's approval. GLM-OCR was measured on the dev machine instead (Ollama 0.40.6, 2026-11-24; `eval/recognizers/README.md`).
 6. **Saving the text read:** `benchmark_recognizers.py --save-readings PATH` (3d).
 
 ## Order on the VM

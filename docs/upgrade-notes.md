@@ -188,8 +188,12 @@ an hour.
   modern), Spanish and Dutch only.** Pages in other languages (Italian,
   Catalan, Occitan, German, English…) get no lexical plausibility check.
 - **Not exercised live in this work:** chat, translation and label analysis
-  against the provider (only with stubs and recorded answers), and GLM-OCR,
-  whose accuracy was not re-measured.
+  against the provider (only with stubs and recorded answers).
+- **GLM-OCR is not a usable fallback with Ollama 0.40.6.** Measured on the
+  five reference pages (`archai/backend/eval/recognizers/README.md`): it
+  repeats each page until the token limit (CER 252% to 1,350%, about 40% on
+  the text before the repetition) or aborts with a 502. The quality gate
+  blocks every such reading, so the page is not searched or linked.
 - **Only the last open document survives a reload**, and only in the browser
   that opened it (IndexedDB): another browser or device starts empty, and so
   does one that refuses storage (the Document tab says so). Its annotated
