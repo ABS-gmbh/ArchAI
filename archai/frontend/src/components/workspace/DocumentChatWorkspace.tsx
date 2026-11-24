@@ -202,9 +202,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [replyAnnouncement, setReplyAnnouncement] = useState("");
-  const wasSendingRef = useRef(false);
   /** Whether the last chat request failed; its message is in the conversation, not above the composer. */
-  const chatFailedRef = useRef(false);
+  const [chatFailed, setChatFailed] = useState(false);
   const metadataDialogWasOpenRef = useRef(false);
 
   const currentDocument = useMemo(
@@ -227,16 +226,23 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const currentAuthorityReport = currentPage ? (authorityReportByPageId[currentPage.id] ?? "") : "";
   const currentMetadata = currentDocument?.metadata ?? null;
 
-  useEffect(() => {
+  // What the reply announcement was last worked out from: it is worked out
+  // again, during render, whenever one of these changes (it was an effect that
+  // set state, react-hooks/set-state-in-effect). `chat` is whether the request
+  // in flight is a chat request: a page read or a region search also sets
+  // `sending`, and only a chat request ends in a reply.
+  const [announcedFrom, setAnnouncedFrom] = useState({ sending, label: assistantLoadingLabel, error, chat: false });
+  if (announcedFrom.sending !== sending || announcedFrom.label !== assistantLoadingLabel || announcedFrom.error !== error) {
+    let chat = announcedFrom.chat;
     if (sending) {
-      // A page read or a region search also sets `sending`; only a chat request ends in a reply.
-      wasSendingRef.current = assistantLoadingLabel !== "Extracting text" && assistantLoadingLabel !== "Segmenting page";
+      chat = assistantLoadingLabel !== "Extracting text" && assistantLoadingLabel !== "Segmenting page";
       setReplyAnnouncement("");
-    } else if (wasSendingRef.current) {
-      wasSendingRef.current = false;
-      setReplyAnnouncement(error || chatFailedRef.current ? "The request failed." : "Reply ready.");
+    } else if (chat) {
+      chat = false;
+      setReplyAnnouncement(error || chatFailed ? "The request failed." : "Reply ready.");
     }
-  }, [sending, error, assistantLoadingLabel]);
+    setAnnouncedFrom({ sending, label: assistantLoadingLabel, error, chat });
+  }
 
   // When the metadata dialog closes, hand focus back to the control that
   // opened it; otherwise it falls to the page body and a keyboard user starts
@@ -539,7 +545,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       ],
     }));
     setError(null);
-    chatFailedRef.current = false;
+    setChatFailed(false);
     setAssistantLoadingLabel(options?.loadingLabel || "Thinking");
     setSending(true);
 
@@ -629,7 +635,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Chat request failed.";
       // The failure is shown once, where the answer would have been.
-      chatFailedRef.current = true;
+      setChatFailed(true);
       setMessagesByDocument((prev) => {
         const list = [...(prev[currentDocument.id] ?? [])];
         const index = list.findIndex((msg) => msg.id === assistantMessage.id);
