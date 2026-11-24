@@ -1,7 +1,7 @@
 // Extraction results as the workspace shows them. Moved out of
 // DocumentChatWorkspace.tsx.
 
-import { type OCRExtractResponse } from "@/lib/api/ocrAgent";
+import type { OCRExtractResponse } from "@/lib/api/ocrAgent";
 
 export function removeTextUncertainties(text: string): string {
   return text
