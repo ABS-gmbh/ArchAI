@@ -369,6 +369,10 @@ ones: its layout task was gone.
 
 ## Upgrading and rolling back
 
+[upgrade-notes.md](upgrade-notes.md) lists what changes from the version of
+2026-11-09: what to check before the first start, the new settings and their
+defaults, and the changes users and API scripts will see.
+
 Back up first. The upgrade to this version needs no migration: the pipeline
 database's schema is unchanged, and starting the new version rewrites none of
 it. Starting either version rewrites the vector store's index files (the
