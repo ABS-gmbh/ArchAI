@@ -22,11 +22,11 @@ import { Readable } from "node:stream";
 import type { NextRequest } from "next/server";
 
 import {
-  HOP_BY_HOP,
-  TOKEN_HEADER,
   backendTarget,
   crossSiteRefusal,
+  downstreamHeaders,
   originOptions,
+  tokenRefusal,
   trustedProxyHops,
   upstreamHeaders,
 } from "./proxyRules";
@@ -43,26 +43,6 @@ const PROXY_STATUS_HEADER = "x-archai-proxy";
 // (a page upload) cannot be sent again. A live read was lost this way. A new
 // connection to a backend on the same host or network costs a handshake.
 const NO_REUSE = { http: new http.Agent({ keepAlive: false }), https: new https.Agent({ keepAlive: false }) };
-
-function downstreamHeaders(res: http.IncomingMessage): Headers {
-  const headers = new Headers();
-  for (const [name, value] of Object.entries(res.headers)) {
-    // "server" names the backend's software (uvicorn): nothing a browser needs.
-    if (value === undefined || HOP_BY_HOP.has(name) || name === TOKEN_HEADER || name === "server") {
-      continue;
-    }
-    for (const item of Array.isArray(value) ? value : [value]) {
-      headers.append(name, item);
-    }
-  }
-  if ((headers.get("content-type") || "").includes("text/event-stream")) {
-    // no-transform keeps Next's gzip from holding events back until a buffer
-    // fills; X-Accel-Buffering does the same for nginx in front of Next.
-    headers.set("cache-control", "no-cache, no-transform");
-    headers.set("x-accel-buffering", "no");
-  }
-  return headers;
-}
 
 function unreachable(): Response {
   return Response.json(
@@ -81,28 +61,15 @@ function isApiTokenRefusal(res: http.IncomingMessage): boolean {
 
 let tokenRefusalLogged = false;
 
-/**
- * The backend refused the token this server sends. Its own message tells an
- * API client which header to send, which means nothing to someone using the
- * frontend: say which setting of the frontend's server is missing or wrong.
- */
 function tokenRefused(method: string, path: string): Response {
-  const configured = Boolean(process.env.BACKEND_API_TOKEN);
-  const detail = configured
-    ? "The backend refused the frontend server's API token. Set BACKEND_API_TOKEN on the frontend server to the backend's API_TOKEN, and restart it."
-    : "The backend requires an API token, and the frontend server sends none. Set BACKEND_API_TOKEN on the frontend server to the backend's API_TOKEN, and restart it.";
+  const refusal = tokenRefusal(Boolean(process.env.BACKEND_API_TOKEN));
   if (!tokenRefusalLogged) {
     tokenRefusalLogged = true;
-    console.error(
-      `[api proxy] ${method} ${path}: the backend answered 401 to ${configured ? "BACKEND_API_TOKEN" : "a request without a token (BACKEND_API_TOKEN is not set)"}. Set BACKEND_API_TOKEN to the backend's API_TOKEN.`,
-    );
+    console.error(`[api proxy] ${method} ${path}: ${refusal.log}`);
   }
   return Response.json(
-    { detail },
-    {
-      status: 401,
-      headers: { [PROXY_STATUS_HEADER]: configured ? "token-refused" : "token-missing", "cache-control": "no-store" },
-    },
+    { detail: refusal.detail },
+    { status: refusal.status, headers: { [PROXY_STATUS_HEADER]: "token-refused", "cache-control": "no-store" } },
   );
 }
 
@@ -154,7 +121,7 @@ async function proxy(req: NextRequest): Promise<Response> {
         new Response(noBody ? null : (Readable.toWeb(res) as ReadableStream<Uint8Array>), {
           status,
           statusText: res.statusMessage,
-          headers: downstreamHeaders(res),
+          headers: downstreamHeaders(res.headers),
         }),
       );
     });
