@@ -68,3 +68,40 @@ def test_the_zip_is_written_off_the_event_loop(monkeypatch, tmp_path):
 
     assert client.get("/download/t1/results_zip").status_code == 200
     assert threads and threads[0] != loop_threads[0]
+
+
+def test_parallel_downloads_of_a_finished_batch_build_the_zip_once(monkeypatch, tmp_path):
+    # Second review: every request built its own archive in the task
+    # directory, so parallel downloads multiplied the disk and the CPU.
+    client, task_dir = _client_with_task(monkeypatch, tmp_path)
+    builds: list[int] = []
+    original = download._write_results_zip
+    gate = threading.Barrier(6)
+
+    def counting(*args, **kwargs):
+        builds.append(1)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(download, "_write_results_zip", counting)
+    bodies: list[bytes] = []
+
+    def fetch() -> None:
+        gate.wait()
+        bodies.append(client.get("/download/t1/results_zip").content)
+
+    threads = [threading.Thread(target=fetch) for _ in range(6)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(30)
+    assert len(builds) == 1
+    assert len(bodies) == 6 and len(set(bodies)) == 1
+    assert sorted(zipfile.ZipFile(io.BytesIO(bodies[0])).namelist()) == ["annotations.json", "images/f1.jpg", "images/f2.jpg"]
+    assert [p.name for p in task_dir.glob("*.zip")] == ["results.zip"]  # one archive, no temporary left
+
+
+def test_a_running_batch_gets_a_fresh_copy_removed_after(monkeypatch, tmp_path):
+    client, task_dir = _client_with_task(monkeypatch, tmp_path)
+    file_manager._task_store["t1"].status = "processing"
+    assert client.get("/download/t1/results_zip").status_code == 200
+    assert list(task_dir.glob("*.zip")) == []

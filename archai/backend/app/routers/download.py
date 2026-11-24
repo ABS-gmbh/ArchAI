@@ -5,6 +5,7 @@ import io
 import json
 import os
 import tempfile
+import threading
 import zipfile
 
 from fastapi import APIRouter, HTTPException
@@ -92,13 +93,43 @@ async def download_results_zip(task_id: str):
     # Built on disk in a worker thread and streamed from there. It was built in
     # memory on the event loop: a large batch held hundreds of megabytes per
     # download and froze every other request while it compressed (audit DL-001).
-    path = await asyncio.to_thread(_write_results_zip, task, get_task_dir(task_id))
+    path, temporary = await asyncio.to_thread(_results_zip, task, get_task_dir(task_id))
     return FileResponse(
         path,
         media_type="application/zip",
         filename=f"results_{task_id}.zip",
-        background=BackgroundTask(os.remove, path),
+        background=BackgroundTask(os.remove, path) if temporary else None,
     )
+
+
+_RESULTS_ZIP = "results.zip"
+_zip_builds: dict[str, threading.Lock] = {}
+_zip_builds_guard = threading.Lock()
+
+
+def _results_zip(task, directory: str) -> tuple[str, bool]:
+    """The task's results ZIP and whether it is a temporary copy to remove once sent.
+
+    A finished task's archive is built once, under a lock per task, and kept
+    in its directory (the TTL sweep removes it with the task): every request
+    built its own, so parallel downloads multiplied the disk and the CPU
+    (second security review). A batch still running gets a copy of what it
+    has so far, removed after it is sent, since its results still change.
+    """
+    if task.status != "completed":
+        return _write_results_zip(task, directory), True
+    final = os.path.join(directory, _RESULTS_ZIP)
+    with _zip_builds_guard:
+        build = _zip_builds.setdefault(task.task_id, threading.Lock())
+    with build:
+        try:
+            if not os.path.isfile(final):
+                # Renamed into place whole: a parallel request never sends half of it.
+                os.replace(_write_results_zip(task, directory), final)
+        finally:
+            with _zip_builds_guard:
+                _zip_builds.pop(task.task_id, None)
+    return final, False
 
 
 def _write_results_zip(task, directory: str) -> str:
