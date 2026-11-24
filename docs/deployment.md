@@ -54,7 +54,7 @@ in `archai/backend` or pass them as environment variables.
 | `CORS_ORIGINS` | The default allows only `localhost`/`127.0.0.1` on ports 3000 and 3001. Set the frontend's real origin, or leave it unset only if the browser reaches the backend through the frontend's `/api` proxy (same origin). |
 | `CHAT_AI_API_KEY` | Without it, chat, translation, SAIA OCR and provider embeddings fail ("Chat API key not configured"). |
 | `GLMOCR_OLLAMA_HOST` | The Ollama server running `glm-ocr`, if GLM-OCR or the segmented engine's fallback is to work. |
-| `ANALYTICS_USERNAME`, `ANALYTICS_PASSWORD`, `JWT_SECRET` | Analytics login refuses with 503 until the first two are set. Set `JWT_SECRET` too, so tokens survive restarts. |
+| `ANALYTICS_USERNAME`, `ANALYTICS_PASSWORD`, `JWT_SECRET` | Analytics login refuses with 503 until the first two are set. Set `JWT_SECRET` too: without it the tokens are signed with a random per-process secret, so sessions end at every restart, and startup logs an ERROR saying so. |
 | `ARCHAI_DB_PATH`, `CHROMA_PERSIST_DIR`, `ARCHAI_WIKIDATA_CACHE`, `OCR_EVIDENCE_PATH`, `TASK_BASE_DIR` | Their defaults are inside the code checkout. Point them at a data directory (the first four are the ones to back up). |
 | `MAX_UPLOAD_MEGABYTES` | The default is 1024 MB per upload, and request bodies may be a third larger for base64. Set what your pages need. |
 | `LOG_FORMAT=json` | One JSON object per log line, for a log collector. |
