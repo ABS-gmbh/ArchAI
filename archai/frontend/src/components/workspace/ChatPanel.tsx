@@ -11,7 +11,10 @@ import { Button, Icon } from "./ui";
 
 interface ChatPanelProps {
   messages: WorkspaceChatMessage[];
+  /** Any request is running (a question, a page read, a region search): the composer is off. */
   sending: boolean;
+  /** A question is being answered. */
+  asking: boolean;
   loadingLabel: string;
   error: string | null;
   input: string;
@@ -35,6 +38,7 @@ const SUGGESTIONS = ["Who is named on this page?", "Summarise this page in two s
 export function ChatPanel({
   messages,
   sending,
+  asking,
   loadingLabel,
   error,
   input,
@@ -91,9 +95,13 @@ export function ChatPanel({
               return (
                 <li key={message.id} className={mine ? "ml-8" : ""}>
                   <p className="mb-1 text-xs text-ink-muted">{mine ? "You" : "ArchAI"}</p>
-                  <div className={`rounded-lg px-3 py-2 text-sm leading-6 ${mine ? "bg-well" : "border border-line"}`}>
+                  <div
+                    className={`rounded-lg px-3 py-2 text-sm leading-6 ${
+                      mine ? "bg-well" : message.failed ? "border border-negative/40" : "border border-line"
+                    }`}
+                  >
                     {message.content ? (
-                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                      <p className={`whitespace-pre-wrap break-words ${message.failed ? "text-negative" : ""}`}>{message.content}</p>
                     ) : sending && !mine ? (
                       <p role="status" className="text-ink-muted">
                         {loadingLabel}…
@@ -153,7 +161,7 @@ export function ChatPanel({
             Clear conversation
           </Button>
           <Button variant="primary" onClick={onSend} disabled={Boolean(disabledReason) || sending || !input.trim()}>
-            {sending ? "Sending" : "Ask"} <Icon name="send" />
+            {asking ? "Asking" : "Ask"} <Icon name="send" />
           </Button>
         </div>
       </div>

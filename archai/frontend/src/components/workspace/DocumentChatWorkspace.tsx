@@ -177,6 +177,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [replyAnnouncement, setReplyAnnouncement] = useState("");
   const wasSendingRef = useRef(false);
+  /** Whether the last chat request failed; its message is in the conversation, not above the composer. */
+  const chatFailedRef = useRef(false);
   const metadataDialogWasOpenRef = useRef(false);
 
   const currentDocument = useMemo(
@@ -210,7 +212,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       setReplyAnnouncement("");
     } else if (wasSendingRef.current) {
       wasSendingRef.current = false;
-      setReplyAnnouncement(error ? "The request failed." : "Reply ready.");
+      setReplyAnnouncement(error || chatFailedRef.current ? "The request failed." : "Reply ready.");
     }
   }, [sending, error, assistantLoadingLabel]);
 
@@ -446,6 +448,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       historyForModel?: WorkspaceChatMessage[];
       /** What a read that just finished produced; the render's own values are still the old ones. */
       pageContext?: { transcript: string; runId: string; authorityReport: string };
+      /** The question is already in the conversation (typed in the composer): do not add it again. */
+      questionShown?: boolean;
     },
   ): Promise<{ ok: boolean; error?: string }> => {
     if (!currentDocument || sending) {
@@ -506,9 +510,14 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
 
     setMessagesByDocument((prev) => ({
       ...prev,
-      [currentDocument.id]: [...(prev[currentDocument.id] ?? []), userMessage, assistantMessage],
+      [currentDocument.id]: [
+        ...(prev[currentDocument.id] ?? []),
+        ...(options?.questionShown ? [] : [userMessage]),
+        assistantMessage,
+      ],
     }));
     setError(null);
+    chatFailedRef.current = false;
     setAssistantLoadingLabel(options?.loadingLabel || "Thinking");
     setSending(true);
 
@@ -597,14 +606,16 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       return { ok: true };
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Chat request failed.";
-      setError(message);
+      // The failure is shown once, where the answer would have been.
+      chatFailedRef.current = true;
       setMessagesByDocument((prev) => {
         const list = [...(prev[currentDocument.id] ?? [])];
         const index = list.findIndex((msg) => msg.id === assistantMessage.id);
         if (index !== -1) {
           list[index] = {
             ...list[index],
-            content: `Request failed: ${message}`,
+            content: `No answer: ${message}`,
+            failed: true,
           };
         }
         return { ...prev, [currentDocument.id]: list };
@@ -661,13 +672,13 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
 
     if (intent === "translate") {
       appendMessages(documentId, [userMessage]);
-      await handleTranslateInChat(text);
+      await handleTranslateInChat(text, true);
       return;
     }
 
     if (intent === "entities") {
       appendMessages(documentId, [userMessage]);
-      await handleEntityQuestionInChat(text);
+      await handleEntityQuestionInChat(text, true);
       return;
     }
 
@@ -1044,12 +1055,14 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
               if (current.phase !== "reading") {
                 return prev;
               }
+              const readingLines = String(stage || "").toUpperCase() === "OCR_RUNNING";
               return {
                 ...prev,
                 [pageId]: {
                   ...current,
-                  stage: stageInWords(stage),
-                  progress: String(stage || "").toUpperCase() === "OCR_RUNNING" ? progress : null,
+                  // Until the first count arrives the page's layout is being found, which can take a minute on a CPU.
+                  stage: readingLines && !progress ? "Finding the lines on the page" : stageInWords(stage),
+                  progress: readingLines ? progress : null,
                 },
               };
             });
@@ -1232,7 +1245,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     }
   };
 
-  const handleTranslateInChat = async (userText: string) => {
+  const handleTranslateInChat = async (userText: string, questionShown = false) => {
     if (!currentPage || !currentDocument) {
       return;
     }
@@ -1268,10 +1281,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       chatStage: "translation",
       historyForModel: [],
       pageContext,
+      questionShown,
     });
   };
 
-  const handleEntityQuestionInChat = async (userText: string) => {
+  const handleEntityQuestionInChat = async (userText: string, questionShown = false) => {
     if (!currentPage || !currentDocument) {
       return;
     }
@@ -1319,6 +1333,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       chatStage: "entity_qa",
       historyForModel: [],
       pageContext: { transcript: sourceText, runId, authorityReport },
+      questionShown,
     });
   };
 
@@ -1404,7 +1419,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
 
   const translate = () => {
     setPane("ask");
-    void handleTranslateInChat("translate to english");
+    void handleTranslateInChat("Translate this page into English.");
   };
 
   if (!clientReady) {
@@ -1677,6 +1692,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                   <ChatPanel
                     messages={currentMessages}
                     sending={sending}
+                    asking={sending && !reading && !findingRegions}
                     loadingLabel={assistantLoadingLabel}
                     error={error}
                     input={input}
