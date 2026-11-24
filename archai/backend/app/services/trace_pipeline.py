@@ -76,6 +76,17 @@ def _record_search_decision(run_id: str, allowed: bool) -> None:
     update_run_fields(run_id, search_allowed=1 if allowed else 0)
 
 
+# Why index_run stored nothing, in the words the run's step list shows.
+_INDEX_SKIPPED_MESSAGES = {
+    "embedding_unavailable": (
+        "Not indexed: the embedding service is unavailable, so this page cannot be searched "
+        "until the run is indexed again."
+    ),
+    "blocked_by_quality_gate": "Not indexed: the quality check does not allow this text to be searched.",
+    "empty": "Nothing to index: the run has no passages or names.",
+}
+
+
 def _auto_index_run(run_id: str) -> None:
     """Best-effort auto-index into ChromaDB after pipeline success."""
     if not _app_settings.rag_auto_index:
@@ -84,6 +95,12 @@ def _auto_index_run(run_id: str) -> None:
         from app.services.rag_store import index_run as _rag_index
         log_event(run_id, "INDEX_RUNNING", "START", "Auto-indexing into vector store.")
         result = _rag_index(run_id)
+        skipped = _INDEX_SKIPPED_MESSAGES.get(str(result.get("status") or ""))
+        if skipped and not result.get("chunks_indexed"):
+            # "Indexed 0 chunks" under a finished run read as success, while the
+            # page could not be searched or cited at all.
+            log_event(run_id, "INDEX_SKIPPED", "INFO", skipped)
+            return
         log_event(
             run_id,
             "INDEX_DONE",
