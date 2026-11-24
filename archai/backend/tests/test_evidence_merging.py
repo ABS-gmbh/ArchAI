@@ -85,3 +85,10 @@ def test_merging_does_not_change_which_chunks_are_retrieved() -> None:
     before = [dict(hit) for hit in hits]
     rag_store.format_evidence_blocks(hits)
     assert hits == before
+
+
+def test_the_default_top_k_is_eight() -> None:
+    """Measured on eval/chat: 56/62 answers in evidence at 8 merged, 1,620 chars, under 5 unmerged (1,739)."""
+    from app.config import Settings
+
+    assert Settings.model_fields["rag_top_k"].default == 8

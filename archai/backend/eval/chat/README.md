@@ -62,15 +62,22 @@ The report gives counts as k/n per kind and per page, with no headline rate.
 
 ## Results
 
-Retrieval only, local embedder (ChromaDB's MiniLM), BM25 weight 2:
+Retrieval only, local embedder (ChromaDB's MiniLM), BM25 weight 2. The
+evidence is the block put into the prompt; overlapping hits are merged.
 
-| | n | evidence holds the answer | instruction present |
+| top_k | answer in evidence (n=62) | mean evidence chars | note |
 |---|---|---|---|
-| answerable | 62 | 53 | 62 |
-| not in sources | 17 | (no answer) | 17 |
+| 5, before merging | 53 | 1,739 | the former default |
+| 5, merged | 53 | 1,295 | |
+| 8, merged | 56 | 1,620 | the default (`RAG_TOP_K`) |
+| 10, merged | 59 | 1,768 | |
 
-By page, the evidence holds the answer for: old-french 11/15,
-latin-abaton 17/19, latin-apocalypse 11/11, old-french-verse 14/17.
+The "not in the sources" instruction is present for all 79 items. The 9
+answerable questions whose answer stays out at top_k 5 are English questions
+that share no word with the Old French or Latin passage. Their answer chunk
+ranks 6th to 15th of the page's 7 to 17 windows. Three of them come in at
+top_k 8. The multilingual embedder the app is configured for has not been
+measured on this set.
 
 No live answers have been scored yet: the chat provider key returns 401.
 

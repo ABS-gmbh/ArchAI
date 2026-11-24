@@ -245,7 +245,9 @@ ChromaDB's default model:
 | fused (RRF, k = 60, equal weights) | 0.863 | 0.770 | **0.968** |
 
 BM25 alone ranks the passage first more often, but the fusion puts it in the
-top 5, the chunks chat passes to the model, more often than either ranker.
+top 5 more often than either ranker. Chat now passes the top 8
+(`RAG_TOP_K`), with overlapping hits merged into one evidence block; see
+`eval/chat/README.md`.
 
 Passage lookup quotes the page. `eval/retrieval/questions.json` holds
 questions a reader might ask about the same pages, in English, each with the

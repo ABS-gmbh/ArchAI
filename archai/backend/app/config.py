@@ -167,12 +167,19 @@ class Settings(BaseSettings):
     rag_chunk_window_lines: int = 6
     rag_chunk_overlap_lines: int = 2
 
-    rag_top_k: int = 5
+    # Chunks retrieved for a chat question. Overlapping hits share one evidence
+    # block (rag_store.format_evidence_blocks), so 8 costs less prompt than 5
+    # did unmerged. On 62 answerable questions (scripts/evaluate_chat_answers.py,
+    # local MiniLM, four pages) the answer reached the evidence for 53 at 5
+    # and 56 at 8; mean evidence 1,739 characters at 5 unmerged, 1,620 at 8
+    # merged. The 9 misses at 5 are English questions sharing no word with the
+    # Old French or Latin passage; the multilingual embedder is unmeasured.
+    rag_top_k: int = 8
     rag_entity_top_k: int = 4
     rag_auto_index: bool = True
     # Hybrid retrieval: the dense ranking is fused (Reciprocal Rank Fusion) with
     # character 4-gram BM25 over the abbreviation-expanded search key. The right
-    # chunk reached the top 5 - what chat passes on - for 89.6% of 222 passage
+    # chunk reached the top 5 - what chat passed on before rag_top_k was 8 - for 89.6% of 222 passage
     # lookups over four reference pages dense-only, 95.9% with BM25 alone and
     # 96.8% fused (scripts/benchmark_retrieval.py --readings, ChromaDB's default
     # model; 91.0% / 95.9% / 97.7% with e5). Set rag_lexical_fusion=False for
