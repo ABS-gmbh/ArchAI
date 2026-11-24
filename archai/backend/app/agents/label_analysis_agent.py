@@ -1146,12 +1146,17 @@ class LabelAnalysisAgent(BaseAgent):
 
     @staticmethod
     def _decode_page(image_b64: str) -> Image.Image:
+        from app.services.image_limits import too_many_pixels
+
         image_bytes = decode_image_bytes(image_b64)
         try:
             with Image.open(io.BytesIO(image_bytes)) as image:
-                return ImageOps.exif_transpose(image).convert("RGB")
+                refusal = too_many_pixels(image)  # from the header, before a pixel is decoded
+                if refusal is None:
+                    return ImageOps.exif_transpose(image).convert("RGB")
         except Exception as exc:
             raise LabelAnalysisAgentError("Could not decode the source page image.") from exc
+        raise LabelAnalysisAgentError(refusal)
 
     @staticmethod
     def _crop_from(source: Image.Image, regions: Sequence[Any]) -> tuple[Image.Image, list[int], int]:

@@ -82,12 +82,17 @@ class CropResult(NamedTuple):
 
 def decode_page(image_b64: str) -> Image.Image:
     """The page as RGB, decoded once for every crop taken from it."""
+    from app.services.image_limits import ImageTooLarge, too_many_pixels
+
     image_bytes = decode_image_bytes(image_b64)
     try:
         with Image.open(io.BytesIO(image_bytes)) as image:
-            return image.convert("RGB")
+            refusal = too_many_pixels(image)  # from the header, before convert() decodes
+            if refusal is None:
+                return image.convert("RGB")
     except Exception as exc:
         raise CropAgentError("Could not decode source image.") from exc
+    raise ImageTooLarge(refusal)
 
 
 def crop_region(

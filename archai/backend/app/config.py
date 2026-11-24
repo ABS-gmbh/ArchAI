@@ -201,12 +201,14 @@ class Settings(BaseSettings):
     ocr_crop_upscale: int = 2
     ocr_max_pixels_per_tile: int = 160000000
     ocr_max_long_edge: int = 12000
-    # The largest page the provider path decodes at all (width x height); larger
-    # pages are refused before a pixel is read. The default is PIL's own refusal
-    # point (twice Image.MAX_IMAGE_PIXELS); a page under it but over
-    # ocr_max_pixels_per_tile is decoded and resized down. At 3 bytes a pixel
-    # the default is about 540 MB once decoded.
-    ocr_max_decode_pixels: int = 178956970
+    # The largest image decoded at all (width x height), by every route that
+    # reads an upload (app/services/image_limits.py); larger ones are refused
+    # from their header, before a pixel is read. The largest real pages seen,
+    # e-codices' full-size downloads, are 6130 x 8175 (50.1 megapixels); the
+    # default, PIL's own warning point (Image.MAX_IMAGE_PIXELS, 89.5 MP), gives
+    # them 1.8 times headroom and is about 270 MB once decoded at 3 bytes a
+    # pixel. It was twice that, and a 12 KB PNG of 100 MP decoded with +500 MB.
+    ocr_max_decode_pixels: int = 89478485
     ocr_image_size_retry_limit: int = 2
     ocr_image_retry_shrink: float = 0.82
     # Tiles of one page read by the VLM at once (ocr_agent.run_ocr_extraction).

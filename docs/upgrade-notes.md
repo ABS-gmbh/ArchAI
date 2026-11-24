@@ -90,7 +90,7 @@ changed: `RAG_TOP_K` from 5 to 8. `.env.example` no longer lists
 | `OCR_RUN_RESERVATION_TTL_SECONDS` | `600` | rarely |
 | `OCR_RUN_RESERVATION_MAX_LIVE` | `100` | many workspaces read at once |
 | `OCR_TRACE_STREAM_MAX_OPEN` | `32` | many workspaces watch reads at once |
-| `OCR_MAX_DECODE_PIXELS` | `178956970` | pages are larger than 179 megapixels |
+| `OCR_MAX_DECODE_PIXELS` | `89478485` | pages are larger than 89 megapixels (the largest seen are 50) |
 | `OCR_TILE_CONCURRENCY` | `2` | the OCR provider allows more parallel requests |
 | `OCR_JOIN_DETACHED_INITIALS` | `True` | initials should stay separate lines |
 | `OCR_DETACHED_INITIAL_MIN_COLUMN_LINES` | `5` | rarely |
