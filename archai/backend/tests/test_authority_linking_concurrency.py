@@ -125,16 +125,27 @@ def test_concurrent_calls_for_one_run_leave_one_set_of_candidates(slow_sources: 
     assert _candidate_count(together) == expected
 
 
-def test_different_runs_still_link_in_parallel(slow_sources: None) -> None:
+def test_different_runs_still_link_in_parallel(slow_sources: None, monkeypatch: pytest.MonkeyPatch) -> None:
     text = "Merlin medieval legendary wizard arthurian Merlinus"
-    started = time.perf_counter()
-    authority_linking.run_authority_linking(_seed_run(text), top_k=3)
-    one_run = time.perf_counter() - started
-
     first, second = _seed_run(text), _seed_run(text)
-    started = time.perf_counter()
+
+    # Both runs must be inside their Wikidata lookup at the same moment. If
+    # runs were serialised, the first would wait here for a second that cannot
+    # start, and the barrier would break. No clock is compared: on a loaded CI
+    # runner, "two runs take less than 1.5 times one run" failed by 2 ms.
+    together = threading.Barrier(2, timeout=10)
+    waited: set[int] = set()
+    lookup = authority_linking.search_wikidata
+
+    def search_wikidata(*args: Any, **kwargs: Any) -> list[dict[str, Any]]:
+        thread = threading.get_ident()
+        if thread not in waited:
+            waited.add(thread)
+            together.wait()
+        return lookup(*args, **kwargs)
+
+    monkeypatch.setattr(authority_linking, "search_wikidata", search_wikidata)
     assert _in_threads(first, second) == []
-    two_runs = time.perf_counter() - started
+    # A lookup's own error handling swallows a broken barrier, so ask the barrier.
+    assert len(waited) == 2 and not together.broken
     assert _candidate_count(first) == _candidate_count(second) > 0
-    # Serialised, two runs would take twice as long as one.
-    assert two_runs < 1.5 * one_run
