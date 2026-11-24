@@ -113,7 +113,10 @@ class Settings(BaseSettings):
     analytics_username: str = ""
     analytics_password: str = ""
 
-    # JWT
+    # JWT. The HMAC-SHA256 key of every analytics session: at least
+    # JWT_SECRET_MIN_LENGTH characters (256 bits of text, as RFC 7518 asks of an
+    # HS256 key). A shorter one is logged as an ERROR at startup, not refused, so
+    # an existing installation keeps starting. Unset, a random one is made.
     jwt_secret: str = ""
     jwt_expiry_minutes: int = 60
 
@@ -385,6 +388,9 @@ class Settings(BaseSettings):
         return _EPHEMERAL_JWT_SECRET
 
     model_config = {"env_file": (".env", ".env.local"), "extra": "ignore"}
+
+
+JWT_SECRET_MIN_LENGTH = 32
 
 
 def api_docs_enabled(config: Settings) -> bool:

@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.auth import ApiTokenGate, require_api_token
 from app.body_limit import RequestBodyLimit
 from app.security_headers import SecurityHeaders
-from app.config import api_docs_enabled, settings
+from app.config import JWT_SECRET_MIN_LENGTH, api_docs_enabled, settings
 from app.logging_setup import configure_logging
 from app.process_guard import guard_for_database
 from app.db import pipeline_db
@@ -60,6 +60,14 @@ async def lifespan(app: FastAPI):
             "JWT_SECRET is not set while analytics login is configured: analytics tokens are signed "
             "with a random secret made at startup, so every login ends when the process restarts, "
             "and a second worker would reject the first one's tokens. Set JWT_SECRET to a long random value."
+        )
+    elif settings.jwt_secret and len(settings.jwt_secret) < JWT_SECRET_MIN_LENGTH:
+        # Not a refusal either: an installation with a short secret keeps starting.
+        logging.getLogger(__name__).error(
+            f"JWT_SECRET is shorter than {JWT_SECRET_MIN_LENGTH} characters: it is the key that signs "
+            "analytics sessions, and a short one can be guessed offline from any session token. Set "
+            f"JWT_SECRET to a random value of at least {JWT_SECRET_MIN_LENGTH} characters (.env.example "
+            "shows how); every analytics session ends when it changes."
         )
     if not settings.api_token:
         logging.getLogger(__name__).warning(

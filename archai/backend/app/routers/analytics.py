@@ -48,7 +48,10 @@ def _verify_token(credentials: HTTPAuthorizationCredentials = Depends(security))
             credentials.credentials, settings.resolve_jwt_secret(), algorithms=[ALGORITHM]
         )
         username = payload.get("sub")
-        if username is None:
+        # Signed with our secret is not enough: the token must be the operator's.
+        if not isinstance(username, str) or not secrets.compare_digest(
+            username.encode(), settings.analytics_username.encode()
+        ):
             raise HTTPException(status_code=401, detail="Invalid token.")
         return username
     except JWTError as exc:
