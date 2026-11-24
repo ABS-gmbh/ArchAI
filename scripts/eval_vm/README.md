@@ -27,12 +27,13 @@ cd ~/ArchAI/archai/backend && source ~/archai-venv/bin/activate
 - **System packages.** git, a build toolchain, libgl1, libglib2.0-0t64, the
   jpeg/png/tiff headers and libspatialindex (for rtree). Python 3.11 comes from
   the deadsnakes PPA, because Ubuntu 24.04 ships 3.12.
-- **Python packages.** torch 2.9.0+cpu and torchvision 0.24.0+cpu come from
-  `https://download.pytorch.org/whl/cpu`. A constraints file then keeps any later
-  package from replacing them with a CUDA build. After that it installs the
-  backend dependency list CI uses, plus kraken 6.0.3, ultralytics 8.4.13 and
-  sentence-transformers. The versions are those of the dev environment the
-  existing numbers came from.
+- **Python packages.** One `pip install` of the backend with its `models`,
+  `dev` and `headless` extras, plus sentence-transformers.
+  `https://download.pytorch.org/whl/cpu` is passed as an extra index, so torch
+  2.9.0 resolves to the CPU build. The versions (torch 2.9.0, torchvision
+  0.24.0, kraken 6.0.3, ultralytics 8.4.13, NumPy 2.0.2) are pinned once, in
+  `archai/backend/pyproject.toml`'s `models` extra. They are those of the
+  environment the existing numbers came from.
 - **Checks.** torch is the CPU build, `app.main` imports, and the offline suite
   passes (`pytest -m "not requires_models"`; 1,545 tests in 180 s on the VM).
 

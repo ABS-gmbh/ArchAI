@@ -17,7 +17,8 @@ dependencies = [
     "python-jose[cryptography]>=3.3.0",
     "pydantic-settings>=2.0.0",
     "ultralytics>=8.0.0",
-    "numpy<2.0",
+    # <2.1, not <2.0: the models extra below needs NumPy 2.0 (kraken 6).
+    "numpy<2.1",
     "pillow>=10.0.0",
     "matplotlib>=3.6.0",
     "shapely>=2.0.0",
@@ -41,6 +42,18 @@ headless = [
 dev = [
     "pytest>=7.0.0",
     "httpx>=0.24.0",
+]
+# The inference stack pinned to the set the benchmarks were measured with and
+# the evaluation VM runs (scripts/eval_vm/setup.sh): layout segmentation
+# (ultralytics) and line recognition (kraken). An extra cannot name a package
+# index, so on Linux pass PyTorch's CPU index, or pip fetches the CUDA build:
+#   pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[models]"
+models = [
+    "torch==2.9.0",
+    "torchvision==0.24.0",
+    "kraken==6.0.3",
+    "ultralytics==8.4.13",
+    "numpy==2.0.2",
 ]
 
 [tool.pytest.ini_options]

@@ -46,7 +46,10 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-This installs the API and ultralytics, not the model files or kraken: see
+This installs the API and ultralytics, not the model files or kraken. For the
+segmented engine, install the pinned inference stack with the `models` extra
+(`pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[models]"`
+on Linux) and add the model files: see
 [`docs/model_setup.md`](../../docs/model_setup.md). Without them the backend
 still starts, serves chat and retrieval and reads pages with GLM-OCR, and its
 startup log names what is missing.
