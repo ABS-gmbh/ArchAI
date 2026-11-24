@@ -4,21 +4,14 @@ import { useState } from "react";
 
 import type { LinkCandidate, LinkingReport, MentionResult } from "@/lib/api/ocrAgent";
 
-import { reasonInWords } from "./linkReason";
-import { Button, Icon, Pill, type PillTone } from "./ui";
+import { linkingSummary, mentionStatus, reasonInWords, summaryOfMentions } from "./linkReason";
+import { Button, Icon, Pill } from "./ui";
 
 export type LinkingState =
   | { phase: "idle" }
   | { phase: "loading" }
   | { phase: "failed"; error: string }
   | { phase: "ready"; report: LinkingReport };
-
-const STATUS: Record<string, { tone: PillTone; label: string }> = {
-  linked: { tone: "positive", label: "Linked" },
-  ambiguous: { tone: "warning", label: "Ambiguous" },
-  unresolved: { tone: "neutral", label: "Not linked" },
-  skipped: { tone: "neutral", label: "Skipped" },
-};
 
 const TYPE_WORDS: Record<string, string> = {
   person: "Person",
@@ -55,7 +48,7 @@ function score(value: number | null | undefined): string {
 
 function Mention({ mention }: { mention: MentionResult }) {
   const [open, setOpen] = useState(false);
-  const status = STATUS[mention.status] ?? { tone: "neutral" as PillTone, label: mention.status };
+  const status = mentionStatus(mention.status);
   const selected = mention.status === "linked" ? mention.selected : null;
   const candidates = mention.top_candidates ?? [];
   const url = selected ? recordUrl(selected) : null;
@@ -191,12 +184,13 @@ export function EntitiesPanel({ state, hasRun, onRetry }: { state: LinkingState;
       </div>
     );
   }
-  const linked = mentions.filter((mention) => mention.status === "linked").length;
+  // The same words as the linking step in Steps (linkReason.ts), so the two agree.
   return (
     <div className="p-6">
       <p className="text-sm text-ink-muted">
-        <span className="tabular-nums text-ink">{linked}</span> of <span className="tabular-nums text-ink">{mentions.length}</span>{" "}
-        {mentions.length === 1 ? "name" : "names"} linked to an authority record.
+        <span className="tabular-nums text-ink">{mentions.length}</span> {mentions.length === 1 ? "name" : "names"} found:{" "}
+        <span className="tabular-nums">{linkingSummary(summaryOfMentions(mentions))}</span>. Linked means matched to an
+        authority record.
       </p>
       <ul className="mt-3">
         {mentions.map((mention, index) => (

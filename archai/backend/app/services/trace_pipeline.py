@@ -126,7 +126,10 @@ def _run_authority_linking_stage(run_id: str) -> dict[str, Any] | None:
             "END",
             f"Authority linking complete: linked={result.get('linked_total', 0)}, "
             f"unresolved={result.get('unresolved_total', 0)}, "
-            f"ambiguous={result.get('ambiguous_total', 0)}.",
+            f"ambiguous={result.get('ambiguous_total', 0)}, "
+            # Names not looked up (dates, roles): without them the parts did not
+            # add up to the names found (6 found, "2 linked, 3 not linked").
+            f"skipped={result.get('skipped_total', 0)}.",
         )
         update_run_fields(run_id, current_stage="AUTHORITY_LINKING_DONE")
         return result

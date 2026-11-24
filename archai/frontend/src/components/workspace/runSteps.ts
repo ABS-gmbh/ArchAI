@@ -2,6 +2,8 @@
 // the reading progress line. Plain TypeScript, no JSX, so the unit tests can
 // import it (runSteps.test.ts).
 
+import { linkingSummary } from "./linkReason";
+
 const STAGE_WORDS: Record<string, string> = {
   RESERVED: "Sending the page",
   RECEIVED: "Request received",
@@ -50,7 +52,11 @@ const MESSAGE_WORDS: [RegExp, (match: RegExpExecArray) => string][] = [
   [/^chunks=(\d+), mentions=(\d+)$/, (m) => `${plural(m[1], "passage", "passages")}, ${plural(m[2], "name", "names")}`],
   [/^Run results persisted in SQLite\.$/, () => ""],
   [/^Running authority linking \(Wikidata\)\.$/, () => ""],
-  [/^Authority linking complete: linked=(\d+), unresolved=(\d+), ambiguous=(\d+)\.$/, (m) => `${m[1]} linked, ${m[2]} not linked, ${m[3]} ambiguous`],
+  [
+    /^Authority linking complete: linked=(\d+), unresolved=(\d+), ambiguous=(\d+)(?:, skipped=(\d+))?\.$/,
+    // skipped= since 2026-11-24; stored runs keep the three-part message.
+    (m) => linkingSummary({ linked: Number(m[1]), notLinked: Number(m[2]), ambiguous: Number(m[3]), skipped: Number(m[4] ?? 0) }),
+  ],
   [/^Auto-indexing into vector store\.$/, () => ""],
   [/^Indexed (\d+) chunks\.$/, (m) => `${plural(m[1], "passage", "passages")} indexed`],
   [/^Full-page pipeline completed successfully\.$/, () => ""],
