@@ -1,7 +1,7 @@
 # ArchAI audit findings
 130 findings survived triage across both OCR pipelines and repository hygiene (5 critical, 33 high, 60 medium, 32 low). 5 were refuted and dropped.
 
-## Status (2026-11-23)
+## Status (2026-11-24)
 
 Every heading carries its status. **FIXED** means addressed and verified
 against the code, with the test that pins it where there is one. "Partly
@@ -11,18 +11,20 @@ evidence. "Open" says why it was left and what the next step would be.
 | Severity | Total | Fixed | Partly fixed | Not a defect | Open |
 |---|---:|---:|---:|---:|---:|
 | Critical | 5 | 5 | 0 | 0 | 0 |
-| High | 33 | 31 | 1 | 0 | 1 |
+| High | 33 | 31 | 1 | 1 | 0 |
 | Medium | 60 | 46 | 10 | 1 | 3 |
 | Low | 32 | 26 | 5 | 0 | 1 |
-| **All** | **130** | **108** | **16** | **1** | **5** |
+| **All** | **130** | **108** | **16** | **2** | **4** |
 
 Counted from the headings. SVC-24 ("not changed as proposed": the
 measurement favoured the code, and the docstring was corrected) is counted as
 fixed; AG-16 ("not changed", pending the model policy) as open.
 
-The five open findings: SVC-09, SVC-12, SVC-13 and SVC-16 change OCR quality
-scoring and need a measurement on real pages, which needs readable models.
-AG-16 waits for the user's decision on the model policy.
+The four open findings: SVC-12, SVC-13 and SVC-16 change OCR quality scoring
+and need a measurement on real pages. SVC-12 and SVC-13 are on the SAIA
+provider path, and SVC-16 needs non-Latin reference pages. AG-16 waits for the
+user's decision on the model policy. SVC-09 was measured on 2026-11-24 and
+does not apply to the route that uses Kraken (see its heading).
 
 > Caveat on confidence: adversarial verification completed for the OCR router, the agents
 > and the DB/state layer. The verifier passes for services-linking, services-ocr,
@@ -242,7 +244,7 @@ The loop over `candidates` can only reach iteration 2 when the first candidate i
 - **Impact:** If `kraken_mccatmus_model_path` is set but the file is missing or mistyped, the function returns the non-existent path and `KrakenBackend.recognize` raises `OCRBackendError("Kraken model ... not found")` (line 583-586) instead of falling back to CATMuS. In `ocr_agent.py:1178` that is swallowed into a `BACKEND_ERROR` flag and the region falls through to the next backend in the plan, so a single misconfigured path silently changes which recogniser produced the page — with no error surfaced to the user.
 - **Fix:** Only return a resolved path when it exists; otherwise remember it and continue to the next candidate. Return the last non-existent candidate (or raise) only after every candidate has been tried, and validate `path.is_absolute()` candidates with `path.exists()` too.
 
-### [SVC-09] Kraken confidence is a flat arithmetic mean of per-character confidences pooled across all lines — open (changing how confidence is pooled moves every gate and the backend election built on it; needs a measurement on real pages, which needs readable models)
+### [SVC-09] Kraken confidence is a flat arithmetic mean of per-character confidences pooled across all lines — **NOT A DEFECT AS STATED** (measured 2026-11-24 on the five reference pages × three Kraken models, `scripts/eval_vm/svc09_measure.py`, results in `scripts/eval_vm/README.md` section 3e. The segmented route hands Kraken one crop per line, and none of the 549 crops gave more than one record, so no pooling across lines happens. The page confidence, a mean of the line confidences, is identical under the current pooling and a per-line mean: largest difference 0.00000. Kraken's confidence stays between 0.959 and 0.982 for page CERs from 4% to 47%: line-level Spearman against CER -0.23 over 549 lines, page-level -0.70 over 15 engine-pages. It cannot gate a reading or rank models, and the lexical gate is what does. Left as is. Reopen if a path reads several Kraken records per crop, such as baseline segmentation of a whole region in one call.)
 
 - **Where:** `vendor:app/services/ocr_backends.py:604`  
 - **Category:** ocr-quality  
