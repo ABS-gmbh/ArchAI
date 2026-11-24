@@ -3,6 +3,8 @@
 Runs ArchAI's offline benchmarks on a CPU-only GWDG VM: Ubuntu 24.04, 8 vCPU,
 16 GB RAM, 80 GB disk. The VM gets no secrets. Nothing here calls a chat or
 embedding provider, and every step that would need one is marked as blocked.
+With sentence-transformers 6, e5 is loaded as float32. Its float16 checkpoint
+encodes about 5 times slower on a CPU.
 
 ```bash
 bash setup.sh ~/archai.bundle <ref>          # system packages, Python 3.11 venv, deps, checkout, offline suite
@@ -32,8 +34,7 @@ cd ~/ArchAI/archai/backend && source ~/archai-venv/bin/activate
   sentence-transformers. The versions are those of the dev environment the
   existing numbers came from.
 - **Checks.** torch is the CPU build, `app.main` imports, and the offline suite
-  passes (`pytest -m "not requires_models"`; about 1,220 tests in 30 s on the
-  dev machine).
+  passes (`pytest -m "not requires_models"`; 1,545 tests in 180 s on the VM).
 
 Disk use is roughly 6 GB (estimate) for the venv and 1.5 GB for the models below.
 
@@ -49,8 +50,8 @@ Disk use is roughly 6 GB (estimate) for the venv and 1.5 GB for the models below
 | CREMMA Medieval LAT | optional | – | the script names an archive only, with no installable model | not installed |
 | multilingual-e5-large-instruct | retrieval with `--embedder e5-local` | about 1.1 GB | Hugging Face `intfloat/multilingual-e5-large-instruct` (`benchmark_retrieval.py`, `E5_LOCAL_MODEL`) | downloaded |
 | all-MiniLM-L6-v2 (ONNX) | ChromaDB's default embedder, the `local` space | about 170 MB in cache | fetched by chromadb itself on first use | pre-fetched |
-| Layout YOLO: `best_catmus.pt`, `best_emanuskript_segmentation.pt`, `best_zone_detection.pt` | segmented route (line and zone detection) | 365 + 122 + 83 MB | **no public source in the repo** (audit HYG-13); the only copies are in the dev machine's iCloud-offloaded Desktop folder, where reading them hangs | **blocked** until that folder is set to "Keep Downloaded" |
-| GLM-OCR `glm-ocr:latest` (Ollama) | `glmocr` engine | about 2.2 GB | the Ollama tag named by `settings.glmocr_ollama_model`; Ollama itself from its official install script (section 3f) | installed after 3a and 3b |
+| Layout YOLO: `best_catmus.pt`, `best_emanuskript_segmentation.pt`, `best_zone_detection.pt` | segmented route (line and zone detection) | 365 + 122 + 83 MB | **no public source in the repo** (audit HYG-13); the only copies are in the dev machine | copied by hand to `~/layout_weights` and linked into `archai/backend/models` (2026-11-24) |
+| GLM-OCR `glm-ocr:latest` (Ollama) | `glmocr` engine | about 2.2 GB | the Ollama tag named by `settings.glmocr_ollama_model`; Ollama itself from its official install script | **not installed**: the install (a remote script run with sudo) needs the user's approval |
 
 The Kraken script fills `<repo>/weights`. The backend reads `weights/...`
 relative to `archai/backend`, so the download script links
@@ -130,7 +131,17 @@ python scripts/benchmark_recognizers.py --images ~/pages --engines segmented seg
     SHA-256 differs from the manifest is rejected.
 - **Needs the layout YOLO weights.** Without them the segmented route has no
   lines.
-- **Blocked.** The images and the layout weights are on the iCloud step (Decisions 2-3). `glmocr` also needs Ollama (Decision 5).
+- **Run on 2026-11-24** with `--save-readings` (595 s for 15 engine-pages,
+  sharing the CPU with a live backend). Micro CER over the five pages:
+  CATMuS Medieval (the `segmented` default) 7.6%, CREMMA Medieval 15.1%,
+  McCATMuS 36.5%. CATMuS is best on every page. 13 of the 15 texts are
+  byte-identical to the committed `eval/quality_gate/readings.json`, which was
+  read on the dev machine. The other two are McCATMuS, at CER 34.0% against
+  34.3% and an identical CER.
+- **Still blocked.** `glmocr` needs Ollama (Decision 5).
+- **Chat key.** Before 7bd8c99, the OCR agent needed a chat key even for local
+  OCR. The run used `CHAT_AI_API_KEY=offline-placeholder-not-a-key` in the
+  command's environment, never in a file.
 
 ### 3d. Quality gate on fresh readings
 
@@ -144,6 +155,10 @@ python scripts/calibrate_quality_gate.py      # the committed set: pins the verd
   images and layout weights. `benchmark_recognizers.py --save-readings
   fresh.json` writes the texts read in the `readings.json` format, and
   `calibrate_quality_gate.py --readings fresh.json` checks the gate on them.
+- **Run on 2026-11-24** on 3c's fresh readings. Every verdict matches the
+  committed set: CATMuS 5/5 allowed, CREMMA 4/5 (latin-apocalypse at 46.9% is
+  blocked), McCATMuS 3/5 (the two Latin pages are blocked and detected as
+  French), synthetic samples 13/35 allowed.
 - **Alternative.** `--db <pipeline sqlite>` runs the held-out check on any
   pipeline database. There is none on the VM, and the live
   `app/archai.sqlite` must not be copied there without the user's say.
@@ -155,35 +170,35 @@ the gain.
 
 | Finding | Before / after measurement | On this VM |
 |---|---|---|
-| SVC-09: Kraken confidence is a mean pooled over all characters | Run 3c with the current pooling and with a per-line mean (or length-weighted median). Correlate each page's confidence with its CER (Spearman over pages × engines), and each line's confidence with its line CER. Report how often the gate's verdict changes. | Needs 3c's images and layout weights. With 5 pages × 3 engines the page-level correlation rests on 15 points; the line level is the useful one. |
+| SVC-09: Kraken confidence is a mean pooled over all characters | Run 3c with every Kraken record's per-character confidences kept (`scripts/eval_vm/svc09_measure.py`). Compare the current pooling, a per-line mean and an all-characters mean against CER at page level (Spearman over engines × pages) and line level. | **Measured 2026-11-24.** The segmented route reads one crop per line, and none of the 549 crops gave more than one Kraken record, so the current pooling and a per-line mean are identical (largest difference 0.00000). The change would do nothing on this route. Confidence against page CER: rho -0.70 (current and per-line) and -0.78 (all characters), over 15 engine-pages. Line level: rho -0.23 over 549 lines (CATMuS -0.16, CREMMA -0.35, McCATMuS -0.08). Confidence stays between 0.959 and 0.982 for CERs from 4% to 47%: McCATMuS at 41% CER scores 0.977 on a page where CATMuS at 18% scores 0.970. It cannot rank models or gate a reading; the lexical gate does that. No change. |
 | SVC-12: multi-view ranking always picks the binarized variant | On the SAIA VLM path: read the same crops with each variant forced first. Compare CER and how often each variant wins. | **Blocked.** It needs the SAIA provider key, which the VM won't get. The ranking itself (binarized always first) can be shown offline, but that shows nothing about OCR quality. |
 | SVC-13: seam_fragment_ratio never gets the seam geometry | On the tiled SAIA path: count seam-triggered retries and check the RISKY labels against the lines that touch a seam. Compare page-wide against seam-only, with CER after the retry. | **Blocked**, for the same reason (tiled SAIA reads). |
 | SVC-16: trailing_fragment_ratio uses the Latin vowel set for every script | Needs pages in a non-Latin script (Greek, Cyrillic, Hebrew, Arabic, CJK) with references, run through `calibrate_quality_gate.py` before and after. | **No data.** Every reference page is in Latin script, so the change is a no-op on the whole set by construction. |
 
-## 4. Summary: what the VM lacks
+## 4. Summary: what the VM lacks (2026-11-24)
 
-| Measurement | Page images | Layout weights | Provider key | Ollama + GLM-OCR |
-|---|---|---|---|---|
-| 3a retrieval, MiniLM and e5 | – | – | – | – |
-| 3b chat evidence, offline | – | – | – | – |
-| 3b chat answers (`--live`) | – | – | **needed** | – |
-| 3c recognisers, Kraken | **needed** | **needed** | – | – |
-| 3c recognisers, GLM-OCR | **needed** | – | – | **needed** |
-| 3d quality gate, committed set | – | – | – | – |
-| 3d quality gate, fresh readings | **needed** | **needed** | – | – |
-| SVC-09 | **needed** | **needed** | – | – |
-| SVC-12, SVC-13 | **needed** | – | **needed** | – |
-| SVC-16 | non-Latin pages with references (none exist) | – | – | – |
+| Measurement | Status |
+|---|---|
+| 3a retrieval, MiniLM and e5 | run (`eval/retrieval/README.md`) |
+| 3b chat evidence, offline | run (`eval/chat/README.md`) |
+| 3b chat answers (`--live`) | blocked: needs the chat provider key |
+| 3c recognisers, Kraken | run |
+| 3c recognisers, GLM-OCR | blocked: Ollama not installed (Decision 5) |
+| 3d quality gate, committed set and fresh readings | run |
+| SVC-09 | run: no effect on the segmented route |
+| SVC-12, SVC-13 | blocked: need the SAIA provider key |
+| SVC-16 | no data: no non-Latin pages with references |
 
-## Decisions (coordinator, 2026-11-23)
+## Decisions (coordinator, 2026-11-23, updated 2026-11-24)
 
 1. **Repository:** a git bundle copied by scp. No deploy key and no credentials of any kind on the VM.
-2. **Layout YOLO weights:** blocked. The only copies are in the dev machine's iCloud-offloaded Desktop folder, where reading them hangs. Everything that needs them (3c, fresh 3d readings, SVC-09) stays blocked until the user sets that folder to "Keep Downloaded".
-3. **Page images:** none of the five reference images is tracked in the repo or its history (checked by SHA-256 against the manifest), and none was found outside the offloaded Desktop folder. 3c and fresh 3d readings are blocked on the same iCloud step. They are not re-downloaded from e-codices: a copy at a guessed size would not match the manifest's SHA-256, and its CERs would not be comparable.
-4. **Demo pages** `french.JPEG` and `Latin.png`: may be copied once readable (test with a short read first); not found outside the offloaded folder.
-5. **Ollama:** after 3a and 3b, install the current stable release with Ollama's official install script, record the exact version (`ollama --version`) here and in every result, and pull `glm-ocr:latest` (the name in `settings.glmocr_ollama_model`). Its GLM numbers are a first look: no committed baseline exists for that version.
+2. **Layout YOLO weights:** copied from the dev machine on 2026-11-24, once iCloud had them local again, to `~/layout_weights`, and linked into `archai/backend/models`.
+3. **Page images:** none is tracked in the repo. The five were copied from the dev machine to `~/pages` on 2026-11-24, and all five SHA-256 values match `eval/recognizers/manifest.jsonl`. They are not re-downloaded from e-codices: a copy at another size would not match, and its CERs would not be comparable.
+4. **Demo pages** `french.JPEG` and `Latin.png`: copied with the others (3).
+5. **Ollama:** install the current stable release with Ollama's official install script, record the exact version (`ollama --version`) here and in every result, and pull `glm-ocr:latest` (the name in `settings.glmocr_ollama_model`). Its GLM numbers are a first look: no committed baseline exists for that version. **Not done yet:** the install runs a remote script with sudo and waits for the user's approval.
 6. **Saving the text read:** `benchmark_recognizers.py --save-readings PATH` (3d).
 
 ## Order on the VM
 
-setup.sh; download_models.sh (e5 first); 3a; 3b. Every command and its raw output goes into `~/results/` on the VM, which is copied back. Report MRR and Hit@k with their intervals and lookup counts, and answers in evidence as k/n.
+setup.sh; download_models.sh (e5 first); 3a; 3b; 3c with `--save-readings`;
+3d; SVC-09. Every command and its raw output goes into `~/results/` on the VM, which is copied back. Report MRR and Hit@k with their intervals and lookup counts, and answers in evidence as k/n.
