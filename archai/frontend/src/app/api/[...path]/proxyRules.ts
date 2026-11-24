@@ -79,3 +79,65 @@ export function upstreamHeaders(request: Headers, backendHost: string, options: 
   }
   return headers;
 }
+
+export interface OriginOptions {
+  /** TRUST_FORWARDED_HOST=true: the reverse proxy in front sets X-Forwarded-Host, and a client cannot. */
+  trustForwardedHost: boolean;
+  /** FRONTEND_ORIGINS: further origins the frontend is opened at, e.g. "https://archai.example". */
+  allowedOrigins: string[];
+}
+
+export function originOptions(env: NodeJS.ProcessEnv = process.env): OriginOptions {
+  return {
+    trustForwardedHost: String(env.TRUST_FORWARDED_HOST ?? "").trim().toLowerCase() === "true",
+    allowedOrigins: String(env.FRONTEND_ORIGINS ?? "")
+      .split(",")
+      .map((origin) => origin.trim().replace(/\/+$/, "").toLowerCase())
+      .filter(Boolean),
+  };
+}
+
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+function withoutDefaultPort(host: string): string {
+  return host.trim().toLowerCase().replace(/:(80|443)$/, "");
+}
+
+/**
+ * Why a request must be refused as coming from another site, or null.
+ *
+ * The proxy adds the API token to whatever reaches it, so a page on another
+ * site that makes the user's browser POST here (a form, a bodiless fetch) would
+ * be acting with the frontend's rights. A browser says where a request comes
+ * from in Origin (and Sec-Fetch-Site): a state-changing request whose origin is
+ * not the frontend's own is refused. A request with no Origin is not a
+ * browser's cross-site request, and is let through.
+ */
+export function crossSiteRefusal(method: string, headers: Headers, options: OriginOptions): string | null {
+  if (SAFE_METHODS.has(method.toUpperCase())) {
+    return null;
+  }
+  const refusal = "Refused: this request came from another site. The frontend accepts changes only from its own pages.";
+  if ((headers.get("sec-fetch-site") || "").toLowerCase() === "cross-site") {
+    return refusal;
+  }
+  const origin = headers.get("origin");
+  if (origin === null) {
+    return null;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(origin);
+  } catch {
+    return refusal; // "null" (a sandboxed frame, a file) or garbage
+  }
+  if (options.allowedOrigins.includes(parsed.origin.toLowerCase())) {
+    return null;
+  }
+  const hosts = [headers.get("host") || ""];
+  if (options.trustForwardedHost) {
+    hosts.push((headers.get("x-forwarded-host") || "").split(",")[0]);
+  }
+  const originHost = withoutDefaultPort(parsed.host);
+  return hosts.some((host) => host && withoutDefaultPort(host) === originHost) ? null : refusal;
+}

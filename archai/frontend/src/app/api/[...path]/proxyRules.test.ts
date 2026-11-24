@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { clientAddress, upstreamHeaders } from "./proxyRules";
+import { clientAddress, crossSiteRefusal, upstreamHeaders } from "./proxyRules";
 
 // A security review found that the proxy passed the client's own
 // X-Forwarded-For to the backend, whose uvicorn trusts that header from
@@ -61,5 +61,47 @@ describe("upstreamHeaders", () => {
     assert.equal(headers.authorization, "Bearer analytics-session");
     assert.equal(headers["x-api-token"], "server-side-token");
     assert.equal(headers.connection, undefined);
+  });
+});
+
+// The review sent POST /api/ocr/runs (no body) and a multipart POST to
+// /api/predict/batch with "Origin: https://evil.example": 201 and 202. Through
+// the proxy, which adds the API token itself, any page a user visits could do
+// the same in their browser: cross-site request forgery for every request a
+// form can send without a preflight.
+describe("crossSiteRefusal", () => {
+  const own = { trustForwardedHost: false, allowedOrigins: [] as string[] };
+  const headers = (values: Record<string, string>) => new Headers({ host: "archai.example:3000", ...values });
+
+  it("refuses a state-changing request from another origin", () => {
+    for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+      assert.match(String(crossSiteRefusal(method, headers({ origin: "https://evil.example" }), own)), /another site/, method);
+    }
+    assert.notEqual(crossSiteRefusal("POST", headers({ origin: "null" }), own), null);
+    assert.notEqual(crossSiteRefusal("POST", headers({ "sec-fetch-site": "cross-site" }), own), null);
+  });
+
+  it("lets the frontend's own pages through, by name or by address", () => {
+    assert.equal(crossSiteRefusal("POST", headers({ origin: "http://archai.example:3000" }), own), null);
+    const byAddress = new Headers({ host: "192.0.2.10:3000", origin: "http://192.0.2.10:3000", "sec-fetch-site": "same-origin" });
+    assert.equal(crossSiteRefusal("POST", byAddress, own), null);
+    const defaultPort = new Headers({ host: "archai.example", origin: "https://archai.example" });
+    assert.equal(crossSiteRefusal("POST", defaultPort, own), null);
+  });
+
+  it("lets through reads, and requests that carry no Origin (scripts, server-side clients)", () => {
+    assert.equal(crossSiteRefusal("GET", headers({ origin: "https://evil.example" }), own), null);
+    assert.equal(crossSiteRefusal("HEAD", headers({ origin: "https://evil.example" }), own), null);
+    assert.equal(crossSiteRefusal("POST", headers({}), own), null);
+  });
+
+  it("uses a reverse proxy's forwarded host only when told to trust it", () => {
+    // nginx with its default "Host: $proxy_host" sends the upstream's address as Host.
+    const behindProxy = new Headers({ host: "127.0.0.1:3000", "x-forwarded-host": "archai.example", origin: "https://archai.example" });
+    assert.notEqual(crossSiteRefusal("POST", behindProxy, own), null);
+    assert.equal(crossSiteRefusal("POST", behindProxy, { ...own, trustForwardedHost: true }), null);
+    assert.equal(crossSiteRefusal("POST", behindProxy, { ...own, allowedOrigins: ["https://archai.example"] }), null);
+    const forged = new Headers({ host: "127.0.0.1:3000", "x-forwarded-host": "evil.example", origin: "https://archai.example" });
+    assert.notEqual(crossSiteRefusal("POST", forged, { ...own, trustForwardedHost: true }), null);
   });
 });

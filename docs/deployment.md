@@ -179,6 +179,8 @@ it starts (`npm start`), not at build time:
 |---|---|
 | `BACKEND_URL` | Where the backend listens. Default `http://127.0.0.1:8010`. |
 | `BACKEND_API_TOKEN` | The backend's `API_TOKEN`. The proxy adds it to every request as `X-API-Token`; it is never sent to the browser. Leave unset if the backend has no token. |
+| `TRUST_FORWARDED_HOST` | `true` if a reverse proxy in front rewrites `Host` (nginx's default `proxy_set_header Host $proxy_host`) and sets `X-Forwarded-Host` to the public host. Set it only if the frontend cannot be reached except through that proxy. |
+| `FRONTEND_ORIGINS` | Further origins the frontend is opened at, comma-separated (`https://archai.example`), when neither `Host` nor a trusted `X-Forwarded-Host` names them. |
 | `TRUSTED_PROXY_HOPS` | How many reverse proxies in front of the frontend append the client's address to `X-Forwarded-For` (nginx: `proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;`). Default 0. Set it only if the frontend cannot be reached except through them. |
 
 Never name it `NEXT_PUBLIC_BACKEND_API_TOKEN`: a `NEXT_PUBLIC_` variable is
@@ -207,6 +209,18 @@ address (127.0.0.1) in the backend's log and login limit. With
 `TRUSTED_PROXY_HOPS=1` and one reverse proxy in front that appends the address
 it saw, the proxy sends the backend that last entry, which a client cannot
 choose; with two proxies in a chain, `2`, and so on.
+
+The proxy refuses with 403 a `POST`, `PUT`, `PATCH` or `DELETE` whose
+`Origin` is not the frontend's own (or whose `Sec-Fetch-Site` is
+`cross-site`): it adds the API token to whatever reaches it, so without the
+check any site a user visits could make their browser send uploads and run
+reservations through it. "Its own" is the host in the request's `Host`
+header, which is right when the browser talks to `npm start` directly, by name
+or by IP address. Behind a reverse proxy that rewrites `Host`, every change the
+workspace makes is refused ("Refused: this request came from another site")
+until you set `TRUST_FORWARDED_HOST=true` (the proxy sets `X-Forwarded-Host`)
+or list the public origin in `FRONTEND_ORIGINS`. Requests without `Origin`
+(scripts, server-side clients) are not affected.
 
 `NEXT_PUBLIC_BACKEND_URL` instead makes the browser call the backend
 directly; it is fixed at build time. Against a backend with `API_TOKEN` set,
