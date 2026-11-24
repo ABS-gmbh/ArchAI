@@ -1558,6 +1558,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
 
   return (
     <div className="flex h-dvh min-h-0 flex-col bg-ground text-ink">
+      {/* A page change is otherwise silent for a screen reader: the buttons keep
+          focus and the new page is an image. Announced when it changes. */}
+      <p role="status" className="sr-only">
+        {currentPage ? `Page ${currentPageIndex + 1} of ${pageCount}: ${currentPage.name}` : ""}
+      </p>
       <input
         ref={uploadInputRef}
         type="file"
