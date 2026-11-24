@@ -209,18 +209,31 @@ export function bestMatchingSegmentationLabel(text: string, labels: string[]): s
   return bestScore > 0 ? bestLabel : null;
 }
 
+/** A polygon outline: at least three x,y points, every coordinate a finite number. */
+function isPolygon(value: unknown): value is number[] {
+  return (
+    Array.isArray(value) &&
+    value.length >= 6 &&
+    value.length % 2 === 0 &&
+    value.every((coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate))
+  );
+}
+
+/**
+ * The outlines of an annotation, from COCO's flat polygon or list of polygons.
+ * Malformed ones (fewer than three points, an odd count, a non-number) are
+ * dropped: they would reach the crop overlay and label analysis as an outline
+ * the region does not have. Run-length-encoded masks give none.
+ */
 export function annotationPolygons(annotation: CocoAnnotation): number[][] {
-  const raw = annotation.segmentation;
-  if (!raw) {
+  const raw: unknown = annotation.segmentation;
+  if (!Array.isArray(raw) || !raw.length) {
     return [];
   }
-  if (Array.isArray(raw) && raw.length && typeof raw[0] === "number") {
-    return [raw as number[]];
+  if (typeof raw[0] === "number") {
+    return isPolygon(raw) ? [raw] : [];
   }
-  if (Array.isArray(raw) && Array.isArray(raw[0])) {
-    return (raw as number[][]).filter((poly) => Array.isArray(poly) && poly.length >= 6);
-  }
-  return [];
+  return raw.filter(isPolygon);
 }
 
 export function buildStoredLabelRegions(coco: CocoPayload | null | undefined): StoredLabelRegionMap {

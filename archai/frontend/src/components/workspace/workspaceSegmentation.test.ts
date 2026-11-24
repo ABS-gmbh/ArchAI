@@ -68,6 +68,26 @@ describe("annotationPolygons", () => {
     const rle = { counts: [1, 2], size: [10, 10] } as unknown as number[];
     assert.deepEqual(annotationPolygons({ id: 1, category_id: 1, bbox: [0, 0, 1, 1], segmentation: rle }), []);
   });
+
+  // A malformed polygon would reach the crop overlay and the label-analysis
+  // request as an outline the region does not have.
+  const polygons = (segmentation: unknown) =>
+    annotationPolygons({ id: 1, category_id: 1, bbox: [0, 0, 1, 1], segmentation: segmentation as number[] });
+
+  it("drops a flat polygon with fewer than three points", () => {
+    assert.deepEqual(polygons([10, 20, 30]), []);
+    assert.deepEqual(polygons([10, 20, 30, 40]), []);
+  });
+
+  it("drops a polygon with an odd number of coordinates", () => {
+    assert.deepEqual(polygons([10, 10, 60, 10, 60, 60, 10]), []);
+    assert.deepEqual(polygons([[10, 10, 60, 10, 60, 60, 10]]), []);
+  });
+
+  it("drops a polygon with a coordinate that is not a number", () => {
+    assert.deepEqual(polygons([10, 10, 60, Number.NaN, 60, 60]), []);
+    assert.deepEqual(polygons([square, [10, 10, "60", 10, 60, 60]]), [square]);
+  });
 });
 
 describe("resolveCropLabelFromPrompt", () => {
