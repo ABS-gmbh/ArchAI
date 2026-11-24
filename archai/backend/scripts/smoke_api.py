@@ -18,6 +18,11 @@ the script exits 1 if any differs. --db (the backend's own scratch database)
 lets it create a run that never finishes, for the stream checks; without it
 those checks are skipped. Never point it at a live backend: it writes runs,
 tasks and evidence spans.
+
+Against a backend with API_TOKEN set, pass the same value as --token: every
+request then carries it, and the authentication checks run as well (no token,
+a wrong token, and the token as ?token= on the two event streams). Through the
+frontend's /api proxy, which adds the token itself, leave --token out.
 """
 
 from __future__ import annotations
@@ -63,11 +68,16 @@ NOT_AN_IMAGE_B64 = base64.b64encode(b"%PDF-1.4 not an image").decode("ascii")
 
 
 class Smoke:
-    def __init__(self, base: str, db: str | None) -> None:
+    def __init__(self, base: str, db: str | None, token: str | None = None) -> None:
         self.base = base.rstrip("/")
         self.db = db
-        self.client = httpx.Client(base_url=self.base, timeout=60)
+        self.token = token
+        self.headers = {"X-API-Token": token} if token else {}
+        self.client = httpx.Client(base_url=self.base, timeout=60, headers=self.headers)
+        # Sends no token, for the checks that it is required.
+        self.bare = httpx.Client(base_url=self.base, timeout=60)
         self.results: list[Result] = []
+        self.batch_task_id: str | None = None
 
     def check(self, name: str, expected: int | tuple[int, ...], send: Callable[[], httpx.Response], note: str = "") -> httpx.Response | None:
         wanted = (expected,) if isinstance(expected, int) else expected
@@ -112,6 +122,7 @@ class Smoke:
         batch = self.check("predict/batch not a zip", 202, lambda: c.post("/api/predict/batch", files={"zip_file": ("b.zip", b"not a zip", "application/zip")}))
         if batch is not None and batch.status_code == 202:
             task_id = batch.json()["task_id"]
+            self.batch_task_id = task_id
             self.check("predict/batch progress ends", 200, lambda: c.get(f"/api/predict/batch/{task_id}/progress", timeout=30))
             self.check("predict/batch results of failed task", 409, lambda: c.get(f"/api/predict/batch/{task_id}/results"))
         self.check("predict/batch empty", 422, lambda: c.post("/api/predict/batch", files={"zip_file": ("b.zip", b"", "application/zip")}))
@@ -195,7 +206,7 @@ class Smoke:
         stop = threading.Event()
 
         def hold() -> None:
-            with httpx.Client(base_url=self.base, timeout=30) as client, client.stream("GET", f"/api/ocr/trace/stream/{run_id}") as response:
+            with httpx.Client(base_url=self.base, timeout=30, headers=self.headers) as client, client.stream("GET", f"/api/ocr/trace/stream/{run_id}") as response:
                 for _ in response.iter_lines():
                     if stop.is_set():
                         return
@@ -219,6 +230,37 @@ class Smoke:
             Result("health with 20 open streams", (200,), 200 if worst < 1.0 else 599, worst, f"worst {worst * 1000:.0f} ms of 10")
         )
 
+    def auth(self) -> None:
+        """API_TOKEN: required everywhere but /api/health, and accepted as ?token= on the two event streams."""
+        if not self.token:
+            return
+        bare = self.bare
+        self.check("health, no token", 200, lambda: bare.get("/api/health"))
+        self.check("classes, no token", 401, lambda: bare.get("/api/classes"))
+        self.check("classes, wrong token", 401, lambda: bare.get("/api/classes", headers={"X-API-Token": "wrong-token-of-the-right-length-0000"}))
+        self.check("classes, token as Bearer", 200, lambda: bare.get("/api/classes", headers={"Authorization": f"Bearer {self.token}"}))
+        self.check("classes, ?token= (streams only)", 401, lambda: bare.get("/api/classes", params={"token": self.token}))
+        self.check("upload, no token", 401, lambda: bare.post("/api/predict/single", files={"image": ("p.png", PNG, "image/png")}))
+        if self.batch_task_id:
+            task_id = self.batch_task_id
+            self.check("batch progress, ?token=", 200, lambda: bare.get(f"/api/predict/batch/{task_id}/progress", params={"token": self.token}, timeout=30))
+            self.check("batch progress, no token", 401, lambda: bare.get(f"/api/predict/batch/{task_id}/progress"))
+        run_id = self._open_run()
+        if run_id is None:
+            return
+        self.check("trace stream, no token", 401, lambda: bare.get(f"/api/ocr/trace/stream/{run_id}"))
+        started = time.perf_counter()
+        try:
+            with bare.stream("GET", f"/api/ocr/trace/stream/{run_id}", params={"token": self.token}) as response:
+                for line in response.iter_lines():
+                    if line.startswith("data:"):
+                        break
+            self.results.append(Result("trace stream, ?token=", (200,), response.status_code, time.perf_counter() - started))
+        except httpx.HTTPError as exc:
+            self.results.append(Result("trace stream, ?token=", (200,), None, 0, str(exc)))
+        with sqlite3.connect(self.db or "") as conn:
+            conn.execute("UPDATE pipeline_runs SET status='FAILED', updated_at=? WHERE run_id=?", (datetime.now(timezone.utc).isoformat(), run_id))
+
     def report(self) -> int:
         width = max(len(r.name) for r in self.results)
         failed = 0
@@ -235,13 +277,15 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
     parser.add_argument("--base", default="http://127.0.0.1:8765")
     parser.add_argument("--db", help="the backend's scratch pipeline database, for the stream checks")
+    parser.add_argument("--token", help="the backend's API_TOKEN, when it has one; leave out through the frontend proxy")
     args = parser.parse_args(argv)
-    smoke = Smoke(args.base, args.db)
+    smoke = Smoke(args.base, args.db, args.token)
     smoke.basics()
     smoke.predict()
     smoke.ocr()
     smoke.chat_and_data()
     smoke.streams()
+    smoke.auth()
     return smoke.report()
 
 
