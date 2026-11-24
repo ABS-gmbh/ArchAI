@@ -21,6 +21,7 @@ from app.agents.ocr_proofreader_agent import OcrProofreaderAgent
 from app.agents.saia_ocr_agent import SaiaOCRAgent
 from app.agents.segmentation_agent import run_single_segmentation
 from app.core.constants import FINAL_CLASSES
+from app.services.public_errors import public_failure
 from app.routers.errors import configuration_message, provider_failure, unexpected_error
 from app.db.pipeline_db import (
     claim_reserved_run,
@@ -885,7 +886,7 @@ def _run_glmocr_full_page_summary(
             text="",
             lines=[],
             confidence=0.0,
-            warnings=[str(exc)],
+            warnings=[public_failure("GLM-OCR", exc, logger=_LOGGER)],
             language_hint=payload.language_hint or (payload.metadata.language if payload.metadata else None),
             script_family=payload.metadata.script_family if payload.metadata else None,
             notes=["experimental document-level OCR"],
@@ -1411,7 +1412,7 @@ async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFull
     try:
         image_bytes = decode_image_bytes(payload.image_b64 or "")
     except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Invalid image_b64 payload: {exc}") from exc
+        raise HTTPException(status_code=422, detail="Invalid image_b64 payload: not base64, or not an image.") from exc
     run_id = await asyncio.to_thread(_claim_client_run, payload, image_bytes) if payload.run_id else None
     try:
         return await _extract_full_page(payload, image_bytes, run_id)
@@ -1419,7 +1420,7 @@ async def ocr_extract_full_page(payload: SaiaFullPageExtractRequest) -> SaiaFull
         if run_id is not None:
             # The client is following this run: it must end, not stay RUNNING.
             # (A post-OCR failure is caught below and has marked it FAILED already.)
-            detail = exc.detail if isinstance(exc, HTTPException) else f"{type(exc).__name__}: {exc}"
+            detail = exc.detail if isinstance(exc, HTTPException) else public_failure("Full-page OCR", exc, logger=_LOGGER)
             await asyncio.to_thread(_fail_run, run_id, f"Full-page OCR failed: {detail}")
         raise
 
@@ -1478,7 +1479,8 @@ async def _extract_full_page(
         except _SegmentedPageUnread as exc:
             fallback_warnings.append(f"OCR_ENGINE_FALLBACK:{exc}")
         except Exception as exc:
-            fallback_warnings.append(f"OCR_ENGINE_FALLBACK:segmented_failed:{str(exc)[:200]}")
+            public_failure("The segmented engine", exc, logger=_LOGGER)
+            fallback_warnings.append(f"OCR_ENGINE_FALLBACK:segmented_failed:{type(exc).__name__}")
     if response is None:
         response = await _run_glm_full_page(payload, image_bytes)
         ocr_backend = "glmocr"
@@ -1501,7 +1503,7 @@ async def _extract_full_page(
         _LOGGER.exception("Full-page post-OCR pipeline failed")
         pipeline_fields = {
             "run_id": getattr(exc, "run_id", None) or run_id,
-            "warnings": [f"POST_OCR_PIPELINE_FAILED:{exc}"],
+            "warnings": [f"POST_OCR_PIPELINE_FAILED:{type(exc).__name__}"],
         }
 
     merged_warnings = list(dict.fromkeys([*list(response.warnings), *list(pipeline_fields.pop("warnings", []) or [])]))
@@ -1573,7 +1575,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
     try:
         image_bytes = decode_image_bytes(payload.image_b64 or "")
     except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Invalid image_b64 payload: {exc}") from exc
+        raise HTTPException(status_code=422, detail="Invalid image_b64 payload: not base64, or not an image.") from exc
 
     fixture = get_test_ocr_fixture(image_bytes)
     if fixture is not None and fixture.wait_seconds > 0:
@@ -1596,7 +1598,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
             pipeline_fields = {
                 "run_id": getattr(exc, "run_id", None),
                 "status": "FAILED",
-                "warnings": [f"POST_OCR_PIPELINE_FAILED:{exc}"],
+                "warnings": [f"POST_OCR_PIPELINE_FAILED:{type(exc).__name__}"],
             }
 
         merged_warnings = list(
@@ -1683,8 +1685,8 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
             log_event(run_id, "RECEIVED", "INFO",
                       f"Segmentation location suggestions prepared: {len(location_suggestions)}")
         except Exception as exc:
-            base_warnings.append(f"SEGMENTATION_FAILED:{exc}")
-            log_event(run_id, "RECEIVED", "ERROR", f"Segmentation failed: {exc}")
+            base_warnings.append(f"SEGMENTATION_FAILED:{type(exc).__name__}")
+            log_event(run_id, "RECEIVED", "ERROR", public_failure("Segmentation", exc, logger=_LOGGER))
     else:
         log_event(run_id, "RECEIVED", "INFO",
                   f"Using provided location suggestions: {len(location_suggestions)}")
@@ -1696,8 +1698,8 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
             if structured_regions:
                 log_event(run_id, "RECEIVED", "INFO", f"Segmented OCR regions prepared: {len(structured_regions)}")
         except Exception as exc:
-            base_warnings.append(f"SEGMENTATION_REGIONS_FAILED:{exc}")
-            log_event(run_id, "RECEIVED", "WARN", f"Structured region preparation failed: {exc}")
+            base_warnings.append(f"SEGMENTATION_REGIONS_FAILED:{type(exc).__name__}")
+            log_event(run_id, "RECEIVED", "WARN", public_failure("Structured region preparation", exc, logger=_LOGGER))
 
     if structured_regions:
         try:
@@ -1708,7 +1710,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
                 extract_payload=_build_segmented_extract_request(payload, structured_regions),
             )
         except Exception as exc:
-            err = str(exc)
+            err = public_failure("The traced OCR run", exc, logger=_LOGGER)
             update_run_fields(run_id, status="FAILED", current_stage="FAILED", error=err)
             log_event(run_id, "FAILED", "ERROR", err)
             raise _trace_failure(run_id, exc) from exc
@@ -2372,7 +2374,7 @@ async def ocr_page_with_trace(payload: SaiaFullPageExtractRequest) -> dict[str, 
             "authority_report": downstream["authority_report"],
         }
     except Exception as exc:
-        err = str(exc)
+        err = public_failure("The traced OCR run", exc, logger=_LOGGER)
         update_run_fields(run_id, status="FAILED", current_stage="FAILED", error=err)
         log_event(run_id, "FAILED", "ERROR", err)
         raise _trace_failure(run_id, exc) from exc

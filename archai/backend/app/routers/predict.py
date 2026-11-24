@@ -85,6 +85,10 @@ async def _save_upload(upload: UploadFile, path: str, *, empty_detail: str) -> N
 _MIN_MEMBER_COST = 4096
 
 
+class BatchArchiveRefused(ValueError):
+    """The batch ZIP breaks a limit; the message says which, and is shown to the client."""
+
+
 def _zip_entry_count(zip_path: str) -> int | None:
     """The member count the archive's end record states, read without parsing its directory.
 
@@ -110,11 +114,11 @@ def _safe_extract_zip(zip_path: str, extract_dir: str) -> None:
     limit = max(1, int(settings.max_zip_members))
     entries = _zip_entry_count(zip_path)
     if entries is not None and entries > limit:
-        raise ValueError(f"ZIP has {entries} members; at most {limit} are accepted (MAX_ZIP_MEMBERS).")
+        raise BatchArchiveRefused(f"ZIP has {entries} members; at most {limit} are accepted (MAX_ZIP_MEMBERS).")
     with zipfile.ZipFile(zip_path, "r") as zf:
         members = zf.infolist()
         if len(members) > limit:
-            raise ValueError(f"ZIP has {len(members)} members; at most {limit} are accepted (MAX_ZIP_MEMBERS).")
+            raise BatchArchiveRefused(f"ZIP has {len(members)} members; at most {limit} are accepted (MAX_ZIP_MEMBERS).")
         for member in members:
             member_name = member.filename
 
@@ -139,13 +143,13 @@ def _safe_extract_zip(zip_path: str, extract_dir: str) -> None:
             # A file costs at least a disk block, even an empty one.
             budget -= _MIN_MEMBER_COST
             if budget < 0:
-                raise ValueError(f"ZIP expands past {settings.max_extracted_megabytes} MB; extraction stopped.")
+                raise BatchArchiveRefused(f"ZIP expands past {settings.max_extracted_megabytes} MB; extraction stopped.")
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
             with zf.open(member, "r") as src, open(dest_path, "wb") as dst:
                 while chunk := src.read(_COPY_CHUNK):
                     budget -= len(chunk)
                     if budget < 0:
-                        raise ValueError(
+                        raise BatchArchiveRefused(
                             f"ZIP expands past {settings.max_extracted_megabytes} MB; extraction stopped."
                         )
                     dst.write(chunk)
@@ -375,7 +379,15 @@ def _process_batch(task: TaskState, zip_path: str, conf: float, iou: float, sele
     except Exception as exc:  # noqa: BLE001
         _LOGGER.exception("Batch task %s failed", task.task_id)
         task.status = "error"
-        task.message = f"Batch processing failed: {exc}"
+        # A limit the archive broke, and a file that is not a ZIP, are said as
+        # they are; anything else is named by type, its text going to the log
+        # (it carried paths and module names; security review C8).
+        if isinstance(exc, BatchArchiveRefused):
+            task.message = f"Batch processing failed: {exc}"
+        elif isinstance(exc, zipfile.BadZipFile):
+            task.message = "Batch processing failed: the upload is not a valid ZIP archive."
+        else:
+            task.message = f"Batch processing failed ({type(exc).__name__}). The details are in the server log."
     save_task_state(task)
 
 

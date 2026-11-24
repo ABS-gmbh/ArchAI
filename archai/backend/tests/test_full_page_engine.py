@@ -342,7 +342,8 @@ def _missing_weights(_data: bytes) -> dict[str, Any]:
     ("segmentation", "reason"),
     [
         (_no_text_regions, "OCR_ENGINE_FALLBACK:no_text_regions"),
-        (_missing_weights, "OCR_ENGINE_FALLBACK:segmented_failed:zone weights missing"),
+        # The error's type, not its text (security review C8): the text is logged.
+        (_missing_weights, "OCR_ENGINE_FALLBACK:segmented_failed:RuntimeError"),
     ],
 )
 def test_the_route_falls_back_to_glm_ocr(

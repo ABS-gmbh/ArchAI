@@ -33,6 +33,7 @@ from app.db.pipeline_db import (
     update_run_fields,
 )
 from app.schemas.agents_ocr import OCRExtractRequest, OCRExtractResponse, SaiaFullPageExtractRequest, SaiaFullPageExtractResponse
+from app.services.public_errors import public_failure
 from app.services.chunking import build_window_chunks
 from app.services.lexicon_trust import best_fit_plausibility as _lexical_plausibility
 from app.services.medieval_text import build_search_key, rejoin_line_breaks
@@ -108,7 +109,7 @@ def _auto_index_run(run_id: str) -> None:
             f"Indexed {result.get('chunks_indexed', 0)} chunks.",
         )
     except Exception as exc:  # noqa: BLE001
-        log_event(run_id, "INDEX_ERROR", "ERROR", f"Auto-index failed: {exc}")
+        log_event(run_id, "INDEX_ERROR", "ERROR", public_failure("Auto-indexing", exc))
 
 
 def _run_authority_linking_stage(run_id: str) -> dict[str, Any] | None:
@@ -130,7 +131,7 @@ def _run_authority_linking_stage(run_id: str) -> dict[str, Any] | None:
         update_run_fields(run_id, current_stage="AUTHORITY_LINKING_DONE")
         return result
     except Exception as exc:  # noqa: BLE001
-        log_event(run_id, "AUTHORITY_LINKING_ERROR", "ERROR", f"Authority linking failed: {exc}")
+        log_event(run_id, "AUTHORITY_LINKING_ERROR", "ERROR", public_failure("Authority linking", exc))
         return None
 
 
@@ -153,7 +154,7 @@ def _persist_deferred_authority_links(
         )
         return result, report
     except Exception as exc:  # noqa: BLE001
-        log_event(run_id, "AUTHORITY_LINKING_ERROR", "ERROR", f"Deferred authority persistence failed: {exc}")
+        log_event(run_id, "AUTHORITY_LINKING_ERROR", "ERROR", public_failure("Deferred authority persistence", exc))
         return None, None
 
 
@@ -656,7 +657,7 @@ def _run_full_page_post_ocr_pipeline(
             run_id, payload, response, image_bytes, text_value, asset_ref, ocr_backend=ocr_backend, ocr_logged=ocr_logged
         )
     except Exception as exc:
-        err = f"Post-OCR pipeline failed: {type(exc).__name__}: {exc}"
+        err = public_failure("The post-OCR pipeline", exc)
         try:
             update_run_fields(run_id, status="FAILED", current_stage="FAILED", error=err)
             log_event(run_id, "FAILED", "ERROR", err)

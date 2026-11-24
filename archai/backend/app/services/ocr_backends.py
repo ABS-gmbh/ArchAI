@@ -43,6 +43,10 @@ class OCRBackendError(RuntimeError):
     """Raised when a configured OCR backend cannot recognize a crop."""
 
 
+class OCRBackendUnavailable(OCRBackendError):
+    """The backend is not installed or not configured (a model file, a package, a model on the provider)."""
+
+
 @dataclass(frozen=True)
 class OCRRecognitionMetadata:
     page_id: str | None
@@ -222,7 +226,7 @@ def _resolve_model_path(raw_path: str | None, *fallbacks: str | None) -> Path:
         # Nothing on disk. Return the first place we looked so the error message
         # downstream names a path the operator recognises.
         return first_probe
-    raise OCRBackendError("No Kraken model path configured.")
+    raise OCRBackendUnavailable("No Kraken model path configured.")
 
 
 @lru_cache(maxsize=2)
@@ -231,7 +235,7 @@ def _load_glmocr_instance(cuda_devices: str):
     try:
         from glmocr import GlmOcr
     except ImportError as exc:  # pragma: no cover
-        raise OCRBackendError("GLM-OCR is not installed: pip install glmocr") from exc
+        raise OCRBackendUnavailable("GLM-OCR is not installed: pip install glmocr") from exc
     return GlmOcr(mode="selfhosted", cuda_visible_devices=cuda_devices)
 
 
@@ -240,7 +244,7 @@ def _load_kraken_model(model_path: str, device: str):
     try:
         from kraken.lib import models
     except Exception as exc:  # pragma: no cover - dependency/runtime issue
-        raise OCRBackendError(f"Kraken is not available: {exc}") from exc
+        raise OCRBackendUnavailable(f"Kraken is not available: {exc}") from exc
     return models.load_any(model_path, train=False, device=device)
 
 
@@ -643,7 +647,7 @@ class SAIABackend(OCRBackend):
             max_attempts = min(len(candidate_models), 1 + self.max_fallbacks)
             selected_models = candidate_models[:max_attempts]
             if not selected_models:
-                raise OCRBackendError("No image-capable SAIA OCR model is available.")
+                raise OCRBackendUnavailable("No image-capable SAIA OCR model is available.")
 
             tile = ocr_agent_module.OCRTile(
                 tile_id=metadata.region_id,
@@ -714,10 +718,10 @@ class KrakenBackend(OCRBackend):
         try:
             from kraken import containers, rpred
         except Exception as exc:  # pragma: no cover - dependency/runtime issue
-            raise OCRBackendError(f"Kraken is not available: {exc}") from exc
+            raise OCRBackendUnavailable(f"Kraken is not available: {exc}") from exc
 
         if not self.model_path.exists():
-            raise OCRBackendError(
+            raise OCRBackendUnavailable(
                 f"Kraken model for backend {self.backend_name} not found: {self.model_path}"
             )
 
@@ -840,7 +844,7 @@ def _looks_like_gothic(script_family: str | None, document_type: str | None) -> 
 def _resolve_calamari_checkpoints(configured_dir: str | None) -> tuple[Path, tuple[str, ...]]:
     model_dir = _resolve_model_path(configured_dir)
     if not model_dir.exists():
-        raise OCRBackendError(f"Calamari model directory not found: {model_dir}")
+        raise OCRBackendUnavailable(f"Calamari model directory not found: {model_dir}")
     checkpoint_jsons = sorted(model_dir.glob("*.ckpt.json"))
     checkpoints: list[str] = []
     for checkpoint_json in checkpoint_jsons:
@@ -853,7 +857,7 @@ def _resolve_calamari_checkpoints(configured_dir: str | None) -> tuple[Path, tup
             checkpoints.append(str(checkpoint))
             model_dir = checkpoint.parent
     if not checkpoints:
-        raise OCRBackendError(f"No Calamari checkpoints found in {model_dir}")
+        raise OCRBackendUnavailable(f"No Calamari checkpoints found in {model_dir}")
     return model_dir, tuple(checkpoints)
 
 
@@ -863,7 +867,7 @@ def _load_calamari_predictor(checkpoints: tuple[str, ...]):
         from calamari_ocr.ocr.predict.params import PredictorParams
         from calamari_ocr.ocr.predict.predictor import MultiPredictor
     except ImportError as exc:
-        raise OCRBackendError("Calamari OCR is not installed: pip install calamari-ocr") from exc
+        raise OCRBackendUnavailable("Calamari OCR is not installed: pip install calamari-ocr") from exc
     params = PredictorParams()
     params.progress_bar = False
     return MultiPredictor.from_paths(
@@ -907,7 +911,7 @@ class CalamariBackend(OCRBackend):
         try:
             import numpy as np
         except ImportError as exc:
-            raise OCRBackendError("numpy is required for Calamari OCR") from exc
+            raise OCRBackendUnavailable("numpy is required for Calamari OCR") from exc
 
         configured_dir = self._select_model_dir(metadata)
         model_dir, checkpoints = _resolve_calamari_checkpoints(configured_dir)
@@ -981,7 +985,7 @@ class GlmOcrBackend(OCRBackend):
         try:
             from glmocr import GlmOcr
         except ImportError as exc:
-            raise OCRBackendError(
+            raise OCRBackendUnavailable(
                 "GLM-OCR is not installed. Install with: pip install glmocr"
             ) from exc
 
