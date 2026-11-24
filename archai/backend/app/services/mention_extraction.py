@@ -952,6 +952,21 @@ def _retype_feasts(base_text: str, mentions: list[dict[str, Any]]) -> None:
             mention["name_keys"] = []
 
 
+def _is_byname_inside_person(mention: dict[str, Any], person_runs: list[dict[str, Any]]) -> bool:
+    """A "de + capital" place candidate that lies inside a person's run of capitals, and is no anchored place.
+
+    In a witness list ("Rog̾o de Renni Simone de brothton") the byname after
+    "de" was proposed as a place of its own as well, and linked: "Renni" to
+    Rennington, "Tiper" to Tipperary (B-dev). The person mention covers it.
+    """
+    if mention.get("method") != "rule:salvage_place_candidate":
+        return False
+    if _word_key(str(mention.get("surface") or "")) in _PLACE_ANCHOR_KEYS:
+        return False
+    start, end = int(mention["start_offset"]), int(mention["end_offset"])
+    return any(int(p["start_offset"]) < start and end <= int(p["end_offset"]) for p in person_runs)
+
+
 def _propagate_names(base_text: str, mentions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Every other occurrence of a name a rule found, as a person mention.
 
@@ -1020,11 +1035,12 @@ def _extract_mentions_from_text(
         return [], [], {"trigger": 0, "work_fuzzy": 0, "place_candidate": 0, "rejected": []}
 
     salvage_mentions, salvage_debug = _extract_salvage_mentions(value)
+    # A run of titles alone names no one ("Dominus Dux", "Dominum Ducem").
+    person_runs = [m for m in _extract_person_mentions(value) if not _is_bare_title(str(m["surface"]))]
     candidates = [
-        # A run of titles alone names no one ("Dominus Dux", "Dominum Ducem").
-        *[m for m in _extract_person_mentions(value) if not _is_bare_title(str(m["surface"]))],
+        *person_runs,
         *_extract_anchor_mentions(value),
-        *salvage_mentions,
+        *[m for m in salvage_mentions if not _is_byname_inside_person(m, person_runs)],
     ]
     _retype_feasts(value, candidates)
 

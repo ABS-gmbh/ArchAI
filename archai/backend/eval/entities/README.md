@@ -370,6 +370,7 @@ pages before it was kept. Development pages, links c / w / a / m: reference
 | and a sentence point (. ; :) ends a run of capitals | 51 / 152 | 63 / 129 | 19 / 3 / 25 / 91 | 1 / 0 / 25 / 65 | 18 / 3 / 0 / 26 |
 | and a person is asked for by name alone; one name needs the context | 51 / 152 | 63 / 129 | 19 / 3 / 25 / 91 | 1 / 0 / 25 / 65 | 18 / 3 / 0 / 26 |
 | and rubric sigla, number words, bare titles and feasts are no names | 53 / 152 | 38 / 106 | 19 / 3 / 27 / 89 | 1 / 0 / 27 / 63 | 18 / 3 / 0 / 26 |
+| and a byname inside a person's name is not a place of its own | 53 / 152 | 36 / 99 | 22 / 0 / 27 / 89 | 1 / 0 / 27 / 63 | 21 / 0 / 0 / 26 |
 
 - **Lexicon.** Of the 33 capitalised B-dev names never proposed, 2 were lost
   to a missing spelling of a title ("sainct Pol", "sainct Frãcois") and 1 to
@@ -437,3 +438,16 @@ pages before it was kept. Development pages, links c / w / a / m: reference
   two ("Sancte iohannes", the same reason as "Beati uiri") are newly found
   and abstained on. The 3 wrong links on names with no record are not
   touched.
+- **Bynames.** The 3 wrong links on names with no record came from the
+  rule that proposes a capitalised word after "de" as a place: in a witness
+  list ("Rog̾o de Renni Simone", "Galfrido de Tiper") the byname was a place
+  of its own and was linked, "Renni" to Rennington, "Tiper" to Tipperary. A
+  place candidate lying inside a person's run of capitals is no longer
+  proposed, unless it is an anchored place (lausanne, paris, ...). The
+  three wrong links go, as does one spurious place ("Iuifs" in "Roys des
+  Iuifs Ihesus"); no gold name is lost, and the development pages are
+  unchanged, lausanne still linked. What it gives up: a real place inside
+  a byname ("Iehan de Paris" with an unanchored place) is no longer a place
+  mention of its own; the person mention still covers it. A run of
+  capitals is at most five names, so in a longer witness list a later
+  byname still comes out as a place.

@@ -196,3 +196,20 @@ def test_a_feast_s_saint_is_not_propagated_to() -> None:
     text = "In festiuitatibus Sancti Marci. In\nde facto Procuratorum Sancti Marci pro"
     persons = _mentions(text, "person")
     assert all(m["start_offset"] >= text.index("Procuratorum") for m in persons)
+
+
+# ── a byname inside a person's name is not a place of its own ──────────
+
+
+def test_a_byname_in_a_witness_list_is_not_a_separate_place() -> None:
+    """Witness lists of charters: "de X" after a given name is the person's byname (written for this test)."""
+    line = "hiis testibus Hug̃ de Merlee Walt̾o de Cantelo et multis aliis"
+    places = _surfaces(line, "place")
+    assert places == []
+    persons = _surfaces(line, "person")
+    assert any("Merlee" in s for s in persons) and any("Cantelo" in s for s in persons)
+
+
+def test_a_place_after_de_outside_a_name_is_still_proposed() -> None:
+    assert "lausanne" in _surfaces("et fut euesque de lausanne ou temps", "place")
+    assert "Lyon" in _surfaces("il ala de Lyon a Paris", "place")
