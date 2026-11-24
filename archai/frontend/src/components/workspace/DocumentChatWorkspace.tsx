@@ -65,6 +65,7 @@ import { Button, Icon, Mark } from "./ui";
 import {
   type ExtractionBadge,
   describeExtraction,
+  withIndexBadge,
   getExtractionStatus,
   cleanTranscription,
 } from "./workspaceExtraction";
@@ -1755,7 +1756,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                 state={currentReadState}
                 lines={currentTextLines}
                 marginLines={currentPageId ? marginLinesByPageId[currentPageId] ?? [] : []}
-                badges={currentPageId ? badgesByPageId[currentPageId] ?? [] : []}
+                badges={
+                  currentPageId
+                    ? withIndexBadge(badgesByPageId[currentPageId] ?? [], runSnapshotByPageId[currentPageId]?.events)
+                    : []
+                }
                 activeLineId={activeLineId}
                 scrollToLineId={scrollToLineId}
                 onActiveLine={setActiveLineId}

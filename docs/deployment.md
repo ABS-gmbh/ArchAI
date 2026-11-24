@@ -413,9 +413,22 @@ What it does not have, it drops without a word:
 curl -s http://127.0.0.1:8010/api/health
 ```
 
-`status` is `ok`, `degraded` (HTTP 200: Ollama unreachable, no chat key, or
-layout weights or line recogniser not installed) or `unavailable` (HTTP 503:
-the pipeline database cannot be used). The workspace shows degraded checks in
+`status` is `ok`, `degraded` (HTTP 200: Ollama unreachable, no chat key,
+layout weights or line recogniser not installed, or pages that cannot be
+indexed for search) or `unavailable` (HTTP 503: the pipeline database cannot
+be used).
+
+The `search_index` check fails when `RAG_EMBEDDING_MODEL` names a provider
+model (the default, `multilingual-e5-large-instruct`) and there is no chat
+key: pages are then read but not indexed, and the workspace marks each one
+"Not indexed". Either set the key, or set `RAG_EMBEDDING_MODEL=` (empty) to
+index with ChromaDB's local embedder (an English MiniLM; it ranks Old French
+and Latin worse than the default, `archai/backend/app/config.py` has the
+measurements). ChromaDB downloads that model, an 83 MB archive, the first time it
+is used, into `~/.cache/chroma` (166 MB unpacked, the archive kept). The two embedders' vectors are kept in
+separate collections and never mixed, so pages indexed with one are not found
+with the other until they are read (or indexed with `POST /api/index/run/{id}`)
+again. The workspace shows degraded checks in
 a banner a user can hide; it cannot hide an unavailable backend. Point a load
 balancer or monitor at it and alert on 503. The response carries no secrets,
 paths or hosts. A dependency going down is logged once, not on every poll.

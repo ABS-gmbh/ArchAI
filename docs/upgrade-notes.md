@@ -45,8 +45,10 @@ These behave differently from the first start:
   elsewhere, set the frontend's `BACKEND_URL`.
 - **`/api/health`** answers 503 ("unavailable") when the pipeline database
   cannot be used, and 200 with "degraded" when the OCR engine, the chat key,
-  the layout models or the line recogniser is missing. It used to say "ok"
-  regardless. A monitor that expects "ok" will now alert on a deployment
+  the layout models or the line recogniser is missing, or when pages cannot
+  be indexed for search (`RAG_EMBEDDING_MODEL` needs the chat key and there
+  is none; `RAG_EMBEDDING_MODEL=` indexes locally, see deployment.md,
+  "Health"). It used to say "ok" regardless. A monitor that expects "ok" will now alert on a deployment
   without models.
 - **With `API_TOKEN` set**, the API docs are off unless `ENABLE_API_DOCS` is
   true, and every route but `/api/health` answers 401 without the token,

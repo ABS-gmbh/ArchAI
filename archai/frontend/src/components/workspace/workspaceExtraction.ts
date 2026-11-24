@@ -1,7 +1,9 @@
 // Extraction results as the workspace shows them. Moved out of
 // DocumentChatWorkspace.tsx.
 
-import type { OCRExtractResponse } from "@/lib/api/ocrAgent";
+import type { OCRExtractResponse, RunEvent } from "@/lib/api/ocrAgent";
+
+import { messageInWords } from "./runSteps";
 
 export function removeTextUncertainties(text: string): string {
   return text
@@ -73,12 +75,13 @@ const QUALITY_BADGES: Record<string, ExtractionBadge> = {
   HIGH: {
     tone: "ok",
     label: "Quality: high",
-    detail: "The transcription passed every quality check and is used for search, entities and chat.",
+    // The verdict only: whether the page was indexed is the Not indexed pill's (withIndexBadge).
+    detail: "The transcription passed every quality check: it is good enough to search and to look names up.",
   },
   OK: {
     tone: "ok",
     label: "Quality: acceptable",
-    detail: "The transcription passed the quality gate and is used for search, entities and chat. Expect some misreadings.",
+    detail: "The transcription passed the quality gate: it is good enough to search and to look names up. Expect some misreadings.",
   },
   RISKY: {
     tone: "warn",
@@ -160,4 +163,24 @@ export function describeExtraction(result: OCRExtractResponse, rawText: string):
     });
   }
   return badges;
+}
+
+/**
+ * *badges* with a "Not indexed" pill when the run's steps say indexing was
+ * skipped (INDEX_SKIPPED, not followed by INDEX_DONE), its detail the step's
+ * reason. Without a chat key every page was read and not indexed while its
+ * badge said it was used for search (live regression, 2026-11-24). Left out
+ * where "Not searchable" or an unreliable verdict already says it.
+ */
+export function withIndexBadge(badges: ExtractionBadge[], events: RunEvent[] | undefined): ExtractionBadge[] {
+  let skipped: RunEvent | null = null;
+  for (const event of events ?? []) {
+    if (event.stage === "INDEX_SKIPPED") skipped = event;
+    else if (event.stage === "INDEX_DONE") skipped = null;
+  }
+  if (!skipped || badges.some((badge) => badge.label === "Not searchable" || badge.label === "Quality: unreliable")) {
+    return badges;
+  }
+  const reason = messageInWords(skipped.message) || "This page was not indexed, so it cannot be searched.";
+  return [...badges, { tone: "warn", label: "Not indexed", detail: reason }];
 }

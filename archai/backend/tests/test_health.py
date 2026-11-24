@@ -63,6 +63,7 @@ def test_all_dependencies_up_is_ok(client: TestClient, monkeypatch: pytest.Monke
         "chat_api_key": True,
         "layout_models": True,
         "line_recognizer": True,
+        "search_index": True,
     }
     assert body["checks"]["ollama"]["version"] == "0.6.0"
     assert body["models_loaded"] is True
