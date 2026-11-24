@@ -32,6 +32,8 @@ from __future__ import annotations
 
 import logging
 import sqlite3
+import threading
+import time
 from typing import Any
 
 import requests
@@ -77,10 +79,39 @@ def _check_database() -> dict[str, Any]:
     return {"ok": True, "detail": "The pipeline database answers."}
 
 
+# The Ollama answer is reused for this long. The endpoint is tokenless and the
+# check is a blocking request with a 2 s timeout, so each call held a worker
+# thread: 200 calls against a host that never answers made an authenticated
+# request wait 9.9 s (security review C5). Now one call at a time asks, the
+# others get the last answer at once, and the answer is kept a few seconds.
+_OLLAMA_CACHE_SECONDS = 5.0
+_ollama_lock = threading.Lock()
+# (host, monotonic time of the answer, the check's result)
+_ollama_cache: tuple[str, float, dict[str, Any]] | None = None
+
+
 def _check_ollama() -> dict[str, Any]:
+    global _ollama_cache
     host = str(settings.glmocr_ollama_host or "").rstrip("/")
     if not host:
         return {"ok": False, "detail": "No Ollama host is configured (GLMOCR_OLLAMA_HOST)."}
+    cached = _ollama_cache if _ollama_cache is not None and _ollama_cache[0] == host else None
+    if cached is not None and time.monotonic() - cached[1] < _OLLAMA_CACHE_SECONDS:
+        return cached[2]
+    if not _ollama_lock.acquire(blocking=False):
+        # Another call is asking Ollama now: answer with what is known.
+        if cached is not None:
+            return cached[2]
+        return {"ok": False, "detail": "Ollama is being checked; ask again in a moment."}
+    try:
+        result = _ask_ollama(host)
+        _ollama_cache = (host, time.monotonic(), result)
+        return result
+    finally:
+        _ollama_lock.release()
+
+
+def _ask_ollama(host: str) -> dict[str, Any]:
     try:
         response = requests.get(f"{host}/api/version", timeout=_OLLAMA_TIMEOUT_SECONDS)
         response.raise_for_status()
