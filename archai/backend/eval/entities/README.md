@@ -60,9 +60,10 @@ python scripts/benchmark_linking.py            # replay eval/entities/linking_ca
 python scripts/benchmark_linking.py --record   # ask Wikidata and VIAF again and rewrite the cache
 ```
 
-`linking_cache.json` (about 320 kB) holds the 45 responses recorded on
-2026-11-23 with `--record`, which uses the app's User-Agent, sends at most one
-request a second, and stops on a 429 or 403. They are trimmed to what the
+`linking_cache.json` (about 380 kB) holds the 45 responses recorded on
+2026-11-23 with `--record`, and 10 added on 2026-11-24 for the queries the
+name trimming makes (the 45 unchanged). `--record` uses the app's
+User-Agent, sends at most one request a second, and stops on a 429 or 403. They are trimmed to what the
 linker reads:
 - of a Wikidata entity: labels, descriptions, aliases, and the main values
   of P31, P214, P1566, P625, P17 and P131;
@@ -315,9 +316,9 @@ Gold, one annotator, without the images:
 
 `scripts/benchmark_names_heldout.py`, current code. Authority responses were
 recorded live (1,107 requests, none failed) to `heldout_linking_cache.json.gz`
-(gzip; SHA-256 of the uncompressed JSON ad1bec786f7c54571b47883aafb4922e176f4ea936878f1a189f4c9d10916908), so
+(gzip; SHA-256 of the uncompressed JSON 14c3acb15fcca6418b6cd157414799e2b3d277640db64b79b0c148ce5ef3781e), so
 reruns are offline. The changes below added the requests their new queries
-make (1,164 distinct requests after the separator change). Unsure gold mentions are left out. Intervals are 95%,
+make (1,523 distinct requests after the query trimming). Unsure gold mentions are left out. Intervals are 95%,
 resampled over manuscripts.
 
 | | gold | found | spurious / extracted | links c / w / a / m |
@@ -367,6 +368,7 @@ pages before it was kept. Development pages, links c / w / a / m: reference
 | baseline | 52 / 152 | 65 / 129 | 23 / 3 / 22 / 90 | 1 / 0 / 22 / 68 | 22 / 3 / 0 / 22 |
 | "sainct" a title; "la"/"le"/"les" after "de" a particle | 55 / 152 | 65 / 134 | 23 / 3 / 25 / 87 | 1 / 0 / 25 / 65 | 22 / 3 / 0 / 22 |
 | and a sentence point (. ; :) ends a run of capitals | 51 / 152 | 63 / 129 | 19 / 3 / 25 / 91 | 1 / 0 / 25 / 65 | 18 / 3 / 0 / 26 |
+| and a person is asked for by name alone; one name needs the context | 51 / 152 | 63 / 129 | 19 / 3 / 25 / 91 | 1 / 0 / 25 / 65 | 18 / 3 / 0 / 26 |
 
 - **Lexicon.** Of the 33 capitalised B-dev names never proposed, 2 were lost
   to a missing spelling of a title ("sainct Pol", "sainct Frãcois") and 1 to
@@ -394,3 +396,27 @@ pages before it was kept. Development pages, links c / w / a / m: reference
   the cut each is a lone capital, which no rule proposes. The spans are now
   the names alone, and they are the baseline the next changes (the query
   trimming and the spurious-mention rules) are measured against.
+- **Query trimming** (cause 2). A person's span was sent to Wikidata and
+  VIAF as it was: "Sainct Pierre", "beati iohannis obtutibus presentatus",
+  "Rey Rodrigo". The query, and the string candidates are compared with, is
+  now the name (`_name_query`): titles, roles, rubric words and
+  sentence-start words dropped, cut at a sentence mark, only the name kept
+  after a title; abbreviation marks are dropped rather than turned into
+  spaces ("Rog̾o" was queried as "Rog o"). The span shown is unchanged, and
+  the decision trace records the query as `name_query`. B-dev does not move:
+  the trimmed names are mostly one given name ("Pierre", "Marc", "iohannis",
+  "Rodrigo"), and such a query finds every bearer of the name. Of the 63
+  one-name person queries on B-dev, 28 had a top candidate over the 0.80
+  threshold (Pierre Abélard 0.81 for "Sainct Pierre", Rodrigo Q376394 0.87
+  for "Rey Rodrigo") and were held back only by the 0.15 margin to the
+  next; 12 found nothing, 18 scored under 0.80, 5 were stopped earlier. So
+  one name alone no longer links: the candidate's description (its label
+  and the queried name left out) must have a word in the page around the
+  mention. With the margin rule switched off as a stress test (not a
+  setting), names with a record would get 14 wrong links without this
+  guard and 2 with it (both two-word names, "Theob̃. Walt̃" and a duplicate
+  "Pierre Gringoire"); it also turns away the one right link that run
+  makes (COLUMBANI). With the margin on, as shipped, it changes nothing on
+  B-dev. The 3 wrong links on names with no record are not touched: they
+  come from one-word place mentions ("Renni" to Rennington, "Tiper" to
+  Tipperary), not from person spans.
