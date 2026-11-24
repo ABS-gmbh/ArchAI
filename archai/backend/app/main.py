@@ -14,6 +14,7 @@ from app.config import settings
 from app.logging_setup import configure_logging
 from app.process_guard import guard_for_database
 from app.db import pipeline_db
+from app.services.data_paths import check_data_paths, log_data_paths
 from app.services.file_manager import check_task_base_dir, cleanup_expired_tasks
 from app.services.inference import init_model_pool, shutdown_model_pool
 from app.services.run_retention import RetentionSweeper
@@ -65,8 +66,11 @@ async def lifespan(app: FastAPI):
             "API_TOKEN is not set: the API is unauthenticated and must only be reachable from "
             "localhost. Set API_TOKEN before exposing it (docs/deployment.md)."
         )
-    # A wrong TASK_BASE_DIR stops startup here, naming the variable.
-    check_task_base_dir()
+    # A data path this process cannot write stops startup here, naming its
+    # setting, instead of failing on first use or, for the OCR evidence log,
+    # silently not being written.
+    check_data_paths()
+    log_data_paths(check_task_base_dir())
     # One worker process is supported (docs/deployment.md); a second one using
     # the same pipeline database is logged as an error, not refused.
     process_guard = guard_for_database(pipeline_db._db_config().path)
