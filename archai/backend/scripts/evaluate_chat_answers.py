@@ -81,6 +81,15 @@ def answer_chunks(chunks: list[dict[str, Any]], reference: str, span: str) -> se
     return holding or {c["chunk_id"] for c in chunks if c["start_offset"] < end and start < c["end_offset"]}
 
 
+def evidence_chunk_ids(evidence: str) -> set[str]:
+    """Every chunk id the evidence blocks cite; a merged block lists several."""
+    ids: set[str] = set()
+    for line in str(evidence).splitlines():
+        if line.startswith("chunk_id: "):
+            ids.update(part.strip() for part in line[len("chunk_id: "):].split(",") if part.strip())
+    return ids
+
+
 def score_answer(item: dict[str, Any], text: str, relevant_chunk_ids: set[str]) -> dict[str, Any]:
     abstained = bool(ABSTAIN_RE.search(text or ""))
     if item["kind"] == "not_in_sources":
@@ -137,7 +146,7 @@ def evaluate_retrieval(items, runs, references) -> list[dict[str, Any]]:
         row = {"id": item["id"], "page_id": item["page_id"], "kind": item["kind"], "retrieval": retrieval.get("status")}
         if item["kind"] == "answerable":
             relevant = answer_chunks(run["chunks"], references[item["page_id"]], item["answer_span"])
-            row["evidence_holds_answer"] = any(f"chunk_id: {chunk_id}\n" in evidence for chunk_id in relevant)
+            row["evidence_holds_answer"] = bool(relevant & evidence_chunk_ids(evidence))
         else:
             row["evidence_blocks"] = evidence.count("[OCR_CHUNK_EVIDENCE]")
         row["not_in_sources_instruction"] = "sources for this page do not contain the answer" in system
