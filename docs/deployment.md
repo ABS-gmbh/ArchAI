@@ -11,8 +11,13 @@ Run a single uvicorn worker process:
 
 ```bash
 cd archai/backend
-uvicorn app.main:app --host 127.0.0.1 --port 8010 --workers 1
+uvicorn app.main:app --host 127.0.0.1 --port 8010 --workers 1 --no-server-header
 ```
+
+`--no-server-header` drops uvicorn's `server: uvicorn` header, which tells a
+client what software answers. Every response carries
+`X-Content-Type-Options: nosniff`; the frontend's own headers are described
+under [the frontend](#the-frontend).
 
 Several workers (`--workers N`, or several uvicorn processes behind one
 proxy) are not supported. The backend keeps state in process memory that the
@@ -167,6 +172,25 @@ reverse proxy in front that replaces the header (nginx:
 directly; it is fixed at build time. Against a backend with `API_TOKEN` set,
 the browser's direct requests are refused with 401, and it falls back to the
 `/api` proxy.
+
+The frontend's server sends these headers on every response
+(`next.config.ts`):
+- `X-Content-Type-Options: nosniff`;
+- `Referrer-Policy: same-origin`;
+- `X-Frame-Options: DENY`;
+- a `Permissions-Policy` that turns off camera, microphone, geolocation,
+  payment and the other device features the workspace does not use;
+- in a production build, a `Content-Security-Policy`.
+
+The policy allows scripts, styles, fonts and requests only from the page's
+own origin, plus the backend's direct URL (`NEXT_PUBLIC_BACKEND_URL`, or
+`127.0.0.1:8010`). It allows images from the page's origin and from
+`data:`/`blob:` URLs, and forbids plugins and framing. Inline scripts and
+styles are still allowed, because Next writes its bootstrap scripts inline.
+
+`NEXT_PUBLIC_BACKEND_URL` is read when the frontend is built, so set it
+before `npm run build`. Set `Strict-Transport-Security` at the reverse proxy
+that terminates TLS.
 
 ### Checking a deployment
 
