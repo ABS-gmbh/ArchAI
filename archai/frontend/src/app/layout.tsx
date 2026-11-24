@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Gentium_Plus, IBM_Plex_Sans } from "next/font/google";
 
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+// The interface face. Its figures are tabular on request (font-variant-numeric).
+const plexSans = IBM_Plex_Sans({
+  variable: "--font-plex-sans",
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+// The face for the manuscript's own words: it carries the medieval letters,
+// abbreviation signs and combining marks that transcriptions contain.
+const gentium = Gentium_Plus({
+  variable: "--font-gentium",
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -25,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body suppressHydrationWarning className={`${plexSans.variable} ${gentium.variable} font-sans antialiased`}>
         <main className="min-h-screen">{children}</main>
       </body>
     </html>

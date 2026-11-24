@@ -46,6 +46,21 @@ export function getExtractionStatus(result: OCRExtractResponse): "FULL" | "PARTI
   return result.status;
 }
 
+const RECOGNISER_NAMES: Record<string, string> = {
+  kraken_catmus: "CATMuS Medieval",
+  kraken_cremma_medieval: "CREMMA Medieval",
+  kraken_cremma_lat: "CREMMA Latin",
+  kraken_mccatmus: "McCATMuS",
+  "glm-ocr": "GLM-OCR",
+  glmocr: "GLM-OCR",
+};
+
+/** A recogniser's name as a reader knows it; an unknown one is shown as the backend names it. */
+export function recogniserName(id: string | null | undefined): string {
+  const key = String(id || "").trim();
+  return RECOGNISER_NAMES[key.toLowerCase().replace(/:latest$/, "")] ?? key;
+}
+
 export type ExtractionTone = "ok" | "warn" | "error" | "neutral";
 
 export interface ExtractionBadge {
@@ -118,11 +133,30 @@ export function describeExtraction(result: OCRExtractResponse, rawText: string):
     });
   }
   const warnings = (result.warnings ?? []).filter((warning) => String(warning || "").trim());
-  if (warnings.length) {
+  let fallbackLines = 0;
+  const fallbackNames: string[] = [];
+  const others: string[] = [];
+  for (const warning of warnings) {
+    const fallback = /^LINES_READ_BY_FALLBACK:([^:]+):(\d+)$/.exec(String(warning));
+    if (fallback) {
+      fallbackLines += Number(fallback[2]);
+      fallbackNames.push(recogniserName(fallback[1]));
+    } else {
+      others.push(String(warning));
+    }
+  }
+  if (fallbackLines > 0) {
     badges.push({
       tone: "warn",
-      label: `${warnings.length} ${warnings.length === 1 ? "warning" : "warnings"}`,
-      detail: warnings.join("; "),
+      label: `${fallbackLines} ${fallbackLines === 1 ? "line" : "lines"} from a fallback recogniser`,
+      detail: `The page's main recogniser read nothing on ${fallbackLines === 1 ? "this line" : "these lines"}, so ${fallbackNames.join(" and ")} read ${fallbackLines === 1 ? "it" : "them"}. The page's quality verdict cannot see this; check ${fallbackLines === 1 ? "that line" : "those lines"} against the page.`,
+    });
+  }
+  if (others.length) {
+    badges.push({
+      tone: "warn",
+      label: `${others.length} ${others.length === 1 ? "warning" : "warnings"}`,
+      detail: others.join("; "),
     });
   }
   return badges;

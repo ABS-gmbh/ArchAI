@@ -6,10 +6,34 @@
 @custom-variant high-contrast (&:is(.high-contrast *));
 
 @theme inline {
+  /* The workspace's own palette (see the :root block "ArchAI workspace"). */
+  --color-ground: var(--aa-ground);
+  --color-sheet: var(--aa-sheet);
+  --color-well: var(--aa-well);
+  --color-active: var(--aa-active);
+  --color-line: var(--aa-line);
+  --color-rule: var(--aa-rule);
+  --color-control: var(--aa-control);
+  --color-ink: var(--aa-ink);
+  --color-ink-muted: var(--aa-ink-muted);
+  --color-brand: var(--aa-brand);
+  --color-brand-wash: var(--aa-brand-wash);
+  --color-positive: var(--aa-positive);
+  --color-negative: var(--aa-negative);
+  --color-warning: var(--aa-warning);
+  --color-pill-positive: var(--aa-pill-positive);
+  --color-pill-positive-ink: var(--aa-pill-positive-ink);
+  --color-pill-negative: var(--aa-pill-negative);
+  --color-pill-negative-ink: var(--aa-pill-negative-ink);
+  --color-pill-warning: var(--aa-pill-warning);
+  --color-pill-warning-ink: var(--aa-pill-warning-ink);
+  --color-pill-neutral: var(--aa-pill-neutral);
+  --color-pill-neutral-ink: var(--aa-pill-neutral-ink);
+  --font-text: var(--font-gentium), "Gentium Plus", "Noto Serif", Georgia, serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plex-sans), "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -46,6 +70,39 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+}
+
+/*
+ * ArchAI workspace: a tinted frame around the work. The frame (top bar, page
+ * rail) sits on --aa-ground, a stone grey; the page image on a well one step
+ * darker; the transcription and the panels on a white sheet with a hairline
+ * edge and no shadow. One hue, --aa-brand, marks the line and region in
+ * focus and the one selected state; everything else in the chrome is grey.
+ * Every text tier reaches 4.5:1 on the surface it sits on.
+ */
+:root {
+  --aa-ground: #f6f5f3;
+  --aa-sheet: #ffffff;
+  --aa-well: #edecea;
+  --aa-active: #e9e8e5;
+  --aa-line: #e6e5e2;
+  --aa-rule: #f0efed;
+  --aa-control: #cbcac6;
+  --aa-ink: #131416;
+  --aa-ink-muted: #5c5d5f;
+  --aa-brand: #1b6c80;
+  --aa-brand-wash: #e3f0f3;
+  --aa-positive: #1e7b4f;
+  --aa-negative: #c4242a;
+  --aa-warning: #92400e;
+  --aa-pill-positive: #dcfae5;
+  --aa-pill-positive-ink: #04250e;
+  --aa-pill-negative: #ffedea;
+  --aa-pill-negative-ink: #831c1e;
+  --aa-pill-warning: #fffbeb;
+  --aa-pill-warning-ink: #92400e;
+  --aa-pill-neutral: #ebebe8;
+  --aa-pill-neutral-ink: #353736;
 }
 
 :root {

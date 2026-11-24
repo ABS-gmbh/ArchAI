@@ -1,7 +1,6 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 
 import {
   analyzeSegmentLabel,
@@ -10,9 +9,14 @@ import {
   type ChatMessagePayload,
 } from "@/lib/api/chat";
 import {
+  type FullPageLine,
+  type RunSnapshot,
   extractPageText,
   fetchAuthorityReport,
+  fetchLinkingReport,
+  followRun,
   mergeOCRResultText,
+  reserveRun,
 } from "@/lib/api/ocrAgent";
 import { predictSinglePage } from "@/lib/api/predict";
 import {
@@ -48,8 +52,13 @@ import {
   resolveOcrPromptHints,
 } from "./workspaceIntents";
 import { BackendStatusBanner } from "./BackendStatusBanner";
-import { RetrievalBadges } from "./RetrievalBadges";
-import { ExtractionBadges } from "./ExtractionBadges";
+import { ChatPanel } from "./ChatPanel";
+import { EntitiesPanel, type LinkingState } from "./EntitiesPanel";
+import { MetadataDialog } from "./MetadataDialog";
+import { PageViewer } from "./PageViewer";
+import { RunPanel, stageInWords } from "./RunPanel";
+import { IDLE_READ_STATE, type ReadState, type TranscriptionLine, TranscriptionPane } from "./TranscriptionPane";
+import { Button, Icon, Mark } from "./ui";
 import {
   type ExtractionBadge,
   describeExtraction,
@@ -100,6 +109,8 @@ const SEGMENTATION_LABEL_VOCAB = [
   "Music",
 ];
 
+type WorkspacePane = "page" | "text" | "ask" | "names" | "run";
+
 interface PendingUploadDocument {
   baseName: string;
   pages: WorkspacePage[];
@@ -137,13 +148,26 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [ocrTextByPageId, setOcrTextByPageId] = useState<Record<string, string>>({});
   const [ocrRunIdByPageId, setOcrRunIdByPageId] = useState<Record<string, string>>({});
   const [authorityReportByPageId, setAuthorityReportByPageId] = useState<Record<string, string>>({});
-  const [, setSegmentingPageId] = useState<string | null>(null);
+  const [segmentingPageId, setSegmentingPageId] = useState<string | null>(null);
+  // What the reading of each page produced, for the viewer and the transcription pane.
+  const [pageLinesByPageId, setPageLinesByPageId] = useState<Record<string, FullPageLine[]>>({});
+  const [textLinesByPageId, setTextLinesByPageId] = useState<Record<string, TranscriptionLine[]>>({});
+  const [marginLinesByPageId, setMarginLinesByPageId] = useState<Record<string, string[]>>({});
+  const [pageSizeByPageId, setPageSizeByPageId] = useState<Record<string, { width: number; height: number }>>({});
+  const [readStateByPageId, setReadStateByPageId] = useState<Record<string, ReadState>>({});
+  const [badgesByPageId, setBadgesByPageId] = useState<Record<string, ExtractionBadge[]>>({});
+  const [runSnapshotByPageId, setRunSnapshotByPageId] = useState<Record<string, RunSnapshot>>({});
+  const [linkingByRunId, setLinkingByRunId] = useState<Record<string, LinkingState>>({});
+  const [openError, setOpenError] = useState<string | null>(null);
+  const [activeLineId, setActiveLineId] = useState<string | null>(null);
+  const [scrollToLineId, setScrollToLineId] = useState<string | null>(null);
+  // Which region is shown where the screen has room for one: the page, its text, or a panel.
+  const [pane, setPane] = useState<WorkspacePane>("text");
+  const runFollowersRef = useRef<AbortController[]>([]);
   const [showSegmentationOverlay, setShowSegmentationOverlay] = useState(true);
   const [pendingUpload, setPendingUpload] = useState<PendingUploadDocument | null>(null);
   const [metadataDraft, setMetadataDraft] = useState<WorkspaceDocumentMetadata>(EMPTY_DOCUMENT_METADATA);
   const [metadataError, setMetadataError] = useState<string | null>(null);
-  const chatScrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const chatScrollAnchorRef = useRef<HTMLDivElement | null>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [replyAnnouncement, setReplyAnnouncement] = useState("");
   const wasSendingRef = useRef(false);
@@ -168,17 +192,6 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const currentOcrRunId = currentPage ? (ocrRunIdByPageId[currentPage.id] ?? "") : "";
   const currentAuthorityReport = currentPage ? (authorityReportByPageId[currentPage.id] ?? "") : "";
   const currentMetadata = currentDocument?.metadata ?? null;
-
-  useEffect(() => {
-    const container = chatScrollContainerRef.current;
-    const anchor = chatScrollAnchorRef.current;
-    if (!container || !anchor) {
-      return;
-    }
-    requestAnimationFrame(() => {
-      anchor.scrollIntoView({ block: "end", behavior: "auto" });
-    });
-  }, [currentMessages, sending, currentDocument?.id]);
 
   useEffect(() => {
     setClientReady(true);
@@ -217,12 +230,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         setTaskModels(payload.task_models || DEFAULT_TASK_MODELS);
         setSelectedModel(payload.default_model || payload.task_models?.chat_rag_model || DEFAULT_CHAT_MODEL_ID);
       })
-      .catch((err: unknown) => {
-        if (cancelled) {
-          return;
-        }
-        const message = err instanceof Error ? err.message : "Failed to load model list.";
-        setError(message);
+      .catch(() => {
+        // The defaults stay in place. Why the backend did not answer is the
+        // status banner's to say, not the chat's.
       });
 
     return () => {
@@ -278,17 +288,17 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     setSelectedDocumentId(documentId);
   };
 
-  const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
+  // Pages arrive from the file picker or by being dropped on the viewer.
+  const openFiles = async (files: FileList | File[] | null) => {
     if (!files || files.length === 0) {
       return;
     }
 
     try {
-      setError(null);
+      setOpenError(null);
       const images = sortedImages(files);
       if (!images.length) {
-        setError("Please select one or more image files.");
+        setOpenError("None of those files is an image. Choose PNG, JPEG or TIFF page images.");
         return;
       }
 
@@ -310,8 +320,13 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       });
       setMetadataError(null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to load selected files.";
-      setError(message);
+      setOpenError(err instanceof Error ? `The files could not be opened. ${err.message}` : "The files could not be opened.");
+    }
+  };
+
+  const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    try {
+      await openFiles(event.target.files);
     } finally {
       event.target.value = "";
     }
@@ -955,13 +970,63 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       });
     };
 
+    const pageId = currentPage.id;
+    const patchRead = (patch: Partial<ReadState>) =>
+      setReadStateByPageId((prev) => ({ ...prev, [pageId]: { ...(prev[pageId] ?? IDLE_READ_STATE), ...patch } }));
+    patchRead({ phase: "reading", progress: null, stage: "Preparing the page", error: null });
+
     setSending(true);
     setAssistantLoadingLabel("Extracting text");
     try {
       setExtractionStatus("Extraction status: transcribing the page...");
 
+      // A reserved run lets this client follow its own request: lines read so
+      // far, then each later step. Without one (an older backend) the page is
+      // read all the same, only without live progress.
+      let reservedRunId: string | null = null;
+      try {
+        reservedRunId = await reserveRun();
+      } catch {
+        reservedRunId = null;
+      }
+      if (reservedRunId) {
+        const follower = new AbortController();
+        runFollowersRef.current.push(follower);
+        void followRun(
+          reservedRunId,
+          (snapshot) => {
+            setRunSnapshotByPageId((prev) => ({ ...prev, [pageId]: snapshot }));
+            const events = snapshot.events ?? [];
+            const stage = snapshot.run?.current_stage ?? events[events.length - 1]?.stage ?? null;
+            let progress: ReadState["progress"] = null;
+            for (const event of events) {
+              const match = /^lines (\d+)\/(\d+)$/.exec(event.message);
+              if (match) {
+                progress = { done: Number(match[1]), total: Number(match[2]) };
+              }
+            }
+            setReadStateByPageId((prev) => {
+              const current = prev[pageId] ?? IDLE_READ_STATE;
+              if (current.phase !== "reading") {
+                return prev;
+              }
+              return {
+                ...prev,
+                [pageId]: {
+                  ...current,
+                  stage: stageInWords(stage),
+                  progress: String(stage || "").toUpperCase() === "OCR_RUNNING" ? progress : null,
+                },
+              };
+            });
+          },
+          follower.signal,
+        );
+      }
+
       const ocrHints = resolveOcrPromptHints(userPrompt, currentMetadata);
       const response = await extractPageText({
+        run_id: reservedRunId ?? undefined,
         document_id: currentDocumentId,
         image_id: currentDocumentId,
         page_id: currentPage.id,
@@ -986,10 +1051,44 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       // Marginalia, folio numbers and stamps are shown, but kept out of the text
       // that chat, search and entity extraction work from.
       const secondaryText = cleanTranscription(response, (response.secondary_lines ?? []).join("\n"));
-      const displayText = secondaryText
-        ? `${finalText}\n\nOutside the text columns:\n${secondaryText}`
-        : finalText;
       const runId = String(response.run_id || "").trim();
+
+      // The pane and the viewer work from the lines themselves when the
+      // engine reports them; otherwise from the text, one row per line.
+      const fallbackBackends = new Set(
+        (response.warnings ?? [])
+          .map((warning) => /^LINES_READ_BY_FALLBACK:([^:]+):\d+$/.exec(String(warning))?.[1])
+          .filter((name): name is string => Boolean(name)),
+      );
+      const bodyRegions = [...(response.line_regions ?? [])]
+        .filter((region) => region.lane !== "secondary")
+        .sort((a, b) => a.reading_order - b.reading_order);
+      const textLines: TranscriptionLine[] = bodyRegions.length
+        ? bodyRegions.map((region) => ({
+            id: region.region_id,
+            text: region.text,
+            confidence: region.confidence,
+            fallbackBackend: region.backend_name && fallbackBackends.has(region.backend_name) ? region.backend_name : null,
+            onPage: Array.isArray(region.bbox_xyxy),
+          }))
+        : finalText
+            .split("\n")
+            .filter((line) => line.trim())
+            .map((text, index) => ({ id: `line-${index}`, text, confidence: null, fallbackBackend: null, onPage: false }));
+      setPageLinesByPageId((prev) => ({ ...prev, [pageId]: bodyRegions }));
+      setTextLinesByPageId((prev) => ({ ...prev, [pageId]: textLines }));
+      setMarginLinesByPageId((prev) => ({ ...prev, [pageId]: secondaryText.split("\n").filter((line) => line.trim()) }));
+      if (response.original_image_width && response.original_image_height) {
+        const size = { width: response.original_image_width, height: response.original_image_height };
+        setPageSizeByPageId((prev) => ({ ...prev, [pageId]: size }));
+      }
+      setBadgesByPageId((prev) => ({ ...prev, [pageId]: describeExtraction(response, rawExtractedText) }));
+      patchRead({ phase: "done", progress: null, stage: null, readBy: response.model_used || null });
+      if (runId) {
+        // A re-read replaces the run: its names are loaded afresh when asked for.
+        setLinkingByRunId((prev) => ({ ...prev, [runId]: { phase: "idle" } }));
+      }
+
       const authorityReport = String(
         response.consolidated_report
         || response.authority_report
@@ -1025,7 +1124,10 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           ...prev,
           [currentDocumentId]: (prev[currentDocumentId] ?? []).map((msg) =>
             msg.id === assistantMessageId
-              ? { ...msg, content: displayText }
+              ? {
+                  ...msg,
+                  content: `The transcription is in the Transcription pane: ${textLines.length} ${textLines.length === 1 ? "line" : "lines"}.`,
+                }
               : msg,
           ),
         }));
@@ -1046,7 +1148,10 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "request failed";
       setExtractionStatus(`Extraction failed: ${message}`);
-      setError(message);
+      patchRead({ phase: "failed", progress: null, stage: null, error: message });
+      if (!silent) {
+        setError(message);
+      }
       if (!silent) {
         // The status message carries the failure; drop the empty answer bubble.
         setMessagesByDocument((prev) => ({
@@ -1146,449 +1251,348 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     });
   };
 
+  // Followers of finished or abandoned runs are stopped when the workspace closes.
+  useEffect(() => {
+    const followers = runFollowersRef.current;
+    return () => {
+      followers.forEach((follower) => follower.abort());
+    };
+  }, []);
+
+  // On a phone the page comes first; wider screens start on its text.
+  useEffect(() => {
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setPane("page");
+    }
+  }, []);
+
+  const currentPageId = currentPage?.id ?? null;
+  const currentReadState: ReadState = (() => {
+    const stored = currentPageId ? readStateByPageId[currentPageId] : undefined;
+    if (stored) {
+      return stored;
+    }
+    // A page read before this session's pane state existed still has its text.
+    return currentExtractedText ? { ...IDLE_READ_STATE, phase: "done" } : IDLE_READ_STATE;
+  })();
+  const currentTextLines: TranscriptionLine[] = useMemo(() => {
+    const stored = currentPageId ? textLinesByPageId[currentPageId] : undefined;
+    if (stored) {
+      return stored;
+    }
+    return currentExtractedText
+      .split("\n")
+      .filter((line) => line.trim())
+      .map((text, index) => ({ id: `line-${index}`, text, confidence: null, fallbackBackend: null, onPage: false }));
+  }, [currentPageId, textLinesByPageId, currentExtractedText]);
+  const currentLinking: LinkingState = currentOcrRunId ? linkingByRunId[currentOcrRunId] ?? { phase: "idle" } : { phase: "idle" };
+  const reading = currentReadState.phase === "reading";
+  const findingRegions = Boolean(currentPageId) && segmentingPageId === currentPageId;
+
+  const loadLinking = (runId: string) => {
+    setLinkingByRunId((prev) => ({ ...prev, [runId]: { phase: "loading" } }));
+    fetchLinkingReport(runId)
+      .then((report) => setLinkingByRunId((prev) => ({ ...prev, [runId]: { phase: "ready", report } })))
+      .catch((err: unknown) =>
+        setLinkingByRunId((prev) => ({
+          ...prev,
+          [runId]: { phase: "failed", error: err instanceof Error ? err.message : "The request failed." },
+        })),
+      );
+  };
+
+  // The names of a run are fetched when its panel is first opened.
+  useEffect(() => {
+    if (pane === "names" && currentOcrRunId && (linkingByRunId[currentOcrRunId]?.phase ?? "idle") === "idle") {
+      loadLinking(currentOcrRunId);
+    }
+  }, [pane, currentOcrRunId, linkingByRunId]);
+
+  const readPage = () => {
+    if (!currentPage || sending) {
+      return;
+    }
+    setPane((value) => (value === "page" ? "text" : value));
+    void handleExtractTextInChat({ silent: true });
+  };
+
+  const findRegions = async () => {
+    if (!currentPage || findingRegions) {
+      return;
+    }
+    const found = await runSegmentationForCurrentPage();
+    if (found) {
+      setShowSegmentationOverlay(true);
+    }
+  };
+
+  const translate = () => {
+    setPane("ask");
+    void handleTranslateInChat("translate to english");
+  };
+
   if (!clientReady) {
     return (
-      <div className="flex h-screen bg-background text-foreground" suppressHydrationWarning>
-        <div className="m-auto text-sm text-muted-foreground">Loading workspace...</div>
+      <div className="flex h-dvh items-center justify-center bg-ground text-sm text-ink-muted" suppressHydrationWarning>
+        Opening the workspace
       </div>
     );
   }
 
+  const pageCount = currentDocument?.pages.length ?? 0;
+  const metadataLine = currentMetadata
+    ? [currentMetadata.language, currentMetadata.year, currentMetadata.placeOrOrigin, currentMetadata.scriptFamily, currentMetadata.documentType]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+        .join(" · ")
+    : "";
+  const panel: "ask" | "names" | "run" = pane === "names" || pane === "run" ? pane : "ask";
+  const namesCount =
+    currentLinking.phase === "ready" ? (currentLinking.report.mention_results ?? []).length : null;
+  const tabs: { id: WorkspacePane; label: string; only?: string }[] = [
+    { id: "page", label: "Page", only: "md:hidden" },
+    { id: "text", label: "Transcription", only: "xl:hidden" },
+    { id: "ask", label: "Ask" },
+    { id: "names", label: namesCount === null ? "Names" : `Names ${namesCount}` },
+    { id: "run", label: "Steps" },
+  ];
+  const tabButton = (tab: { id: WorkspacePane; label: string; only?: string }, selected: boolean) => (
+    <button
+      key={tab.id}
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      onClick={() => setPane(tab.id)}
+      className={`relative -mb-px h-11 flex-none whitespace-nowrap border-b-2 px-1 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+        selected ? "border-ink font-semibold text-ink" : "border-transparent text-ink-muted hover:text-ink"
+      } ${tab.only ?? ""}`}
+    >
+      {tab.label}
+    </button>
+  );
+
+  const pageNav =
+    currentDocument && pageCount > 0 ? (
+      <div className="flex items-center">
+        <Button
+          variant="quiet"
+          className="w-8 px-0"
+          aria-label="Previous page"
+          disabled={currentPageIndex <= 0}
+          onClick={() => updateCurrentPageIndex(currentPageIndex - 1)}
+        >
+          <Icon name="chevron-left" />
+        </Button>
+        <span className="px-1 text-sm tabular-nums">
+          Page {currentPageIndex + 1} of {pageCount}
+        </span>
+        <Button
+          variant="quiet"
+          className="w-8 px-0"
+          aria-label="Next page"
+          disabled={currentPageIndex >= pageCount - 1}
+          onClick={() => updateCurrentPageIndex(currentPageIndex + 1)}
+        >
+          <Icon name="chevron-right" />
+        </Button>
+      </div>
+    ) : null;
+
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground md:h-screen md:flex-row md:overflow-hidden">
-      <aside
-        inert={pendingUpload ? true : undefined}
-        className="flex w-full shrink-0 flex-col border-b bg-muted/30 md:w-[320px] md:border-r md:border-b-0"
-      >
-        <div className="border-b p-4">
-          <h1 className="text-lg font-semibold">ArchAI Workspace</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Upload page images and chat with model context.</p>
-          <label className="mt-3 inline-flex cursor-pointer rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-within:ring-2 focus-within:ring-primary/40 focus-within:ring-offset-2">
-            Open Document Pages
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              ref={uploadInputRef}
-              className="sr-only"
-              onChange={handleUpload}
-            />
-          </label>
-        </div>
+    <div className="flex h-dvh min-h-0 flex-col bg-ground text-ink">
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={handleUpload}
+      />
 
-        <div className="border-b p-3">
-          <p id="workspace-documents-heading" className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Documents</p>
-          <div role="group" aria-labelledby="workspace-documents-heading" className="max-h-32 space-y-1 overflow-auto">
+      {/* The frame: product, document and page on the left; the page's one job on the right. */}
+      <header inert={pendingUpload ? true : undefined} className="flex h-12 flex-none items-center gap-3 px-4">
+        <Mark />
+        <span className="hidden text-sm font-semibold sm:inline">ArchAI</span>
+        <span aria-hidden="true" className="hidden h-5 w-px bg-line sm:block" />
+        <h1 className="min-w-0 truncate text-base font-semibold">{currentDocument ? currentDocument.name : "Manuscript workspace"}</h1>
+        {documents.length > 1 ? (
+          <select
+            aria-label="Switch document"
+            value={currentDocument?.id ?? ""}
+            onChange={(event) => selectDocument(event.target.value)}
+            className="h-8 max-w-40 rounded-md border border-control bg-sheet px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
             {documents.map((doc) => (
-              <button
-                key={doc.id}
-                type="button"
-                onClick={() => selectDocument(doc.id)}
-                aria-current={doc.id === currentDocument?.id ? "true" : undefined}
-                className={`w-full rounded-md px-2 py-1.5 text-left text-sm ${
-                  doc.id === currentDocument?.id ? "bg-primary/10 text-primary" : "hover:bg-accent"
-                }`}
-              >
+              <option key={doc.id} value={doc.id}>
                 {doc.name}
-              </button>
+              </option>
             ))}
-            {!documents.length && <p className="text-sm text-muted-foreground">No documents loaded.</p>}
-          </div>
-        </div>
+          </select>
+        ) : null}
+        {metadataLine ? <p className="hidden min-w-0 truncate text-sm text-ink-muted lg:block">{metadataLine}</p> : null}
 
-        {currentMetadata ? (
-          <div className="border-b p-3 text-xs text-muted-foreground">
-            <p className="mb-2 font-medium uppercase tracking-wide">Metadata</p>
-            <div className="space-y-1">
-              <p><span className="font-medium text-foreground">Language:</span> {currentMetadata.language}</p>
-              <p><span className="font-medium text-foreground">Year:</span> {currentMetadata.year}</p>
-              {currentMetadata.placeOrOrigin ? <p><span className="font-medium text-foreground">Origin:</span> {currentMetadata.placeOrOrigin}</p> : null}
-              {currentMetadata.scriptFamily ? <p><span className="font-medium text-foreground">Script:</span> {currentMetadata.scriptFamily}</p> : null}
-              {currentMetadata.documentType ? <p><span className="font-medium text-foreground">Type:</span> {currentMetadata.documentType}</p> : null}
-            </div>
-          </div>
+        <div className="ml-auto flex flex-none items-center gap-2">
+          {pageNav ? <div className="hidden sm:block">{pageNav}</div> : null}
+          <Button variant="secondary" onClick={() => uploadInputRef.current?.click()}>
+            <Icon name="upload" /> <span className="hidden sm:inline">Open pages</span>
+            <span className="sr-only sm:hidden">Open pages</span>
+          </Button>
+          {currentPage ? (
+            <Button variant="primary" onClick={readPage} disabled={sending}>
+              {reading ? "Reading" : currentTextLines.length ? "Read again" : "Read page"}
+            </Button>
+          ) : null}
+        </div>
+      </header>
+
+      <div inert={pendingUpload ? true : undefined}>
+        <BackendStatusBanner />
+      </div>
+
+      <div inert={pendingUpload ? true : undefined} className="flex min-h-0 flex-1 flex-col gap-3 px-2 pb-2 md:flex-row">
+        {/* Pages of the document, on the frame. */}
+        {currentDocument && pageCount > 1 ? (
+          <nav aria-label="Pages" className="hidden w-[76px] flex-none overflow-y-auto md:block">
+            <ol className="flex flex-col gap-2 px-1 py-1">
+              {currentDocument.pages.map((page, index) => {
+                const selected = index === currentPageIndex;
+                return (
+                  <li key={page.id}>
+                    <button
+                      type="button"
+                      aria-label={`Page ${index + 1}: ${page.name}`}
+                      aria-current={selected ? "page" : undefined}
+                      onClick={() => updateCurrentPageIndex(index)}
+                      className={`block w-full overflow-hidden rounded-md bg-sheet outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+                        selected ? "ring-2 ring-ink" : "ring-1 ring-line hover:ring-control"
+                      }`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- a local data URL thumbnail */}
+                      <img src={page.dataUrl} alt="" className="h-[84px] w-full object-cover object-top" />
+                    </button>
+                    <p className={`mt-0.5 text-center text-xs tabular-nums ${selected ? "text-ink" : "text-ink-muted"}`}>{index + 1}</p>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
         ) : null}
 
-        <div className="flex min-h-0 flex-1 flex-col p-3">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Current Page</p>
-          {currentPage ? (
-            <>
-              <div className="mb-2 flex items-center gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => updateZoom(currentZoom - 0.1)}
-                  aria-label="Zoom out"
-                  className="rounded border px-2 py-1 hover:bg-accent"
-                >
-                  -
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateZoom(currentZoom + 0.1)}
-                  aria-label="Zoom in"
-                  className="rounded border px-2 py-1 hover:bg-accent"
-                >
-                  +
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateZoom(1)}
-                  className="rounded border px-2 py-1 hover:bg-accent"
-                >
-                  Fit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateZoom(1)}
-                  className="rounded border px-2 py-1 hover:bg-accent"
-                >
-                  100%
-                </button>
-                <span className="ml-auto text-muted-foreground" aria-live="polite">
-                  <span className="sr-only">Zoom </span>
-                  {Math.round(currentZoom * 100)}%
-                </span>
-              </div>
-
-              <div className="mb-2 max-h-[45vh] flex-1 overflow-auto rounded-md border bg-background p-2 md:max-h-none">
-                <Image
-                  src={showSegmentationOverlay && currentSegmentedPreview ? currentSegmentedPreview : currentPage.dataUrl}
-                  alt={showSegmentationOverlay && currentSegmentedPreview ? `${currentPage.name} segmented` : currentPage.name}
-                  width={1024}
-                  height={1024}
-                  unoptimized
-                  className="mx-auto h-auto max-w-full origin-top transition-transform"
-                  style={{ transform: `scale(${currentZoom})` }}
-                />
-              </div>
-
-              <div className="mb-2 space-y-2">
-                <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <input
-                    type="checkbox"
-                    checked={showSegmentationOverlay}
-                    onChange={(event) => setShowSegmentationOverlay(event.target.checked)}
-                    disabled={!currentSegmentedPreview}
-                  />
-                  Show segmentation overlay
-                </label>
-                {currentSegmentedPreview && (
-                  <p role="status" className="text-xs text-emerald-700">Segmented preview ready.</p>
-                )}
-                {currentSegmentationError && (
-                  <p role="alert" className="text-xs text-red-600">{currentSegmentationError}</p>
-                )}
-              </div>
-
-              <div className="mb-2 flex items-center gap-2 text-sm">
-                <button
-                  type="button"
-                  onClick={() => updateCurrentPageIndex(currentPageIndex - 1)}
-                  disabled={currentPageIndex <= 0}
-                  aria-label="Previous page"
-                  className="rounded border px-2 py-1 disabled:opacity-40"
-                >
-                  Prev
-                </button>
-                <select
-                  aria-label="Page"
-                  value={currentPageIndex}
-                  onChange={(event) => updateCurrentPageIndex(Number(event.target.value))}
-                  className="min-w-0 flex-1 rounded border bg-background px-2 py-1"
-                >
-                  {currentDocument?.pages.map((page, index) => (
-                    <option key={page.id} value={index}>
-                      Page {index + 1}: {page.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={() => updateCurrentPageIndex(currentPageIndex + 1)}
-                  disabled={Boolean(currentDocument && currentPageIndex >= currentDocument.pages.length - 1)}
-                  aria-label="Next page"
-                  className="rounded border px-2 py-1 disabled:opacity-40"
-                >
-                  Next
-                </button>
-              </div>
-
-              <div role="group" aria-label="Page thumbnails" className="grid max-h-28 grid-cols-5 gap-1 overflow-auto">
-                {currentDocument?.pages.map((page, index) => (
-                  <button
-                    key={page.id}
-                    type="button"
-                    onClick={() => updateCurrentPageIndex(index)}
-                    aria-label={`Page ${index + 1}: ${page.name}`}
-                    aria-current={index === currentPageIndex ? "page" : undefined}
-                    className={`overflow-hidden rounded border ${index === currentPageIndex ? "ring-2 ring-primary" : ""}`}
-                  >
-                    <Image
-                      src={page.dataUrl}
-                      alt=""
-                      width={120}
-                      height={56}
-                      unoptimized
-                      className="h-14 w-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">Select or upload a document to begin.</p>
-          )}
-        </div>
-      </aside>
-
-      <section inert={pendingUpload ? true : undefined} className="flex min-h-[70vh] min-w-0 flex-1 flex-col md:min-h-0">
-        <BackendStatusBanner />
-        <div className="flex items-center gap-3 border-b px-4 py-3">
-          <div>
-            <p className="text-sm font-medium">Chat</p>
-            <p className="text-xs text-muted-foreground">
-              {currentDocument ? `${currentDocument.name} • Page ${currentPageIndex + 1}` : "No document selected"}
-            </p>
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              onClick={clearConversation}
-              className="rounded border px-3 py-1.5 text-sm hover:bg-accent"
-              disabled={!currentDocument || !currentMessages.length}
-            >
-              New conversation
-            </button>
-          </div>
-        </div>
-
-        <div
-          ref={chatScrollContainerRef}
-          role="log"
-          aria-label="Conversation"
-          aria-live={sending ? "off" : "polite"}
-          aria-busy={sending}
-          className="min-h-0 flex-1 overflow-y-auto px-4 py-4"
-        >
-          {!currentMessages.length ? (
-            <p className="mx-auto mt-8 max-w-xl text-center text-sm text-muted-foreground">
-              Ask questions about this page, or type `segment this page` / `extract text` to run the pipeline directly in chat.
-            </p>
-          ) : (
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
-              {currentMessages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`rounded-lg px-4 py-3 text-sm leading-relaxed ${
-                    message.role === "user"
-                      ? "ml-6 bg-primary text-primary-foreground sm:ml-12"
-                      : "mr-6 border bg-card sm:mr-12"
-                  }`}
-                >
-                  <p className="mb-1 text-xs uppercase opacity-70">{message.role}</p>
-                  {message.content ? (
-                    <p className="whitespace-pre-wrap">{message.content}</p>
-                  ) : sending && message.role === "assistant" ? (
-                    <div role="status" className="flex items-center gap-2 text-muted-foreground">
-                      <span className="text-sm">{assistantLoadingLabel}</span>
-                      <span aria-hidden="true" className="inline-flex items-center gap-1">
-                        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current" />
-                        <span
-                          className="h-1.5 w-1.5 animate-bounce rounded-full bg-current"
-                          style={{ animationDelay: "0.12s" }}
-                        />
-                        <span
-                          className="h-1.5 w-1.5 animate-bounce rounded-full bg-current"
-                          style={{ animationDelay: "0.24s" }}
-                        />
-                      </span>
-                    </div>
-                  ) : null}
-                  {message.extractionBadges?.length ? <ExtractionBadges badges={message.extractionBadges} /> : null}
-                  {message.role === "assistant" && message.retrieval ? (
-                    <RetrievalBadges retrieval={message.retrieval} />
-                  ) : null}
-                  {message.imageUrl ? (
-                    <div className="mt-3 overflow-hidden rounded-md border bg-background">
-                      <Image
-                        src={message.imageUrl}
-                        alt={message.imageAlt || "Chat image"}
-                        width={1200}
-                        height={1200}
-                        unoptimized
-                        className="h-auto w-full"
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              ))}
-              <div ref={chatScrollAnchorRef} />
-            </div>
-          )}
-        </div>
-
-        {/* Streamed tokens are not announced one by one; this says once that the reply is there. */}
-        <p role="status" className="sr-only">
-          {replyAnnouncement}
-        </p>
-        <div className="border-t p-4">
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-2">
-            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-            <textarea
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  void sendMessage();
-                }
+        {/* The page, on a well one step darker than the frame. */}
+        <div className={`min-h-0 min-w-0 flex-1 ${pane === "page" ? "flex" : "hidden"} flex-col md:flex`}>
+          <div className="relative min-h-0 flex-1">
+            <PageViewer
+              page={currentPage}
+              zoom={currentZoom}
+              onZoom={updateZoom}
+              regionsSrc={currentSegmentedPreview}
+              showRegions={showSegmentationOverlay}
+              onShowRegions={setShowSegmentationOverlay}
+              lines={currentPageId ? pageLinesByPageId[currentPageId] ?? [] : []}
+              pageSize={currentPageId ? pageSizeByPageId[currentPageId] ?? null : null}
+              activeLineId={activeLineId}
+              onActiveLine={setActiveLineId}
+              onSelectLine={(id) => {
+                setActiveLineId(id);
+                setScrollToLineId(id);
+                setPane((value) => (value === "page" ? "text" : value));
               }}
-              rows={4}
-              aria-label="Message to ArchAI"
-              placeholder="Ask ArchAI about this page..."
-              className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-              disabled={!currentDocument || sending}
+              onOpenPages={() => uploadInputRef.current?.click()}
+              onDropFiles={(files) => void openFiles(files)}
+              openError={openError}
+              pageNav={pageNav}
             />
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => void sendMessage()}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                disabled={!currentDocument || sending || !input.trim() || !selectedModel}
-              >
-                {sending ? "Sending..." : "Send"}
-              </button>
+            {currentPage && !currentSegmentedPreview ? (
+              <div className="absolute left-4 top-4">
+                <Button variant="secondary" onClick={() => void findRegions()} disabled={findingRegions || sending}>
+                  {findingRegions ? "Finding regions" : "Find layout regions"}
+                </Button>
+              </div>
+            ) : null}
+            {currentSegmentationError ? (
+              <p role="alert" className="absolute inset-x-4 top-14 rounded-md border border-line bg-sheet px-3 py-2 text-sm text-negative">
+                Layout regions could not be found. {currentSegmentationError}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        {/* The work: the page's text, and beside it questions, names and steps. */}
+        <div
+          className={`order-first flex min-h-0 min-w-0 flex-col rounded-2xl border border-line bg-sheet md:order-none md:w-[440px] md:flex-none xl:w-[780px] ${
+            pane === "page" ? "flex-none md:flex-none" : "flex-1 md:flex-none"
+          }`}
+        >
+          <div role="tablist" aria-label="Workspace" className="flex flex-none gap-5 overflow-x-auto border-b border-line px-6 [scrollbar-width:none] xl:hidden">
+            {tabs.map((tab) => tabButton(tab, pane === tab.id))}
+          </div>
+          <div className={`min-h-0 flex-1 ${pane === "page" ? "hidden md:flex" : "flex"}`}>
+            <div className={`min-h-0 min-w-0 flex-1 ${pane === "text" || pane === "page" ? "flex" : "hidden"} flex-col xl:flex`}>
+              <TranscriptionPane
+                pageName={currentPage?.name ?? null}
+                state={currentReadState}
+                lines={currentTextLines}
+                marginLines={currentPageId ? marginLinesByPageId[currentPageId] ?? [] : []}
+                badges={currentPageId ? badgesByPageId[currentPageId] ?? [] : []}
+                activeLineId={activeLineId}
+                scrollToLineId={scrollToLineId}
+                onActiveLine={setActiveLineId}
+                onRead={readPage}
+                onTranslate={translate}
+                busy={sending}
+              />
+            </div>
+            <div
+              className={`min-h-0 min-w-0 flex-1 flex-col xl:flex xl:w-[360px] xl:flex-none xl:border-l xl:border-line ${
+                pane === "ask" || pane === "names" || pane === "run" ? "flex" : "hidden"
+              }`}
+            >
+              <div role="tablist" aria-label="Page panels" className="hidden flex-none gap-5 border-b border-line px-6 xl:flex">
+                {tabs.filter((tab) => !tab.only).map((tab) => tabButton(tab, panel === tab.id))}
+              </div>
+              <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto">
+                {panel === "ask" ? (
+                  <ChatPanel
+                    messages={currentMessages}
+                    sending={sending}
+                    loadingLabel={assistantLoadingLabel}
+                    error={error}
+                    input={input}
+                    onInput={setInput}
+                    onSend={() => void sendMessage()}
+                    onClear={clearConversation}
+                    disabledReason={!currentDocument ? "Open a document to ask about it" : !selectedModel ? "No chat model is available" : null}
+                    announcement={replyAnnouncement}
+                    hasTranscription={currentTextLines.length > 0}
+                  />
+                ) : null}
+                {panel === "names" ? (
+                  <EntitiesPanel
+                    state={currentLinking}
+                    hasRun={Boolean(currentOcrRunId)}
+                    onRetry={() => currentOcrRunId && loadLinking(currentOcrRunId)}
+                  />
+                ) : null}
+                {panel === "run" ? (
+                  <RunPanel snapshot={currentPageId ? runSnapshotByPageId[currentPageId] ?? null : null} runId={currentOcrRunId || null} />
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+
       {pendingUpload ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="metadata-dialog-title"
-            aria-describedby="metadata-dialog-description"
-            onKeyDown={(event) => {
-              if (event.key === "Escape") {
-                event.stopPropagation();
-                cancelPendingUpload();
-                return;
-              }
-              if (event.key !== "Tab") {
-                return;
-              }
-              // aria-modal promises that focus stays in the dialog: wrap Tab at
-              // both ends instead of letting it reach the page underneath.
-              const focusable = Array.from(
-                event.currentTarget.querySelectorAll<HTMLElement>(
-                  "input:not([disabled]), textarea:not([disabled]), button:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex='-1'])",
-                ),
-              );
-              if (!focusable.length) {
-                return;
-              }
-              const first = focusable[0];
-              const last = focusable[focusable.length - 1];
-              const active = document.activeElement;
-              if (event.shiftKey && (active === first || !event.currentTarget.contains(active))) {
-                event.preventDefault();
-                last.focus();
-              } else if (!event.shiftKey && active === last) {
-                event.preventDefault();
-                first.focus();
-              }
-            }}
-            className="max-h-full w-full max-w-2xl overflow-y-auto rounded-xl border bg-background p-6 shadow-2xl"
-          >
-            <h2 id="metadata-dialog-title" className="text-lg font-semibold">Document metadata</h2>
-            <p id="metadata-dialog-description" className="mt-1 text-sm text-muted-foreground">
-              Language and year are required. These values will guide Kraken routing now and stay with the document for later retrieval and entity work.
-            </p>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
-              <label className="text-sm">
-                <span className="mb-1 block font-medium">Language</span>
-                <input
-                  autoFocus
-                  required
-                  aria-required="true"
-                  aria-invalid={Boolean(metadataError) && !metadataDraft.language.trim()}
-                  value={metadataDraft.language}
-                  onChange={(event) => setMetadataDraft((prev) => ({ ...prev, language: event.target.value }))}
-                  placeholder="latin, middle_french, anglo_norman..."
-                  className="w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block font-medium">Year</span>
-                <input
-                  required
-                  aria-required="true"
-                  aria-invalid={Boolean(metadataError) && !metadataDraft.year.trim()}
-                  value={metadataDraft.year}
-                  onChange={(event) => setMetadataDraft((prev) => ({ ...prev, year: event.target.value }))}
-                  placeholder="e.g. 1248 or c. 1250"
-                  className="w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block font-medium">Place / origin</span>
-                <input
-                  value={metadataDraft.placeOrOrigin}
-                  onChange={(event) => setMetadataDraft((prev) => ({ ...prev, placeOrOrigin: event.target.value }))}
-                  placeholder="Lausanne, Paris, Toledo..."
-                  className="w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block font-medium">Script family</span>
-                <input
-                  value={metadataDraft.scriptFamily}
-                  onChange={(event) => setMetadataDraft((prev) => ({ ...prev, scriptFamily: event.target.value }))}
-                  placeholder="medieval latin script, caroline, textualis..."
-                  className="w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </label>
-              <label className="text-sm md:col-span-2">
-                <span className="mb-1 block font-medium">Document type</span>
-                <input
-                  value={metadataDraft.documentType}
-                  onChange={(event) => setMetadataDraft((prev) => ({ ...prev, documentType: event.target.value }))}
-                  placeholder="gospel, charter, cartulary, liturgical manuscript..."
-                  className="w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </label>
-              <label className="text-sm md:col-span-2">
-                <span className="mb-1 block font-medium">Notes</span>
-                <textarea
-                  value={metadataDraft.notes}
-                  onChange={(event) => setMetadataDraft((prev) => ({ ...prev, notes: event.target.value }))}
-                  rows={4}
-                  placeholder="Repository, shelfmark, dating notes, provenance, paleography notes..."
-                  className="w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </label>
-            </div>
-            {metadataError ? <p role="alert" className="mt-3 text-sm text-red-600">{metadataError}</p> : null}
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={cancelPendingUpload}
-                className="rounded-md border px-4 py-2 text-sm hover:bg-accent"
-              >
-                Cancel upload
-              </button>
-              <button
-                type="button"
-                onClick={commitPendingUpload}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-              >
-                Save metadata and open document
-              </button>
-            </div>
-          </div>
-        </div>
+        <MetadataDialog
+          draft={metadataDraft}
+          pageCount={pendingUpload.pages.length}
+          error={metadataError}
+          onChange={setMetadataDraft}
+          onCancel={cancelPendingUpload}
+          onSave={commitPendingUpload}
+        />
       ) : null}
     </div>
   );

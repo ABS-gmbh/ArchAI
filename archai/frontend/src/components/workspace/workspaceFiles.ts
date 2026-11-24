@@ -58,7 +58,7 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-export function sortedImages(files: FileList): File[] {
+export function sortedImages(files: FileList | File[]): File[] {
   return Array.from(files)
     .filter((file) => file.type.startsWith("image/"))
     .sort((a, b) => a.name.localeCompare(b.name));

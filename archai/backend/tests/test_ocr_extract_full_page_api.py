@@ -337,17 +337,18 @@ def test_extract_full_page_returns_required_keys(monkeypatch: Any) -> None:
     assert result.comparison_runs[0].backend_name == "glmocr"
 
 
-def test_workspace_contains_detected_language_line() -> None:
-    workspace = (
+def test_workspace_has_a_question_box() -> None:
+    """The workspace's chat panel still offers a place to ask about the page."""
+    panel = (
         Path(__file__).resolve().parents[2]
         / "frontend"
         / "src"
         / "components"
         / "workspace"
-        / "DocumentChatWorkspace.tsx"
+        / "ChatPanel.tsx"
     )
-    source = workspace.read_text(encoding="utf-8")
-    assert "Ask ArchAI about this page..." in source
+    source = panel.read_text(encoding="utf-8")
+    assert "Ask a question about this page" in source
 
 
 def test_runtime_ocr_router_imports_without_extra_ocr_dependencies() -> None:
