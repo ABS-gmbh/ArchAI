@@ -12,14 +12,25 @@ const HEADLINES: Record<Exclude<BackendHealth["status"], "ok">, string> = {
   unreachable: "The backend is not reachable",
 };
 
+const BUTTON =
+  "shrink-0 rounded border border-current px-2 py-0.5 text-xs font-medium outline-none hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-current focus-visible:ring-offset-1 disabled:opacity-50 dark:hover:bg-white/10";
+
 /**
  * A banner that says what is wrong with the backend before a request fails:
- * unreachable, unavailable (database down) or degraded (OCR engine or chat key
- * missing). Renders nothing while the backend is healthy or not yet checked.
+ * unreachable, unavailable (database down) or degraded (an optional engine,
+ * the chat key or the models missing). Renders nothing while the backend is
+ * healthy or not yet checked.
+ *
+ * Degraded notices can be hidden: a deployment that never uses Ollama should
+ * not carry "OCR engine (Ollama)" all session. They stay hidden until a
+ * problem appears that was not on screen when Hide was pressed, or the page
+ * reloads. A failing backend cannot be hidden.
  */
 export function BackendStatusBanner() {
   const [health, setHealth] = useState<BackendHealth | null>(null);
   const [checking, setChecking] = useState(false);
+  // The problems on screen when Hide was pressed; in memory only, so a reload shows them again.
+  const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
   const controllerRef = useRef<AbortController | null>(null);
 
   const check = useCallback(async () => {
@@ -54,6 +65,9 @@ export function BackendStatusBanner() {
     return null;
   }
   const severe = health.status !== "degraded";
+  if (!severe && health.problems.length > 0 && health.problems.every((problem) => hidden.has(problem))) {
+    return null;
+  }
   return (
     <div
       className={`flex flex-wrap items-start gap-x-3 gap-y-1 border-b px-4 py-2 text-sm ${
@@ -73,14 +87,21 @@ export function BackendStatusBanner() {
           </ul>
         ) : null}
       </div>
-      <button
-        type="button"
-        onClick={() => void check()}
-        disabled={checking}
-        className="shrink-0 rounded border border-current px-2 py-0.5 text-xs font-medium hover:bg-black/5 disabled:opacity-50 dark:hover:bg-white/10"
-      >
-        {checking ? "Checking…" : "Check again"}
-      </button>
+      <div className="flex shrink-0 gap-2">
+        <button type="button" onClick={() => void check()} disabled={checking} className={BUTTON}>
+          {checking ? "Checking…" : "Check again"}
+        </button>
+        {severe ? null : (
+          <button
+            type="button"
+            onClick={() => setHidden(new Set(health.problems))}
+            aria-label="Hide these notices until another problem appears"
+            className={BUTTON}
+          >
+            Hide
+          </button>
+        )}
+      </div>
     </div>
   );
 }

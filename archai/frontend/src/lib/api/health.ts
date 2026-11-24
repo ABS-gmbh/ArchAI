@@ -18,6 +18,9 @@ const CHECK_LABELS: Record<string, string> = {
   chat_api_key: "Chat provider key",
 };
 
+// Checks whose detail is already a sentence that says what fails and what to do.
+const SENTENCE_CHECKS = new Set(["layout_models", "line_recognizer"]);
+
 /**
  * GET /health, reduced to what the workspace shows. Never throws: a backend
  * that cannot be reached is reported as status "unreachable".
@@ -52,7 +55,11 @@ export async function getBackendHealth(signal?: AbortSignal): Promise<BackendHea
   }
   const problems = Object.entries(body.checks ?? {})
     .filter(([, check]) => check && check.ok === false)
-    .map(([name, check]) => `${CHECK_LABELS[name] ?? name}: ${check.detail || "not available"}`);
+    .map(([name, check]) =>
+      SENTENCE_CHECKS.has(name) && check.detail
+        ? check.detail
+        : `${CHECK_LABELS[name] ?? name}: ${check.detail || "not available"}`,
+    );
   const status = body.status === "ok" || body.status === "degraded" || body.status === "unavailable"
     ? body.status
     : res.ok ? "ok" : "unavailable";
