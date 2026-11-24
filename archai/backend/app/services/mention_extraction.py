@@ -44,6 +44,11 @@ def _keyed(words: Any) -> frozenset[str]:
 _PERSON_PARTICLES = {"de", "d'", "d’", "du", "des"}
 
 
+# Articles that continue a particle: "Rommant de la Rose", "Iehan de le Mote".
+# After "de" only; on their own they end a run of capitals as before.
+_ARTICLES_AFTER_DE = {"la", "le", "les"}
+
+
 _PLACE_ANCHORS = {"lausanne", "paris", "lyon", "rome", "avignon", "geneve", "genève"}
 
 
@@ -171,6 +176,14 @@ def _is_roman_numeral_token(token: str) -> bool:
     return bool(value) and re.fullmatch(r"[IVXLCDM]+", value) is not None
 
 
+def _is_particle(tokens: list[re.Match[str]], k: int) -> bool:
+    """Token *k* is a particle of a name: de, du, des, d', or la/le/les right after "de"."""
+    word = tokens[k].group(0).lower()
+    if word in _PERSON_PARTICLES:
+        return True
+    return word in _ARTICLES_AFTER_DE and k > 0 and tokens[k - 1].group(0).lower() == "de"
+
+
 def _extract_person_mentions(base_text: str) -> list[dict[str, Any]]:
     mentions: list[dict[str, Any]] = []
     lines = base_text.splitlines()
@@ -194,17 +207,12 @@ def _extract_person_mentions(base_text: str) -> list[dict[str, Any]]:
                 if not re.fullmatch(r"[\s,.;:()\-–—]*", between):
                     break
                 token_j = token_matches[j].group(0)
-                token_j_norm = token_j.lower()
-                if token_j_norm in _PERSON_PARTICLES:
+                if _is_particle(token_matches, j):
                     used_particle = True
                     continue
                 if not token_j[:1].isupper() or _is_roman_numeral_token(token_j):
                     break
-                non_particle_tokens = 0
-                for k in range(i, j + 1):
-                    tok_k = token_matches[k].group(0).lower()
-                    if tok_k not in _PERSON_PARTICLES:
-                        non_particle_tokens += 1
+                non_particle_tokens = sum(1 for k in range(i, j + 1) if not _is_particle(token_matches, k))
                 if 2 <= non_particle_tokens <= 5:
                     best_end_idx = j
                     best_non_particle = non_particle_tokens
@@ -386,6 +394,8 @@ _SALVAGE_TRIGGERS: dict[str, str] = {
     "rex": "PERSON_OR_ROLE", "regis": "PERSON_OR_ROLE", "episcopus": "PERSON_OR_ROLE", "episcopi": "PERSON_OR_ROLE",
     "evesque": "PERSON_OR_ROLE", "évesque": "PERSON_OR_ROLE", "euesque": "PERSON_OR_ROLE",
     "saint": "PERSON", "sainz": "PERSON",
+    # Middle French "sainct": "sainct Pol", "sainct Frãcois" on B-dev.
+    "sainct": "PERSON",
     "pape": "PERSON_OR_ROLE", "duc": "PERSON_OR_ROLE",
     "conte": "PERSON_OR_ROLE", "dame": "PERSON_OR_ROLE", "sire": "PERSON_OR_ROLE",
 }
