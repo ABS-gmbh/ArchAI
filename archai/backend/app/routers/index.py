@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 
+from app.services.public_errors import RequestRefused
 from app.db import pipeline_db
 
 from app.routers.errors import unexpected_error
@@ -19,7 +20,7 @@ def index_run(run_id: str) -> dict[str, Any]:
     """Embed all chunks for *run_id* and upsert into the vector store."""
     try:
         return rag_store.index_run(run_id)
-    except ValueError as exc:
+    except RequestRefused as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
         unexpected_error(exc, what="Indexing", provider="embedding provider")

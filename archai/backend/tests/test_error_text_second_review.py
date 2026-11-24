@@ -106,31 +106,36 @@ def test_the_saia_ocr_agent_fallback_and_tile_warnings_hold_no_error_text() -> N
 
 APP = Path(__file__).resolve().parents[1] / "app"
 _LOG_METHODS = {"debug", "info", "warning", "error", "exception", "critical", "log"}
-# Places where the text of a caught exception is passed on on purpose: each
-# handler catches only exceptions this code base raises with fixed sentences
-# (ValueError from request validation, ChatConfigError and SaiaConfigError
-# naming the variable to set, LabelAnalysisAgentError, whose text now goes
-# through public_failure).
+# Exceptions this code base raises with fixed sentences meant for the client:
+# a handler that catches only these may pass their text on.
+_OWN_REFUSALS = {
+    "RequestRefused",  # app/services/public_errors.py, and its subclasses:
+    "ImageTooLarge",
+    "UnreadableImage",
+    "ChatConfigError",  # configuration errors naming the variable to set
+    "SaiaConfigError",
+    "LabelAnalysisAgentError",  # its provider text goes through public_failure
+    "_SegmentedPageUnread",  # a code ("no_text"), not a message
+}
+# Places that pass on a caught exception's text outside such a handler, and why.
 _ALLOWED = {
-    ("routers/index.py", "index_run"),  # ValueError("Run not found ...") from rag_store
-    ("routers/authority.py", "link_run"),
-    ("routers/authority.py", "linking_report"),
-    ("routers/chat.py", "chat_models"),
-    ("routers/chat.py", "chat_completions"),
-    ("routers/chat.py", "chat_label_analysis"),
-    ("routers/ocr.py", "ocr_extract"),
-    ("routers/ocr.py", "ocr_saia"),
-    ("routers/ocr.py", "_run_glm_full_page"),
-    ("routers/ocr.py", "_extract_full_page"),  # _SegmentedPageUnread("no_text"): a code, not a message
-    ("routers/predict.py", "_process_batch"),  # BatchArchiveRefused: the limit the archive broke
+    ("routers/predict.py", "_process_batch"),  # `except Exception`, then only for BatchArchiveRefused (isinstance)
     # Into the GlmOllamaOcrError it raises, which every caller turns into a
     # sentence (_glm_failure, public_failure) and the log keeps.
     ("services/glm_ollama_ocr.py", "run_glm_ollama_ocr"),
 }
 
 
+def _caught(handler: ast.ExceptHandler) -> set[str]:
+    types = handler.type.elts if isinstance(handler.type, ast.Tuple) else [handler.type]
+    return {t.id if isinstance(t, ast.Name) else t.attr if isinstance(t, ast.Attribute) else "?" for t in types if t is not None}
+
+
 def _exception_names(handler: ast.ExceptHandler) -> set[str]:
-    return {handler.name} if handler.name else set()
+    """The name a handler binds, unless it catches only this code base's own refusals."""
+    if not handler.name or (handler.type is not None and _caught(handler) <= _OWN_REFUSALS):
+        return set()
+    return {handler.name}
 
 
 def _mentions(node: ast.AST, names: set[str]) -> bool:
@@ -226,3 +231,16 @@ def test_every_allowed_place_still_exists() -> None:
         rel = path.relative_to(APP).as_posix()
         seen |= {(rel, function) for function, _line in _offences(ast.parse(path.read_text(encoding="utf-8")))}
     assert sorted(_ALLOWED - seen) == []
+
+
+def test_a_handler_of_this_code_base_s_own_refusals_may_pass_their_sentence_on() -> None:
+    source = '''
+def h():
+    try:
+        pass
+    except RequestRefused as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except (ChatConfigError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+'''
+    assert [line for _function, line in _offences(ast.parse(source))] == [8]  # a tuple with ValueError is not only our own

@@ -15,9 +15,10 @@ from __future__ import annotations
 from typing import Any
 
 from app.config import settings
+from app.services.public_errors import RequestRefused
 
 
-class ImageTooLarge(ValueError):
+class ImageTooLarge(RequestRefused):
     """An image over OCR_MAX_DECODE_PIXELS; the message is for the client (a route's 422)."""
 
 

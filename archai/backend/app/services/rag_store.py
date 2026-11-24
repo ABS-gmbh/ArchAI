@@ -28,6 +28,7 @@ from typing import Any, Sequence
 import chromadb
 from chromadb.config import Settings as ChromaSettings
 
+from app.services.public_errors import RequestRefused
 from app.config import settings
 from app.db import pipeline_db
 from app.services.lexical_retrieval import LexicalIndex, reciprocal_rank_fusion
@@ -541,7 +542,7 @@ def _index_entity_run_locked(run_id: str) -> dict[str, Any]:
     t0 = time.perf_counter()
     run = pipeline_db.get_run(run_id)
     if run is None:
-        raise ValueError(f"Pipeline run {run_id!r} not found.")
+        raise RequestRefused(f"Pipeline run {run_id!r} not found.")
 
     space = _space_key()
     col = _entity_collection(backend_key=space)
@@ -586,7 +587,7 @@ def index_run(run_id: str) -> dict[str, Any]:
     t0 = time.perf_counter()
     run = pipeline_db.get_run(run_id)
     if run is None:
-        raise ValueError(f"Pipeline run {run_id!r} not found.")
+        raise RequestRefused(f"Pipeline run {run_id!r} not found.")
 
     chunk_result = _index_chunks_for_run(run_id, run)
     entity_result = index_entity_run(run_id)

@@ -16,6 +16,18 @@ import logging
 _LOGGER = logging.getLogger("app.errors")
 
 
+class RequestRefused(ValueError):
+    """A request this code base refuses, raised with a fixed sentence the client is shown as it is.
+
+    The routes that answer a ValueError's text as their 422 or 404 catch this
+    instead: a ValueError raised by a library inside the call (PIL, pydantic
+    building an internal model) carried its own text - values, paths - to the
+    client. Now it falls through to the route's fixed-sentence path and its
+    text goes to the log (second security review). A ValueError subclass, so
+    code that catches ValueError around these calls still catches it.
+    """
+
+
 def public_failure(what: str, exc: BaseException, *, logger: logging.Logger | None = None) -> str:
     """Log *exc* with its traceback and return a sentence for the client: "<what> failed (<Type>). ..."."""
     from app.routers.errors import configuration_message
