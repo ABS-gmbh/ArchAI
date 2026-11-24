@@ -2,7 +2,7 @@ import logging
 import os
 import secrets
 
-from pydantic import field_validator
+from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings
 
 _EPHEMERAL_JWT_SECRET: str | None = None
@@ -45,9 +45,9 @@ class Settings(BaseSettings):
 
     @field_validator("analytics_login_max_failures", "analytics_login_window_seconds")
     @classmethod
-    def _positive_login_limit(cls, value: int, info) -> int:  # type: ignore[no-untyped-def]
+    def _positive_login_limit(cls, value: int, info: ValidationInfo) -> int:
         if value < 1:
-            raise ValueError(f"{info.field_name.upper()} must be at least 1, got {value}")
+            raise ValueError(f"{(info.field_name or '').upper()} must be at least 1, got {value}")
         return value
 
     # /docs, /redoc and /openapi.json. On by default; a server should switch them

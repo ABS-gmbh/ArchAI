@@ -140,18 +140,22 @@ delete.
 ## Type checking
 
 `pyproject.toml` has a non-strict mypy configuration for `app/` (audit HYG-15).
-It is not a CI check; whether to make it one is still open. From this directory:
+It is not a CI check (CI does not install mypy); whether to make it one is
+still open. `tests/test_mypy_baseline.py` runs mypy wherever it is installed
+and fails when the count differs from the baseline below, so a new error is
+caught by a local test run, and a fixed one must be recorded here. From this
+directory:
 
 ```bash
 mypy
 ```
 
-Baseline on 2026-11-23 (mypy 2.4, Python 3.10 target): 89 errors in 26 files,
-none of them a confirmed runtime defect. By kind: 49 `arg-type` (mostly a `str`
+Baseline on 2026-11-24 (mypy 2.4, Python 3.10 target): 89 errors in 26 files,
+none of them a confirmed runtime defect. By kind: 48 `arg-type` (mostly a `str`
 passed where a `Literal` is declared: script hints, languages and statuses in
 the OCR schemas), 2 stale `# type: ignore` comments (in chat_ai and rag_store),
 11 `assignment`, 10
-`attr-defined` (`object` values iterated, numpy and Pillow stubs), and 17 others.
+`attr-defined` (`object` values iterated, numpy and Pillow stubs), and 18 others.
 By module, leaving the stale comments out: saia_ocr_agent 13, ocr_agent 11,
 rag_store 8, label_analysis_agent 7, ocr_text_parsing 6, ocr_backends 5,
 routers/ocr 5, trace_pipeline 4, ocr_image_prep 4, pipeline_db 3, and 1 or 2
