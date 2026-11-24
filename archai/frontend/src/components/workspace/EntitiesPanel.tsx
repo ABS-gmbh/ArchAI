@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { LinkCandidate, LinkingReport, MentionResult } from "@/lib/api/ocrAgent";
 
+import { reasonInWords } from "./linkReason";
 import { Button, Icon, Pill, type PillTone } from "./ui";
 
 export type LinkingState =
@@ -50,24 +51,6 @@ function recordId(candidate: LinkCandidate): string {
 
 function score(value: number | null | undefined): string {
   return typeof value === "number" && Number.isFinite(value) ? value.toFixed(2) : "—";
-}
-
-/** The linker's reason in a reader's words; an unrecognised reason is shown as the backend wrote it. */
-function reasonInWords(reason: string): string {
-  const below = /best score \(([\d.]+)\) < threshold \(([\d.]+)\)/.exec(reason);
-  if (below) {
-    return `The best match scored ${Number(below[1]).toFixed(2)}; a link needs ${Number(below[2]).toFixed(2)}.`;
-  }
-  const gated = /token_search_allowed=False(?:\s+quality=(\w+))?/i.exec(reason);
-  if (gated) {
-    return gated[1]
-      ? `Not matched: the page's reading was graded ${gated[1].toLowerCase()}, too uncertain for names to be linked.`
-      : "Not matched: the page's reading is too uncertain for names to be linked.";
-  }
-  if (/no candidates found/i.test(reason)) {
-    return "No authority record was found for this name.";
-  }
-  return reason.replace(/\s*\[ocr_quality=\w+\]\s*$/, "").replace(/^./, (first) => first.toUpperCase());
 }
 
 function Mention({ mention }: { mention: MentionResult }) {
