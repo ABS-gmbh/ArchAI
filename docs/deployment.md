@@ -297,7 +297,7 @@ choose; with two proxies in a chain, `2`, and so on.
 `archai/backend/scripts/smoke_api.py` drives every route over HTTP and exits 1
 if one answers differently from what it expects. Run it against a backend on
 **scratch data**, not a live one: it writes runs, tasks and evidence spans,
-and expects `MAX_UPLOAD_MEGABYTES=2`, no chat key, no Ollama and no layout
+and expects `MAX_UPLOAD_MEGABYTES=2`, `MAX_JSON_MEGABYTES=2`, no chat key, no Ollama and no layout
 models. Its docstring has the command for such a backend. Then run it
 directly, with the token, and through the frontend, without it:
 
