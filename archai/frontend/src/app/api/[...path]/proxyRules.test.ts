@@ -75,7 +75,7 @@ describe("crossSiteRefusal", () => {
 
   it("refuses a state-changing request from another origin", () => {
     for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
-      assert.match(String(crossSiteRefusal(method, headers({ origin: "https://evil.example" }), own)), /another site/, method);
+      assert.match(String(crossSiteRefusal(method, headers({ origin: "https://evil.example" }), own)?.detail), /another site/, method);
     }
     assert.notEqual(crossSiteRefusal("POST", headers({ origin: "null" }), own), null);
     assert.notEqual(crossSiteRefusal("POST", headers({ "sec-fetch-site": "cross-site" }), own), null);
@@ -167,5 +167,39 @@ describe("what crosses the proxy", () => {
     // The operator's hint goes to the server log, where it names the setting.
     assert.match(missing.log, /BACKEND_API_TOKEN is not set/);
     assert.match(wrong.log, /answered 401 to BACKEND_API_TOKEN/);
+  });
+});
+
+// Behind a reverse proxy that rewrites Host (nginx's default), the app's own
+// pages are refused too, until TRUST_FORWARDED_HOST or FRONTEND_ORIGINS is
+// set; the browser's message alone did not say so.
+describe("crossSiteRefusal, for the operator", () => {
+  const own = { trustForwardedHost: false, allowedOrigins: [] as string[] };
+  const behindProxy = new Headers({ host: "127.0.0.1:3000", origin: "https://archai.example" });
+
+  it("points the browser at the documentation, without naming any setting's value", () => {
+    const refusal = crossSiteRefusal("POST", behindProxy, own);
+    assert.ok(refusal);
+    assert.match(
+      refusal.detail,
+      /If this is the app's own page, the frontend is behind a proxy that changes the Host header: see docs\/deployment\.md, 'Behind a reverse proxy'\.$/,
+    );
+    assert.doesNotMatch(refusal.detail, /127\.0\.0\.1|archai\.example/);
+  });
+
+  it("tells the server log what was compared and which settings fix it", () => {
+    const refusal = crossSiteRefusal("POST", behindProxy, own);
+    assert.ok(refusal);
+    assert.match(refusal.log, /Origin "https:\/\/archai\.example"/);
+    assert.match(refusal.log, /Host "127\.0\.0\.1:3000"/);
+    assert.match(refusal.log, /TRUST_FORWARDED_HOST=true/);
+    assert.match(refusal.log, /FRONTEND_ORIGINS/);
+  });
+
+  it("quotes what the client sent, so it cannot write lines of its own into the log", () => {
+    const forged = new Headers({ host: "127.0.0.1:3000", origin: "https://a.example", "sec-fetch-site": "cross-site" });
+    const refusal = crossSiteRefusal("POST", forged, own);
+    assert.ok(refusal);
+    assert.doesNotMatch(refusal.log, /\n/);
   });
 });

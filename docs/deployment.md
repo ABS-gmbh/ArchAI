@@ -207,28 +207,6 @@ deployment's own login** (single sign-on, basic auth at the reverse proxy, a
 VPN), since anyone who can reach the frontend can use the backend through it.
 The token then only keeps the backend from being used without the frontend.
 
-The proxy never passes on what a client says about its own address
-(`X-Forwarded-For`, `Forwarded`, `X-Real-IP`, `X-Forwarded-Host`/`-Proto`/`-Port`).
-Next fills `X-Forwarded-For` from the connection only when the client sent
-none, and the proxy cannot see the connection, so by default the backend gets
-no client address from it, and every browser counts as the frontend server's
-address (127.0.0.1) in the backend's log and login limit. With
-`TRUSTED_PROXY_HOPS=1` and one reverse proxy in front that appends the address
-it saw, the proxy sends the backend that last entry, which a client cannot
-choose; with two proxies in a chain, `2`, and so on.
-
-The proxy refuses with 403 a `POST`, `PUT`, `PATCH` or `DELETE` whose
-`Origin` is not the frontend's own (or whose `Sec-Fetch-Site` is
-`cross-site`): it adds the API token to whatever reaches it, so without the
-check any site a user visits could make their browser send uploads and run
-reservations through it. "Its own" is the host in the request's `Host`
-header, which is right when the browser talks to `npm start` directly, by name
-or by IP address. Behind a reverse proxy that rewrites `Host`, every change the
-workspace makes is refused ("Refused: this request came from another site")
-until you set `TRUST_FORWARDED_HOST=true` (the proxy sets `X-Forwarded-Host`)
-or list the public origin in `FRONTEND_ORIGINS`. Requests without `Origin`
-(scripts, server-side clients) are not affected.
-
 `NEXT_PUBLIC_BACKEND_URL` instead makes the browser call the backend
 directly; it is fixed at build time. Against a backend with `API_TOKEN` set,
 the browser's direct requests are refused with 401, and it falls back to the
@@ -252,6 +230,60 @@ styles are still allowed, because Next writes its bootstrap scripts inline.
 `NEXT_PUBLIC_BACKEND_URL` is read when the frontend is built, so set it
 before `npm run build`. Set `Strict-Transport-Security` at the reverse proxy
 that terminates TLS.
+
+#### Behind a reverse proxy
+
+A reverse proxy in front of the frontend (TLS, a login) changes two things the
+frontend's `/api` proxy looks at: the `Host` header and the client's address.
+Tell it about them with these settings of the Next server:
+
+- `TRUST_FORWARDED_HOST=true` when the proxy rewrites `Host` (nginx does by
+  default: `proxy_set_header Host $proxy_host`) and sets `X-Forwarded-Host`
+  to the public host; or `FRONTEND_ORIGINS=https://archai.example`, the
+  public origin itself. Without one of them, behind such a proxy, every
+  change the workspace makes (reading a page, a layout run) is refused with
+  403.
+- `TRUSTED_PROXY_HOPS=1` when the proxy appends the client's address to
+  `X-Forwarded-For`, so the backend logs and rate-limits real addresses.
+
+Set the first and last only if the frontend cannot be reached except through
+the proxy. An nginx location that needs `TRUST_FORWARDED_HOST=true` and
+`TRUSTED_PROXY_HOPS=1`:
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
+
+(With `proxy_set_header Host $host;` as well, `Host` is the public host and
+`TRUST_FORWARDED_HOST` is not needed.)
+
+The proxy refuses with 403 a `POST`, `PUT`, `PATCH` or `DELETE` whose
+`Origin` is not the frontend's own (or whose `Sec-Fetch-Site` is
+`cross-site`): it adds the API token to whatever reaches it, so without the
+check any site a user visits could make their browser send uploads and run
+reservations through it. "Its own" is the host in the request's `Host`
+header, which is right when the browser talks to `npm start` directly, by name
+or by IP address. Behind a reverse proxy that rewrites `Host`, every change the
+workspace makes is refused ("Refused: this request came from another site
+… see docs/deployment.md, 'Behind a reverse proxy'"), and the frontend
+server's log says once which `Origin` and `Host` it compared, until you set
+`TRUST_FORWARDED_HOST=true` (the proxy sets `X-Forwarded-Host`) or list the
+public origin in `FRONTEND_ORIGINS`. Requests without `Origin`
+(scripts, server-side clients) are not affected.
+
+The proxy never passes on what a client says about its own address
+(`X-Forwarded-For`, `Forwarded`, `X-Real-IP`, `X-Forwarded-Host`/`-Proto`/`-Port`).
+Next fills `X-Forwarded-For` from the connection only when the client sent
+none, and the proxy cannot see the connection, so by default the backend gets
+no client address from it, and every browser counts as the frontend server's
+address (127.0.0.1) in the backend's log and login limit. With
+`TRUSTED_PROXY_HOPS=1` and one reverse proxy in front that appends the address
+it saw, the proxy sends the backend that last entry, which a client cannot
+choose; with two proxies in a chain, `2`, and so on.
 
 ### Checking a deployment
 
