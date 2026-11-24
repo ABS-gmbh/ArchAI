@@ -148,6 +148,9 @@ class Settings(BaseSettings):
     # files in 3.5 s (security review C6). A batch is read page by page, a few
     # seconds each, so 2,000 pages is already hours of work.
     max_zip_members: int = 2000
+    # Batches read at the same time, each in its own thread outside FastAPI's
+    # threadpool; more wait their turn as "pending".
+    max_concurrent_batches: int = 2
 
     # Chat AI (GWDG OpenAI-compatible)
     chat_ai_api_key: str = ""

@@ -8,11 +8,13 @@ import logging
 import os
 import time
 import tempfile
+import threading
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from math import sqrt
 from typing import Any, NamedTuple, Optional
 
-from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 from PIL import Image
 
@@ -366,6 +368,23 @@ async def predict_single(
 _LOGGER = logging.getLogger(__name__)
 
 
+# Batches run in their own small pool, not FastAPI's threadpool: forty of
+# them there stalled every synchronous route (security review S3). More wait
+# their turn as "pending".
+_BATCH_EXECUTOR: ThreadPoolExecutor | None = None
+_BATCH_EXECUTOR_LOCK = threading.Lock()
+
+
+def _batch_executor() -> ThreadPoolExecutor:
+    global _BATCH_EXECUTOR
+    with _BATCH_EXECUTOR_LOCK:
+        if _BATCH_EXECUTOR is None:
+            _BATCH_EXECUTOR = ThreadPoolExecutor(
+                max_workers=max(1, int(settings.max_concurrent_batches)), thread_name_prefix="archai-batch"
+            )
+        return _BATCH_EXECUTOR
+
+
 def _process_batch(task: TaskState, zip_path: str, conf: float, iou: float, selected_classes: list[str]):
     """Background worker for batch processing.
 
@@ -388,13 +407,21 @@ def _process_batch(task: TaskState, zip_path: str, conf: float, iou: float, sele
             task.message = "Batch processing failed: the upload is not a valid ZIP archive."
         else:
             task.message = f"Batch processing failed ({type(exc).__name__}). The details are in the server log."
+    # The upload is not read again once the batch has ended; it stayed until
+    # the task's TTL (security review S3).
+    try:
+        os.remove(zip_path)
+    except OSError:
+        pass
     save_task_state(task)
 
 
 def _run_batch(task: TaskState, zip_path: str, conf: float, iou: float, selected_classes: list[str]):
     task_dir = get_task_dir(task.task_id)
 
-    with tempfile.TemporaryDirectory() as extract_dir:
+    # Under the task's own directory, which the task cleanup removes even if
+    # the process dies mid-batch; the system temp directory was never swept.
+    with tempfile.TemporaryDirectory(dir=task_dir, prefix="extract-") as extract_dir:
         _safe_extract_zip(zip_path, extract_dir)
 
         # Find valid images
@@ -468,7 +495,6 @@ def _run_batch(task: TaskState, zip_path: str, conf: float, iou: float, selected
 
 @router.post("/predict/batch", status_code=202)
 async def predict_batch(
-    background_tasks: BackgroundTasks,
     zip_file: UploadFile = File(...),
     confidence: float = Form(0.25, ge=0.0, le=1.0),
     iou: float = Form(0.3, ge=0.0, le=1.0),
@@ -487,7 +513,7 @@ async def predict_batch(
         discard_task(task.task_id)
         raise
 
-    background_tasks.add_task(_process_batch, task, zip_path, confidence, iou, selected_classes)
+    _batch_executor().submit(_process_batch, task, zip_path, confidence, iou, selected_classes)
 
     return {
         "task_id": task.task_id,
