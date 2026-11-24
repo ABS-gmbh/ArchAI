@@ -30,7 +30,7 @@
   --color-pill-warning-ink: var(--aa-pill-warning-ink);
   --color-pill-neutral: var(--aa-pill-neutral);
   --color-pill-neutral-ink: var(--aa-pill-neutral-ink);
-  --font-text: var(--font-gentium), "Gentium Plus", "Noto Serif", Georgia, serif;
+  --font-text: var(--font-gentium), var(--font-junicode), Georgia, serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-plex-sans), "IBM Plex Sans", system-ui, sans-serif;
