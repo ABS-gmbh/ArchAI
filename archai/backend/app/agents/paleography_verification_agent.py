@@ -58,14 +58,17 @@ class PaleographyVerificationAgentError(RuntimeError):
 _REASONING_BLOCK_RE = re.compile(
     r"(?is)<\s*(think|analysis|scratchpad)\b[^>]*>.*?<\s*/\s*\1\s*>"
 )
+# A line start allows spaces and tabs only, never `\s*`: under (?m) \s matches
+# newlines, so each line start scanned every newline after it, which is
+# quadratic (8,000 blank lines: 1.9 s here, 0.4 s for the "answer:" pattern).
 _REASONING_LINE_RE = re.compile(
-    r"(?im)^\s*(reasoning|analysis|scratchpad|chain[\s-]*of[\s-]*thought|internal reasoning|thought process)\s*:\s*.*$"
+    r"(?im)^[ \t]*(reasoning|analysis|scratchpad|chain[\s-]*of[\s-]*thought|internal reasoning|thought process)\s*:\s*.*$"
 )
 _LABELED_VALUE_RE = {
-    "assessment": re.compile(r"(?im)^\s*assessment\s*:\s*(.+?)\s*$"),
-    "verified_answer": re.compile(r"(?im)^\s*(?:verified answer|corrected answer|answer)\s*:\s*(.+?)\s*$"),
-    "notes": re.compile(r"(?im)^\s*notes?\s*:\s*(.+?)\s*$"),
-    "citations_checked": re.compile(r"(?im)^\s*citations?\s*checked\s*:\s*(.+?)\s*$"),
+    "assessment": re.compile(r"(?im)^[ \t]*assessment\s*:\s*(.+?)\s*$"),
+    "verified_answer": re.compile(r"(?im)^[ \t]*(?:verified answer|corrected answer|answer)\s*:\s*(.+?)\s*$"),
+    "notes": re.compile(r"(?im)^[ \t]*notes?\s*:\s*(.+?)\s*$"),
+    "citations_checked": re.compile(r"(?im)^[ \t]*citations?\s*checked\s*:\s*(.+?)\s*$"),
 }
 
 
@@ -148,7 +151,7 @@ def _split_labeled_list(raw: str) -> list[str]:
     text = _strip_reasoning_leaks(raw)
     if not text:
         return []
-    parts = re.split(r"(?:\s*[;•]\s*|\s*,\s*|\s+\|\s+)", text)
+    parts = re.split(r"(?<!\s)(?:\s*[;•]\s*|\s*,\s*|\s+\|\s+)", text)
     cleaned: list[str] = []
     for part in parts:
         value = _strip_reasoning_leaks(part)
@@ -170,7 +173,7 @@ def _as_items(value: Any, *, sentences: bool) -> list[Any]:
         return []
     if isinstance(value, str):
         if sentences:
-            return [part for part in re.split(r"\s*(?:\n+|[;•])\s*", value) if part.strip()]
+            return [part for part in re.split(r"(?<!\s)\s*(?:\n+|[;•])\s*", value) if part.strip()]
         return _split_labeled_list(value)
     if isinstance(value, (list, tuple)):
         return list(value)

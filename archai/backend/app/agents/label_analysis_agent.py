@@ -95,8 +95,8 @@ _PLURAL_INITIAL_REQUEST_RE = re.compile(
     r"\b(?:what\s+(?:is|are)|which|identify|list|name)\b[^?.!\n]{0,80}\b(?:letters|initials)\b",
     re.IGNORECASE,
 )
-_INITIAL_LETTER_VALUE_RE = re.compile(r"(?im)^\s*(?:letter\s*:\s*)?(UNKNOWN|[A-Z])\s*$")
-_INITIAL_LETTER_CONFIDENCE_RE = re.compile(r"(?im)^\s*confidence\s*:\s*(high|medium|low)\s*$")
+_INITIAL_LETTER_VALUE_RE = re.compile(r"(?im)^[ \t]*(?:letter\s*:\s*)?(UNKNOWN|[A-Z])\s*$")
+_INITIAL_LETTER_CONFIDENCE_RE = re.compile(r"(?im)^[ \t]*confidence\s*:\s*(high|medium|low)\s*$")
 _ILLUSTRATION_LABELS = {"Illustrations"}
 _DIAGRAMMATIC_LABELS = {"Diagram", "GraphicZone"}
 _SINGULAR_REGION_LABELS = {"Page Number", "Quire Mark", "Running header", "Catchword", "Gloss"}

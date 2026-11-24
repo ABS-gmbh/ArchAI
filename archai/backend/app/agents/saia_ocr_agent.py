@@ -302,7 +302,7 @@ def _strip_fences(raw: str) -> str:
     text = str(raw or "").strip()
     if text.startswith("```"):
         text = re.sub(r"^```[a-zA-Z0-9_-]*\s*", "", text)
-        text = re.sub(r"\s*```$", "", text).strip()
+        text = re.sub(r"(?<!\s)\s*```$", "", text).strip()
     return text
 
 
