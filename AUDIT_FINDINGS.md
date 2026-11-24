@@ -1,9 +1,30 @@
 # ArchAI audit findings
 130 findings survived triage across both OCR pipelines and repository hygiene (5 critical, 33 high, 60 medium, 32 low). 5 were refuted and dropped.
 
-Findings marked **FIXED** were addressed and verified. Everything else is open backlog.
+## Status (2026-11-23)
 
-21 of 130 fixed so far. The two remaining criticals to look at next are **AL-01** (composite score ceiling below every auto-select threshold, which would mean authority linking resolves nothing beyond 23 hardcoded names) and **SVC-01**'s neighbours in the event-loop blocking cluster (**OCR-001**, **OCR-004**, **AL-05**).
+Every heading carries its status. **FIXED** means addressed and verified
+against the code, with the test that pins it where there is one. "Partly
+fixed" says in the heading what remains. **NOT A DEFECT AS STATED** gives the
+evidence. "Open" says why it was left and what the next step would be.
+
+| Severity | Total | Fixed | Partly fixed | Not a defect | Open |
+|---|---:|---:|---:|---:|---:|
+| Critical | 5 | 5 | 0 | 0 | 0 |
+| High | 33 | 30 | 2 | 0 | 1 |
+| Medium | 60 | 46 | 9 | 1 | 4 |
+| Low | 32 | 25 | 5 | 0 | 2 |
+| **All** | **130** | **106** | **16** | **1** | **7** |
+
+Counted from the headings. SVC-24 ("not changed as proposed": the
+measurement favoured the code, and the docstring was corrected) is counted as
+fixed; AG-16 ("not changed", pending the model policy) as open.
+
+The seven open findings: SVC-09, SVC-12, SVC-13 and SVC-16 change OCR quality
+scoring and need a measurement on real pages, which needs readable models.
+AG-16 waits for the user's decision on the model policy. HYG-15 (type checking
+of the backend) and OCR-011 (three copies of the downstream pipeline) are
+simply not done yet; their headings give the next step.
 
 > Caveat on confidence: adversarial verification completed for the OCR router, the agents
 > and the DB/state layer. The verifier passes for services-linking, services-ocr,
@@ -223,7 +244,7 @@ The loop over `candidates` can only reach iteration 2 when the first candidate i
 - **Impact:** If `kraken_mccatmus_model_path` is set but the file is missing or mistyped, the function returns the non-existent path and `KrakenBackend.recognize` raises `OCRBackendError("Kraken model ... not found")` (line 583-586) instead of falling back to CATMuS. In `ocr_agent.py:1178` that is swallowed into a `BACKEND_ERROR` flag and the region falls through to the next backend in the plan, so a single misconfigured path silently changes which recogniser produced the page — with no error surfaced to the user.
 - **Fix:** Only return a resolved path when it exists; otherwise remember it and continue to the next candidate. Return the last non-existent candidate (or raise) only after every candidate has been tried, and validate `path.is_absolute()` candidates with `path.exists()` too.
 
-### [SVC-09] Kraken confidence is a flat arithmetic mean of per-character confidences pooled across all lines
+### [SVC-09] Kraken confidence is a flat arithmetic mean of per-character confidences pooled across all lines — open (changing how confidence is pooled moves every gate and the backend election built on it; needs a measurement on real pages, which needs readable models)
 
 - **Where:** `vendor:app/services/ocr_backends.py:604`  
 - **Category:** ocr-quality  
@@ -646,7 +667,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** `lexical_plausibility` feeds `enforce_quality_gates` (routers/ocr.py:2966-2967, :3258-3259, :3408-3409, :4030-4033, :4426-4429), whose LEXICAL_PLAUSIBILITY gate at services/pipeline_hardening.py:477-484 blocks `token_search` and `token_ner` below 0.20. Long-s is pervasive in medieval manuscript OCR output, and it systematically pushes this score down — on a marginal page it flips the gate, and routers/ocr.py:4569 then routes to `_persist_deferred_authority_links` instead of `_run_authority_linking_stage`, silently disabling authority linking for the page. It also corrupts `lexical_trust_adjustment` (lexicon_trust.py:135), used at agents/saia_ocr_agent.py:2345 and :2659 to scale per-tile OCR confidence. Deleting apostrophes fuses words the other way: "l'espee" -> "lespee", manufacturing the profile trigram "les" and inflating the score.
 - **Fix:** In `_extract_trigrams`, call `normalize_unicode(text)` from app.services.text_normalization first (it folds U+017F and NFKC-normalizes), then replace the deleting regex with a splitting one: `re.sub(r"[^a-zA-ZÀ-ÿ]+", " ", ...)` so apostrophes and hyphens become token boundaries rather than silent joins.
 
-### [SVC-12] Multi-view variant ranking always selects the binarized variant by construction
+### [SVC-12] Multi-view variant ranking always selects the binarized variant by construction — open (re-ranking the variants changes which image is read; needs a measurement on real pages, which needs readable models)
 
 - **Where:** `vendor:app/services/multiview.py:141`  
 - **Category:** ocr-quality  
@@ -654,7 +675,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** The 'multi-view' retry mechanism (saia_ocr_agent.py:2310) is not adaptive: it always tries binarized first and always retries with the same second choice, regardless of the crop. Worse, the metric rewards exactly what harms a vision model — unsharp masking at 180 % (line 73) amplifies parchment noise into high Laplacian variance and Canny edges, scoring higher than the cleaner original. The stated benefit of the module ('rank variants without any OCR call', line 14) is not delivered.
 - **Fix:** Score legibility, not edge energy: use stroke-width consistency or a text-line contrast measure on the grayscale image, and exclude binarized/high-contrast variants from the same scale as continuous-tone ones. Simplest defensible alternative — drop the estimator, try variants in a fixed documented order, and record which variant won per crop so the ordering can be justified empirically.
 
-### [SVC-11] Deskew corrects only one rotation direction; the angle-normalisation branch is dead under OpenCV ≥ 4.5 — partly fixed (Kraken crops are no longer deskewed: measured, it raised CER; the Calamari path, opt-in and not installed, still has it)
+### [SVC-11] Deskew corrects only one rotation direction; the angle-normalisation branch is dead under OpenCV ≥ 4.5 — partly fixed (Kraken crops are no longer deskewed: measured, it raised CER; the Calamari path, opt-in and not installed, still has it, and changing it needs a measurement with Calamari installed)
 
 - **Where:** `vendor:app/services/ocr_backends.py:228`  
 - **Category:** ocr-quality  
@@ -670,7 +691,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** CATMuS Medieval, McCATMuS and CREMMA are baseline/neural recognisers trained on grayscale line images; Kraken's own binarization step is intended for the legacy box models. Hard thresholding at h=12 denoising strength destroys the stroke-weight and ink-density cues these models rely on, and on faded or show-through parchment adaptive thresholding drops thin hairlines entirely. Because it is unconditional and unlogged as a variable, no A/B comparison exists in the repo — the reported accuracy of the Kraken path is confounded by a preprocessing choice that was never validated.
 - **Fix:** Branch on `network.seg_type`: pass autocontrasted grayscale (no threshold, no denoise) to baseline models and keep binarization only for bbox/legacy models. Expose it as `settings.kraken_binarize` and run the A/B on the ground-truth set — that comparison is itself a reportable result.
 
-### [SVC-13] seam_fragment_ratio's geometry-aware mode is never used, yet two gates justify themselves by it
+### [SVC-13] seam_fragment_ratio's geometry-aware mode is never used, yet two gates justify themselves by it — open (switching the gates to the geometry-aware mode changes their verdicts; needs a measurement on real pages, which needs readable models)
 
 - **Where:** `vendor:app/services/ocr_quality.py:799`  
 - **Category:** ocr-quality  
@@ -694,7 +715,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** The branch is documented as 'Non-wordlike + unlikely bigrams → replace chars' — a targeted, per-character downgrade. In practice it replaces every alphabetic character of the token, so `abbatis` becomes `???????`. That is strictly worse than the `[…]` span the sibling branches use, because it fabricates a token of a specific length, and it inflates `uncertainty_density` by one marker per character.
 - **Fix:** Score characters against an actual character-level signal (e.g. the position's cross-pass agreement or the recogniser's per-character confidence, which Kraken already returns), or drop the branch and emit `[…]` for the whole token as the other branches do.
 
-### [SVC-16] trailing_fragment_ratio hard-codes the Latin vowel set for every script
+### [SVC-16] trailing_fragment_ratio hard-codes the Latin vowel set for every script — open (a per-script vowel set changes the fragment metric for non-Latin pages; needs a measurement on real pages, which needs readable models in those scripts)
 
 - **Where:** `vendor:app/services/ocr_quality.py:470`  
 - **Category:** ocr-quality  
@@ -774,7 +795,7 @@ It is also packaged into distributions: archai/vendor/layout/backend/pyproject.t
 - **Impact:** `run_authority_linking` calls `cache_check` once per query variant (authority_linking.py:1686), `cache_get` once more per cached query (authority_linking.py:430), and `enrich_wikidata_item` calls `cache_get` + `cache_put` per enriched candidate (wikidata_client.py:404, :467) — for a 50-mention page that is several hundred leaked connections and open file handles per run, freed only when CPython's GC happens to collect them. In a long-lived uvicorn worker processing many runs this trends toward `OSError: [Errno 24] Too many open files`, which surfaces as `_http_get`'s broad `except Exception` (wikidata_client.py:255) swallowing everything and returning `{}` — i.e. it manifests as AL-04's permanent cache poisoning rather than as a visible error.
 - **Fix:** Wrap with `contextlib.closing`: change the three call sites to `with closing(_cache_conn()) as conn: with conn: ...`, or better, hold one module-level connection guarded by `_CACHE_LOCK` (the connection is already created with `check_same_thread=False` at line 69, so a single shared connection plus the existing lock is sufficient).
 
-### [HYG-12] Three overlapping Python packages with divergent Python floors and conflicting numpy constraints
+### [HYG-12] Three overlapping Python packages with divergent Python floors and conflicting numpy constraints — partly fixed (archai-backend is deleted, HYG-07; the two remaining packages still differ: root >=3.11, backend >=3.10, numpy<2.0 in the backend against an unbounded kraken at the root, and the README does not say they are separate environments. Which floor and pins to keep is a user decision)
 
 - **Where:** `archai/vendor/layout/backend/pyproject.toml:12`  
 - **Category:** architecture  
@@ -799,7 +820,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** A new test that imports app.db.pipeline_db and forgets either line writes into the developer's real 32 MB archai/vendor/layout/backend/app/archai.sqlite, corrupting live pipeline_runs rows; and because `_DB_READY` is a module global, forgetting only the setattr silently reuses the previously-initialised connection path, so the failure is order-dependent and will not reproduce when the file is run alone. The duplicated sys.path block also means tests only work when invoked with the right cwd and cannot be moved.
 - **Fix:** Add archai/vendor/layout/backend/conftest.py containing the sys.path insert once, plus an `@pytest.fixture(autouse=True)` that sets ARCHAI_DB_PATH to tmp_path and resets pipeline_db._DB_READY, then strip the 18 duplicated blocks and the 9 duplicated pairs. Add `[tool.pytest.ini_options] testpaths = ["tests"]` to archai/vendor/layout/backend/pyproject.toml so the suite has a defined rootdir instead of inheriting the repo-root one.
 
-### [HYG-15] mypy is configured to check 858 of the repo's 29,210 lines and skip the entire real backend
+### [HYG-15] mypy is configured to check 858 of the repo's 29,210 lines and skip the entire real backend — open (not done: archai/backend has no mypy configuration. Next step: a non-strict [tool.mypy] for app/ with warn_unused_ignores, a baseline of the current errors, then a decision whether CI gates on it)
 
 - **Where:** `pyproject.toml:95`  
 - **Category:** hygiene  
@@ -873,7 +894,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** Setting `kraken_device: cuda` or `mps` produces no speedup — segmentation is moved back to CPU by blla.segment, and recognition follows whatever device load_any left the model on. On a thesis-scale batch of hundreds of folios this is the difference between minutes and hours, and the config knob gives the user false confidence that GPU is in use because no warning is emitted.
 - **Fix:** Pass the configured device explicitly: `blla.segment(image, model=seg_model, device=config.runtime.kraken_device)` at htr_kraken.py:76, and route the device into rpred (kraken 5.x moves the network per its own device handling — set it on the loaded model and verify with `next(model.nn.parameters()).device` after loading). Make _try_move_to_device include the requested device in its warning at line 126.
 
-### [OCR-012] Reading order is a naive y-then-x sort that interleaves columns on multi-column medieval layouts
+### [OCR-012] Reading order is a naive y-then-x sort that interleaves columns on multi-column medieval layouts — **FIXED** (in 41a4f9e: order_regions groups regions into columns by horizontal overlap and reads them left to right, top to bottom within each; reading_order: column is the default and simple keeps the old sort; tests/test_layout_ordering.py)
 
 - **Where:** `src/archai_ocr/pipeline/layout_yolo.py:75`  
 - **Category:** ocr-quality  
@@ -1021,7 +1042,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** Best attempt = 0 (label OK), attempts 1 and 2 both degrade to UNRELIABLE. The persisted `runs.warnings_json.quality_label` for the run reads UNRELIABLE while `ocr_text`, `confidence` and `quality_label_v2` all describe attempt 0's OK output. Anything reading the stored legacy label — the trace UI, `table_view_for_run` — reports a quality that does not match the text it is shown next to.
 - **Fix:** Read the label off the selected payload instead of the loop variable: replace `quality_label` at ocr.py:4263 with `ocr_payload.get("quality_label")` (it is populated for every attempt at ocr.py:3942), and do the same at ocr.py:4305/4602 so the leaked name can be deleted.
 
-### [OCR-011] The downstream half of the pipeline exists in three near-identical copies that have already drifted
+### [OCR-011] The downstream half of the pipeline exists in three near-identical copies that have already drifted — open (not done: the copies now sit in trace_pipeline._full_page_post_ocr_stages, trace_pipeline._run_segmented_trace_pipeline and ocr_page_with_trace, and both trace paths still drop authority_report. Next step: one shared downstream function returning one key set, checked by the existing characterisation tests)
 
 - **Where:** `vendor:app/routers/ocr.py:4448`  
 - **Category:** architecture  
