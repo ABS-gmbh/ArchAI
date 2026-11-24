@@ -24,7 +24,10 @@ const FIELDS: { key: keyof WorkspaceDocumentMetadata; label: string; placeholder
 /**
  * What is known about the manuscript before it is read. Language and year
  * steer the recogniser, so both are required. Focus stays inside the dialog
- * and Escape cancels.
+ * and Escape cancels. It is a form: Enter in a one-line field opens the
+ * document as "Open document" does (or shows the same message when language
+ * or year is missing); Enter in Notes makes a new line. noValidate keeps the
+ * browser's own bubbles away, so the message below is the only one.
  */
 export function MetadataDialog({ draft, pageCount, error, onChange, onCancel, onSave }: MetadataDialogProps) {
   return (
@@ -62,60 +65,68 @@ export function MetadataDialog({ draft, pageCount, error, onChange, onCancel, on
         }}
         className="max-h-full w-full max-w-xl overflow-y-auto rounded-2xl border border-line bg-sheet p-6 shadow-[0_16px_48px_rgba(19,20,22,0.18)]"
       >
-        <h2 id="metadata-dialog-title" className="text-base font-semibold">
-          About this manuscript
-        </h2>
-        <p id="metadata-dialog-description" className="mt-1 text-sm text-ink-muted">
-          {pageCount} {pageCount === 1 ? "page" : "pages"} selected. Language and year choose how the pages are read; the rest
-          is kept with the document.
-        </p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {FIELDS.map((field, index) => {
-            const invalid = Boolean(error) && field.required && !draft[field.key].trim();
-            return (
-              <label key={field.key} className={`block text-sm ${field.wide ? "sm:col-span-2" : ""}`}>
-                <span className="mb-1.5 block font-medium">
-                  {field.label}
-                  {field.required ? <span className="font-normal text-ink-muted"> (required)</span> : null}
-                </span>
-                <input
-                  autoFocus={index === 0}
-                  required={field.required}
-                  aria-invalid={invalid}
-                  value={draft[field.key]}
-                  onChange={(event) => onChange({ ...draft, [field.key]: event.target.value })}
-                  placeholder={field.placeholder}
-                  className={`h-10 w-full rounded-lg border bg-sheet px-3 outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-brand ${
-                    invalid ? "border-negative" : "border-field"
-                  }`}
-                />
-              </label>
-            );
-          })}
-          <label className="block text-sm sm:col-span-2">
-            <span className="mb-1.5 block font-medium">Notes</span>
-            <textarea
-              value={draft.notes}
-              onChange={(event) => onChange({ ...draft, notes: event.target.value })}
-              rows={3}
-              placeholder="Repository, shelfmark, dating, provenance"
-              className="w-full rounded-lg border border-field bg-sheet px-3 py-2 outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-brand"
-            />
-          </label>
-        </div>
-        {error ? (
-          <p role="alert" className="mt-3 text-sm text-negative">
-            {error}
+        <form
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSave();
+          }}
+        >
+          <h2 id="metadata-dialog-title" className="text-base font-semibold">
+            About this manuscript
+          </h2>
+          <p id="metadata-dialog-description" className="mt-1 text-sm text-ink-muted">
+            {pageCount} {pageCount === 1 ? "page" : "pages"} selected. Language and year choose how the pages are read; the rest
+            is kept with the document.
           </p>
-        ) : null}
-        <div className="mt-6 flex justify-end gap-2">
-          <Button variant="secondary" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={onSave}>
-            Open document
-          </Button>
-        </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {FIELDS.map((field, index) => {
+              const invalid = Boolean(error) && field.required && !draft[field.key].trim();
+              return (
+                <label key={field.key} className={`block text-sm ${field.wide ? "sm:col-span-2" : ""}`}>
+                  <span className="mb-1.5 block font-medium">
+                    {field.label}
+                    {field.required ? <span className="font-normal text-ink-muted"> (required)</span> : null}
+                  </span>
+                  <input
+                    autoFocus={index === 0}
+                    required={field.required}
+                    aria-invalid={invalid}
+                    value={draft[field.key]}
+                    onChange={(event) => onChange({ ...draft, [field.key]: event.target.value })}
+                    placeholder={field.placeholder}
+                    className={`h-10 w-full rounded-lg border bg-sheet px-3 outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-brand ${
+                      invalid ? "border-negative" : "border-field"
+                    }`}
+                  />
+                </label>
+              );
+            })}
+            <label className="block text-sm sm:col-span-2">
+              <span className="mb-1.5 block font-medium">Notes</span>
+              <textarea
+                value={draft.notes}
+                onChange={(event) => onChange({ ...draft, notes: event.target.value })}
+                rows={3}
+                placeholder="Repository, shelfmark, dating, provenance"
+                className="w-full rounded-lg border border-field bg-sheet px-3 py-2 outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-brand"
+              />
+            </label>
+          </div>
+          {error ? (
+            <p role="alert" className="mt-3 text-sm text-negative">
+              {error}
+            </p>
+          ) : null}
+          <div className="mt-6 flex justify-end gap-2">
+            <Button variant="secondary" onClick={onCancel}>
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit">
+              Open document
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   );
