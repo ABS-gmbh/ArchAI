@@ -182,6 +182,9 @@ an hour.
 - **Not exercised live in this work:** chat, translation and label analysis
   against the provider (only with stubs and recorded answers), and GLM-OCR,
   whose accuracy was not re-measured.
+- **A reload loses the open document.** The workspace keeps documents in the
+  browser tab only: after a reload the pages must be opened and read again,
+  and readings already finished are not reused.
 - **Not backed up:** layout tasks, which expire after `TASK_TTL_MINUTES`.
 - **Development tooling** has one `npm audit` finding (in eslint's
   dependencies). The production dependencies have none.
