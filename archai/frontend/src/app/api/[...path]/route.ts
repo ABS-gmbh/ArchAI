@@ -85,6 +85,41 @@ function unreachable(): Response {
   );
 }
 
+/**
+ * The backend's own answer to a missing or wrong API token (app/auth.py), as
+ * opposed to an analytics 401, which carries no such challenge.
+ */
+function isApiTokenRefusal(res: http.IncomingMessage): boolean {
+  return res.statusCode === 401 && /realm="archai"/i.test(String(res.headers["www-authenticate"] ?? ""));
+}
+
+let tokenRefusalLogged = false;
+
+/**
+ * The backend refused the token this server sends. Its own message tells an
+ * API client which header to send, which means nothing to someone using the
+ * frontend: say which setting of the frontend's server is missing or wrong.
+ */
+function tokenRefused(method: string, path: string): Response {
+  const configured = Boolean(process.env.BACKEND_API_TOKEN);
+  const detail = configured
+    ? "The backend refused the frontend server's API token. Set BACKEND_API_TOKEN on the frontend server to the backend's API_TOKEN, and restart it."
+    : "The backend requires an API token, and the frontend server sends none. Set BACKEND_API_TOKEN on the frontend server to the backend's API_TOKEN, and restart it.";
+  if (!tokenRefusalLogged) {
+    tokenRefusalLogged = true;
+    console.error(
+      `[api proxy] ${method} ${path}: the backend answered 401 to ${configured ? "BACKEND_API_TOKEN" : "a request without a token (BACKEND_API_TOKEN is not set)"}. Set BACKEND_API_TOKEN to the backend's API_TOKEN.`,
+    );
+  }
+  return Response.json(
+    { detail },
+    {
+      status: 401,
+      headers: { [PROXY_STATUS_HEADER]: configured ? "token-refused" : "token-missing", "cache-control": "no-store" },
+    },
+  );
+}
+
 async function proxy(req: NextRequest): Promise<Response> {
   const target = backendTarget(req);
   const transport = target.protocol === "https:" ? https : http;
@@ -100,6 +135,11 @@ async function proxy(req: NextRequest): Promise<Response> {
     };
 
     const upstream = transport.request(target, { method, headers: upstreamHeaders(req, target) }, (res) => {
+      if (isApiTokenRefusal(res)) {
+        res.resume();
+        settle(tokenRefused(method, req.nextUrl.pathname));
+        return;
+      }
       const status = res.statusCode ?? 502;
       const noBody = method === "HEAD" || status === 204 || status === 304;
       if (noBody) {
