@@ -502,3 +502,108 @@ def test_existing_fields_are_unchanged_by_line_regions(route: dict[str, Any], mo
 def test_glm_ocr_returns_no_line_regions(route: dict[str, Any]) -> None:
     result = _extract(ocr_backend="glmocr")
     assert result.ocr_engine == "glmocr" and result.line_regions is None
+
+
+# ------------------------------------------------------------ client runs --
+
+
+@pytest.fixture
+def db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
+    from app.db import pipeline_db
+
+    monkeypatch.setenv("ARCHAI_DB_PATH", str(tmp_path / "archai.sqlite"))
+    monkeypatch.setattr(pipeline_db, "_DB_READY", False)
+    return pipeline_db
+
+
+def _events(pipeline_db: Any, run_id: str) -> list[tuple[str, str]]:
+    return [(event["stage"], event["event"]) for event in pipeline_db.list_events(run_id)]
+
+
+def test_a_reserved_run_carries_the_request_trace_from_the_start(route: dict[str, Any], db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150), _line(250)))
+    calls: list[dict[str, Any]] = []
+
+    def pipeline(*_args: Any, **kwargs: Any) -> dict[str, Any]:
+        calls.append(kwargs)
+        db.update_run_fields(kwargs["run_id"], status="COMPLETED", current_stage="DONE")
+        db.log_event(kwargs["run_id"], "DONE", "END", "done")
+        return {"run_id": kwargs["run_id"]}
+
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", pipeline)
+    run_id = asyncio.run(ocr_router.ocr_reserve_run())["run_id"]
+    assert db.get_run(run_id)["status"] == "RESERVED"
+
+    result = _extract(run_id=run_id)
+
+    assert result.run_id == run_id and calls[0]["run_id"] == run_id
+    assert _events(db, run_id) == [("RECEIVED", "START"), ("OCR_RUNNING", "START"), ("OCR_DONE", "END"), ("DONE", "END")]
+    assert db.get_run(run_id)["status"] == "COMPLETED"
+    assert db.get_run(run_id)["asset_ref"] == "page-1"
+
+
+def test_an_unknown_or_used_run_id_is_refused(route: dict[str, Any], db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    from fastapi import HTTPException
+
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150)))
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", lambda *a, **k: {"run_id": k.get("run_id")})
+    with pytest.raises(HTTPException) as unknown:
+        _extract(run_id="not-a-run")
+    assert unknown.value.status_code == 404 and "POST /ocr/runs" in unknown.value.detail
+
+    run_id = asyncio.run(ocr_router.ocr_reserve_run())["run_id"]
+    _extract(run_id=run_id)
+    with pytest.raises(HTTPException) as reused:
+        _extract(run_id=run_id)
+    assert reused.value.status_code == 409
+
+    # Somebody else's run, created the ordinary way, cannot be written into either.
+    other = db.create_run(asset_ref="someone-else", asset_sha256="sha")
+    before = _events(db, other)
+    with pytest.raises(HTTPException) as foreign:
+        _extract(run_id=other)
+    assert foreign.value.status_code == 409 and _events(db, other) == before
+    assert db.get_run(other)["asset_ref"] == "someone-else"
+
+
+def test_a_reserved_run_is_claimed_once(db: Any) -> None:
+    run_id = db.reserve_run()
+    assert db.claim_reserved_run(run_id, asset_ref="a", asset_sha256=None) == "claimed"
+    assert db.claim_reserved_run(run_id, asset_ref="b", asset_sha256=None) == "used"
+    assert db.claim_reserved_run("missing", asset_ref="c", asset_sha256=None) == "unknown"
+
+
+def test_a_failed_request_ends_its_reserved_run(route: dict[str, Any], db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    from fastapi import HTTPException
+
+    async def glm_down(*_args: Any, **_kwargs: Any) -> Any:
+        raise HTTPException(status_code=502, detail="GLM-OCR unreachable")
+
+    monkeypatch.setattr(ocr_router, "_run_glm_full_page", glm_down)
+    run_id = asyncio.run(ocr_router.ocr_reserve_run())["run_id"]
+    with pytest.raises(HTTPException):
+        _extract(run_id=run_id, ocr_backend="glmocr")
+    run = db.get_run(run_id)
+    assert run["status"] == "FAILED" and "GLM-OCR unreachable" in run["error"]
+    assert _events(db, run_id)[-1] == ("FAILED", "ERROR")
+
+
+def test_without_a_run_id_nothing_changes(route: dict[str, Any], db: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: _coco(COLUMN, _line(150)))
+    calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(ocr_router, "_run_full_page_post_ocr_pipeline", lambda *a, **k: calls.append(k) or {})
+    _extract()
+    assert "run_id" not in calls[0]
+
+
+def test_an_empty_reading_still_ends_the_reserved_run(db: Any) -> None:
+    from app.schemas.agents_ocr import SaiaFullPageExtractResponse
+    from app.services import trace_pipeline
+
+    run_id = db.reserve_run()
+    db.claim_reserved_run(run_id, asset_ref="page-1", asset_sha256=None)
+    empty = SaiaFullPageExtractResponse(status="EMPTY", model_used="CATMuS Medieval", text="")
+    payload = SaiaFullPageExtractRequest(page_id="page-1", image_b64=base64.b64encode(PAGE).decode("ascii"))
+    assert trace_pipeline._run_full_page_post_ocr_pipeline(payload, empty, PAGE, ocr_backend="kraken_catmus", run_id=run_id) == {"run_id": run_id}
+    assert db.get_run(run_id)["status"] == "COMPLETED"
+    assert trace_pipeline._run_full_page_post_ocr_pipeline(payload, empty, PAGE, ocr_backend="kraken_catmus") == {}

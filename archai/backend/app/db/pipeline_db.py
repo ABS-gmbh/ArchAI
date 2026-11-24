@@ -552,6 +552,49 @@ def create_run(asset_ref: str, asset_sha256: str | None = None) -> str:
     return run_id
 
 
+RESERVED_RUN_STATUS = "RESERVED"
+
+
+def reserve_run() -> str:
+    """Create an empty run a client can pass to one OCR request, so it can follow that request's trace."""
+    _init_db_if_needed()
+    run_id = str(uuid.uuid4())
+    ts = now_iso()
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO pipeline_runs (
+                run_id, created_at, updated_at, status, current_stage, asset_ref, asset_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (run_id, ts, ts, RESERVED_RUN_STATUS, RESERVED_RUN_STATUS, "", None),
+        )
+        conn.commit()
+    return run_id
+
+
+def claim_reserved_run(run_id: str, *, asset_ref: str, asset_sha256: str | None) -> str:
+    """Start a reserved run for one request: ``"claimed"``, ``"unknown"`` or ``"used"``.
+
+    The claim is one conditional UPDATE, so two requests naming the same run
+    cannot both start it: only a run this server reserved and nothing has used
+    yet can be claimed.
+    """
+    _init_db_if_needed()
+    ts = now_iso()
+    with _connect() as conn:
+        cursor = conn.execute(
+            "UPDATE pipeline_runs SET status='RUNNING', current_stage='RECEIVED', asset_ref=?, asset_sha256=?, updated_at=? "
+            "WHERE run_id=? AND status=?",
+            (str(asset_ref or ""), asset_sha256, ts, str(run_id), RESERVED_RUN_STATUS),
+        )
+        conn.commit()
+        if cursor.rowcount == 1:
+            return "claimed"
+        exists = conn.execute("SELECT 1 FROM pipeline_runs WHERE run_id=?", (str(run_id),)).fetchone()
+    return "used" if exists else "unknown"
+
+
 def log_event(run_id: str, stage: str, event: str, message: str | None = None) -> None:
     _init_db_if_needed()
     ts = now_iso()
