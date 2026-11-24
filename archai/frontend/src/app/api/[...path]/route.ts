@@ -39,6 +39,13 @@ const HOP_BY_HOP = new Set([
 
 const TOKEN_HEADER = "x-api-token";
 
+// One connection per request. Node's default agent keeps idle connections to
+// reuse them, and uvicorn closes an idle connection after 5 s: a request sent
+// on a connection the backend is closing at that moment is reset, and a POST
+// (a page upload) cannot be sent again. A live read was lost this way. A new
+// connection to a backend on the same host or network costs a handshake.
+const NO_REUSE = { http: new http.Agent({ keepAlive: false }), https: new https.Agent({ keepAlive: false }) };
+
 function backendTarget(req: NextRequest): URL {
   const base = (process.env.BACKEND_URL || "http://127.0.0.1:8010").replace(/\/+$/, "");
   return new URL(`${base}${req.nextUrl.pathname}${req.nextUrl.search}`);
@@ -134,7 +141,8 @@ async function proxy(req: NextRequest): Promise<Response> {
       }
     };
 
-    const upstream = transport.request(target, { method, headers: upstreamHeaders(req, target) }, (res) => {
+    const agent = target.protocol === "https:" ? NO_REUSE.https : NO_REUSE.http;
+    const upstream = transport.request(target, { method, agent, headers: upstreamHeaders(req, target) }, (res) => {
       if (isApiTokenRefusal(res)) {
         res.resume();
         settle(tokenRefused(method, req.nextUrl.pathname));
