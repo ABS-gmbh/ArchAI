@@ -1618,6 +1618,15 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         {/* The page, on a well one step darker than the frame. */}
         <div id="pane-page" role="group" aria-label="Page" className={`min-h-0 min-w-0 flex-1 ${pane === "page" ? "flex" : "hidden"} flex-col md:flex`}>
           <div className="relative min-h-0 flex-1">
+            {/* Before the viewer in the DOM, so Tab reaches it before the zoom bar at
+                the bottom of the page, as it is placed; z-10 keeps it painted on top. */}
+            {currentPage && !currentSegmentedPreview ? (
+              <div className="absolute left-4 top-4 z-10">
+                <Button variant="secondary" onClick={() => void findRegions()} disabled={findingRegions || sending}>
+                  {findingRegions ? "Finding regions" : "Find layout regions"}
+                </Button>
+              </div>
+            ) : null}
             <PageViewer
               page={currentPage}
               zoom={currentZoom}
@@ -1639,13 +1648,6 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
               openError={openError}
               pageNav={pageNav}
             />
-            {currentPage && !currentSegmentedPreview ? (
-              <div className="absolute left-4 top-4">
-                <Button variant="secondary" onClick={() => void findRegions()} disabled={findingRegions || sending}>
-                  {findingRegions ? "Finding regions" : "Find layout regions"}
-                </Button>
-              </div>
-            ) : null}
             {currentSegmentationError ? (
               <p role="alert" className="absolute inset-x-4 top-14 rounded-md border border-line bg-sheet px-3 py-2 text-sm text-negative">
                 Layout regions could not be found. {currentSegmentationError}
