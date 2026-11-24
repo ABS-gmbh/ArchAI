@@ -338,6 +338,9 @@ class Settings(BaseSettings):
     # (security review C9).
     ocr_run_reservation_ttl_seconds: int = 600
     ocr_run_reservation_max_live: int = 100
+    # Most trace streams (/ocr/trace/stream/{run_id}) open at once; beyond it the
+    # route answers 429. The workspace follows one run per page being read.
+    ocr_trace_stream_max_open: int = 32
 
     # Kraken recognition
     kraken_device: str = "cpu"

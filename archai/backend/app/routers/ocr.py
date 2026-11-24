@@ -27,6 +27,7 @@ from app.db.pipeline_db import (
     claim_reserved_run,
     count_chunks,
     count_reserved_runs,
+    RESERVED_RUN_STATUS,
     delete_expired_reservations,
     count_entity_mentions,
     create_run,
@@ -2396,40 +2397,36 @@ _TERMINAL_RUN_STATUSES = frozenset({"COMPLETED", "FAILED", "FAILED_QUALITY"})
 _TRACE_STREAM_MAX_SECONDS = 60 * 60
 
 
+# Each open stream rebuilds a snapshot (several SQLite queries, about 2.4 ms)
+# on every poll, and streams were uncapped: about 160 kept a core busy
+# (security review S1). They are capped, and the poll slows from 0.4 s to at
+# most 1 s while nothing changes, so a reading's per-line progress (logged at
+# least once a second) still arrives within about a second.
+_TRACE_STREAM_FAST_POLL_SECONDS = 0.4
+_TRACE_STREAM_SLOW_POLL_SECONDS = 1.0
+_open_trace_streams = 0
+
+
 @router.get("/ocr/trace/stream/{run_id}")
 async def ocr_trace_stream(run_id: str) -> StreamingResponse:
+    global _open_trace_streams
     if await asyncio.to_thread(get_run, run_id) is None:
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+    cap = max(1, int(_app_settings.ocr_trace_stream_max_open))
+    if _open_trace_streams >= cap:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many trace streams are open ({_open_trace_streams}). Close one, or poll /ocr/trace/{{run_id}}.",
+        )
+    _open_trace_streams += 1
 
     async def event_stream():
-        last_signature: tuple[Any, ...] | None = None
-        deadline = time.monotonic() + _TRACE_STREAM_MAX_SECONDS
-        while time.monotonic() < deadline:
-            # Off the event loop: it is several SQLite queries, every 0.4 s per
-            # watching client (audit DB-03).
-            snapshot = await asyncio.to_thread(_build_trace_snapshot, run_id)
-            if snapshot is None:
-                payload = {"run_id": run_id, "status": "FAILED", "error": "Run disappeared from database."}
-                yield f"event: snapshot\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
-                break
-
-            run = snapshot.get("run") or {}
-            events = snapshot.get("events") or []
-            signature = (
-                run.get("updated_at"),
-                run.get("current_stage"),
-                run.get("status"),
-                len(events),
-            )
-            if signature != last_signature:
-                yield f"event: snapshot\ndata: {json.dumps(snapshot, ensure_ascii=False)}\n\n"
-                last_signature = signature
-
-            if str(run.get("status") or "").upper() in _TERMINAL_RUN_STATUSES:
-                break
-            await asyncio.sleep(0.4)
-
-        yield "event: end\ndata: done\n\n"
+        global _open_trace_streams
+        try:
+            async for chunk in _trace_events(run_id):
+                yield chunk
+        finally:
+            _open_trace_streams -= 1
 
     return StreamingResponse(
         event_stream(),
@@ -2438,6 +2435,45 @@ async def ocr_trace_stream(run_id: str) -> StreamingResponse:
         # the events back and delivers them together when the stream ends.
         headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
     )
+
+
+async def _trace_events(run_id: str):
+    last_signature: tuple[Any, ...] | None = None
+    interval = _TRACE_STREAM_FAST_POLL_SECONDS
+    deadline = time.monotonic() + _TRACE_STREAM_MAX_SECONDS
+    while time.monotonic() < deadline:
+        # Off the event loop: it is several SQLite queries, every 0.4 s per
+        # watching client (audit DB-03).
+        snapshot = await asyncio.to_thread(_build_trace_snapshot, run_id)
+        if snapshot is None:
+            payload = {"run_id": run_id, "status": "FAILED", "error": "Run disappeared from database."}
+            yield f"event: snapshot\ndata: {json.dumps(payload, ensure_ascii=False)}\n\n"
+            break
+
+        run = snapshot.get("run") or {}
+        events = snapshot.get("events") or []
+        signature = (
+            run.get("updated_at"),
+            run.get("current_stage"),
+            run.get("status"),
+            len(events),
+        )
+        if signature != last_signature:
+            yield f"event: snapshot\ndata: {json.dumps(snapshot, ensure_ascii=False)}\n\n"
+            last_signature = signature
+            interval = _TRACE_STREAM_FAST_POLL_SECONDS
+        else:
+            interval = min(_TRACE_STREAM_SLOW_POLL_SECONDS, interval * 1.5)
+
+        status = str(run.get("status") or "").upper()
+        if status in _TERMINAL_RUN_STATUSES:
+            break
+        # A reservation nobody claimed in time will never run: end its stream.
+        if status == RESERVED_RUN_STATUS and str(run.get("created_at") or "") < _reservation_cutoff():
+            break
+        await asyncio.sleep(interval)
+
+    yield "event: end\ndata: done\n\n"
 
 
 @router.get("/ocr/trace/{run_id}/tables")
