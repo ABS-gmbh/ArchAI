@@ -5,6 +5,7 @@ import time
 from typing import Any, Callable, Sequence, cast
 
 from app.config import settings
+from app.services import setup_notices
 
 
 class SaiaConfigError(RuntimeError):
@@ -83,6 +84,8 @@ class SaiaClient:
             raise SaiaConfigError(
                 "Chat API key not configured. Set CHAT_AI_API_KEY (or SAIA_API_KEY) in backend/.env or environment."
             )
+        # A key again: a later failure is a new streak, logged again (setup_notices).
+        setup_notices.resolved(setup_notices.CHAT_KEY)
         return key
 
     @staticmethod

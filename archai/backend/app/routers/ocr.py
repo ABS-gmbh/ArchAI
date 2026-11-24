@@ -1147,7 +1147,7 @@ def _glm_failure(exc: GlmOllamaOcrError) -> HTTPException:
 
 def _trace_failure(run_id: str, exc: BaseException) -> HTTPException:
     """The traced run failed: its error stays in the run record and the log, not the response."""
-    configuration = configuration_message(exc)
+    configuration = configuration_message(exc, provider="OCR provider")
     if configuration is not None:
         return HTTPException(status_code=500, detail={"run_id": run_id, "error": configuration})
     known = provider_failure(exc, provider="OCR provider")

@@ -61,5 +61,5 @@ def test_chat_models_answers_at_once_without_a_key(monkeypatch: pytest.MonkeyPat
     started = time.monotonic()
     response = TestClient(app).get("/api/chat/models")
     assert response.status_code == 422
-    assert response.json()["detail"].startswith(_KEY_MESSAGE)
+    assert response.json()["detail"] == "Chat is not set up on this server. Tell whoever runs it."
     assert time.monotonic() - started < 2.0
