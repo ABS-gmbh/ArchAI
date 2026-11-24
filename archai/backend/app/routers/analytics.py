@@ -72,7 +72,9 @@ def analytics_login(body: LoginRequest, request: Request):
         "addr:" + (request.client.host if request.client else "unknown"): settings.analytics_login_max_failures,
         _username_key(body.username): settings.analytics_login_max_failures_per_username,
     }
-    wait = _login_limiter.attempt(keys, window_seconds=settings.analytics_login_window_seconds)
+    # The configured user's lockout is never evicted from the bounded table.
+    pinned = {_username_key(settings.analytics_username)} if settings.analytics_username else set()
+    wait = _login_limiter.attempt(keys, window_seconds=settings.analytics_login_window_seconds, pinned=pinned)
     if wait is not None:
         seconds = max(1, math.ceil(wait))
         raise HTTPException(

@@ -16,7 +16,12 @@ lock, and the count is taken back if the password was right: checking first
 and recording after let about 40 parallel guesses through before the first
 failure was recorded. The table is ordered by each key's last failure, so
 expired keys leave from the front without a scan, and it holds at most
-max_entries keys; past that the key whose last failure is oldest is dropped.
+max_entries keys; past that the key whose last failure is oldest is dropped,
+except a pinned one: the configured user name's. Without that, 5,000 attempts
+with new addresses and names pushed a locked `user:operator` out of the table
+and the operator's password could be guessed again (second security review,
+2026-11-24). Pinned keys are as few as the configured users, so the table
+stays bounded.
 
 In process memory, like the rest of the backend's state: one worker, one
 limiter (docs/deployment.md).
@@ -27,7 +32,7 @@ from __future__ import annotations
 import threading
 import time
 from collections import OrderedDict, deque
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable, Mapping
 
 _MAX_ENTRIES = 10_000
 
@@ -42,13 +47,16 @@ class FailedLoginLimiter:
     def __len__(self) -> int:
         return len(self._failures)
 
-    def attempt(self, limits: Mapping[str, int], *, window_seconds: float) -> float | None:
+    def attempt(
+        self, limits: Mapping[str, int], *, window_seconds: float, pinned: Collection[str] = ()
+    ) -> float | None:
         """Count an attempt against each key's limit, or refuse it.
 
         *limits* maps each key (an address, a user name) to the failures it may
         have in the window. Returns None when the attempt may go ahead (it is
         then counted as a failure until ``succeeded`` takes it back), or the
-        seconds until every key that is full has room again.
+        seconds until every key that is full has room again. Keys in *pinned*
+        are never evicted to make room; they still expire with the window.
         """
         now = self._clock()
         with self._lock:
@@ -63,8 +71,7 @@ class FailedLoginLimiter:
             for key in limits:
                 self._failures.setdefault(key, deque()).append(now)
                 self._failures.move_to_end(key)
-            while len(self._failures) > self._max_entries:
-                self._failures.popitem(last=False)
+            self._evict(pinned)
             return None
 
     def succeeded(self, keys: Iterable[str]) -> None:
@@ -80,6 +87,14 @@ class FailedLoginLimiter:
         while failures and failures[0] <= now - window_seconds:
             failures.popleft()
         return failures
+
+    def _evict(self, pinned: Collection[str]) -> None:
+        # Oldest last failure first, skipping the pinned keys (few: one per configured user).
+        while len(self._failures) > self._max_entries:
+            victim = next((key for key in self._failures if key not in pinned), None)
+            if victim is None:
+                return
+            del self._failures[victim]
 
     def _expire(self, now: float, window_seconds: float) -> None:
         # Ordered by last failure: the first key still in the window ends the sweep.

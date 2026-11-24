@@ -114,3 +114,35 @@ def test_the_user_name_limit_is_a_setting(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("ANALYTICS_LOGIN_MAX_FAILURES_PER_USERNAME", "0")
     with pytest.raises(ValidationError, match="ANALYTICS_LOGIN_MAX_FAILURES_PER_USERNAME must be at least 1"):
         Settings(_env_file=None)
+
+
+# Second security review (2026-11-24): with the operator's name locked, 5,000
+# attempts with new addresses and names pushed `user:operator` out of the
+# bounded table, and ten more guesses at the operator's password were accepted.
+def test_a_flood_of_new_keys_does_not_evict_the_operator_lockout(monkeypatch: pytest.MonkeyPatch, app: FastAPI) -> None:
+    monkeypatch.setattr(analytics, "_login_limiter", FailedLoginLimiter(max_entries=50))
+    client = TestClient(ProxyHeadersMiddleware(app, trusted_hosts="127.0.0.1"), client=("127.0.0.1", 50000))
+
+    def guess(address: str, username: str) -> int:
+        return client.post(
+            "/analytics/login",
+            headers={"X-Forwarded-For": address},
+            json={"username": username, "password": "wrong"},
+        ).status_code
+
+    per_name = settings.analytics_login_max_failures_per_username
+    assert [guess(f"10.1.0.{i}", "Operator") for i in range(per_name)] == [401] * per_name
+    assert guess("10.1.1.1", "operator") == 429
+    flood = [guess(f"10.2.{i // 250}.{i % 250}", f"someone-{i}") for i in range(200)]
+    assert set(flood) == {401}
+    assert len(analytics._login_limiter) <= 50
+    assert [guess(f"10.3.0.{i}", "operator") for i in range(10)] == [429] * 10
+
+
+def test_the_table_stays_bounded_when_only_pinned_keys_are_left() -> None:
+    limiter = FailedLoginLimiter(max_entries=2)
+    for key in ("user:a", "user:b", "user:c"):
+        assert limiter.attempt({key: 5}, window_seconds=60, pinned={"user:a", "user:b", "user:c"}) is None
+    assert len(limiter) == 3  # pinned keys are never evicted; there are as few as configured users
+    assert limiter.attempt({"addr:x": 5}, window_seconds=60, pinned={"user:a", "user:b", "user:c"}) is None
+    assert len(limiter) == 3  # the unpinned key went, the pinned ones stayed
