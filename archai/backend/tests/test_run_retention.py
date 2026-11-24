@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +11,7 @@ import pytest
 from app.db import pipeline_db
 from app.services import run_retention
 
-NOW = datetime(2026, 11, 23, 12, 0, tzinfo=UTC)
+NOW = datetime(2026, 11, 23, 12, 0, tzinfo=timezone.utc)
 CUTOFF = (NOW - timedelta(days=30)).isoformat()
 
 

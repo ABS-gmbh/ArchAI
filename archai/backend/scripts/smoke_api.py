@@ -32,7 +32,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import httpx
 from PIL import Image
@@ -168,7 +168,7 @@ class Smoke:
         if not self.db:
             return None
         run_id = f"smoke-{uuid.uuid4()}"
-        now = datetime.now(UTC).isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         with sqlite3.connect(self.db) as conn:
             conn.execute(
                 "INSERT INTO pipeline_runs (run_id, created_at, updated_at, status, current_stage, asset_ref) VALUES (?, ?, ?, 'RUNNING', 'RECEIVED', 'smoke')",
@@ -211,7 +211,7 @@ class Smoke:
             latencies.append(time.perf_counter() - t0)
         stop.set()
         with sqlite3.connect(self.db) as conn:
-            conn.execute("UPDATE pipeline_runs SET status='FAILED', updated_at=? WHERE run_id=?", (datetime.now(UTC).isoformat(), run_id))
+            conn.execute("UPDATE pipeline_runs SET status='FAILED', updated_at=? WHERE run_id=?", (datetime.now(timezone.utc).isoformat(), run_id))
         for worker in workers:
             worker.join(timeout=10)
         worst = max(latencies)

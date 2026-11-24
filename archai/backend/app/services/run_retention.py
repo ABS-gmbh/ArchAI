@@ -31,7 +31,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -83,7 +83,7 @@ def plan_retention(
     """Decide which runs are expired, without deleting anything."""
     if older_than_days < 1:
         raise ValueError(f"older_than_days must be at least 1, got {older_than_days}")
-    cutoff = ((now or datetime.now(UTC)) - timedelta(days=older_than_days)).isoformat()
+    cutoff = ((now or datetime.now(timezone.utc)) - timedelta(days=older_than_days)).isoformat()
     protected = showcase_run_ids() if protected is None else protected
     plan = RetentionPlan(cutoff=cutoff)
 
@@ -209,7 +209,7 @@ class RetentionSweeper:
             return None
         plan = plan_retention(days, now=now)
         batch = list(reversed(plan.expired))[: int(settings.run_retention_max_per_sweep)]
-        moment = now or datetime.now(UTC)
+        moment = now or datetime.now(timezone.utc)
 
         def describe(run_id: str) -> str:
             page, updated = plan.details[run_id]
