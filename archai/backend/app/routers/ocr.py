@@ -2372,7 +2372,9 @@ async def ocr_trace_stream(run_id: str) -> StreamingResponse:
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
-        headers={"Cache-Control": "no-cache", "Connection": "keep-alive"},
+        # X-Accel-Buffering: a buffering reverse proxy (nginx) otherwise holds
+        # the events back and delivers them together when the stream ends.
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
     )
 
 
