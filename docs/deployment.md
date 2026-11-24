@@ -61,7 +61,9 @@ in `archai/backend` or pass them as environment variables.
 
 Leave `ENABLE_TEST_OCR_FIXTURES=false` (canned OCR answers for four test
 images) and leave `ARCHAI_DEBUG_RAG` unset (it exposes `/api/rag/debug/*`).
-Both are off by default. A setting of the wrong type, or out of range, stops
+Both are off by default. Set `ENABLE_API_DOCS=false`: it is on by default for
+development, and on a server it publishes `/docs`, `/redoc` and
+`/openapi.json`, a map of every route, without authentication. A setting of the wrong type, or out of range, stops
 startup with an error that names the variable.
 
 Layout tasks keep their uploads and outputs in `TASK_BASE_DIR` (default
