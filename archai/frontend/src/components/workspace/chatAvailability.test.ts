@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { chatNotice, providerState } from "./chatAvailability";
+import { chatNotice, defaultChatModel, providerState } from "./chatAvailability";
 
 describe("providerState", () => {
   it("reads the model list's mark, and knows nothing from an older backend", () => {
@@ -43,5 +43,18 @@ describe("chatNotice", () => {
     for (const state of ["refused", "unreachable"] as const) {
       assert.doesNotMatch(chatNotice(state)?.sentence ?? "", /API_KEY|\.env|https?:|Unknown API key/);
     }
+  });
+});
+
+describe("defaultChatModel", () => {
+  it("follows the backend's default model, then its chat task model", () => {
+    assert.equal(defaultChatModel({ default_model: "qwen3.5-397b-a17b", task_models: { chat_rag_model: "other" } }, "offline"), "qwen3.5-397b-a17b");
+    assert.equal(defaultChatModel({ default_model: "", task_models: { chat_rag_model: "qwen3.8-27b" } }, "offline"), "qwen3.8-27b");
+  });
+
+  it("uses the frontend's own default only when the backend names none or did not answer", () => {
+    assert.equal(defaultChatModel({ models: [] }, "offline"), "offline");
+    assert.equal(defaultChatModel(null, "offline"), "offline");
+    assert.equal(defaultChatModel({ default_model: 7 }, "offline"), "offline");
   });
 });
