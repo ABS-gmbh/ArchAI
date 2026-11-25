@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal
 
 from app.config import settings
 
@@ -167,6 +167,29 @@ VISION_MODEL_FRAGMENTS = ("vl", "vision", "internvl", "gemma", "omni", "pixtral"
 def is_vision_model(model_id: str) -> bool:
     key = (model_id or "").strip().lower()
     return key in KNOWN_VISION_MODELS or any(fragment in key for fragment in VISION_MODEL_FRAGMENTS)
+
+
+ModelKind = Literal["chat", "embedding", "code", "audio_image"]
+
+# By name, as the provider's documentation names them (2026-11-25):
+# multilingual-e5-large-instruct embeds, qwen3-coder-next writes code,
+# qwen3-omni-30b-a3b-instruct takes audio and images. Anything else chats.
+_EMBEDDING_FRAGMENTS = ("embed", "-e5", "e5-", "bge-", "gte-")
+_CODE_FRAGMENTS = ("coder", "codestral", "code-")
+_AUDIO_IMAGE_FRAGMENTS = ("omni",)
+
+
+def model_kind(model_id: str) -> ModelKind:
+    """What *model_id* is for: answering ("chat"), embedding text, writing code, or audio and images."""
+    key = (model_id or "").strip().lower()
+    embedding = str(getattr(settings, "rag_embedding_model", "") or "").strip().lower()
+    if (embedding and key == embedding) or any(fragment in key for fragment in _EMBEDDING_FRAGMENTS):
+        return "embedding"
+    if any(fragment in key for fragment in _CODE_FRAGMENTS):
+        return "code"
+    if any(fragment in key for fragment in _AUDIO_IMAGE_FRAGMENTS):
+        return "audio_image"
+    return "chat"
 
 
 # Models that check answers when the configured verifier cannot: it is not

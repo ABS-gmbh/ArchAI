@@ -168,6 +168,13 @@ See [deployment.md, "Behind a reverse proxy"](deployment.md#behind-a-reverse-pro
   chat, translation, label analysis and the answer check's note.
 - An analytics session token is accepted only for `ANALYTICS_USERNAME`.
   `/static/trace.html` is gone.
+- `GET /api/chat/models` lists in `models` only what the provider offers when
+  its list could be read; a configured model it lacks is named in
+  `not_offered` (as before) and in the new `models_info`, which describes each
+  model: `id`, `kind` (`chat`, `embedding`, `code` or `audio_image`),
+  `takes_images`, `thinks_first` (thinks before answering however it is
+  asked, so slow to start) and `offered` (null when the provider's list could
+  not be read; `models` then holds the configured names, as before).
 - `POST /api/chat/completions` answers `sources`, in the response and in the
   stream's `answer` and `done` events: one entry per evidence block shown to the model,
   with its `label` ("1", "2", ...), `run_id`, `chunk_ids`, `start_offset` and
