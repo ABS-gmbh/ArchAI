@@ -254,3 +254,15 @@ def test_the_provider_ocr_says_its_model_is_not_offered(provider: type[_Provider
     )
     lines = [r.getMessage() for r in caplog.records if "internvl3.5-30b-a3b" in r.getMessage() and "not offered" in r.getMessage()]
     assert len(lines) == 1, lines
+
+
+def test_an_empty_translation_model_is_the_chat_model_and_never_reported(provider: type[_Provider], monkeypatch: pytest.MonkeyPatch) -> None:
+    """TRANSLATION_MODEL empty means the chat model translates (the user's choice, 2026-11-25): the
+    comparison is of the resolved assignment, so it is not "not offered", and nothing falls back."""
+    monkeypatch.setattr(settings, "translation_model", "")
+    listed = chat_ai.list_available_models()
+    assert "translation_model" not in listed["not_offered"]
+    assert "translation model" not in _health_task_models()["detail"]
+    result = chat_ai.create_chat_completion(messages=MESSAGES, context=TRANSLATE)
+    assert result["model"] == settings.chat_rag_model
+    assert provider.asked == [settings.chat_rag_model]  # asked once, with the chat model
