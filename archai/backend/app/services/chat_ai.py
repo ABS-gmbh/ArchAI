@@ -894,6 +894,7 @@ def _rag_inspection_response(messages: Sequence[dict[str, Any]], context: dict[s
             duration_ms=duration_ms,
         )
         return {
+            "answer": "No OCR run is available for RAG inspection on this page.",
             "text": "No OCR run is available for RAG inspection on this page.",
             "model": "rag-inspection",
             "context_used": bool(context),
@@ -927,6 +928,7 @@ def _rag_inspection_response(messages: Sequence[dict[str, Any]], context: dict[s
     text_key = "debug_markdown" if mode_used == "debug" else "presentation_markdown"
     inspection_text = str(payload.get(text_key) or payload.get("inspection_markdown") or "")
     return {
+        "answer": inspection_text,
         "text": inspection_text,
         "model": "rag-inspection",
         "context_used": bool(context),
@@ -1551,6 +1553,9 @@ def create_chat_completion(
         duration_ms,
     )
     return {
+        # The answer proper; ``text`` keeps the [Verification] and [Retrieval]
+        # appendices for clients written before ``answer`` existed.
+        "answer": draft_text,
         "text": text,
         "model": selected_model,
         "context_used": bool(context),
@@ -1577,6 +1582,7 @@ def stream_chat_completion(
             yield {"type": "delta", "delta": inspection_text}
         yield {
             "type": "done",
+            "answer": inspection_text,
             "text": inspection_text,
             "model": str(inspection.get("model") or "rag-inspection"),
             "context_used": bool(context),
@@ -1713,6 +1719,7 @@ def stream_chat_completion(
 
     yield {
         "type": "done",
+        "answer": full_text[: len(full_text) - len(appendix)] if appendix else full_text,
         "text": full_text,
         "model": selected_model,
         "context_used": bool(context),

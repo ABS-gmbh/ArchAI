@@ -136,7 +136,7 @@ def test_an_unavailable_verifier_is_reported(client: _FakeClient, monkeypatch: p
     )
     result = _ask()
     assert result["retrieval"]["verifier"] == "unavailable"
-    assert "Assessment: unavailable" in result["text"]
+    assert "[Verification]" not in result["text"]  # a state, not a block of text
 
 
 def test_a_skipped_verifier_is_reported(client: _FakeClient, monkeypatch: pytest.MonkeyPatch) -> None:
