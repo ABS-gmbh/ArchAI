@@ -52,10 +52,22 @@ ABSENT = {"id": "n", "kind": "not_in_sources"}
         ("Keep the Saturday holy.", "correct"),
         ("Keep the Sabbath.", "wrong"),
         ("The sources for this page do not contain the answer.", "abstained"),
+        # Opens by refusing, but the terms match later: neither correct nor abstained.
+        ("The text does not contain a direct answer. It says keep the Sabbath holy [1].", "hedged"),
+        ("The provided text does not mention a holy Sabbath.", "hedged"),
+        # A refusal in the answer itself is not a refusal of the sources.
+        ("No: the Sabbath is not given to work; keep it holy.", "correct"),
     ],
 )
 def test_answerable_outcomes(ev, text: str, outcome: str) -> None:
     assert ev.score_answer(ANSWERABLE, text, {"old-french:7"})["outcome"] == outcome
+
+
+def test_with_labels_a_citation_counts_for_a_cited_label_covering_the_answer(ev) -> None:
+    sources = [{"label": "1", "chunk_ids": ["old-french:6", "old-french:7"], "cited": True}, {"label": "2", "chunk_ids": ["old-french:2"], "cited": False}]
+    assert ev.score_answer(ANSWERABLE, "Keep the Sabbath holy [1].", {"old-french:7"}, sources)["cited"] is True
+    sources[0]["cited"], sources[1]["cited"] = False, True
+    assert ev.score_answer(ANSWERABLE, "Keep the Sabbath holy [2].", {"old-french:7"}, sources)["cited"] is False
 
 
 def test_a_citation_counts_only_for_a_chunk_holding_the_answer(ev) -> None:
