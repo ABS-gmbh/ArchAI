@@ -10,6 +10,7 @@ exception goes to the log and the client gets a sentence it can act on:
 * the provider refused this server's key: 502;
 * the provider did not answer in time: 504;
 * the provider is rate-limiting: 429;
+* the model spent its whole answer on thinking (provider_thinking): 502;
 * anything else: 500, naming what failed and that the details are logged.
 
 Routes that already answer configuration errors with their own status keep
@@ -28,6 +29,8 @@ from typing import NoReturn
 import openai
 import requests
 from fastapi import HTTPException
+
+from app.services.provider_thinking import ThinkingOnlyAnswer
 
 _LOGGER = logging.getLogger("app.routers")
 
@@ -63,6 +66,12 @@ def provider_failure(exc: BaseException, *, provider: str) -> HTTPException | No
             return HTTPException(status_code=502, detail=_refused_key(provider))
         if isinstance(current, _TIMEOUTS):
             return HTTPException(status_code=504, detail=f"The {provider} did not answer in time. Try again.")
+        if isinstance(current, ThinkingOnlyAnswer):
+            return HTTPException(
+                status_code=502,
+                detail=f"The model {current.model} spent its whole answer on thinking and gave no answer. "
+                "Ask again, or choose another model.",
+            )
         if isinstance(current, openai.RateLimitError):
             return HTTPException(
                 status_code=429, detail=f"The {provider} is limiting requests right now. Try again in a minute."

@@ -4,9 +4,12 @@ import json
 import logging
 import re
 from dataclasses import dataclass
+from typing import Any
 
 from app.config import settings
+from app.services import setup_notices
 from app.services.ocr_text_metrics import levenshtein_distance
+from app.services.provider_thinking import ThinkingOnlyAnswer
 from app.services.proofread_guard import guard_proofread
 from app.services.saia_client import SaiaClient
 
@@ -295,15 +298,11 @@ class OcrProofreaderAgent:
             raise RuntimeError("No model available for OCR proofreader.")
         return models[0]
 
-    def proofread(self, ocr_text: str, script_hint: str | None, detected_language: str | None = None) -> str:
-        source = (ocr_text or "").strip()
-        if not source:
-            return ""
-
-        source = apply_archai_safe_normalizer(source, script_hint)
-
-        response = self.client.chat_completion(
-            model=self._select_model(),
+    def _proofread_call(
+        self, model: str, source: str, script_hint: str | None, detected_language: str | None
+    ) -> dict[str, Any]:
+        return self.client.chat_completion(
+            model=model,
             temperature=0.0,
             top_p=1.0,
             max_tokens=1500,
@@ -319,6 +318,25 @@ class OcrProofreaderAgent:
                 },
             ],
         )
+
+    def proofread(self, ocr_text: str, script_hint: str | None, detected_language: str | None = None) -> str:
+        source = (ocr_text or "").strip()
+        if not source:
+            return ""
+
+        source = apply_archai_safe_normalizer(source, script_hint)
+
+        model = self._select_model()
+        try:
+            response = self._proofread_call(model, source, script_hint, detected_language)
+        except ThinkingOnlyAnswer:
+            # The model spent its budget thinking: the text stays as read, and
+            # the operator learns which model did it (once per model).
+            setup_notices.report_once(
+                f"thinking-only:{model}",
+                f"The proofreading model {model} spent its whole answer on thinking; texts are left as read.",
+            )
+            return source
 
         cleaned = _clean_plain_text(str(response.get("text") or ""))
         if not cleaned:
