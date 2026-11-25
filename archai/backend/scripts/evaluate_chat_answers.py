@@ -248,6 +248,17 @@ def _count_requests() -> None:
 
 CURRENT_PHASE = ["index"]
 USAGE: list[dict[str, Any]] = []
+_SENT: list[float] = []
+
+
+def _pace(limit: int = 9, window: float = 10.0) -> None:
+    """Wait so that at most *limit* chat requests go out in any *window* seconds (the provider allows 10)."""
+    now = time.monotonic()
+    while _SENT and now - _SENT[0] >= window:
+        _SENT.pop(0)
+    if len(_SENT) >= limit:
+        time.sleep(window - (now - _SENT[0]) + 0.05)
+    _SENT.append(time.monotonic())
 # --no-thinking: ask Qwen 3.x-style models to answer without a reasoning pass
 # (chat_template_kwargs.enable_thinking=false). The app does not send this yet.
 NO_THINKING = [False]
@@ -260,11 +271,14 @@ def _record_usage() -> None:
     real_create_client = chat_ai._create_client
 
     def create_client():  # type: ignore[no-untyped-def]
-        client = real_create_client()
+        # No automatic retries, so the request counter equals the calls made;
+        # requests are paced under the provider's 10 per 10 seconds instead.
+        client = real_create_client().with_options(max_retries=0)
         completions = client.chat.completions
         real_create = completions.create
 
         def create(*args, **kwargs):  # type: ignore[no-untyped-def]
+            _pace()
             if NO_THINKING[0]:
                 extra = dict(kwargs.get("extra_body") or {})
                 extra["chat_template_kwargs"] = {**dict(extra.get("chat_template_kwargs") or {}), "enable_thinking": False}
@@ -363,6 +377,57 @@ def evaluate_live(
     return rows
 
 
+def verify_saved(items, runs, records: list[dict[str, Any]], out: Path, *, verifier: str) -> list[dict[str, Any]]:
+    """Run *verifier* on answers saved by an earlier --live run, with the evidence that answer saw; nothing is re-answered."""
+    from app.config import settings
+    from app.services import chat_ai
+
+    settings.paleography_verification_enabled = True
+    settings.paleography_verification_model = verifier
+    by_id = {item["id"]: item for item in items}
+    checks = []
+    with out.open("w", encoding="utf-8") as handle:
+        for record in records:
+            item = by_id[record["id"]]
+            context = _context(runs[item["page_id"]])
+            CURRENT_PHASE[0] = "verify"
+            _prepared, evidence = chat_ai._prepare_messages([{"role": "user", "content": item["question"]}], context)
+            started = time.perf_counter()
+            verdict = chat_ai._run_paleography_verification(
+                question=item["question"], draft_text=record["answer"], context=context, evidence_text=evidence,
+                answer_model=str(record.get("model") or ""),
+            ) or {}
+            check = {
+                "id": record["id"],
+                "answer_model": record.get("model"),
+                "verifier": verdict.get("model_used"),
+                "assessment": verdict.get("assessment"),
+                "self_check": verdict.get("self_check"),
+                "seconds": round(time.perf_counter() - started, 2),
+                "corrected_answer": verdict.get("corrected_answer"),
+                "notes": verdict.get("notes"),
+            }
+            handle.write(json.dumps(check, ensure_ascii=False) + "\n")
+            handle.flush()
+            checks.append(check)
+    return checks
+
+
+def verifier_report(items, answer_rows: list[dict[str, Any]], checks: list[dict[str, Any]]) -> dict[str, Any]:
+    """How the verifier's assessments line up with the scored answers: flags on wrong ones, mark-downs on correct ones."""
+    outcome = {row["id"]: row["outcome"] for row in answer_rows}
+    table: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    for check in checks:
+        table[outcome[check["id"]]][str(check["assessment"])] += 1
+    seconds = sorted(float(c["seconds"]) for c in checks)
+    return {
+        "by_outcome": {k: dict(v) for k, v in table.items()},
+        "seconds_median": seconds[len(seconds) // 2] if seconds else None,
+        "seconds_p90": seconds[min(len(seconds) - 1, int(0.9 * len(seconds)))] if seconds else None,
+        "verifiers": sorted({str(c["verifier"]) for c in checks}),
+    }
+
+
 def score_saved(items: list[dict[str, Any]], records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     by_id = {item["id"]: item for item in items}
     rows = []
@@ -444,6 +509,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--embed-cache", type=Path, help="keep embeddings by text in this file and reuse them")
     parser.add_argument("--stream-first", type=int, default=0, help="with --live, stream the first N questions to time the first token")
     parser.add_argument("--limit", type=int, help="with --live, ask only the first N questions")
+    parser.add_argument("--verify-saved", type=Path, help="run --verifier on the answers of this saved file (no new answers); results to --out")
+    parser.add_argument("--verifier", help="with --verify-saved, the verifier model")
     parser.add_argument("--no-thinking", action="store_true", help="with --live, send enable_thinking=false (Qwen 3.x models)")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
@@ -464,7 +531,16 @@ def main(argv: list[str] | None = None) -> int:
                     _use_local_e5()
                 _cache_embeddings(args.embed_cache)
             runs = build_store(Path(tmp), references, {item["page_id"] for item in items}, embedder=args.embedder)
-            if args.live:
+            if args.verify_saved:
+                if not (args.out and args.verifier):
+                    parser.error("--verify-saved needs --verifier and --out")
+                _record_usage()
+                NO_THINKING[0] = args.no_thinking
+                saved = [json.loads(line) for line in args.verify_saved.read_text(encoding="utf-8").splitlines() if line.strip()]
+                checks = verify_saved(items, runs, saved, args.out, verifier=args.verifier)
+                report = {"verifier": verifier_report(items, score_saved(items, saved), checks)}
+                rows = checks
+            elif args.live:
                 _record_usage()
                 NO_THINKING[0] = args.no_thinking
                 if args.limit:
@@ -489,6 +565,8 @@ def main(argv: list[str] | None = None) -> int:
     for name, table in report.items():
         if name == "index_status":
             print("index status: " + ", ".join(f"{page} {status}" for page, status in table.items()))
+        elif name == "verifier":
+            print("verifier: " + json.dumps(table, ensure_ascii=False))
         elif name == "timing":
             print("timing: " + ", ".join(f"{key} {value}" for key, value in table.items()))
         elif name == "requests":
