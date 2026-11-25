@@ -51,8 +51,31 @@ def reset() -> None:
         _state = "untried"
 
 
+# A 403 that names a model is the provider declining that model for this key
+# ("Not authorized to access this Model: llama-3.3-70b-instruct"), not the key
+# itself: the key works for the models it does offer (2026-11-25).
+_MODEL_NOT_OFFERED = ("not authorized to access this model", "model is not available", "model not offered")
+
+
 def _on_response(response: Any) -> None:
-    observe_status(int(getattr(response, "status_code", 0) or 0))
+    status = int(getattr(response, "status_code", 0) or 0)
+    if status == 403:
+        try:
+            response.read()
+            text = str(response.text or "").lower()
+        except Exception:
+            text = ""
+        if "model" in text:
+            return
+    observe_status(status)
+
+
+def is_model_not_offered(exc: BaseException) -> bool:
+    """Whether *exc* is the provider declining the requested model: a 403 that says so. A 401 never is."""
+    if getattr(exc, "status_code", None) != 403:
+        return False
+    text = str(exc).lower()
+    return any(phrase in text for phrase in _MODEL_NOT_OFFERED)
 
 
 def http_client() -> Any:
