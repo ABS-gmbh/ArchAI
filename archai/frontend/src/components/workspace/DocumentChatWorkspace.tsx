@@ -1746,7 +1746,14 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   };
 
   const translate = () => {
+    // Below 1280 px the transcription and the conversation are tabs: showing
+    // the Ask tab hides the Translate button, and focus fell to the document
+    // body. Put it on the question box, where the translation is announced.
+    if (!window.matchMedia("(min-width: 1280px)").matches && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     setPane("ask");
+    focusWhenShown("#ask-input");
     void handleTranslateInChat("Translate this page into English.");
   };
 
