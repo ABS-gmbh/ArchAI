@@ -61,8 +61,12 @@ def search_index(
 
     Optionally filter by *run_id* and/or *asset_ref*.
     """
+    run_ids = [run_id] if run_id else None
+    if rag_store.run_scope_missing(run_ids):
+        # RAG_REQUIRE_RUN_SCOPE: a search of every page on the server would
+        # show one reader's text to another.
+        raise HTTPException(status_code=422, detail="This server searches only within one reading. Pass run_id.")
     try:
-        run_ids = [run_id] if run_id else None
         hits = rag_store.retrieve_chunks(
             query, top_k=top_k, run_ids=run_ids, asset_ref=asset_ref,
         )

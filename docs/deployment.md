@@ -307,6 +307,36 @@ address (127.0.0.1) in the backend's log and login limit. With
 it saw, the proxy sends the backend that last entry, which a client cannot
 choose; with two proxies in a chain, `2`, and so on.
 
+### Open to more than one group of readers
+
+The API has no accounts: a run's id, a random UUID, is what gives access to
+its text, names and trace. Three things let a reader reach runs whose id they
+were never given, so on a server that several groups use, or that is open to
+the public, close them:
+
+- **Search without a run.** A chat question sent with no run in its context,
+  and `POST /api/index/search` without `run_id`, search the newest reading of
+  every page on the server. Set `RAG_REQUIRE_RUN_SCOPE=true`: such a search
+  then finds nothing (the chat's `retrieval.notes` and the search route's 422
+  say why), and a search that names its run is unchanged. The workspace
+  always names the run of the page shown.
+- **Routes the workspace does not use.** At the reverse proxy, pass only what
+  the workspace calls and answer 404 to the rest of `/api/`: `GET
+  /api/health`, `GET /api/chat/models`, `POST /api/chat/completions`, `POST
+  /api/chat/label-analysis`, `POST /api/ocr/runs`, `POST
+  /api/ocr/extract_full_page`, `POST /api/ocr/page_with_trace`, `GET
+  /api/ocr/trace/stream/{id}`, `GET /api/ocr/trace/{id}/tables`, `GET
+  /api/authority/report/{id}`, `POST /api/predict/single`. That keeps
+  `/api/index/*` (search, and deleting a run's vectors), `/api/evidence/*`
+  (spans are kept by a page id the client chooses), `/api/analytics/*` and
+  the batch and download routes away from visitors.
+- **Cost.** A page read holds CPU for seconds to minutes and a question
+  spends provider requests. Limit both per client address at the proxy
+  (requests per minute, and reads in flight at once, per address and in
+  total), and cap the request body at `MAX_JSON_MEGABYTES`. A refused request
+  should answer 429 with `Retry-After` and a JSON body `{"detail": "…"}`,
+  which the workspace shows with the wait.
+
 ### Checking a deployment
 
 `archai/backend/scripts/smoke_api.py` drives every route over HTTP and exits 1
