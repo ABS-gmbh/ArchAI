@@ -37,6 +37,22 @@ const VERDICT_TONE = { ok: "text-positive", warn: "text-warning", error: "text-n
 
 /** What a second model made of the answer: its verdict, and its own wording where that differs. */
 function VerificationNote({ message }: { message: WorkspaceChatMessage }) {
+  // The answer comes first and the check after it (2026-11-25): meanwhile the
+  // message says so, and a check that never came back says that.
+  if (message.check === "checking") {
+    return (
+      <p role="status" className="mt-2 border-t border-rule pt-2 text-xs text-ink-muted">
+        Checking the answer…
+      </p>
+    );
+  }
+  if (message.check === "not_checked") {
+    return (
+      <p className="mt-2 border-t border-rule pt-2 text-xs text-ink-muted">
+        Not checked: the check did not finish before the connection closed.
+      </p>
+    );
+  }
   const note = describeVerification(message.verification, message.content);
   if (!note) {
     return null;

@@ -1,3 +1,4 @@
+import { applyStreamEvent, type ChatStreamEvent, type ChatStreamState, checkOutcome, INITIAL_STREAM } from "./chatStream";
 import { ApiError, fetchBackend, readErrorDetail } from "./client";
 
 export interface ChatModelListResponse {
@@ -53,6 +54,8 @@ export interface ChatCompletionResult {
   text: string;
   /** The stream closed before its final event: `text` is only the part that arrived. */
   incomplete?: boolean;
+  /** How the answer's check ended (chatStream.ts checkOutcome); streamed answers only. */
+  check?: "checked" | "checking" | "not_checked" | "none";
   retrieval?: ChatRetrievalStatus | null;
   model?: string;
   stage_metadata?: {
@@ -116,28 +119,6 @@ export interface LabelAnalysisResult {
   inspection?: Record<string, unknown> | null;
 }
 
-interface StreamDelta {
-  type: "delta";
-  delta: string;
-}
-
-interface StreamDone {
-  type: "done";
-  text: string;
-  model?: string;
-  stage_metadata?: ChatCompletionResult["stage_metadata"];
-  inspection?: ChatCompletionResult["inspection"];
-  verification?: ChatCompletionResult["verification"];
-  retrieval?: ChatCompletionResult["retrieval"];
-}
-
-interface StreamError {
-  type: "error";
-  error: string;
-}
-
-type StreamEvent = StreamDelta | StreamDone | StreamError;
-
 export async function getChatModels(): Promise<ChatModelListResponse> {
   const res = await fetchBackend("/chat/models");
   if (!res.ok) {
@@ -146,9 +127,15 @@ export async function getChatModels(): Promise<ChatModelListResponse> {
   return (await res.json()) as ChatModelListResponse;
 }
 
+/**
+ * A chat answer. Streamed, *onAnswer* is called once the answer is whole
+ * (before the verifier's verdict), and the promise resolves when the stream
+ * ends, with the verdict if it came.
+ */
 export async function createChatCompletion(
   payload: ChatCompletionPayload,
   onDelta?: (delta: string) => void,
+  onAnswer?: (answer: ChatCompletionResult) => void,
 ): Promise<ChatCompletionResult> {
   const useStream = payload.stream !== false;
   const res = await fetchBackend("/chat/completions", {
@@ -176,13 +163,19 @@ export async function createChatCompletion(
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-  let text = "";
-  let model: string | undefined;
-  let stageMetadata: ChatCompletionResult["stage_metadata"] | undefined;
-  let inspection: ChatCompletionResult["inspection"] | undefined;
-  let verification: ChatCompletionResult["verification"] | undefined;
-  let retrieval: ChatCompletionResult["retrieval"] | undefined;
-  let finished = false;
+  let state: ChatStreamState = INITIAL_STREAM;
+  const result = (): ChatCompletionResult => ({
+    text: state.answer ?? state.text,
+    model: state.model,
+    stage_metadata: state.stageMetadata as ChatCompletionResult["stage_metadata"],
+    inspection: state.inspection as ChatCompletionResult["inspection"],
+    verification: state.verification as ChatCompletionResult["verification"],
+    retrieval: state.retrieval as ChatCompletionResult["retrieval"],
+    // A stream that ends without "done" was cut off (proxy timeout, dropped
+    // connection): what arrived may not be the whole answer.
+    incomplete: !state.finished && state.answer === null,
+    check: checkOutcome(state),
+  });
 
   while (true) {
     const { value, done } = await reader.read();
@@ -207,20 +200,18 @@ export async function createChatCompletion(
           continue;
         }
 
-        const event = JSON.parse(payloadText) as StreamEvent;
-        if (event.type === "delta") {
-          text += event.delta;
-          onDelta?.(event.delta);
-        } else if (event.type === "done") {
-          finished = true;
-          text = event.text ?? text;
-          model = event.model;
-          stageMetadata = event.stage_metadata;
-          inspection = event.inspection;
-          verification = event.verification;
-          retrieval = event.retrieval;
-        } else if (event.type === "error") {
+        const event = JSON.parse(payloadText) as ChatStreamEvent;
+        if (event.type === "error") {
           throw new Error(event.error || "Streaming completion failed.");
+        }
+        const next = applyStreamEvent(state, event);
+        state = next.state;
+        if (event.type === "delta") {
+          onDelta?.(event.delta);
+        }
+        // The answer is whole: the reader may ask again while it is checked.
+        if (next.answered) {
+          onAnswer?.(result());
         }
       }
 
@@ -228,9 +219,9 @@ export async function createChatCompletion(
     }
   }
 
-  // A stream that ends without "done" was cut off (proxy timeout, dropped
-  // connection): what arrived is not the whole answer and was never verified.
-  return { text, model, stage_metadata: stageMetadata, inspection, verification, retrieval, incomplete: !finished };
+  // The stream is over: a check still awaited will not come, and the answer is "not checked".
+  state = { ...state, checking: false };
+  return result();
 }
 
 export async function analyzeSegmentLabel(
