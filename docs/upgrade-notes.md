@@ -166,6 +166,11 @@ See [deployment.md, "Behind a reverse proxy"](deployment.md#behind-a-reverse-pro
   (timeout) or 429 (rate limit), not 500. A 429 says how long to wait when
   the provider did (its `Retry-After`, also passed on as that header), in
   chat, translation, label analysis and the answer check's note.
+  `POST /api/chat/label-analysis` answers the provider's limit with 429 and
+  `Retry-After` too (it was a 422), and a streamed chat answer's `error`
+  event carries the wait as `retry_after_seconds`: its status is already
+  200. The workspace holds Ask for a wait of up to 60 s and says the clock
+  time of a longer one.
 - An analytics session token is accepted only for `ANALYTICS_USERNAME`.
   `/static/trace.html` is gone.
 - `GET /api/chat/models` lists in `models` only what the provider offers when

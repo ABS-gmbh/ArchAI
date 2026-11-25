@@ -140,6 +140,10 @@ The frontend expects the backend at 127.0.0.1:8010; `NEXT_PUBLIC_BACKEND_URL` (t
 
 Without `CHAT_AI_API_KEY` the backend starts, but chat, translation and SAIA OCR
 answer that the key is not configured, and `/api/health` reports `degraded`.
+Questions are answered by `CHAT_RAG_MODEL` (default `qwen3.5-397b-a17b`), and
+translations too while `TRANSLATION_MODEL` is empty; `/api/health`'s
+`task_models` names any configured model the provider does not offer and what
+is used instead.
 GLM-OCR needs an Ollama server with `glm-ocr` at `GLMOCR_OLLAMA_HOST`.
 `archai/backend/README.md` lists the other settings.
 

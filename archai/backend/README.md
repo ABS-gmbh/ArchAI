@@ -78,10 +78,19 @@ error that names the variable. The ones to look at first:
 | `ARCHAI_DB_PATH`, `CHROMA_PERSIST_DIR` | Pipeline database and vector store; by default inside this directory |
 | `MAX_UPLOAD_MEGABYTES`, `TASK_TTL_MINUTES` | Upload limit, and how long layout task files are kept |
 | `CHAT_AI_TIMEOUT_SECONDS` | How long the chat client waits for an answer (default 180) |
+| `CHAT_AI_BASE_URL` | The provider's OpenAI-compatible endpoint (default GWDG Chat AI) |
+| `CHAT_RAG_MODEL` | The model that answers questions (default `qwen3.5-397b-a17b`) |
+| `TRANSLATION_MODEL` | The model that translates; empty (the default) translates with `CHAT_RAG_MODEL` |
+| `CHAT_DISABLE_THINKING`, `CHAT_DISABLE_THINKING_EXCEPT` | Ask the provider's models not to think before answering (on), except models whose names start with one of these prefixes (`mistral-large`, which refuses it) |
+| `PROVIDER_RETRY_MAX_WAIT_SECONDS` | A provider 429 is sent again once only when its `Retry-After` asks for at most this many seconds (default 5); a 5xx is sent again once |
 | `LOG_LEVEL`, `LOG_FORMAT` | Log level, and `text` or `json` lines on stderr |
 | `ENABLE_TEST_OCR_FIXTURES` | Canned answers for three test images; keep it `false` |
 | `ENABLE_API_DOCS` | `true` serves `/docs`, `/redoc` and `/openapi.json`; set `false` on a server |
 | `API_TOKEN` | Off when empty. When set (24+ characters), every route but `/api/health` needs `X-API-Token: <token>` or `Authorization: Bearer <token>`; the two event streams also accept `?token=` |
+
+Which of the configured models the provider does not offer, and what is
+used instead, is in `/api/health` (`task_models`) and `/api/chat/models`
+(`not_offered`, and `models_info`, which describes every model).
 
 ## Run
 
