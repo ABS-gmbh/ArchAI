@@ -54,3 +54,22 @@ describe("describeVerification", () => {
     assert.equal(describeVerification({ assessment: "UNSUPPORTED", corrected_answer: "", notes: [] }, ANSWER)?.tone, "error");
   });
 });
+
+// The verifier falls back to the chat model when its own is not offered
+// (2026-11-25): then the model that wrote the answer checked it, and the note
+// must not call that a second model.
+describe("a self-check", () => {
+  it("is called what it is", () => {
+    const self = describeVerification({ assessment: "supported", corrected_answer: ANSWER, notes: [], self_check: true }, ANSWER);
+    assert.equal(self?.label, "Self-checked: supported");
+    assert.match(String(self?.detail), /model that wrote the answer/);
+    assert.match(String(self?.detail), /weaker than a second model/);
+    assert.doesNotMatch(String(self?.detail), /A second model/);
+  });
+
+  it("leaves a check by a second model as it was", () => {
+    const second = describeVerification({ assessment: "unsupported", corrected_answer: "", notes: [], self_check: false }, ANSWER);
+    assert.equal(second?.label, "Checked: not supported");
+    assert.match(String(second?.detail), /^A second model/);
+  });
+});

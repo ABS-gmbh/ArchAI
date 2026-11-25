@@ -222,7 +222,10 @@ def _instead(task: str, model: str, offered: tuple[str, ...]) -> str:
 
     chat_model = get_task_model_assignments().chat_rag_model
     if task == "verifier_model":
-        # The verifier does not fall back: the answer is given unchecked, and says so.
+        # The verifier falls back to the chat model (fallback_models_for_stage),
+        # the model that wrote the answer: say what that check is worth.
+        if chat_model.lower() in {m.lower() for m in offered}:
+            return "answers are checked by the chat model instead, the model that wrote them, which is weaker than a second model"
         return "answers are given without that check"
     if task in ("label_visual_model", "label_visual_fallback_model"):
         used = label_retry_model(model, list(offered), prefer_vision=True)

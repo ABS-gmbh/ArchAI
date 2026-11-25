@@ -33,6 +33,7 @@ OFFERED = [
 class _Provider(BaseHTTPRequestHandler):
     key_refused = False
     asked: list[str] = []
+    content = "Translated."
 
     def _send(self, status: int, body: object) -> None:
         data = json.dumps(body).encode()
@@ -56,7 +57,7 @@ class _Provider(BaseHTTPRequestHandler):
         if model not in OFFERED:
             return self._send(403, {"message": f"Not authorized to access this Model: {model}"})
         self._send(200, {"id": "x", "object": "chat.completion", "created": 0, "model": model,
-                         "choices": [{"index": 0, "message": {"role": "assistant", "content": "Translated."}, "finish_reason": "stop"}]})
+                         "choices": [{"index": 0, "message": {"role": "assistant", "content": self.content}, "finish_reason": "stop"}]})
 
     def log_message(self, *args: object) -> None:
         pass
@@ -64,7 +65,7 @@ class _Provider(BaseHTTPRequestHandler):
 
 @pytest.fixture
 def provider(monkeypatch: pytest.MonkeyPatch) -> Iterator[type[_Provider]]:
-    handler = type("Provider", (_Provider,), {"key_refused": False, "asked": []})
+    handler = type("Provider", (_Provider,), {"key_refused": False, "asked": [], "content": "Translated."})
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     base = f"http://127.0.0.1:{server.server_address[1]}/v1"
@@ -182,10 +183,7 @@ def test_health_names_each_task_whose_model_is_not_offered(provider: type[_Provi
         "The configured label-analysis model is not offered by the provider; label analysis uses "
         "deepseek-v4-flash-0731 instead. Set LABEL_VISUAL_MODEL to one of the provider's models."
     ) in check["detail"]
-    assert (
-        "The configured answer-checking model is not offered by the provider; answers are given without that check. "
-        "Set PALEOGRAPHY_VERIFICATION_MODEL to one of the provider's models."
-    ) in check["detail"]
+    assert "Set PALEOGRAPHY_VERIFICATION_MODEL to one of the provider's models." in check["detail"]
     assert "CHAT_RAG_MODEL" not in check["detail"]  # the chat model is offered
     assert sum(1 for model in provider.asked) == gets_before
 
@@ -266,3 +264,52 @@ def test_an_empty_translation_model_is_the_chat_model_and_never_reported(provide
     result = chat_ai.create_chat_completion(messages=MESSAGES, context=TRANSLATE)
     assert result["model"] == settings.chat_rag_model
     assert provider.asked == [settings.chat_rag_model]  # asked once, with the chat model
+
+
+
+# ── The verifier falls back to the chat model, and says it checked itself ─
+
+VERDICT = json.dumps({"assessment": "supported", "corrected_answer": "Lausanne.", "notes": [], "citations_checked": []})
+
+
+def _verify(answer_model: str) -> dict:
+    return chat_ai._run_paleography_verification(
+        question="Who is named?",
+        draft_text="Lausanne.",
+        context={"ocr_run_id": "run-1", "transcript": "Caldus de Lausanne"},
+        evidence_text="[OCR_CHUNK_EVIDENCE] Caldus de Lausanne",
+        answer_model=answer_model,
+    )
+
+
+def test_the_verifier_falls_back_to_the_chat_model_and_says_it_checked_its_own_answer(
+    provider: type[_Provider], caplog: pytest.LogCaptureFixture
+) -> None:
+    provider.content = VERDICT
+    assert settings.paleography_verification_model == "qwen3-235b-a22b"  # the default, not offered
+    with caplog.at_level(logging.WARNING):
+        verification = _verify(settings.chat_rag_model)
+        _verify(settings.chat_rag_model)
+    assert provider.asked[:2] == ["qwen3-235b-a22b", settings.chat_rag_model]
+    assert verification["assessment"] == "supported"
+    assert verification["model_used"] == settings.chat_rag_model
+    assert verification["self_check"] is True
+    lines = [r.getMessage() for r in caplog.records if "qwen3-235b-a22b" in r.getMessage() and "not offered" in r.getMessage()]
+    assert len(lines) == 1, lines
+
+
+def test_a_second_model_is_not_a_self_check(provider: type[_Provider], monkeypatch: pytest.MonkeyPatch) -> None:
+    provider.content = VERDICT
+    monkeypatch.setattr(settings, "paleography_verification_model", "qwen3.8-27b")
+    verification = _verify(settings.chat_rag_model)
+    assert verification["model_used"] == "qwen3.8-27b"
+    assert verification["self_check"] is False
+
+
+def test_health_says_answers_are_checked_by_the_model_that_wrote_them(provider: type[_Provider]) -> None:
+    chat_ai.list_available_models()
+    assert (
+        "The configured answer-checking model is not offered by the provider; answers are checked by the chat model "
+        "instead, the model that wrote them, which is weaker than a second model. Set PALEOGRAPHY_VERIFICATION_MODEL "
+        "to one of the provider's models."
+    ) in _health_task_models()["detail"]

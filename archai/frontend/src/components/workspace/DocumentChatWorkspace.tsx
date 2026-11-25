@@ -686,6 +686,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                   assessment: String(result.verification.assessment || ""),
                   corrected_answer: String(result.verification.corrected_answer || ""),
                   notes: (result.verification.notes ?? []).map(String),
+                  self_check: result.verification.self_check === true,
                 }
               : null,
           };
