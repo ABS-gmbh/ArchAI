@@ -182,7 +182,11 @@ class Settings(BaseSettings):
     archai_chat_ai_base_url: str = "https://chat-ai.academiccloud.de/v1"
     archai_chat_ai_model: str = "qwen3-30b-a3b-instruct-2507"
     chat_rag_model: str = "qwen3-30b-a3b-instruct-2507"
-    translation_model: str = "llama-3.3-70b-instruct"
+    # Empty: translations use the chat model (chat_rag_model). The former
+    # default, llama-3.3-70b-instruct, is no longer offered by the provider
+    # (403 "Not authorized to access this Model", seen 2026-11-25), so every
+    # translation failed. Set it only to a model the provider offers.
+    translation_model: str = ""
     # Per-request timeout of the chat client (chat, translation, model list).
     # Without one the OpenAI SDK waits 600 s, and retries twice, before a
     # non-streaming completion gives up. A streamed answer only needs each

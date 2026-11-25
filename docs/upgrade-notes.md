@@ -40,6 +40,11 @@ These behave differently from the first start:
   in `FRONTEND_ORIGINS` (DNS rebinding); under any other name every `/api`
   request is refused with 403. A listed name accepts only the listed origins,
   scheme included. Opening it at `localhost` or an IP address needs nothing.
+- **Translations use the chat model.** `TRANSLATION_MODEL` now defaults to
+  empty, which means `CHAT_RAG_MODEL` translates. Its former default,
+  `llama-3.3-70b-instruct`, is no longer offered by the provider, and with it
+  every translation failed. If your `.env` still names that model, remove the
+  line or name one the provider offers.
 - **The port is 8010.** The READMEs and `make backend` used 8000 while the
   frontend expected 8010; all now say 8010. If you start the backend
   elsewhere, set the frontend's `BACKEND_URL`.
@@ -189,8 +194,10 @@ an hour.
 - **The gate's lexical check has profiles for Latin, French (old, middle,
   modern), Spanish and Dutch only.** Pages in other languages (Italian,
   Catalan, Occitan, German, English…) get no lexical plausibility check.
-- **Not exercised live in this work:** chat, translation and label analysis
-  against the provider (only with stubs and recorded answers).
+- **Exercised live only in part.** Chat answers were run against the provider
+  on 2026-11-25 (`archai/backend/eval/chat/README.md`). Label analysis and the
+  provider's OCR path were not: their configured models are no longer
+  offered by the provider.
 - **GLM-OCR is not a usable fallback with Ollama 0.40.6.** Measured on the
   five reference pages (`archai/backend/eval/recognizers/README.md`): it
   repeats each page until the token limit (CER 252% to 1,350%, about 40% on

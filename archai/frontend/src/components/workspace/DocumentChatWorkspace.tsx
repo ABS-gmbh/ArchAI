@@ -91,7 +91,7 @@ const DEFAULT_CHAT_MODEL_ID = "qwen3-30b-a3b-instruct-2507";
 const DEFAULT_TASK_MODELS = {
   ocr_model: "glm-ocr:latest",
   chat_rag_model: DEFAULT_CHAT_MODEL_ID,
-  translation_model: "llama-3.3-70b-instruct",
+  translation_model: DEFAULT_CHAT_MODEL_ID,
   label_visual_model: "qwen3-vl-30b-a3b-instruct",
   label_visual_fallback_model: "internvl3.5-30b-a3b",
   verifier_model: "qwen3-235b-a22b",
