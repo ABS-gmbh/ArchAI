@@ -133,3 +133,26 @@ describe("the quality verdict and indexing", () => {
     assert.deepEqual(withIndexBadge(risky, [skipped]).map((badge) => badge.label), ["Quality: risky", "Not searchable"]);
   });
 });
+
+describe("a reading's warnings", () => {
+  const read = (warnings: string[]) => describeExtraction({ warnings } as unknown as OCRExtractResponse, "");
+
+  it("are said in words where the step messages have them", () => {
+    const badge = read(["OCR_ENGINE_FALLBACK:segmented_not_installed"]).at(-1);
+    assert.equal(badge?.label, "1 warning");
+    assert.equal(badge?.detail, "The page was read as a whole: the line-by-line reader is not installed.");
+    assert.equal(
+      read(["OCR_ENGINE_FALLBACK:segmented_failed:ModuleNotFoundError"]).at(-1)?.detail,
+      "The page was read as a whole: the line-by-line reader failed on it.",
+    );
+    assert.equal(read(["OCR_ENGINE_FALLBACK:no_text_regions"]).at(-1)?.detail, "The page was read as a whole: no text regions were found on it.");
+    assert.equal(read(["OCR_ENGINE_FALLBACK:no_text"]).at(-1)?.detail, "The page was read as a whole: the line-by-line reader found no text.");
+  });
+
+  it("keep a code that has no words as it came, beside the ones that do", () => {
+    assert.equal(
+      read(["OCR_ENGINE_FALLBACK:segmented_not_installed", "OCR_PAYLOAD_RESIZED"]).at(-1)?.detail,
+      "The page was read as a whole: the line-by-line reader is not installed. OCR_PAYLOAD_RESIZED",
+    );
+  });
+});

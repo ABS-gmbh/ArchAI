@@ -81,6 +81,12 @@ const MESSAGE_WORDS: [RegExp, (match: RegExpExecArray) => string][] = [
   [/^OCR trace run received\.$/, () => ""],
   [/^Using provided location suggestions: (\d+)$/, (m) => `${plural(m[1], "layout region", "layout regions")} given with the page`],
   [/^Segmented OCR on (\d+) regions\.$/, (m) => (m[1] === "1" ? "1 region, read on its own" : `${m[1]} regions, each read on its own`)],
+  // A full-page read's warnings that say the page went to the whole-page reader (GLM-OCR) instead of
+  // the line-by-line one; shown as raw codes on the reading's badge until 2026-11-25.
+  [/^OCR_ENGINE_FALLBACK:segmented_not_installed$/, () => "The page was read as a whole: the line-by-line reader is not installed."],
+  [/^OCR_ENGINE_FALLBACK:segmented_failed(?::\w+)?$/, () => "The page was read as a whole: the line-by-line reader failed on it."],
+  [/^OCR_ENGINE_FALLBACK:no_text_regions$/, () => "The page was read as a whole: no text regions were found on it."],
+  [/^OCR_ENGINE_FALLBACK:no_text$/, () => "The page was read as a whole: the line-by-line reader found no text."],
   // The exception's class name means nothing to a reader; its message is kept.
   [/^Post-OCR pipeline failed: \w+: ([\s\S]*)$/, (m) => `The steps after reading failed: ${m[1]}`],
 ];
