@@ -169,3 +169,27 @@ def test_e5_local_embeds_here_and_instructs_the_query(ev, tmp_path: Path, monkey
     rows = ev.evaluate_retrieval(items, runs, references)
     assert rows[0]["retrieval"] == "ok"
     assert seen[-1] == f"Instruct: {rag_store.E5_RETRIEVAL_TASK}\nQuery: {items[0]['question']}"
+
+
+def test_the_verifier_report_lines_assessments_up_with_the_scored_answers(ev) -> None:
+    rows = [{"id": "a1", "outcome": "correct"}, {"id": "a2", "outcome": "wrong"}, {"id": "n1", "outcome": "answered"}]
+    checks = [
+        {"id": "a1", "assessment": "supported", "seconds": 1.0, "verifier": "v"},
+        {"id": "a2", "assessment": "unsupported", "seconds": 3.0, "verifier": "v"},
+        {"id": "n1", "assessment": "partially_supported", "seconds": 2.0, "verifier": "v"},
+    ]
+    report = ev.verifier_report([], rows, checks)
+    assert report["by_outcome"] == {"correct": {"supported": 1}, "wrong": {"unsupported": 1}, "answered": {"partially_supported": 1}}
+    assert report["seconds_median"] == 2.0 and report["verifiers"] == ["v"]
+
+
+def test_requests_are_paced_under_ten_in_ten_seconds(ev, monkeypatch) -> None:
+    clock = [0.0]
+    monkeypatch.setattr(ev.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(ev.time, "sleep", lambda seconds: clock.__setitem__(0, clock[0] + seconds))
+    ev._SENT.clear()
+    for _ in range(9):
+        ev._pace()
+    assert clock[0] == 0.0  # nine go out at once
+    ev._pace()
+    assert clock[0] >= 10.0  # the tenth waits for the window
