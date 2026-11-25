@@ -1203,11 +1203,48 @@ def _merged_text(group: list[dict[str, Any]]) -> str:
     return text
 
 
+def evidence_sources(chunks: list[dict[str, Any]], run_texts: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    """What each evidence label stands for, in the order :func:`format_evidence_blocks` shows the blocks.
+
+    One entry per block: its ``label`` ("1", "2", ...), the ``run_id``, the
+    ``chunk_ids`` it covers, the span of the run's text (``start_offset``,
+    ``end_offset``) and each chunk's own span. Given the run's text in
+    *run_texts*, also ``line_start`` and ``line_end``, the first and last line
+    of the page (1-based) the block shows; left out when the chunk's text is
+    not the run's text at its offsets.
+    """
+    sources: list[dict[str, Any]] = []
+    for number, group in enumerate(_merge_overlapping_hits(chunks), 1):
+        run_id = str(group[0].get("run_id") or "")
+        start = min(int(ch.get("start_offset", 0)) for ch in group)
+        end = max(int(ch.get("end_offset", 0)) for ch in group)
+        entry: dict[str, Any] = {
+            "label": str(number),
+            "run_id": run_id,
+            "chunk_ids": [str(ch.get("chunk_id") or "") for ch in group],
+            "start_offset": start,
+            "end_offset": end,
+            "chunks": [
+                {"chunk_id": str(ch.get("chunk_id") or ""), "start_offset": int(ch.get("start_offset", 0)), "end_offset": int(ch.get("end_offset", 0))}
+                for ch in group
+            ],
+        }
+        text = (run_texts or {}).get(run_id)
+        first = group[0]
+        if text and text[int(first.get("start_offset", 0)) : int(first.get("end_offset", 0))] == str(first.get("text") or ""):
+            entry["line_start"] = text.count("\n", 0, start) + 1
+            entry["line_end"] = text.count("\n", 0, max(start, end - 1)) + 1
+        sources.append(entry)
+    return sources
+
+
 def format_evidence_blocks(chunks: list[dict[str, Any]]) -> str:
     """Format retrieved chunks as ``[OCR_CHUNK_EVIDENCE]…[/OCR_CHUNK_EVIDENCE]`` blocks.
 
     This is the exact citation format injected into the LLM system
-    prompt so the model can ground its answers. Hits whose text overlaps are
+    prompt so the model can ground its answers. Each block opens with a short
+    label, [1], [2], ... in the order shown; the model cites by label, and
+    :func:`evidence_sources` gives what each label stands for. Hits whose text overlaps are
     merged into one block, so a line shared by neighbouring windows is shown
     once. A merged block lists every chunk id it covers and each one's offsets,
     so any of them can still be cited. A hit that overlaps no other keeps the
@@ -1217,12 +1254,13 @@ def format_evidence_blocks(chunks: list[dict[str, Any]]) -> str:
         return ""
 
     blocks: list[str] = []
-    for group in _merge_overlapping_hits(chunks):
+    for number, group in enumerate(_merge_overlapping_hits(chunks), 1):
         first = group[0]
         if len(group) == 1:
             ch = first
             block = (
                 "[OCR_CHUNK_EVIDENCE]\n"
+                f"label: [{number}]\n"
                 f"run_id: {ch.get('run_id', '')}\n"
                 f"asset_ref: {ch.get('asset_ref', '')}\n"
                 f"chunk_id: {ch.get('chunk_id', '')}\n"
@@ -1238,6 +1276,7 @@ def format_evidence_blocks(chunks: list[dict[str, Any]]) -> str:
             end = max(int(ch.get("end_offset", 0)) for ch in group)
             block = (
                 "[OCR_CHUNK_EVIDENCE]\n"
+                f"label: [{number}]\n"
                 f"run_id: {first.get('run_id', '')}\n"
                 f"asset_ref: {first.get('asset_ref', '')}\n"
                 f"chunk_id: {', '.join(str(ch.get('chunk_id', '')) for ch in group)}\n"

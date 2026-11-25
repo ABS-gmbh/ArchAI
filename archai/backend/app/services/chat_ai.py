@@ -414,10 +414,10 @@ def _context_to_system_message(context: dict[str, Any] | None) -> str:
 _RAG_INSTRUCTION = (
     "\n\nYou have been given three evidence strata: OCR_CHUNK_EVIDENCE, "
     "LINKED_ENTITY_EVIDENCE, and UNRESOLVED_MENTION_EVIDENCE. "
-    "When quoting or paraphrasing manuscript text you MUST cite like: "
-    "(asset_ref=..., run_id=..., chunk_id=..., offsets=start-end); a block "
-    "that lists several chunk_ids covers them all, so cite the one whose "
-    "chunk_offsets hold the passage.  "
+    "Each OCR_CHUNK_EVIDENCE block opens with a label such as [1]. When "
+    "quoting or paraphrasing manuscript text you MUST cite the block it comes "
+    "from by its label alone, right after the sentence, as [1] or [2][3]. "
+    "Do not write run ids, chunk ids, asset refs or offsets in the answer.  "
     "Use LINKED_ENTITY_EVIDENCE for canonical identity, authority IDs, "
     "and concise entity summaries. Use UNRESOLVED_MENTION_EVIDENCE to "
     "state uncertainty plainly instead of inventing identifications. "
@@ -469,18 +469,40 @@ def _client_note(note: str) -> str:
 
 
 class RetrievedEvidence(str):
-    """Evidence text for the prompt, plus how retrieval went (``.retrieval``).
+    """Evidence text for the prompt, plus how retrieval went (``.retrieval``) and what its labels stand for (``.sources``).
 
     A ``str`` so existing callers keep working; ``retrieval`` is the dict
-    returned to clients under the ``retrieval`` key (see :func:`_retrieval_status`).
+    returned to clients under the ``retrieval`` key (see :func:`_retrieval_status`),
+    ``sources`` the list of :func:`rag_store.evidence_sources`.
     """
 
     retrieval: dict[str, Any]
+    sources: list[dict[str, Any]]
 
-    def __new__(cls, text: str, retrieval: dict[str, Any]) -> "RetrievedEvidence":
+    def __new__(cls, text: str, retrieval: dict[str, Any], sources: list[dict[str, Any]] | None = None) -> "RetrievedEvidence":
         obj = super().__new__(cls, text)
         obj.retrieval = retrieval
+        obj.sources = list(sources or [])
         return obj
+
+
+# A citation in an answer: [1], [2][3] or [1, 4].
+_CITATION_RE = re.compile(r"\[(\d{1,3}(?:\s*[,;]\s*\d{1,3})*)\]")
+
+
+def _cited_sources(answer: str, evidence: str) -> list[dict[str, Any]]:
+    """The evidence labels shown to the model, each marked ``cited`` if the answer names it.
+
+    Returned with every answer (``sources``) so a client can turn "[2]" into
+    the passage, its offsets and its lines on the page.
+    """
+    sources = [dict(source) for source in getattr(evidence, "sources", None) or []]
+    if not sources:
+        return []
+    cited = {number.strip() for match in _CITATION_RE.finditer(str(answer or "")) for number in re.split(r"[,;]", match.group(1))}
+    for source in sources:
+        source["cited"] = source["label"] in cited
+    return sources
 
 
 def _retrieval_status(
@@ -920,7 +942,7 @@ def _retrieve_evidence(
     to a specific ``run_id`` if one is supplied in *context*.
     """
     try:
-        from app.services.rag_store import retrieve_chunks, retrieve_entities, format_evidence_blocks
+        from app.services.rag_store import evidence_sources, format_evidence_blocks, retrieve_chunks, retrieve_entities
     except Exception as exc:  # noqa: BLE001
         log.warning("RAG retrieval unavailable: %s", exc)
         return RetrievedEvidence(
@@ -970,8 +992,10 @@ def _retrieve_evidence(
     )
 
     evidence_parts: list[str] = []
+    sources: list[dict[str, Any]] = []
     if hits:
         evidence_parts.append(format_evidence_blocks(hits))
+        sources = evidence_sources(hits, _run_texts(hits))
 
     # Debug logging
     if hits:
@@ -1035,7 +1059,28 @@ def _retrieve_evidence(
             len(entity_hits),
         )
 
-    return RetrievedEvidence("\n\n".join(part for part in evidence_parts if part), retrieval)
+    return RetrievedEvidence("\n\n".join(part for part in evidence_parts if part), retrieval, sources)
+
+
+def _run_texts(hits: Sequence[dict[str, Any]]) -> dict[str, str]:
+    """The text of each run the hits come from, to number the page's lines; a run that cannot be read is left out."""
+    texts: dict[str, str] = {}
+    try:
+        from app.db import pipeline_db
+
+        for run_id in {str(hit.get("run_id") or "") for hit in hits}:
+            run = pipeline_db.get_run(run_id) if run_id else None
+            sample = next(hit for hit in hits if str(hit.get("run_id") or "") == run_id)
+            start, end = int(sample.get("start_offset", 0)), int(sample.get("end_offset", 0))
+            # The chunks index the text the pipeline chunked: the OCR text, or its proofread version.
+            for key in ("ocr_text", "proofread_text"):
+                text = str((run or {}).get(key) or "")
+                if text and text[start:end] == str(sample.get("text") or ""):
+                    texts[run_id] = text
+                    break
+    except Exception as exc:  # noqa: BLE001 - line numbers are optional
+        log.debug("run texts for citation lines unavailable: %s", exc)
+    return texts
 
 
 def build_rag_evidence_for_debug(
@@ -1463,6 +1508,7 @@ def create_chat_completion(
         "inspection": inspection_payload,
         "verification": verification,
         "retrieval": retrieval,
+        "sources": _cited_sources(draft_text, evidence_text),
     }
 
 
@@ -1612,4 +1658,5 @@ def stream_chat_completion(
         "inspection": inspection_payload,
         "verification": verification,
         "retrieval": retrieval,
+        "sources": _cited_sources(full_text[: len(full_text) - len(appendix)] if appendix else full_text, evidence_text),
     }
