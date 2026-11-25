@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { WorkspaceChatMessage } from "@/lib/workspace/types";
 
 import { describeVerification } from "./chatAnswer";
+import { followsTheChange, isAtEnd } from "./conversationScroll";
 import { type ChatSource, citedSourceList, describeLines, sourceLineIds, splitCitations } from "./citations";
 import { ExtractionBadges } from "./ExtractionBadges";
 import { RetrievalBadges } from "./RetrievalBadges";
@@ -245,8 +246,16 @@ export function ChatPanel({
     onPinLines,
   };
 
+  // Where the reader is: at the end of the conversation, or scrolled up to
+  // read something. A streamed piece or a late verdict moves only the former.
+  const atEndRef = useRef(true);
+  const countRef = useRef(messages.length);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
+    const follow = followsTheChange({ countBefore: countRef.current, messages, wasAtEnd: atEndRef.current });
+    countRef.current = messages.length;
+    if (follow) {
+      endRef.current?.scrollIntoView({ block: "end" });
+    }
   }, [messages, sending]);
 
   return (
@@ -261,6 +270,9 @@ export function ChatPanel({
         aria-label="Conversation"
         aria-live={sending ? "off" : "polite"}
         aria-busy={sending}
+        onScroll={(event) => {
+          atEndRef.current = isAtEnd(event.currentTarget);
+        }}
         className="min-h-0 flex-1 overflow-y-auto px-6 py-4"
       >
         {!messages.length ? (
