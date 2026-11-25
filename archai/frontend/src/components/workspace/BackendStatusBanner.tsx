@@ -39,7 +39,7 @@ function nextFocusableAfter(root: HTMLElement): HTMLElement | null {
  * problem appears that was not on screen when Hide was pressed, or the page
  * reloads. A failing backend cannot be hidden.
  */
-export function BackendStatusBanner() {
+export function BackendStatusBanner({ recheckAfter = 0 }: { recheckAfter?: number } = {}) {
   const [health, setHealth] = useState<BackendHealth | null>(null);
   // True from the start: the first check begins as the banner mounts.
   const [checking, setChecking] = useState(true);
@@ -83,6 +83,16 @@ export function BackendStatusBanner() {
       controllerRef.current?.abort();
     };
   }, [runCheck, check]);
+
+  // Checked again when the workspace has asked the chat provider for its
+  // models: a key the provider refused is known to health only after that, and
+  // the first check, made at the same moment, could not say it (2026-11-25).
+  useEffect(() => {
+    if (recheckAfter > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- runCheck sets state only after its first await, asynchronously; the rule does not follow the await.
+      void runCheck();
+    }
+  }, [recheckAfter, runCheck]);
 
   if (!health || health.status === "ok") {
     return null;

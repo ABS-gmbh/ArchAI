@@ -58,6 +58,7 @@ import {
 } from "./workspaceIntents";
 import { BackendStatusBanner } from "./BackendStatusBanner";
 import { answerProper } from "./chatAnswer";
+import { chatNotice, type ChatProviderState, providerState } from "./chatAvailability";
 import { ChatPanel } from "./ChatPanel";
 import { DocumentPanel } from "./DocumentPanel";
 import { EntitiesPanel, type LinkingState } from "./EntitiesPanel";
@@ -198,6 +199,12 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [visionModelIds, setVisionModelIds] = useState<Set<string>>(new Set());
   const [taskModels, setTaskModels] = useState(DEFAULT_TASK_MODELS);
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_CHAT_MODEL_ID);
+  // What the model list said about the chat provider when the workspace opened
+  // (chatAvailability.ts): a refused key is said in the Ask panel before anything is asked.
+  const [chatProvider, setChatProvider] = useState<ChatProviderState>("unknown");
+  // Counts the model list's answers, so the banner checks health again after
+  // the provider has been asked (BackendStatusBanner's recheckAfter).
+  const [modelsAnswered, setModelsAnswered] = useState(0);
   // Restored from this tab's sessionStorage when the workspace is created (the
   // server has none: the workspace is rendered in the browser only).
   const [includeCurrentPageImage, setIncludeCurrentPageImage] = useState(
@@ -317,6 +324,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         if (cancelled) {
           return;
         }
+        setChatProvider(providerState(payload));
+        setModelsAnswered((count) => count + 1);
         setVisionModelIds(new Set(payload.vision_models));
         setTaskModels(payload.task_models || DEFAULT_TASK_MODELS);
         setSelectedModel(payload.default_model || payload.task_models?.chat_rag_model || DEFAULT_CHAT_MODEL_ID);
@@ -324,6 +333,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       .catch(() => {
         // The defaults stay in place. Why the backend did not answer is the
         // status banner's to say, not the chat's.
+        if (!cancelled) {
+          setModelsAnswered((count) => count + 1);
+        }
       });
 
     return () => {
@@ -1857,7 +1869,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       </header>
 
       <div inert={pendingUpload ? true : undefined}>
-        <BackendStatusBanner />
+        <BackendStatusBanner recheckAfter={modelsAnswered} />
       </div>
 
       <div inert={pendingUpload ? true : undefined} className="flex min-h-0 flex-1 flex-col gap-3 px-2 pb-2 md:flex-row">
@@ -1987,7 +1999,14 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                     onInput={setInput}
                     onSend={() => void sendMessage()}
                     onClear={clearConversation}
-                    disabledReason={!currentDocument ? "Open a document to ask about it" : !selectedModel ? "No chat model is available" : null}
+                    disabledReason={
+                      !currentDocument
+                        ? "Open a document to ask about it"
+                        : !selectedModel
+                          ? "No chat model is available"
+                          : (chatNotice(chatProvider)?.disabledReason ?? null)
+                    }
+                    notice={chatNotice(chatProvider)?.sentence ?? null}
                     announcement={replyAnnouncement}
                     hasTranscription={currentTextLines.length > 0}
                   />
