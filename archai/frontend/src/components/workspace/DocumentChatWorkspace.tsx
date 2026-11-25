@@ -58,6 +58,7 @@ import {
 } from "./workspaceIntents";
 import { BackendStatusBanner } from "./BackendStatusBanner";
 import { answerProper, replyAnnouncement as announcementForReply } from "./chatAnswer";
+import { type ProviderWait, waitFrom, waitShown } from "./providerWait";
 import { parseSources } from "./citations";
 import { chatNotice, type ChatProviderState, defaultChatModel, providerState } from "./chatAvailability";
 import { ChatPanel } from "./ChatPanel";
@@ -221,6 +222,13 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
 
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  // The wait the provider asked for after a 429 (providerWait.ts), and the
+  // clock it is shown against, ticking once a second while there is one.
+  const [providerWait, setProviderWait] = useState<ProviderWait | null>(null);
+  const [waitNow, setWaitNow] = useState(0);
+  // The question the reader typed, while it is being asked: put back in the
+  // box if the provider's limit stops it.
+  const typedQuestionRef = useRef("");
   const [assistantLoadingLabel, setAssistantLoadingLabel] = useState("Thinking");
   const [error, setError] = useState<string | null>(null);
   const [segmentedPreviewByPageId, setSegmentedPreviewByPageId] = useState<Record<string, string>>({});
@@ -313,6 +321,27 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     }
     setAnnouncedFrom({ sending, label: assistantLoadingLabel, error, chat });
   }
+
+  // A provider wait counts down once a second and ends by itself; a short
+  // one, which held Ask, says once that Ask is back. Only in memory: a reload
+  // ends it, so Ask cannot stay held past its time.
+  useEffect(() => {
+    if (!providerWait) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setWaitNow(now);
+      if (now >= providerWait.until) {
+        setProviderWait(null);
+        if (providerWait.holds) {
+          setReplyAnnouncement("You can ask again.");
+        }
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [providerWait]);
+  const shownWait = waitShown(providerWait, waitNow);
 
   // When the metadata dialog closes, hand focus back to the control that
   // opened it; otherwise it falls to the page body and a keyboard user starts
@@ -536,6 +565,24 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     }));
   };
 
+  // A provider limit (429) with a wait: hold Ask for a short one, tell the
+  // time of a long one, and give the reader back the question they typed.
+  const noteProviderLimit = (err: unknown) => {
+    if (!(err instanceof ApiError) || err.status !== 429) {
+      return;
+    }
+    const now = Date.now();
+    const wait = waitFrom(err.retryAfterSeconds, now);
+    if (wait) {
+      setWaitNow(now);
+      setProviderWait(wait);
+    }
+    const typed = typedQuestionRef.current;
+    if (typed) {
+      setInput((value) => (value.trim() ? value : typed));
+    }
+  };
+
   const sendPromptToChat = async (
     text: string,
     options?: {
@@ -753,6 +800,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       const message = err instanceof Error ? err.message : "Chat request failed.";
       // The failure is shown once, where the answer would have been.
       setChatFailure(message);
+      noteProviderLimit(err);
       setMessagesByDocument((prev) => {
         const list = [...(prev[currentDocument.id] ?? [])];
         const index = list.findIndex((msg) => msg.id === assistantMessage.id);
@@ -777,6 +825,18 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   };
 
   const sendMessage = async () => {
+    if (shownWait.holdsAsk) {
+      return;
+    }
+    typedQuestionRef.current = input.trim();
+    try {
+      await sendTypedMessage();
+    } finally {
+      typedQuestionRef.current = "";
+    }
+  };
+
+  const sendTypedMessage = async () => {
     const text = input.trim();
     const documentId = currentDocument?.id ?? null;
     if (!text || !documentId) {
@@ -972,6 +1032,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       const message = err instanceof Error ? err.message : "Label analysis request failed.";
       setError(message);
       setLabelStatus(`Label analysis failed: ${message}`);
+      noteProviderLimit(err);
     } finally {
       setSending(false);
       setAssistantLoadingLabel("Thinking");
@@ -2074,6 +2135,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                     notice={chatNotice(chatProvider)?.sentence ?? null}
                     announcement={replyAnnouncement}
                     hasTranscription={currentTextLines.length > 0}
+                    waitNote={shownWait.note}
+                    askHeld={shownWait.holdsAsk}
                     lines={currentTextLines}
                     runId={currentOcrRunId || null}
                     pinnedLineIds={citedPinned}

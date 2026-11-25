@@ -112,7 +112,7 @@ def test_the_chat_answer_says_it_streamed_or_not(provider: None) -> None:
     assert answered.headers["retry-after"] == "1"
     streamed = client.post("/api/chat/completions", json={**body, "stream": True})
     events = [json.loads(line[6:]) for line in streamed.text.splitlines() if line.startswith("data: ")]
-    assert events == [{"type": "error", "error": SENTENCE}]
+    assert events == [{"type": "error", "error": SENTENCE, "retry_after_seconds": 1}]
 
 
 def test_the_verifier_says_why_the_answer_was_not_checked(provider: None, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -155,3 +155,41 @@ def test_label_analysis_says_it() -> None:
     with pytest.raises(LabelAnalysisAgentError) as caught:
         LabelAnalysisAgent(client=_LimitedClient()).run(payload)
     assert str(caught.value) == "SAIA label analysis failed: The chat provider is limiting requests right now. Try again in 7 seconds."
+
+
+def test_the_stream_says_how_long_to_wait_as_a_number_too(provider: None) -> None:
+    """The workspace holds the next question for the provider's wait; a streamed answer's status is
+    already 200, so the wait travels in the error event, as the provider's Retry-After gave it."""
+    client = TestClient(main.app)
+    streamed = client.post(
+        "/api/chat/completions",
+        json={"messages": [{"role": "user", "content": "Who?"}], "model": "qwen3-30b-a3b-instruct-2507", "stream": True},
+    )
+    events = [json.loads(line[6:]) for line in streamed.text.splitlines() if line.startswith("data: ")]
+    assert events == [{"type": "error", "error": SENTENCE, "retry_after_seconds": 1}]
+
+
+def test_label_analysis_answers_a_limit_as_the_chat_does(monkeypatch: pytest.MonkeyPatch) -> None:
+    import base64
+    import io
+
+    from PIL import Image
+
+    from app.agents.label_analysis_agent import LabelAnalysisAgent
+    from app.routers import chat as chat_router
+
+    monkeypatch.setattr(chat_router, "_get_label_analysis_agent", lambda: LabelAnalysisAgent(client=_LimitedClient()))
+    buffer = io.BytesIO()
+    Image.new("RGB", (120, 90), "white").save(buffer, format="PNG")
+    response = TestClient(main.app).post(
+        "/api/chat/label-analysis",
+        json={
+            "question": "What is this embellished initial?",
+            "label_name": "Embellished",
+            "image_b64": base64.b64encode(buffer.getvalue()).decode(),
+            "regions": [{"region_id": "a", "bbox_xyxy": [20, 15, 50, 45]}],
+        },
+    )
+    assert response.status_code == 429
+    assert response.json() == {"detail": "The chat provider is limiting requests right now. Try again in 7 seconds."}
+    assert response.headers["retry-after"] == "7"

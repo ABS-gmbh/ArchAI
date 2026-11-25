@@ -1,5 +1,5 @@
 import { applyStreamEvent, type ChatStreamEvent, type ChatStreamState, checkOutcome, INITIAL_STREAM } from "./chatStream";
-import { ApiError, fetchBackend, readErrorDetail } from "./client";
+import { ApiError, fetchBackend, readErrorDetail, retryAfterSeconds } from "./client";
 
 export interface ChatModelListResponse {
   models: string[];
@@ -134,7 +134,7 @@ export interface LabelAnalysisResult {
 export async function getChatModels(): Promise<ChatModelListResponse> {
   const res = await fetchBackend("/chat/models");
   if (!res.ok) {
-    throw new ApiError(res.status, await readErrorDetail(res));
+    throw new ApiError(res.status, await readErrorDetail(res), retryAfterSeconds(res));
   }
   return (await res.json()) as ChatModelListResponse;
 }
@@ -157,7 +157,7 @@ export async function createChatCompletion(
   });
 
   if (!res.ok) {
-    throw new ApiError(res.status, await readErrorDetail(res));
+    throw new ApiError(res.status, await readErrorDetail(res), retryAfterSeconds(res));
   }
 
   if (!useStream) {
@@ -215,6 +215,10 @@ export async function createChatCompletion(
 
         const event = JSON.parse(payloadText) as ChatStreamEvent;
         if (event.type === "error") {
+          // A provider limit's wait comes as a number beside the sentence: the stream's status is already 200.
+          if (typeof event.retry_after_seconds === "number") {
+            throw new ApiError(429, event.error || "The chat provider is limiting requests right now.", event.retry_after_seconds);
+          }
           throw new Error(event.error || "Streaming completion failed.");
         }
         const next = applyStreamEvent(state, event);
@@ -260,7 +264,7 @@ export async function analyzeSegmentLabel(
   }
 
   if (!res.ok) {
-    throw new ApiError(res.status, await readErrorDetail(res));
+    throw new ApiError(res.status, await readErrorDetail(res), retryAfterSeconds(res));
   }
 
   return (await res.json()) as LabelAnalysisResult;

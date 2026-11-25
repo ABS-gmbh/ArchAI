@@ -32,7 +32,7 @@ export type ChatStreamEvent =
       retrieval?: unknown;
       sources?: unknown;
     }
-  | { type: "error"; error?: string };
+  | { type: "error"; error?: string; retry_after_seconds?: number };
 
 export interface ChatStreamState {
   /** Every delta, the backend's appended blocks included. */
