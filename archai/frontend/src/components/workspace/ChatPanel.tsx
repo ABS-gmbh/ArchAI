@@ -113,7 +113,10 @@ function CitedAnswer({ text, sources, ...props }: { text: string; sources: reado
                     pinnedKey={props.pinnedKey}
                     onPreviewLines={props.onPreviewLines}
                     onPinLines={props.onPinLines}
-                    className="px-0.5 text-xs font-medium text-brand underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                    // The label is one or two digits of small text: an overlay
+                    // makes the target about 24 px each way for a finger,
+                    // without moving the line.
+                    className="relative px-0.5 text-xs font-medium text-brand underline decoration-dotted underline-offset-2 after:absolute after:-inset-x-2 after:-inset-y-1 after:content-[''] hover:decoration-solid"
                   >
                     {label}
                   </CitationButton>
