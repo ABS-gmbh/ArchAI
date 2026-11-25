@@ -5,7 +5,7 @@ import time
 from typing import Any, Callable, Sequence, cast
 
 from app.config import settings
-from app.services import setup_notices
+from app.services import provider_key, setup_notices
 
 
 class SaiaConfigError(RuntimeError):
@@ -108,7 +108,13 @@ class SaiaClient:
             from openai import OpenAI
         except Exception as exc:  # pragma: no cover
             raise SaiaClientError("openai package is required for SAIA client support.") from exc
-        return OpenAI(api_key=self._api_key, base_url=self._base_url, timeout=self._timeout_seconds)
+        # provider_key notes what the provider answers about the key on every call.
+        return OpenAI(
+            api_key=self._api_key,
+            base_url=self._base_url,
+            timeout=self._timeout_seconds,
+            http_client=provider_key.http_client(),
+        )
 
     @property
     def base_url(self) -> str:

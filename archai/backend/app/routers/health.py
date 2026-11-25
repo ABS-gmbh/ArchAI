@@ -8,9 +8,11 @@ no OCR run can be recorded without it.
 - ``database`` (required): the pipeline SQLite database answers a query.
 - ``ollama`` (optional): the GLM-OCR host answers /api/version. Without it the
   GLM-OCR engine and the segmented engine's fallback fail.
-- ``chat_api_key`` (optional): a SAIA / Chat AI key is configured. Whether it
-  is valid is not checked - that would cost a request per probe - and the key
-  itself is never returned.
+- ``chat_api_key`` (optional): a SAIA / Chat AI key is configured, and what
+  the provider last answered about it on the calls the app makes anyway
+  (provider_key.py): refused (401/403), accepted, or not asked yet. A refused
+  key is "degraded". Health sends nothing to the provider, and never returns
+  the key, the host or the provider's text.
 - ``layout_models`` (optional): the three YOLO layout weights are in MODEL_DIR
   and ultralytics is installed. Without them the segmented engine cannot read
   a page (GLM-OCR still can) and /api/predict fails.
@@ -55,11 +57,15 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.db import pipeline_db
 from app.body_limit import max_json_bytes
-from app.services import model_files
+from app.services import model_files, provider_key
 from app.services.image_limits import max_decode_pixels
 from app.services.saia_client import SaiaClient, SaiaConfigError
 
 router = APIRouter(tags=["health"])
+
+CHAT_KEY_REFUSED = (
+    "The chat provider refused this server's key: chat and translation are unavailable until it is replaced."
+)
 _LOGGER = logging.getLogger(__name__)
 
 _OLLAMA_TIMEOUT_SECONDS = 2.0
@@ -142,7 +148,14 @@ def _check_chat_api_key() -> dict[str, Any]:
         SaiaClient._resolve_api_key()
     except SaiaConfigError:
         return {"ok": False, "detail": "No chat API key is configured; chat and translation are unavailable."}
-    return {"ok": True, "detail": "A chat API key is configured; it is not validated here."}
+    # What the provider last answered about the key, from the calls the app
+    # makes anyway (provider_key.py): health itself sends nothing.
+    said = provider_key.state()
+    if said == "refused":
+        return {"ok": False, "detail": CHAT_KEY_REFUSED}
+    if said == "accepted":
+        return {"ok": True, "detail": "A chat API key is configured and the provider accepted it."}
+    return {"ok": True, "detail": "A chat API key is configured; the provider has not been asked yet."}
 
 
 def _check_layout_models() -> dict[str, Any]:
@@ -179,6 +192,13 @@ def _check_search_index() -> dict[str, Any]:
             "ok": False,
             "detail": "Pages are read but not indexed for search: the embedding model needs the chat key. Set the key, "
             "or set RAG_EMBEDDING_MODEL= to index with the local embedder (see docs/deployment.md).",
+        }
+    if provider_key.state() == "refused":
+        return {
+            "ok": False,
+            "detail": "Pages are read but not indexed for search: the chat provider refused this server's key, which the "
+            "embedding model needs. Replace the key, or set RAG_EMBEDDING_MODEL= to index with the local embedder "
+            "(see docs/deployment.md).",
         }
     return {"ok": True, "detail": "Pages are indexed with the provider's embedding model; the key is not validated here."}
 

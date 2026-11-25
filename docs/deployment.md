@@ -413,7 +413,8 @@ What it does not have, it drops without a word:
 curl -s http://127.0.0.1:8010/api/health
 ```
 
-`status` is `ok`, `degraded` (HTTP 200: Ollama unreachable, no chat key,
+`status` is `ok`, `degraded` (HTTP 200: Ollama unreachable, no chat key or
+one the provider refused,
 layout weights or line recogniser not installed, or pages that cannot be
 indexed for search) or `unavailable` (HTTP 503: the pipeline database cannot
 be used).
@@ -422,6 +423,13 @@ be used).
 (`MAX_JSON_MEGABYTES`) and `decode_pixels` (`OCR_MAX_DECODE_PIXELS`): the
 workspace checks a page against them before it reserves a run or sends
 anything, and says why it will not send it.
+
+Whether the provider accepts the chat key is learnt from the calls the app
+makes anyway (the model list when the workspace opens, questions,
+translation, embeddings, SAIA OCR), not by health, which sends nothing to the
+provider: `chat_api_key` says the key was accepted, not yet used, or refused
+(a 401 or 403 answer). A refused key is degraded until a later call succeeds
+or the server restarts with another key.
 
 The `search_index` check fails when `RAG_EMBEDDING_MODEL` names a provider
 model (the default, `multilingual-e5-large-instruct`) and there is no chat

@@ -228,7 +228,11 @@ def _embedding_client(openai_class: Any, api_key: str, base_url: str) -> Any:
     key = (api_key, base_url)
     with _LOCK:
         if key not in _EMBED_CLIENTS:
-            _EMBED_CLIENTS[key] = openai_class(api_key=api_key, base_url=base_url, timeout=_EMBED_TIMEOUT_SECONDS)
+            from app.services import provider_key  # notes what the provider answers about the key
+
+            _EMBED_CLIENTS[key] = openai_class(
+                api_key=api_key, base_url=base_url, timeout=_EMBED_TIMEOUT_SECONDS, http_client=provider_key.http_client()
+            )
         return _EMBED_CLIENTS[key]
 
 
