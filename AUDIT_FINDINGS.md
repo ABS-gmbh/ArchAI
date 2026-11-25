@@ -12,9 +12,9 @@ evidence. "Open" says why it was left and what the next step would be.
 |---|---:|---:|---:|---:|---:|
 | Critical | 5 | 5 | 0 | 0 | 0 |
 | High | 33 | 31 | 1 | 1 | 0 |
-| Medium | 60 | 47 | 9 | 1 | 3 |
+| Medium | 60 | 48 | 8 | 1 | 3 |
 | Low | 32 | 27 | 5 | 0 | 0 |
-| **All** | **130** | **110** | **15** | **2** | **3** |
+| **All** | **130** | **111** | **14** | **2** | **3** |
 
 Counted from the headings. SVC-24 ("not changed as proposed": the
 measurement favoured the code, and the docstring was corrected) is counted as
@@ -586,7 +586,7 @@ REQUIRED_JSON_KEYS = ("lines","text","script_hint","detected_language","confiden
 - **Impact:** Any run that ends in FAILED_QUALITY (the whole point of the gate machinery) never terminates its stream: the generator keeps re-reading the run row and event list from SQLite every 400 ms indefinitely, one open connection and one live event-loop task per watching client. A run killed by a process restart while status is RUNNING behaves the same way. Both also mean the sync `list_events` query runs on the event-loop thread twice a second per client.
 - **Fix:** Add `"FAILED_QUALITY"` to the terminal set at ocr.py:4661 (or test a `TERMINAL_STATUSES` constant shared with `update_run_fields` callers), add an absolute deadline that emits a final snapshot and breaks, and offload `_build_trace_snapshot` with `await asyncio.to_thread(...)` at ocr.py:4638.
 
-### [DB-03] SSE trace stream runs 4-6 synchronous SQLite queries every 400 ms directly on the asyncio event loop — partly fixed (the snapshot is read off the event loop; it still opens a connection per query and re-reads every event)
+### [DB-03] SSE trace stream runs 4-6 synchronous SQLite queries every 400 ms directly on the asyncio event loop — **FIXED** (the snapshot is read off the event loop, and on one connection: pipeline_db.read_trace. Measured on a scratch DB, per tick: 50 events 6 connections 2.96 ms before, 1 and 0.55 ms after; 400 events 3.35 ms → 0.90 ms; 2000 events 4.85 ms → 2.36 ms. The event list is still read whole each tick; at under 1 ms per 400 ms tick for a few hundred events no since-id cursor was added. tests/test_trace_snapshot_connections.py)
 
 - **Where:** `vendor:app/routers/ocr.py:4640`  
 - **Category:** performance  

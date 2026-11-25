@@ -38,6 +38,7 @@ from app.db.pipeline_db import (
     list_entity_mentions,
     list_events,
     log_event,
+    read_trace,
     reserve_run,
     table_view_for_chunks,
     table_view_for_entity_attempts,
@@ -628,23 +629,20 @@ def _latest_completed_stage(events: list[dict[str, Any]]) -> str | None:
 
 
 def _build_trace_snapshot(run_id: str) -> dict[str, Any] | None:
-    run = get_run(run_id)
-    if run is None:
+    # One connection for the whole snapshot (pipeline_db.read_trace); it was six per tick (audit DB-03).
+    trace = read_trace(run_id, preview_limit=20)
+    if trace is None:
         return None
-    events = list_events(run_id)
-    chunks_preview = list_chunks(run_id, limit=20)
-    mentions_preview = list_entity_mentions(run_id, limit=20)
-    chunks_count = int(run.get("chunks_count") or count_chunks(run_id))
-    mentions_count = int(run.get("mentions_count") or count_entity_mentions(run_id))
+    events = trace["events"]
     return {
         "run_id": run_id,
-        "run": run,
+        "run": trace["run"],
         "events": events,
         "latest_completed_stage": _latest_completed_stage(events),
-        "chunks_count": chunks_count,
-        "mentions_count": mentions_count,
-        "chunks_preview": chunks_preview,
-        "top_mentions": mentions_preview,
+        "chunks_count": trace["chunks_count"],
+        "mentions_count": trace["mentions_count"],
+        "chunks_preview": trace["chunks_preview"],
+        "top_mentions": trace["mentions_preview"],
     }
 
 
