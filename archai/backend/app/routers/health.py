@@ -206,7 +206,18 @@ def _check_search_index() -> dict[str, Any]:
             "embedding model needs. Replace the key, or set RAG_EMBEDDING_MODEL= to index with the local embedder "
             "(see docs/deployment.md).",
         }
-    return {"ok": True, "detail": "Pages are indexed with the provider's embedding model; the key is not validated here."}
+    # Said from the same remembered state as chat_api_key, so the two agree: it
+    # said "the key is not validated here" next to "the provider accepted it".
+    # The embedding model is not checked against the provider's model list:
+    # multilingual-e5-large-instruct, the default, is not in that list and
+    # answers anyway (measured 2026-11-25), so a list check would call a
+    # working setup broken.
+    if provider_key.state() == "accepted":
+        return {"ok": True, "detail": "Pages are indexed with the provider's embedding model; the provider accepted the key."}
+    return {
+        "ok": True,
+        "detail": "Pages are indexed with the provider's embedding model; the provider has not been asked about the key yet.",
+    }
 
 
 # What each provider-served task is called, and who its readers are, for the
