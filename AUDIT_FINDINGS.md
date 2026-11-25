@@ -12,9 +12,9 @@ evidence. "Open" says why it was left and what the next step would be.
 |---|---:|---:|---:|---:|---:|
 | Critical | 5 | 5 | 0 | 0 | 0 |
 | High | 33 | 31 | 1 | 1 | 0 |
-| Medium | 60 | 48 | 8 | 1 | 3 |
+| Medium | 60 | 49 | 7 | 1 | 3 |
 | Low | 32 | 28 | 4 | 0 | 0 |
-| **All** | **130** | **112** | **13** | **2** | **3** |
+| **All** | **130** | **113** | **12** | **2** | **3** |
 
 Counted from the headings. SVC-24 ("not changed as proposed": the
 measurement favoured the code, and the docstring was corrected) is counted as
@@ -820,7 +820,7 @@ That pair appears 9 times across 5 files (test_ocr_backends 2, test_rag_entity_i
 - **Impact:** A new test that imports app.db.pipeline_db and forgets either line writes into the developer's real 32 MB archai/vendor/layout/backend/app/archai.sqlite, corrupting live pipeline_runs rows; and because `_DB_READY` is a module global, forgetting only the setattr silently reuses the previously-initialised connection path, so the failure is order-dependent and will not reproduce when the file is run alone. The duplicated sys.path block also means tests only work when invoked with the right cwd and cannot be moved.
 - **Fix:** Add archai/vendor/layout/backend/conftest.py containing the sys.path insert once, plus an `@pytest.fixture(autouse=True)` that sets ARCHAI_DB_PATH to tmp_path and resets pipeline_db._DB_READY, then strip the 18 duplicated blocks and the 9 duplicated pairs. Add `[tool.pytest.ini_options] testpaths = ["tests"]` to archai/vendor/layout/backend/pyproject.toml so the suite has a defined rootdir instead of inheriting the repo-root one.
 
-### [HYG-15] mypy is configured to check 858 of the repo's 29,210 lines and skip the entire real backend — partly fixed (archai/backend/pyproject.toml has a non-strict [tool.mypy] for app/ with warn_unused_ignores; baseline 89 errors, none a confirmed runtime defect, listed in the backend README; 12 stale ignores removed. Whether CI gates on it is the user's decision)
+### [HYG-15] mypy is configured to check 858 of the repo's 29,210 lines and skip the entire real backend — **FIXED** (archai/backend/pyproject.toml has a non-strict [tool.mypy] for app/ with warn_unused_ignores, baseline 89 errors in 26 files recorded in the backend README, none a confirmed runtime defect; 12 stale ignores removed. tests/test_mypy_baseline.py fails on a changed count, and mypy==2.4.1 is in the dev extra since 2026-11-25, so it runs in CI's `backend (tests)` job: before, mypy was not installed there and the test skipped. Checked in a fresh Python 3.11 venv built from scripts/ci_requirements.py's output, as the workflow builds it: 89 errors in 26 files, and the test passes, not skipped)
 
 - **Where:** `pyproject.toml:95`  
 - **Category:** hygiene  

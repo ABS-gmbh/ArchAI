@@ -165,6 +165,11 @@ routers/ocr 5, trace_pipeline 4, ocr_image_prep 4, pipeline_db 3, and 1 or 2
 in each of 15 other modules. Untyped function bodies are not checked, so the
 count covers annotated code only.
 
+tests/test_mypy_baseline.py runs mypy and fails when the count differs from
+this paragraph's. mypy (2.4.1) is in the `dev` extra, so it runs in CI's
+`backend (tests)` job too: a change that adds an error, or removes one, has
+to update the count here.
+
 ## Test
 
 ```bash
