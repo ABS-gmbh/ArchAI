@@ -374,6 +374,21 @@ class PaleographyVerificationAgent(BaseAgent):
             if second:
                 selected_model = second
 
+        # A configured model the provider's last-read list lacks is not asked
+        # first: the 403 that would follow cost a call per question against the
+        # provider's 400-an-hour budget (2026-11-25: qwen3-235b-a22b, the
+        # default, is no longer offered). Not known yet, it is asked as before.
+        known = provider_key.offered()
+        if known is not None and selected_model.lower() not in {model.lower() for model in known}:
+            instead = second_model_for_checking(answer_model, list(known), exclude=[selected_model])
+            if instead:
+                setup_notices.report_once(
+                    f"model-not-offered:{selected_model}",
+                    f"The configured model {selected_model} is not offered by the provider; {instead} was used instead "
+                    "to check answers.",
+                )
+                selected_model = instead
+
         def _run_completion(target_model: str) -> Any:
             return provider_thinking.create(
                 client.chat.completions.create,
