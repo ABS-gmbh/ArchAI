@@ -131,6 +131,10 @@ def _messages_include_image(messages: Sequence[dict[str, Any]]) -> bool:
 
 
 def _is_model_not_found_error(exc: Exception) -> bool:
+    # A model the provider declines for this key (403 "Not authorized to access
+    # this Model") is as unusable as one it does not have (2026-11-25).
+    if provider_key.is_model_not_offered(exc):
+        return True
     text = str(exc).lower()
     return (
         "model not found" in text
@@ -229,6 +233,12 @@ def _run_chat_call_with_retries(
                 )
                 if not retry_model:
                     raise
+                # Once per model and process: the operator learns which model
+                # to configure; readers get the answer from the one used.
+                setup_notices.report_once(
+                    f"model-not-offered:{selected_model}",
+                    f"The configured model {selected_model} is not offered by the provider; {retry_model} was used instead.",
+                )
                 selected_model = retry_model
                 transient_attempt = 0
                 fallback_checked = True

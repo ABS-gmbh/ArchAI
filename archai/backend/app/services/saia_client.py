@@ -232,6 +232,8 @@ def is_model_not_found_error(exc: Exception) -> bool:
     """
     if getattr(exc, "status_code", None) == 404:
         return True
+    if provider_key.is_model_not_offered(exc):  # 403 "Not authorized to access this Model" (2026-11-25)
+        return True
     if str(getattr(exc, "code", "") or "").lower() == "model_not_found":
         return True
     text = str(exc).lower()

@@ -1,0 +1,138 @@
+"""A model the provider will not serve falls back, and is said once in the log.
+
+Found on a user's installation (2026-11-25): the provider answers the default
+translation model with `403 - Not authorized to access this Model:
+llama-3.3-70b-instruct` and no longer lists it, and the app did not recognise
+that 403 as a model it cannot use, so every translation failed instead of
+falling back to the chat model, as fallback_models_for_stage prescribes. A
+refused key is a 401 and must never be taken for it.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import threading
+from collections.abc import Iterator
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import pytest
+
+from app.config import settings
+from app.services import chat_ai, provider_key, saia_client, setup_notices
+
+KEY = "k" * 32
+# What the provider lists today (2026-11-25).
+OFFERED = [
+    "deepseek-v4-flash-0731", "deepseek-v4.1-flash-1017", "eurollm-22b-instruct-2512", "gemma-4-31b-it", "glm-5.3",
+    "glm-5.3-flash", "meta-llama-3.1-8b-instruct", "mistral-large-4-1t-a52b", "qwen3-30b-a3b-instruct-2507",
+    "qwen3-coder-next", "qwen3-omni-30b-a3b-instruct", "qwen3.5-397b-a17b", "qwen3.6-35b-a3b", "qwen3.8-27b",
+]
+
+
+class _Provider(BaseHTTPRequestHandler):
+    key_refused = False
+    asked: list[str] = []
+
+    def _send(self, status: int, body: object) -> None:
+        data = json.dumps(body).encode()
+        self.send_response(status)
+        self.send_header("content-type", "application/json")
+        self.send_header("content-length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_GET(self) -> None:  # /models
+        if self.key_refused:
+            return self._send(401, {"error": {"message": "Unknown API key"}})
+        self._send(200, {"object": "list", "data": [{"id": m, "object": "model"} for m in OFFERED]})
+
+    def do_POST(self) -> None:  # /chat/completions
+        payload = json.loads(self.rfile.read(int(self.headers.get("content-length") or 0)) or b"{}")
+        model = str(payload.get("model"))
+        type(self).asked.append(model)
+        if self.key_refused:
+            return self._send(401, {"error": {"message": "Unknown API key"}})
+        if model not in OFFERED:
+            return self._send(403, {"message": f"Not authorized to access this Model: {model}"})
+        self._send(200, {"id": "x", "object": "chat.completion", "created": 0, "model": model,
+                         "choices": [{"index": 0, "message": {"role": "assistant", "content": "Translated."}, "finish_reason": "stop"}]})
+
+    def log_message(self, *args: object) -> None:
+        pass
+
+
+@pytest.fixture
+def provider(monkeypatch: pytest.MonkeyPatch) -> Iterator[type[_Provider]]:
+    handler = type("Provider", (_Provider,), {"key_refused": False, "asked": []})
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_address[1]}/v1"
+    monkeypatch.setattr(settings, "chat_ai_api_key", KEY)
+    for name in ("chat_ai_base_url", "archai_chat_ai_base_url"):
+        monkeypatch.setattr(settings, name, base)
+    # A configured translation model the provider no longer offers, as on the
+    # user's installation (since then TRANSLATION_MODEL defaults to empty: the
+    # chat model translates).
+    monkeypatch.setattr(settings, "translation_model", "llama-3.3-70b-instruct")
+    provider_key.reset()
+    setup_notices.reset()
+    yield handler
+    server.shutdown()
+    provider_key.reset()
+    setup_notices.reset()
+
+
+TRANSLATE = {"chat_stage": "translation"}
+MESSAGES = [{"role": "user", "content": "Translate: Caldus de Lausanne"}]
+
+
+def test_a_translation_model_not_offered_falls_back_to_the_chat_model(provider: type[_Provider]) -> None:
+    assert settings.translation_model == "llama-3.3-70b-instruct"  # configured, and not offered
+    result = chat_ai.create_chat_completion(messages=MESSAGES, context=TRANSLATE)
+    assert result["text"] == "Translated."
+    assert result["model"] == settings.chat_rag_model  # the answer says which model produced it
+    assert provider.asked[0] == "llama-3.3-70b-instruct"
+    # The 403 was about the model, not the key.
+    assert provider_key.state() == "accepted"
+
+
+def test_the_log_says_once_per_model_which_was_used_instead(provider: type[_Provider], caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.WARNING):
+        chat_ai.create_chat_completion(messages=MESSAGES, context=TRANSLATE)
+        chat_ai.create_chat_completion(messages=MESSAGES, context=TRANSLATE)
+    lines = [r.getMessage() for r in caplog.records if "llama-3.3-70b-instruct" in r.getMessage()]
+    assert len(lines) == 1, lines
+    assert "not offered" in lines[0] and settings.chat_rag_model in lines[0]
+
+
+def test_a_streamed_translation_falls_back_too(provider: type[_Provider]) -> None:
+    events = list(chat_ai.stream_chat_completion(messages=MESSAGES, context=TRANSLATE))
+    done = [e for e in events if e.get("type") == "done"]
+    assert done and done[0]["model"] == settings.chat_rag_model
+
+
+def test_a_refused_key_is_never_taken_for_a_model_not_offered(provider: type[_Provider]) -> None:
+    provider.key_refused = True
+    with pytest.raises(Exception):
+        chat_ai.create_chat_completion(messages=MESSAGES, context=TRANSLATE)
+    assert provider.asked == ["llama-3.3-70b-instruct"]  # no fallback round on a 401
+    assert provider_key.state() == "refused"
+
+
+def test_the_shapes_of_the_errors() -> None:
+    import httpx
+    import openai
+
+    request = httpx.Request("POST", "https://provider.invalid/v1/chat/completions")
+
+    def error(cls: type[openai.APIStatusError], status: int, body: object) -> openai.APIStatusError:
+        return cls(f"Error code: {status} - {body}", response=httpx.Response(status, request=request), body=body)
+
+    not_offered = error(openai.PermissionDeniedError, 403, {"message": "Not authorized to access this Model: llama-3.3-70b-instruct"})
+    refused = error(openai.AuthenticationError, 401, {"message": "Unknown API key"})
+    other_403 = error(openai.PermissionDeniedError, 403, {"message": "Forbidden"})
+    for check in (chat_ai._is_model_not_found_error, saia_client.is_model_not_found_error):
+        assert check(not_offered) is True
+        assert check(refused) is False
+        assert check(other_403) is False
