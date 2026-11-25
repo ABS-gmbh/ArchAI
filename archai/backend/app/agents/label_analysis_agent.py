@@ -23,7 +23,9 @@ from app.services.model_router import get_task_model_assignments, is_vision_mode
 from app.services.saia_client import SaiaClient, is_model_not_found_error
 
 log = logging.getLogger(__name__)
-_TRANSIENT_LABEL_RETRY_DELAYS = (0.75, 1.5)
+# None: provider_retry already makes a call that met a 5xx once more; the
+# fallback model is still tried after it.
+_TRANSIENT_LABEL_RETRY_DELAYS: tuple[float, ...] = ()
 _TOTAL_LABEL_ANALYSIS_DEADLINE_SECONDS = 30.0
 
 _LABEL_GUIDANCE = {
@@ -935,7 +937,7 @@ class LabelAnalysisAgent(BaseAgent):
                         f"SAIA label analysis failed: {self._friendly_error(exc)}"
                     ) from exc
 
-                if self._is_transient_error(exc) and transient_attempt < 1:
+                if self._is_transient_error(exc) and transient_attempt < len(_TRANSIENT_LABEL_RETRY_DELAYS):
                     delay = _TRANSIENT_LABEL_RETRY_DELAYS[transient_attempt]
                     transient_attempt += 1
                     retry_count += 1

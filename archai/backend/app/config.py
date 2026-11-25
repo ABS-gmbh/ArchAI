@@ -213,6 +213,12 @@ class Settings(BaseSettings):
     # comma-separated prefixes below: mistral-large refuses it with 400. Any
     # other model that refuses it is asked again without it and not sent it
     # again by this process.
+    # A provider 429 is sent again once, after its Retry-After, only when that
+    # asks for at most this many seconds (the 10-requests-in-10-s limit); a
+    # longer wait or none (the hourly cap) is answered at once. 0: never.
+    # 5xx and refused connections are sent again once. The SDK retries nothing
+    # (app/services/provider_retry.py).
+    provider_retry_max_wait_seconds: float = 5.0
     chat_disable_thinking: bool = True
     chat_disable_thinking_except: str = "mistral-large"
 
@@ -221,6 +227,13 @@ class Settings(BaseSettings):
     def _positive_chat_timeout(cls, value: float) -> float:
         if value <= 0:
             raise ValueError(f"CHAT_AI_TIMEOUT_SECONDS must be greater than 0, got {value}")
+        return value
+
+    @field_validator("provider_retry_max_wait_seconds")
+    @classmethod
+    def _retry_wait_not_negative(cls, value: float) -> float:
+        if not value >= 0:
+            raise ValueError(f"PROVIDER_RETRY_MAX_WAIT_SECONDS must be 0 or more, got {value}")
         return value
 
     # Longest text a chat message may carry, per message and per text part (an

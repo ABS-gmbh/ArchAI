@@ -439,6 +439,13 @@ and the setting to change: `CHAT_RAG_MODEL`, `TRANSLATION_MODEL`,
 `PALEOGRAPHY_VERIFICATION_MODEL`. `/api/chat/models` lists the same under
 `not_offered`. The server log says once per model which one was used instead.
 
+A call to the provider is sent again at most once, by the backend, not by
+the OpenAI SDK (which retried every 429 and 5xx twice): a 5xx or a refused
+connection after half a second, and a 429 only when its `Retry-After` asks for
+at most `PROVIDER_RETRY_MAX_WAIT_SECONDS` (default 5, the 10-requests-in-10-s
+limit). A longer wait, or a 429 with none (the 400-an-hour cap), is answered at
+once, and the reader is told how long to wait when the provider said.
+
 Some provider models think before they answer unless told not to (qwen3.5,
 qwen3.6 and qwen3.8, measured 2026-11-25: 10 to 48 s, sometimes empty text).
 Every chat, translation, verifier, label-analysis and provider-OCR call asks

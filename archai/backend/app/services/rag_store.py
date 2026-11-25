@@ -31,6 +31,7 @@ from chromadb.config import Settings as ChromaSettings
 from app.services.public_errors import RequestRefused
 from app.config import settings
 from app.db import pipeline_db
+from app.services import provider_retry
 from app.services.lexical_retrieval import LexicalIndex, reciprocal_rank_fusion
 from app.services.rag_debug import log_index_done, log_index_status, log_retrieve_debug
 
@@ -212,7 +213,7 @@ def _embed(texts: list[str]) -> list[list[float]] | None:
     try:
         client = _embedding_client(OpenAI, _require_api_key(), _base_url())
         for start in range(0, len(texts), _EMBED_BATCH_SIZE):
-            response = client.embeddings.create(model=model, input=texts[start:start + _EMBED_BATCH_SIZE])
+            response = provider_retry.call(client.embeddings.create, model=model, input=texts[start:start + _EMBED_BATCH_SIZE])
             embeddings.extend(list(d.embedding) for d in response.data)
     except Exception as exc:  # noqa: BLE001 - any provider failure means no embeddings
         raise EmbeddingUnavailable(f"{model}: {exc}") from exc
@@ -230,8 +231,13 @@ def _embedding_client(openai_class: Any, api_key: str, base_url: str) -> Any:
         if key not in _EMBED_CLIENTS:
             from app.services import provider_key  # notes what the provider answers about the key
 
+            # What is tried again is decided by provider_retry, not by the SDK.
             _EMBED_CLIENTS[key] = openai_class(
-                api_key=api_key, base_url=base_url, timeout=_EMBED_TIMEOUT_SECONDS, http_client=provider_key.http_client()
+                api_key=api_key,
+                base_url=base_url,
+                timeout=_EMBED_TIMEOUT_SECONDS,
+                max_retries=0,
+                http_client=provider_key.http_client(),
             )
         return _EMBED_CLIENTS[key]
 

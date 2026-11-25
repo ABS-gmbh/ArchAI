@@ -38,6 +38,7 @@ from collections.abc import Callable
 from typing import Any
 
 from app.config import settings
+from app.services import provider_retry
 
 _KWARG = "chat_template_kwargs"
 _THINKING_OFF = {"enable_thinking": False}
@@ -157,14 +158,16 @@ def create(create_fn: Callable[..., Any], **kwargs: Any) -> Any:
 
 
 def _create(create_fn: Callable[..., Any], model: str, kwargs: dict[str, Any]) -> Any:
+    # Each attempt is itself tried once more on a transient failure (provider_retry);
+    # the retry without the kwarg is outside it.
     if not applies(model):
-        return create_fn(**kwargs)
+        return provider_retry.call(create_fn, **kwargs)
     try:
-        return create_fn(**_with_kwarg(kwargs))
+        return provider_retry.call(create_fn, **_with_kwarg(kwargs))
     except Exception as exc:
         if not _refuses_the_kwarg(exc):
             raise
-    response = create_fn(**_without_kwarg(kwargs))
+    response = provider_retry.call(create_fn, **_without_kwarg(kwargs))
     with _lock:
         _rejected.add(model.strip().lower())
     return response

@@ -113,6 +113,7 @@ changed: `RAG_TOP_K` from 5 to 8. `.env.example` no longer lists
 | `MAX_ACTIVE_BATCHES` | `8` | more batches may wait in the queue at once |
 | `CHAT_AI_TIMEOUT_SECONDS` | `180` | the chat provider is slower |
 | `CHAT_STREAM_CUMULATIVE` | `False` | the provider re-sends the whole answer with every stream chunk (an OpenAI-compatible one does not) |
+| `PROVIDER_RETRY_MAX_WAIT_SECONDS` | `5.0` | the provider's short-term rate limit asks for longer waits (a 429 is sent again only when its Retry-After is at most this) |
 | `CHAT_DISABLE_THINKING` | `True` | rarely: off, models that think by default (qwen3.5, qwen3.6, qwen3.8) answer slowly and sometimes with empty text |
 | `CHAT_DISABLE_THINKING_EXCEPT` | `"mistral-large"` | the provider refuses the thinking switch for another model (name prefixes, comma-separated) |
 | `CHAT_MAX_MESSAGE_CHARS` | `200000` | rarely |

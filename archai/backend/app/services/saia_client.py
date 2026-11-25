@@ -5,7 +5,7 @@ import time
 from typing import Any, Callable, Sequence, cast
 
 from app.config import settings
-from app.services import provider_key, provider_thinking, setup_notices
+from app.services import provider_key, provider_retry, provider_thinking, setup_notices
 
 
 class SaiaConfigError(RuntimeError):
@@ -108,11 +108,13 @@ class SaiaClient:
             from openai import OpenAI
         except Exception as exc:  # pragma: no cover
             raise SaiaClientError("openai package is required for SAIA client support.") from exc
-        # provider_key notes what the provider answers about the key on every call.
+        # provider_key notes what the provider answers about the key on every call;
+        # what is tried again is decided by provider_retry, not by the SDK.
         return OpenAI(
             api_key=self._api_key,
             base_url=self._base_url,
             timeout=self._timeout_seconds,
+            max_retries=0,
             http_client=provider_key.http_client(),
         )
 
@@ -127,7 +129,7 @@ class SaiaClient:
             if now < expires_at:
                 return list(cached_models)
 
-        response = self._client.models.list()
+        response = provider_retry.call(self._client.models.list)
         models: list[str] = []
         seen: set[str] = set()
         for item in getattr(response, "data", []) or []:
