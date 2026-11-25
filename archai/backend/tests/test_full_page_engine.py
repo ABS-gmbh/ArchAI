@@ -281,6 +281,13 @@ def _glm_result(text: str = "glm page text") -> GlmOllamaOcrResult:
     )
 
 
+@pytest.fixture(autouse=True)
+def _layout_installed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The route sees the layout models as installed (CI has neither weights nor ultralytics): the
+    tests fake _segment_page. A test of the missing case says so itself."""
+    monkeypatch.setattr(ocr_router, "missing_layout", lambda: [])
+
+
 @pytest.fixture
 def route(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     state: dict[str, Any] = {"agent": _LineAgent(), "glm_calls": 0, "pipeline": []}
@@ -352,6 +359,22 @@ def test_the_route_falls_back_to_glm_ocr(
     assert (result.ocr_engine, result.text, route["glm_calls"]) == ("glmocr", "glm page text", 1)
     assert reason in result.warnings
     assert route["pipeline"] == ["glmocr"]
+
+
+def test_without_the_layout_models_a_read_goes_to_glm_ocr_without_trying(
+    route: dict[str, Any], monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Startup logs once that the layout models are missing; each read still tried the segmented
+    engine, failed on the missing package and logged a traceback (2026-11-25)."""
+    import logging
+
+    monkeypatch.setattr(ocr_router, "missing_layout", lambda: ["the ultralytics package"])
+    monkeypatch.setattr(ocr_router, "_segment_page", lambda _data: pytest.fail("segmentation must not run"))
+    with caplog.at_level(logging.WARNING):
+        result = _extract()
+    assert (result.ocr_engine, route["glm_calls"]) == ("glmocr", 1)
+    assert "OCR_ENGINE_FALLBACK:segmented_not_installed" in result.warnings
+    assert not [record for record in caplog.records if record.exc_info]
 
 
 def test_a_page_the_recogniser_reads_as_nothing_goes_to_glm_ocr(

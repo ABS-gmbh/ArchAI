@@ -22,6 +22,7 @@ from app.agents.saia_ocr_agent import SaiaOCRAgent
 from app.agents.segmentation_agent import run_single_segmentation
 from app.core.constants import FINAL_CLASSES
 from app.services.public_errors import RequestRefused, public_failure
+from app.services.model_files import missing_layout
 from app.routers.errors import configuration_message, provider_failure, unexpected_error
 from app.db.pipeline_db import (
     claim_reserved_run,
@@ -1476,7 +1477,13 @@ async def _extract_full_page(
     ocr_backend = "glmocr"
     fallback_warnings: list[str] = []
     # A canned fixture is a GLM-OCR result; it never goes through segmentation.
-    if fixture is None and _full_page_engine(payload) == "segmented":
+    # Without the layout models or their package the segmented engine cannot
+    # run, which startup has logged once (model_files.log_missing_models): the
+    # page goes to GLM-OCR at once. It used to try, and log a traceback for
+    # every page read.
+    if fixture is None and _full_page_engine(payload) == "segmented" and missing_layout():
+        fallback_warnings.append("OCR_ENGINE_FALLBACK:segmented_not_installed")
+    elif fixture is None and _full_page_engine(payload) == "segmented":
         try:
             progress = _LineProgressEvents(run_id) if run_id is not None else None
             response, ocr_backend = await asyncio.to_thread(_run_segmented_full_page, payload, image_bytes, progress)

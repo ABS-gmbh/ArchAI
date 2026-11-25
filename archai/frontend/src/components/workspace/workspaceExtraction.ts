@@ -159,7 +159,10 @@ export function describeExtraction(result: OCRExtractResponse, rawText: string):
     badges.push({
       tone: "warn",
       label: `${others.length} ${others.length === 1 ? "warning" : "warnings"}`,
-      detail: others.join("; "),
+      // In words where the step messages have them (runSteps.ts); a code without words is shown as it came.
+      detail: others
+        .map((warning) => messageInWords(warning))
+        .reduce((said, next) => (said ? `${said}${said.endsWith(".") ? " " : "; "}${next}` : next), ""),
     });
   }
   return badges;
