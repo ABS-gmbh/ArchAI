@@ -22,6 +22,13 @@ chat_template the call is made once more without the kwarg, and when that
 succeeds the model is remembered for the rest of the process and not sent it
 again, so a provider change cannot break chat. Any other 400 is raised as it
 came, without a second call.
+
+A model that thinks anyway (glm-5.3 ignores the kwarg, mistral-large is not
+sent it) puts its thinking in `reasoning_content`, not `content`, and with a
+max_tokens budget it can spend the whole budget there and return an empty
+`content`. That is not an empty answer: create() raises ThinkingOnlyAnswer
+for it, which says so, and the streamed chat raises it when a stream carried
+thinking and no answer text. Thinking text is never taken as answer text.
 """
 
 from __future__ import annotations
@@ -38,6 +45,58 @@ _THINKING_OFF = {"enable_thinking": False}
 _lock = threading.Lock()
 # Models whose provider answered the kwarg with 400 and then answered without it.
 _rejected: set[str] = set()
+
+
+class ThinkingOnlyAnswer(RuntimeError):
+    """The model returned thinking (reasoning_content) and no answer text: its budget went on thinking."""
+
+    def __init__(self, model: str) -> None:
+        self.model = str(model or "")
+        super().__init__(
+            f"The model {self.model} spent its whole answer on thinking and returned no answer text."
+        )
+
+
+def _text_of(value: Any) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        parts: list[str] = []
+        for item in value:
+            text = item.get("text") if isinstance(item, dict) else getattr(item, "text", None)
+            if isinstance(text, str):
+                parts.append(text)
+        return "".join(parts)
+    return ""
+
+
+def reasoning_text(message: Any) -> str:
+    """The thinking a message or stream delta carries (`reasoning_content`, or `reasoning`), or ""."""
+    if message is None:
+        return ""
+    extra = getattr(message, "model_extra", None) or {}
+    for name in ("reasoning_content", "reasoning"):
+        value = getattr(message, name, None)
+        if value is None and isinstance(extra, dict):
+            value = extra.get(name)
+        text = _text_of(value)
+        if text:
+            return text
+    return ""
+
+
+def check_answer(response: Any, model: str) -> None:
+    """Raise ThinkingOnlyAnswer when *response* (non-streamed) has thinking and no answer text."""
+    choices = list(getattr(response, "choices", None) or [])
+    if not choices:
+        return
+    message = getattr(choices[0], "message", None)
+    if message is None:
+        return
+    if _text_of(getattr(message, "content", None)).strip():
+        return
+    if reasoning_text(message).strip():
+        raise ThinkingOnlyAnswer(model)
 
 
 def _excepted() -> tuple[str, ...]:
@@ -91,6 +150,13 @@ def _refuses_the_kwarg(exc: BaseException) -> bool:
 def create(create_fn: Callable[..., Any], **kwargs: Any) -> Any:
     """Call *create_fn* (a client's chat.completions.create) with thinking off where it applies."""
     model = str(kwargs.get("model") or "")
+    response = _create(create_fn, model, kwargs)
+    if not kwargs.get("stream"):
+        check_answer(response, model)
+    return response
+
+
+def _create(create_fn: Callable[..., Any], model: str, kwargs: dict[str, Any]) -> Any:
     if not applies(model):
         return create_fn(**kwargs)
     try:

@@ -1341,7 +1341,9 @@ def _run_paleography_verification(
     if not _should_run_verification(context, evidence_text):
         return None
 
-    def _degraded_verification(model_used: str) -> dict[str, Any]:
+    def _degraded_verification(
+        model_used: str, note: str = "Verifier response could not be parsed cleanly."
+    ) -> dict[str, Any]:
         stage_metadata = _build_stage_metadata(
             stage_name="verification",
             model_used=model_used,
@@ -1350,7 +1352,7 @@ def _run_paleography_verification(
         return {
             "assessment": "unavailable",
             "corrected_answer": draft_text,
-            "notes": ["Verifier response could not be parsed cleanly."],
+            "notes": [note],
             "citations_checked": [],
             "model_used": model_used,
             "stage_metadata": stage_metadata,
@@ -1368,7 +1370,7 @@ def _run_paleography_verification(
                 "final_output": {
                     "assessment": "unavailable",
                     "verified_answer": draft_text,
-                    "notes": ["Verifier response could not be parsed cleanly."],
+                    "notes": [note],
                     "citations_checked": [],
                 },
                 "confidence_or_assessment": "unavailable",
@@ -1406,13 +1408,30 @@ def _run_paleography_verification(
             "stage_metadata": result.stage_metadata,
             "inspection": result.inspection,
         }
-    except Exception:
+    except Exception as exc:
         fallback_model = ""
         try:
             fallback_model = str(agent._target_model() or "")
         except Exception:
             fallback_model = str(get_task_model_assignments().verifier_model or "")
+        thinking = _thinking_only_in(exc)
+        if thinking is not None:
+            return _degraded_verification(
+                thinking.model or fallback_model,
+                "The checking model spent its whole answer on thinking; the answer was not checked.",
+            )
         return _degraded_verification(fallback_model)
+
+
+def _thinking_only_in(exc: BaseException) -> provider_thinking.ThinkingOnlyAnswer | None:
+    seen: set[int] = set()
+    current: BaseException | None = exc
+    while current is not None and id(current) not in seen:
+        if isinstance(current, provider_thinking.ThinkingOnlyAnswer):
+            return current
+        seen.add(id(current))
+        current = current.__cause__ or current.__context__
+    return None
 
 
 def create_chat_completion(
@@ -1566,13 +1585,19 @@ def stream_chat_completion(
     )
 
     full_text = ""
+    # Thinking arrives as reasoning_content and is never answer text; a stream
+    # that carried thinking and no answer spent its budget on thinking.
+    thought = False
     if stage == "translation":
         for event in stream:
             choices = list(getattr(event, "choices", []) or [])
             if not choices:
                 continue
+            thought = thought or bool(provider_thinking.reasoning_text(getattr(choices[0], "delta", None)))
             raw_delta = _extract_choice_text(choices[0])
             _delta, full_text = _normalize_stream_delta(raw_delta, full_text)
+        if thought and not full_text.strip():
+            raise provider_thinking.ThinkingOnlyAnswer(selected_model)
         full_text = _normalize_translation_output(
             full_text,
             source_text=str((context or {}).get("transcript") or ""),
@@ -1584,11 +1609,14 @@ def stream_chat_completion(
             choices = list(getattr(event, "choices", []) or [])
             if not choices:
                 continue
+            thought = thought or bool(provider_thinking.reasoning_text(getattr(choices[0], "delta", None)))
             raw_delta = _extract_choice_text(choices[0])
             delta, full_text = _normalize_stream_delta(raw_delta, full_text)
             if not delta:
                 continue
             yield {"type": "delta", "delta": delta}
+        if thought and not full_text.strip():
+            raise provider_thinking.ThinkingOnlyAnswer(selected_model)
 
     # The answer is whole here. It is sent as its own event before the verifier
     # runs, so the reader can read it and ask the next question while it is
