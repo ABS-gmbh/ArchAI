@@ -136,3 +136,34 @@ def task_models_not_offered(offered: Sequence[str]) -> dict[str, str]:
         for task in TASK_MODEL_SETTINGS
         if payload.get(task) and payload[task].lower() not in available
     }
+
+
+# Models that read images. Shared by label analysis and the provider OCR (they
+# had a test each; label analysis's found no vision model in the provider's
+# catalogue and fell back to a text model: 2026-11-25).
+#
+# Known by name, from the provider's documentation (2026-11-25), and the
+# earlier defaults. Most of the provider's vision models carry no telling
+# fragment, so a name test alone does not find them. Add a model here when the
+# provider documents that it takes images; whether one really accepts an image
+# through this API is known only by sending it one.
+KNOWN_VISION_MODELS = frozenset(
+    {
+        "qwen3.5-397b-a17b",
+        "qwen3.8-27b",
+        "qwen3.6-35b-a3b",
+        "gemma-4-31b-it",
+        "qwen3-omni-30b-a3b-instruct",
+        "glm-5.3-flash",
+        "qwen3-vl-30b-a3b-instruct",
+        "internvl3.5-30b-a3b",
+    }
+)
+# And by name fragment, for models not listed above. "mistral" was one, and
+# matched mistral-large-4-1t-a52b, which the documentation lists as text only.
+VISION_MODEL_FRAGMENTS = ("vl", "vision", "internvl", "gemma", "omni", "pixtral")
+
+
+def is_vision_model(model_id: str) -> bool:
+    key = (model_id or "").strip().lower()
+    return key in KNOWN_VISION_MODELS or any(fragment in key for fragment in VISION_MODEL_FRAGMENTS)
