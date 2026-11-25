@@ -9,7 +9,7 @@ exception goes to the log and the client gets a sentence it can act on:
   failure streak (app/services/setup_notices.py);
 * the provider refused this server's key: 502;
 * the provider did not answer in time: 504;
-* the provider is rate-limiting: 429;
+* the provider is rate-limiting: 429, with the wait it asked for (Retry-After) in words and in the header;
 * the model spent its whole answer on thinking (provider_thinking): 502;
 * anything else: 500, naming what failed and that the details are logged.
 
@@ -31,6 +31,7 @@ import requests
 from fastapi import HTTPException
 
 from app.services.provider_thinking import ThinkingOnlyAnswer
+from app.services.public_errors import rate_limited
 
 _LOGGER = logging.getLogger("app.routers")
 
@@ -73,9 +74,10 @@ def provider_failure(exc: BaseException, *, provider: str) -> HTTPException | No
                 "Ask again, or choose another model.",
             )
         if isinstance(current, openai.RateLimitError):
-            return HTTPException(
-                status_code=429, detail=f"The {provider} is limiting requests right now. Try again in a minute."
-            )
+            sentence, wait = rate_limited(current, provider=provider) or ("", None)
+            # The provider's own wait, when it gave one, for the reader and for clients that read the header.
+            headers = {"Retry-After": str(wait)} if wait is not None else None
+            return HTTPException(status_code=429, detail=sentence, headers=headers)
     return None
 
 

@@ -9,7 +9,7 @@ import re
 import time
 from typing import Any
 
-from app.services.public_errors import RequestRefused
+from app.services.public_errors import RequestRefused, rate_limited
 from app.config import settings
 from app.services import provider_key, provider_thinking, setup_notices
 from app.services.model_router import (
@@ -1420,6 +1420,9 @@ def _run_paleography_verification(
                 thinking.model or fallback_model,
                 "The checking model spent its whole answer on thinking; the answer was not checked.",
             )
+        limited = rate_limited(exc)
+        if limited is not None:
+            return _degraded_verification(fallback_model, f"Not checked: {limited[0]}")
         return _degraded_verification(fallback_model)
 
 

@@ -17,7 +17,7 @@ from app.config import settings
 from app.core.constants import FINAL_CLASSES
 from app.services.provider_thinking import ThinkingOnlyAnswer
 from app.services import setup_notices
-from app.services.public_errors import public_failure
+from app.services.public_errors import public_failure, rate_limited
 from app.services.glm_ollama_ocr import GlmOllamaOcrError, build_glm_ocr_prompt, run_glm_ollama_ocr
 from app.services.model_router import get_task_model_assignments, is_vision_model
 from app.services.saia_client import SaiaClient, is_model_not_found_error
@@ -507,6 +507,9 @@ class LabelAnalysisAgent(BaseAgent):
 
     @staticmethod
     def _friendly_error(exc: Exception) -> str:
+        limited = rate_limited(exc)
+        if limited is not None:
+            return limited[0]
         if LabelAnalysisAgent._is_transient_error(exc):
             return "Upstream visual-analysis provider timed out or returned a transient proxy error. Please retry."
         # The provider's own text (hosts, ports, request details) goes to the log.
