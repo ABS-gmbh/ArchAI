@@ -188,6 +188,11 @@ class Settings(BaseSettings):
     # non-streaming completion gives up. A streamed answer only needs each
     # chunk within this time; a non-streamed one needs the whole answer.
     chat_ai_timeout_seconds: float = 180
+    # True only for a provider whose stream re-sends the whole answer so far
+    # with every chunk. An OpenAI-compatible stream sends each piece once, and
+    # treating its chunks as re-sent text dropped repeated characters ("1300"
+    # arrived as "130").
+    chat_stream_cumulative: bool = False
 
     @field_validator("chat_ai_timeout_seconds")
     @classmethod

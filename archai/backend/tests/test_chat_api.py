@@ -587,6 +587,8 @@ def test_stream_chat_completion_normalizes_cumulative_chunks(monkeypatch: Any) -
     )
     monkeypatch.setattr("app.services.chat_ai._create_client", lambda: fake)
     monkeypatch.setattr(settings, "chat_rag_model", "meta-llama-3.1-8b-instruct")
+    # Re-sent text is no longer guessed from the content: it is declared.
+    monkeypatch.setattr(settings, "chat_stream_cumulative", True)
 
     events = list(
         stream_chat_completion(
