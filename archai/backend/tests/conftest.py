@@ -183,8 +183,10 @@ def _no_held_tasks():
 @pytest.fixture(autouse=True)
 def _fresh_provider_state() -> Iterator[None]:
     """What the chat provider last said (app/services/provider_key.py) is process state: each test starts from nothing."""
-    from app.services import provider_key
+    from app.services import provider_key, provider_thinking
 
     provider_key.reset()
+    provider_thinking.reset()
     yield
     provider_key.reset()
+    provider_thinking.reset()

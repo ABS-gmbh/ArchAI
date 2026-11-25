@@ -8,7 +8,7 @@ from typing import Any
 
 from app.agents.base import BaseAgent
 from app.config import settings
-from app.services import provider_key, setup_notices
+from app.services import provider_key, provider_thinking, setup_notices
 from app.services.model_router import (
     fallback_models_for_stage,
     get_task_model_assignments,
@@ -375,7 +375,8 @@ class PaleographyVerificationAgent(BaseAgent):
                 selected_model = second
 
         def _run_completion(target_model: str) -> Any:
-            return client.chat.completions.create(
+            return provider_thinking.create(
+                client.chat.completions.create,
                 model=target_model,
                 messages=messages,
                 temperature=float(settings.paleography_verification_temperature),

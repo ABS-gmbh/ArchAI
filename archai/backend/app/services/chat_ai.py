@@ -11,7 +11,7 @@ from typing import Any
 
 from app.services.public_errors import RequestRefused
 from app.config import settings
-from app.services import provider_key, setup_notices
+from app.services import provider_key, provider_thinking, setup_notices
 from app.services.model_router import (
     chat_stage_from_context,
     fallback_models_for_stage,
@@ -1439,7 +1439,8 @@ def create_chat_completion(
     effective_temperature = 0.0 if stage == "translation" else float(temperature)
 
     def _run_completion(target_model: str) -> Any:
-        return client.chat.completions.create(
+        return provider_thinking.create(
+            client.chat.completions.create,
             model=target_model,
             messages=prepared_messages,
             temperature=effective_temperature,
@@ -1548,7 +1549,8 @@ def stream_chat_completion(
     effective_temperature = 0.0 if stage == "translation" else float(temperature)
 
     def _run_stream(target_model: str) -> Any:
-        return client.chat.completions.create(
+        return provider_thinking.create(
+            client.chat.completions.create,
             model=target_model,
             messages=prepared_messages,
             temperature=effective_temperature,
