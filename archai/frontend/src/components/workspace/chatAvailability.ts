@@ -41,3 +41,16 @@ export function chatNotice(state: ChatProviderState): ChatNotice | null {
   }
   return null;
 }
+
+/**
+ * The model a question goes to: the backend's `default_model` when the model
+ * list answered, then its chat task model, and *offline* (the frontend's own
+ * default) only when the backend said neither or did not answer.
+ */
+export function defaultChatModel(payload: unknown, offline: string): string {
+  const list = payload as { default_model?: unknown; task_models?: { chat_rag_model?: unknown } | null } | null;
+  const named = [list?.default_model, list?.task_models?.chat_rag_model].find(
+    (value): value is string => typeof value === "string" && value.trim() !== "",
+  );
+  return named ? named.trim() : offline;
+}

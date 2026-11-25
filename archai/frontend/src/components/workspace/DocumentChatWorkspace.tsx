@@ -59,7 +59,7 @@ import {
 import { BackendStatusBanner } from "./BackendStatusBanner";
 import { answerProper } from "./chatAnswer";
 import { parseSources } from "./citations";
-import { chatNotice, type ChatProviderState, providerState } from "./chatAvailability";
+import { chatNotice, type ChatProviderState, defaultChatModel, providerState } from "./chatAvailability";
 import { ChatPanel } from "./ChatPanel";
 import { DocumentPanel } from "./DocumentPanel";
 import { EntitiesPanel, type LinkingState } from "./EntitiesPanel";
@@ -204,6 +204,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [visionModelIds, setVisionModelIds] = useState<Set<string>>(new Set());
   const [taskModels, setTaskModels] = useState(DEFAULT_TASK_MODELS);
   const [selectedModel, setSelectedModel] = useState<string>(DEFAULT_CHAT_MODEL_ID);
+  // The backend's default chat model once /chat/models answers; the frontend's
+  // own only until then, or when it does not answer.
+  const [backendDefaultModel, setBackendDefaultModel] = useState<string>(DEFAULT_CHAT_MODEL_ID);
   // What the model list said about the chat provider when the workspace opened
   // (chatAvailability.ts): a refused key is said in the Ask panel before anything is asked.
   const [chatProvider, setChatProvider] = useState<ChatProviderState>("unknown");
@@ -340,7 +343,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
         setModelsAnswered((count) => count + 1);
         setVisionModelIds(new Set(payload.vision_models));
         setTaskModels(payload.task_models || DEFAULT_TASK_MODELS);
-        setSelectedModel(payload.default_model || payload.task_models?.chat_rag_model || DEFAULT_CHAT_MODEL_ID);
+        const chosen = defaultChatModel(payload, DEFAULT_CHAT_MODEL_ID);
+        setBackendDefaultModel(chosen);
+        setSelectedModel(chosen);
       })
       .catch(() => {
         // The defaults stay in place. Why the backend did not answer is the
@@ -364,7 +369,9 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     const persisted = readPersistedState();
     if (persisted) {
       setIncludeCurrentPageImage(Boolean(persisted.includeCurrentPageImage));
-      setSelectedModel(DEFAULT_CHAT_MODEL_ID);
+      // The backend's default, not the frontend's: this reset used the
+      // constant, and a document opened by its route then asked another model.
+      setSelectedModel(backendDefaultModel);
     }
   }
 
