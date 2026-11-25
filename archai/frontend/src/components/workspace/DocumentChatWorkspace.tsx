@@ -58,6 +58,7 @@ import {
 } from "./workspaceIntents";
 import { BackendStatusBanner } from "./BackendStatusBanner";
 import { answerProper } from "./chatAnswer";
+import { parseSources } from "./citations";
 import { chatNotice, type ChatProviderState, providerState } from "./chatAvailability";
 import { ChatPanel } from "./ChatPanel";
 import { DocumentPanel } from "./DocumentPanel";
@@ -187,6 +188,9 @@ function focusWhenShown(selector: string, frames = 20): void {
   });
 }
 
+/** No cited lines: one array, so the panes do not re-render for a new empty one. */
+const NO_LINES: string[] = [];
+
 export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspaceProps) {
   // False on the server and while hydrating, true in the browser after: the
   // workspace reads sessionStorage and window, which the server has not got.
@@ -235,6 +239,11 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const [openError, setOpenError] = useState<string | null>(null);
   const [activeLineId, setActiveLineId] = useState<string | null>(null);
   const [scrollToLineId, setScrollToLineId] = useState<string | null>(null);
+  // The lines an answer's [n] stands for: shown while its button has focus or
+  // the pointer, and kept after a click until the next click on it.
+  const [citedPreview, setCitedPreview] = useState<string[] | null>(null);
+  const [citedPinned, setCitedPinned] = useState<string[] | null>(null);
+  const citedLineIds = citedPreview ?? citedPinned ?? NO_LINES;
   // Which region is shown where the screen has room for one: the page, its text, or a panel.
   // On a phone the page comes first; wider screens start on its text. (The
   // workspace renders in the browser only; `window` is checked for the server.)
@@ -688,6 +697,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
             content: answerProper(answer.text),
             retrieval: answer.retrieval ?? null,
             check: answer.check === "checking" ? "checking" : undefined,
+            sources: parseSources(answer.sources),
           });
           if (chatRequestRef.current === request) {
             setSending(false);
@@ -711,6 +721,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
               : answer,
             retrieval: result.retrieval ?? null,
             check: result.check === "not_checked" ? "not_checked" : undefined,
+            sources: parseSources(result.sources),
             verification: result.verification
               ? {
                   assessment: String(result.verification.assessment || ""),
@@ -1963,6 +1974,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
               lines={currentPageId ? pageLinesByPageId[currentPageId] ?? [] : []}
               pageSize={currentPageId ? pageSizeByPageId[currentPageId] ?? null : null}
               activeLineId={activeLineId}
+              citedLineIds={citedLineIds}
               onActiveLine={setActiveLineId}
               onSelectLine={(id) => {
                 setActiveLineId(id);
@@ -2009,6 +2021,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                     : []
                 }
                 activeLineId={activeLineId}
+                citedLineIds={citedLineIds}
                 scrollToLineId={scrollToLineId}
                 onActiveLine={setActiveLineId}
                 onRead={readPage}
@@ -2046,6 +2059,17 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                     notice={chatNotice(chatProvider)?.sentence ?? null}
                     announcement={replyAnnouncement}
                     hasTranscription={currentTextLines.length > 0}
+                    lines={currentTextLines}
+                    runId={currentOcrRunId || null}
+                    pinnedLineIds={citedPinned}
+                    onPreviewLines={setCitedPreview}
+                    onPinLines={(ids) => {
+                      const same = citedPinned !== null && citedPinned.join(" ") === ids.join(" ");
+                      setCitedPinned(same ? null : ids);
+                      if (!same && ids.length) {
+                        setScrollToLineId(ids[0]);
+                      }
+                    }}
                   />
                 ) : null}
                 {panel === "names" ? (

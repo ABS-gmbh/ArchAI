@@ -50,8 +50,20 @@ export interface ChatRetrievalStatus {
   verifier: "ran" | "unavailable" | "skipped" | "disabled";
 }
 
+/** What an answer's [n] label stands for: its run and, where known, the first and last line of the page (1-based). */
+export interface ChatSource {
+  label: string;
+  run_id: string;
+  line_start?: number;
+  line_end?: number;
+  /** The answer names this label. */
+  cited?: boolean;
+}
+
 export interface ChatCompletionResult {
   text: string;
+  /** What each [n] label of the answer stands for, as the backend sent it; components/workspace/citations.ts parses it. */
+  sources?: unknown;
   /** The stream closed before its final event: `text` is only the part that arrived. */
   incomplete?: boolean;
   /** How the answer's check ended (chatStream.ts checkOutcome); streamed answers only. */
@@ -171,6 +183,7 @@ export async function createChatCompletion(
     inspection: state.inspection as ChatCompletionResult["inspection"],
     verification: state.verification as ChatCompletionResult["verification"],
     retrieval: state.retrieval as ChatCompletionResult["retrieval"],
+    sources: state.sources,
     // A stream that ends without "done" was cut off (proxy timeout, dropped
     // connection): what arrived may not be the whole answer.
     incomplete: !state.finished && state.answer === null,

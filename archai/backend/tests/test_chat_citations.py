@@ -89,3 +89,12 @@ def test_the_answer_carries_its_sources_streamed_or_not(monkeypatch: pytest.Monk
     _setup(monkeypatch, _FakeStreamClient(["meta-llama-3.1-8b-instruct"], deltas=["Sages ", "hom."]))
     done = list(chat_ai.stream_chat_completion(messages=[{"role": "user", "content": "Who?"}], context={"ocr_run_id": "run-1"}))[-1]
     assert done["type"] == "done" and done["sources"][0]["label"] == "1" and done["sources"][0]["cited"] is False
+
+
+def test_the_answer_event_carries_the_sources_before_the_verdict(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The workspace shows the answer at "answer" and the verdict later: its [n] buttons need the sources then."""
+    _setup(monkeypatch, _FakeStreamClient(["meta-llama-3.1-8b-instruct"], deltas=["Sages ", "hom [1]."]))
+    events = list(chat_ai.stream_chat_completion(messages=[{"role": "user", "content": "Who?"}], context={"ocr_run_id": "run-1"}))
+    answer = next(event for event in events if event["type"] == "answer")
+    assert answer["sources"][0]["label"] == "1" and answer["sources"][0]["cited"] is True
+    assert answer["sources"][0]["line_start"] == 3

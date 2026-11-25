@@ -1,4 +1,4 @@
-import type { ChatRetrievalStatus } from "@/lib/api/chat";
+import type { ChatRetrievalStatus, ChatSource } from "@/lib/api/chat";
 
 export type ChatRole = "user" | "assistant" | "system";
 
@@ -42,6 +42,8 @@ export interface WorkspaceChatMessage {
   verification?: { assessment: string; corrected_answer: string; notes: string[]; self_check?: boolean } | null;
   /** The answer is shown and its check is running ("checking"), or the check never came back ("not_checked"). */
   check?: "checking" | "not_checked";
+  /** What each [n] label of the answer stands for: its run and its lines on the page. */
+  sources?: ChatSource[];
 }
 
 export interface WorkspacePersistedState {

@@ -1631,6 +1631,8 @@ def stream_chat_completion(
         "context_used": bool(context),
         "retrieval": _retrieval_payload(evidence_text, None, context),
         "checking": checking,
+        # With the answer, so the workspace's [n] buttons come before the verdict.
+        "sources": _cited_sources(full_text, evidence_text),
     }
 
     verification = _run_paleography_verification(

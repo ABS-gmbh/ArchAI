@@ -22,6 +22,8 @@ export interface PageViewerProps {
   /** The frame the boxes are in; falls back to the image's natural size. */
   pageSize: { width: number; height: number } | null;
   activeLineId: string | null;
+  /** The lines an answer's [n] stands for: their boxes are lit like the line in focus, shown even with the boxes off. */
+  citedLineIds?: readonly string[];
   onActiveLine: (id: string | null) => void;
   onSelectLine: (id: string) => void;
   onOpenPages: () => void;
@@ -55,6 +57,7 @@ export function PageViewer({
   lines,
   pageSize,
   activeLineId,
+  citedLineIds = [],
   onActiveLine,
   onSelectLine,
   onOpenPages,
@@ -140,6 +143,8 @@ export function PageViewer({
   const measured = natural && natural.id === page.id ? natural : null;
   const frame = pageSize ?? measured;
   const boxed = lines.filter((line) => Array.isArray(line.bbox_xyxy) && line.bbox_xyxy.length === 4);
+  // With the boxes off, the lines an answer cites are still drawn.
+  const drawn = showLines && !usingRegions ? boxed : boxed.filter((line) => citedLineIds.includes(line.region_id));
   const percent = Math.round(zoom * 100);
 
   return (
@@ -169,7 +174,7 @@ export function PageViewer({
               }
             }}
           />
-          {frame && showLines && !usingRegions && boxed.length ? (
+          {frame && drawn.length ? (
             <svg
               aria-hidden="true"
               viewBox={`0 0 ${frame.width} ${frame.height}`}
@@ -177,9 +182,9 @@ export function PageViewer({
               className="absolute inset-0 h-full w-full"
               onMouseLeave={() => onActiveLine(null)}
             >
-              {boxed.map((line) => {
+              {drawn.map((line) => {
                 const [x0, y0, x1, y1] = line.bbox_xyxy as [number, number, number, number];
-                const active = line.region_id === activeLineId;
+                const active = line.region_id === activeLineId || citedLineIds.includes(line.region_id);
                 return (
                   <rect
                     key={line.region_id}

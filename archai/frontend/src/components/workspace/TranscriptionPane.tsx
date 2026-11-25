@@ -39,6 +39,8 @@ interface TranscriptionPaneProps {
   marginLines: string[];
   badges: ExtractionBadge[];
   activeLineId: string | null;
+  /** The lines an answer's [n] stands for, lit up like the line in focus. */
+  citedLineIds?: readonly string[];
   /** The line to bring into view, set when a box on the page is clicked. */
   scrollToLineId: string | null;
   onActiveLine: (id: string | null) => void;
@@ -59,6 +61,7 @@ export function TranscriptionPane({
   marginLines,
   badges,
   activeLineId,
+  citedLineIds = [],
   scrollToLineId,
   onActiveLine,
   onRead,
@@ -205,6 +208,7 @@ export function TranscriptionPane({
             >
               {lines.map((line, index) => {
                 const active = line.id === activeLineId;
+                const cited = citedLineIds.includes(line.id);
                 return (
                   <li key={line.id} data-line-id={line.id}>
                     <button
@@ -216,11 +220,12 @@ export function TranscriptionPane({
                       onFocus={() => onActiveLine(line.id)}
                       onClick={() => onActiveLine(line.id)}
                       className={`group grid w-full grid-cols-[2rem_minmax(0,1fr)_auto] items-baseline gap-x-3 rounded-md px-2 py-0.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-brand ${
-                        active ? "bg-brand-wash" : "hover:bg-well"
+                        active || cited ? "bg-brand-wash" : "hover:bg-well"
                       }`}
                     >
-                      <span className={`text-right font-sans text-xs tabular-nums ${active ? "text-brand" : "text-ink-muted"}`}>
+                      <span className={`text-right font-sans text-xs tabular-nums ${active || cited ? "text-brand" : "text-ink-muted"}`}>
                         {index + 1}
+                        {cited ? <span className="sr-only"> (cited)</span> : null}
                       </span>
                       <span className="min-w-0 break-words">
                         {line.text || <span className="text-ink-muted">(nothing read)</span>}
