@@ -98,6 +98,7 @@ changed: `RAG_TOP_K` from 5 to 8. `.env.example` no longer lists
 | `MAX_CONCURRENT_BATCHES` | `2` | the machine has memory for more |
 | `MAX_ACTIVE_BATCHES` | `8` | more batches may wait in the queue at once |
 | `CHAT_AI_TIMEOUT_SECONDS` | `180` | the chat provider is slower |
+| `CHAT_STREAM_CUMULATIVE` | `False` | the provider re-sends the whole answer with every stream chunk (an OpenAI-compatible one does not) |
 | `CHAT_MAX_MESSAGE_CHARS` | `200000` | rarely |
 | `ANALYTICS_LOGIN_MAX_FAILURES` | `5` | many people share one address |
 | `ANALYTICS_LOGIN_MAX_FAILURES_PER_USERNAME` | `10` | rarely |

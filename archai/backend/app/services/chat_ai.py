@@ -1222,28 +1222,22 @@ def _extract_choice_text(choice: Any) -> str:
 
 
 def _normalize_stream_delta(raw_delta: str, current_text: str) -> tuple[str, str]:
-    """Convert cumulative or overlapping stream chunks into append-only deltas."""
+    """The text to append for one stream chunk, and the text so far.
+
+    An OpenAI-compatible stream sends each chunk once, so a chunk is appended
+    as it came. This used to guess at re-sent text: a chunk that repeated the
+    end of the text so far was dropped, and an overlapping start was cut. Real
+    answers repeat characters all the time, so "1", "3", "0", "0" reached the
+    reader as "130" and a chunk id lost a digit (seen live, 2026-11-25).
+
+    A provider that re-sends the whole text with every chunk has to be
+    declared with CHAT_STREAM_CUMULATIVE; nothing is guessed from the content.
+    """
     if not raw_delta:
         return "", current_text
-
-    if not current_text:
-        return raw_delta, raw_delta
-
-    if raw_delta.startswith(current_text):
+    if settings.chat_stream_cumulative and current_text and raw_delta.startswith(current_text):
         return raw_delta[len(current_text):], raw_delta
-
-    if current_text.endswith(raw_delta):
-        return "", current_text
-
-    max_overlap = min(len(current_text), len(raw_delta))
-    overlap = 0
-    for size in range(max_overlap, 0, -1):
-        if current_text.endswith(raw_delta[:size]):
-            overlap = size
-            break
-
-    append_delta = raw_delta[overlap:]
-    return append_delta, current_text + append_delta
+    return raw_delta, current_text + raw_delta
 
 
 def _should_run_verification(context: dict[str, Any] | None, evidence_text: str) -> bool:
