@@ -2,6 +2,8 @@ import { ApiError, fetchBackend, readErrorDetail } from "./client";
 
 export interface ChatModelListResponse {
   models: string[];
+  /** Whether the list is the provider's ("ok"), or configured names because it refused the key or did not answer. */
+  provider?: "ok" | "refused" | "unreachable";
   default_model: string;
   vision_models: string[];
   task_models?: {

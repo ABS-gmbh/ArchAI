@@ -24,6 +24,8 @@ interface ChatPanelProps {
   onClear: () => void;
   /** Why the composer is off, in words; null when a question can be asked. */
   disabledReason: string | null;
+  /** Said at the top of the panel before anything is asked: the chat provider refused the key, or did not answer. */
+  notice?: string | null;
   /** Said once to screen readers when a reply ends. */
   announcement: string;
   hasTranscription: boolean;
@@ -78,6 +80,7 @@ export function ChatPanel({
   onSend,
   onClear,
   disabledReason,
+  notice,
   announcement,
   hasTranscription,
 }: ChatPanelProps) {
@@ -89,6 +92,11 @@ export function ChatPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {notice ? (
+        <p role="note" className="mx-6 mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+          {notice}
+        </p>
+      ) : null}
       <div
         role="log"
         aria-label="Conversation"
