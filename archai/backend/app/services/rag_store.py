@@ -789,6 +789,21 @@ def _search_scope(run_ids: Sequence[str] | None, asset_ref: str | None) -> list[
     return [row["run_id"] for row in pipeline_db.searchable_runs(run_ids, asset_ref=asset_ref)]
 
 
+RUN_SCOPE_REQUIRED = "this server searches only within a run, and no run was named"
+
+
+def run_scope_missing(run_ids: Sequence[str] | None) -> bool:
+    """Whether a search must be refused: RAG_REQUIRE_RUN_SCOPE is on and it names no run.
+
+    Without a run, a search covers the newest reading of every page on the
+    server. On a server several groups of readers use, that answers one
+    visitor's question from another visitor's pages.
+    """
+    if not settings.rag_require_run_scope:
+        return False
+    return not any(str(run_id or "").strip() for run_id in (run_ids or ()))
+
+
 def _scope_filter(run_ids: Sequence[str]) -> dict[str, Any]:
     """Chroma ``where`` clause restricting a query to *run_ids*."""
     id_list = list(run_ids)
@@ -861,6 +876,8 @@ def retrieve_chunks(
     distance, or None where it could not be computed.
     """
     k = top_k or settings.rag_top_k
+    if run_scope_missing(run_ids):
+        return RetrievalResult(mode="none", notes=[RUN_SCOPE_REQUIRED])
     scope = _search_scope(run_ids, asset_ref)
     if not scope:
         return RetrievalResult(mode="none", notes=["no searchable run in scope"])
@@ -1042,6 +1059,8 @@ def retrieve_entities(
     Over the same searchable runs as :func:`retrieve_chunks`, dense only.
     """
     k = top_k or settings.rag_entity_top_k
+    if run_scope_missing(run_ids):
+        return RetrievalResult(mode="none", notes=[RUN_SCOPE_REQUIRED])
     scope = _search_scope(run_ids, asset_ref)
     if not scope:
         return RetrievalResult(mode="none", notes=["no searchable run in scope"])

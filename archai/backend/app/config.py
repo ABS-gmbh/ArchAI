@@ -306,6 +306,14 @@ class Settings(BaseSettings):
     # merged. The 9 misses at 5 are English questions sharing no word with the
     # Old French or Latin passage. With multilingual-e5 (--embedder e5-local)
     # it reached the evidence for 55 at 5 and all 62 at 8 (eval/chat/README.md).
+    # On a server open to more than one group of readers, a search must name
+    # the run it searches. Without this a chat question sent with no run, or
+    # /api/index/search without run_id, searches the newest reading of every
+    # page on the server, so one visitor's question is answered from another
+    # visitor's pages, with their run ids in the sources. With it, such a
+    # search finds nothing and says why. A run id is a random UUID: knowing
+    # it is what gives access to a run.
+    rag_require_run_scope: bool = False
     rag_top_k: int = 8
     rag_entity_top_k: int = 4
     rag_auto_index: bool = True
