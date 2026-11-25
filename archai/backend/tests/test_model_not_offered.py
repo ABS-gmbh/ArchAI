@@ -195,3 +195,54 @@ def test_every_configured_model_offered_is_ok(provider: type[_Provider], monkeyp
         monkeypatch.setattr(settings, name, "qwen3-omni-30b-a3b-instruct")
     chat_ai.list_available_models()
     assert _health_task_models() == {"ok": True, "detail": "The provider offers every configured model."}
+
+
+# ── (c) Label analysis and the provider OCR say so ──────────────────────
+
+def _png_b64() -> str:
+    import base64
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (200, 120), "white").save(buf, "PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+
+def test_label_analysis_falls_back_and_the_log_says_so_once(provider: type[_Provider], caplog: pytest.LogCaptureFixture) -> None:
+    from fastapi.testclient import TestClient
+
+    import app.main as main
+
+    client = TestClient(main.app)
+    body = {
+        "question": "Which letter is this initial?",
+        "label_name": "Plain initial - Black",
+        "image_b64": _png_b64(),
+        "regions": [{"region_id": "r1", "bbox_xyxy": [10, 10, 100, 60], "polygons": []}],
+    }
+    with caplog.at_level(logging.WARNING):
+        first = client.post("/api/chat/label-analysis", json=body)
+        client.post("/api/chat/label-analysis", json=body)
+    assert first.status_code == 200
+    assert first.json()["model_used"] != "qwen3-vl-30b-a3b-instruct"  # the answer names the model used
+    lines = [r.getMessage() for r in caplog.records if "qwen3-vl-30b-a3b-instruct" in r.getMessage() and "not offered" in r.getMessage()]
+    assert len(lines) == 1, lines
+
+
+def test_the_provider_ocr_says_its_model_is_not_offered(provider: type[_Provider], caplog: pytest.LogCaptureFixture) -> None:
+    from fastapi.testclient import TestClient
+
+    import app.main as main
+
+    with caplog.at_level(logging.WARNING):
+        first = TestClient(main.app).post("/api/ocr/extract", json={"image_b64": _png_b64()})
+        TestClient(main.app).post("/api/ocr/extract", json={"image_b64": _png_b64()})
+    assert first.status_code == 422
+    assert first.json()["detail"] == (
+        "Reading with the OCR provider is not possible: the provider does not offer the model it reads with. "
+        "Tell whoever runs the server."
+    )
+    lines = [r.getMessage() for r in caplog.records if "internvl3.5-30b-a3b" in r.getMessage() and "not offered" in r.getMessage()]
+    assert len(lines) == 1, lines

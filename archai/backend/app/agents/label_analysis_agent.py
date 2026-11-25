@@ -15,6 +15,7 @@ from app.agents.base import BaseAgent
 from app.agents.crop_agent import decode_image_bytes, encode_png_base64
 from app.config import settings
 from app.core.constants import FINAL_CLASSES
+from app.services import setup_notices
 from app.services.public_errors import public_failure
 from app.services.glm_ollama_ocr import GlmOllamaOcrError, build_glm_ocr_prompt, run_glm_ollama_ocr
 from app.services.model_router import get_task_model_assignments
@@ -873,6 +874,12 @@ class LabelAnalysisAgent(BaseAgent):
                         raise LabelAnalysisAgentError(
                             f"SAIA label analysis failed: {self._friendly_error(exc)}"
                         ) from exc
+                    # Once per model and process, for the operator (the answer names the model used).
+                    setup_notices.report_once(
+                        f"model-not-offered:{selected_model}",
+                        f"The configured model {selected_model} is not offered by the provider; "
+                        f"{retry_model} was used instead for label analysis.",
+                    )
                     selected_model = retry_model
                     fallback_used = True
                     retry_count += 1

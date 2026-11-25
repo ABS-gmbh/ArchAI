@@ -15,7 +15,8 @@ from PIL import Image
 
 from app.agents._llm_common import chat_completion_preferring_json_object, is_image_too_large_error
 from app.agents.base import BaseAgent
-from app.services.public_errors import public_failure
+from app.services import setup_notices
+from app.services.public_errors import RequestRefused, public_failure
 from app.agents.crop_agent import crop_page_region, decode_image_bytes, decode_page
 from app.agents.ocr_proofreader_agent import OcrProofreaderAgent
 from app.config import settings
@@ -1208,6 +1209,20 @@ def _run_ocr_extraction(
         prefer_model=payload.prefer_model,
     )
     candidate_models = choose_models(available_models, preferred_models)
+    if not candidate_models and preferred_models and available_models:
+        # The locked model is not among those the provider offers (2026-11-25:
+        # internvl3.5-30b-a3b no longer is). It used to fail as "No image-capable
+        # model is available", a 500 to the reader, although image-capable models
+        # were listed. Which model reads is policy and is not changed here.
+        setup_notices.report_once(
+            f"model-not-offered:{preferred_models[0]}",
+            f"The provider OCR reads with {preferred_models[0]} only (LOCKED_OCR_MODEL in app/agents/ocr_agent.py), "
+            "and that model is not offered by the provider: /api/ocr/extract cannot read pages until it is.",
+        )
+        raise RequestRefused(
+            "Reading with the OCR provider is not possible: the provider does not offer the model it reads with. "
+            "Tell whoever runs the server."
+        )
     if not candidate_models:
         raise OCRAgentError("No image-capable model is available from SAIA /models for OCR extraction.")
 
