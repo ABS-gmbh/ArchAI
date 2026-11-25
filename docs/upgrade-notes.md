@@ -154,7 +154,9 @@ See [deployment.md, "Behind a reverse proxy"](deployment.md#behind-a-reverse-pro
   `GET /api/predict/batch/{task_id}/progress`.
 - Error `detail`s are fixed sentences. Exception text, paths and upstream
   bodies go to the log. Provider failures answer 502 (key rejected), 504
-  (timeout) or 429 (rate limit), not 500.
+  (timeout) or 429 (rate limit), not 500. A 429 says how long to wait when
+  the provider did (its `Retry-After`, also passed on as that header), in
+  chat, translation, label analysis and the answer check's note.
 - An analytics session token is accepted only for `ANALYTICS_USERNAME`.
   `/static/trace.html` is gone.
 - `POST /api/chat/completions` answers `sources`, in the response and in the
