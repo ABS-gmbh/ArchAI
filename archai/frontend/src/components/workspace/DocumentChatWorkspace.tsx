@@ -2076,6 +2076,19 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
                       setCitedPinned(same ? null : ids);
                       if (!same && ids.length) {
                         setScrollToLineId(ids[0]);
+                        // On a phone neither the page nor the transcription is
+                        // beside the answer, and a tap lit nothing that could be
+                        // seen: show the transcription, with focus on the first
+                        // cited line (the Ask tab leads back).
+                        if (!window.matchMedia("(min-width: 768px)").matches) {
+                          // The tapped button is about to be hidden; let go of it,
+                          // or focusWhenShown would see it still focused and wait.
+                          if (document.activeElement instanceof HTMLElement) {
+                            document.activeElement.blur();
+                          }
+                          setPane("text");
+                          focusWhenShown(`[data-line-id="${CSS.escape(ids[0])}"] button`);
+                        }
                       }
                     }}
                   />
