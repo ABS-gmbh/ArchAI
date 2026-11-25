@@ -80,3 +80,17 @@ export function describeVerification(verification: AnswerVerification | null | u
     notes: (verification.notes ?? []).map((note) => String(note || "").trim()).filter(Boolean).slice(0, 4),
   };
 }
+
+/**
+ * What a screen reader is told when a question's reply ends. A failure was
+ * told as "The request failed." only: the conversation is a live region
+ * only while nothing is being sent, so the failed message's own sentence
+ * ("Try again in 7 seconds.", "spent its whole answer on thinking") was
+ * written while it was silent and never read (2026-11-25).
+ */
+export function replyAnnouncement(failure: string | null, error: string | null): string {
+  if (failure) {
+    return `No answer: ${failure}`;
+  }
+  return error ? "The request failed." : "Reply ready.";
+}
