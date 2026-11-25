@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
-_backend_src = Path(__file__).resolve().parent.parent / "app"
-if str(_backend_src.parent) not in sys.path:
-    sys.path.insert(0, str(_backend_src.parent))
 
 from app.db import pipeline_db  # type: ignore[import-untyped]
 from app.services import authority_linking  # type: ignore[import-untyped]

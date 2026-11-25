@@ -21,7 +21,6 @@ import asyncio
 import base64
 import io
 import json
-import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -29,9 +28,6 @@ from typing import Any
 import pytest
 from PIL import Image
 
-_backend_src = Path(__file__).resolve().parent.parent / "app"
-if str(_backend_src.parent) not in sys.path:
-    sys.path.insert(0, str(_backend_src.parent))
 
 from app.routers import ocr as ocr_router  # type: ignore[import-untyped]  # noqa: E402
 from app.schemas.agents_ocr import (  # type: ignore[import-untyped]  # noqa: E402

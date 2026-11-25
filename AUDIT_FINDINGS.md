@@ -12,9 +12,9 @@ evidence. "Open" says why it was left and what the next step would be.
 |---|---:|---:|---:|---:|---:|
 | Critical | 5 | 5 | 0 | 0 | 0 |
 | High | 33 | 31 | 1 | 1 | 0 |
-| Medium | 60 | 46 | 10 | 1 | 3 |
+| Medium | 60 | 47 | 9 | 1 | 3 |
 | Low | 32 | 27 | 5 | 0 | 0 |
-| **All** | **130** | **109** | **16** | **2** | **3** |
+| **All** | **130** | **110** | **15** | **2** | **3** |
 
 Counted from the headings. SVC-24 ("not changed as proposed": the
 measurement favoured the code, and the docstring was corrected) is counted as
@@ -803,7 +803,7 @@ It is also packaged into distributions: archai/vendor/layout/backend/pyproject.t
 - **Update (2026-11-24):** `pip install --extra-index-url https://download.pytorch.org/whl/cpu -e ".[models]"` in archai/backend resolves with no conflict on Python 3.11 (torch 2.9.0+cpu, kraken 6.0.3, ultralytics 8.4.13, numpy 2.0.2), the full suite passes, and the segmented engine reads the five reference pages identically to the evaluation runs. The CI install (numpy<2.1, so 2.0.2) passes too.
 - **Fix:** Raise archai/vendor/layout/backend/pyproject.toml:12 to `requires-python = ">=3.11"` to match the other two, delete archai-backend (see HYG-07), and state in README.md:12-27 that root `archai` and `manuscript-layout-api` are separate environments that are not co-installable, or unify them behind one pyproject with extras.
 
-### [HYG-10] No conftest.py anywhere: the sys.path bootstrap is copy-pasted into 18 test files and DB isolation is a hand-repeated 2-line ritual — partly fixed (tests/conftest.py now points the pipeline DB, the Chroma store and the task directory at session temp paths and fails any test that leaves them changed; the per-file sys.path blocks remain, redundant but harmless)
+### [HYG-10] No conftest.py anywhere: the sys.path bootstrap is copy-pasted into 18 test files and DB isolation is a hand-repeated 2-line ritual — **FIXED** (tests/conftest.py puts the backend on sys.path and points the pipeline DB, the Chroma store and the task directory at session temp paths, failing any test that leaves them changed; the per-file backend bootstraps, by then in 27 test files, are removed. Four tests still put scripts/ on the path, which conftest does not, and the characterise_*.py fixture writers keep theirs, since they run on their own)
 
 - **Status (2026-11-23):** the hazard was live. test_chat_api.py created app/archai.sqlite and test_entity_decision_spans.py created .data/chroma in the checkout, and characterise_ocr_router.py removed ARCHAI_DB_PATH when it finished, so every later test used the default path. Run from the main checkout, those are the live database and vector store. A full run in a clean worktree now leaves neither file, nor .tasks. Pinned by test_suite_isolation.py and the per-test guard in conftest.py.
 

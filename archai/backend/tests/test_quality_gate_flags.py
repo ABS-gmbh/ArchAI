@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 
 import pytest
 
-_backend = Path(__file__).resolve().parents[1]
-if str(_backend) not in sys.path:
-    sys.path.insert(0, str(_backend))
 
 from app.services.ocr_quality import OCRQualityReport  # type: ignore[import-untyped]  # noqa: E402
 from app.services.pipeline_hardening import enforce_quality_gates  # type: ignore[import-untyped]  # noqa: E402
