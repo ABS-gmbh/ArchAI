@@ -11,7 +11,7 @@ from typing import Any
 
 from app.services.public_errors import RequestRefused
 from app.config import settings
-from app.services import setup_notices
+from app.services import provider_key, setup_notices
 from app.services.model_router import (
     chat_stage_from_context,
     fallback_models_for_stage,
@@ -92,7 +92,13 @@ def _create_client() -> Any:
     except Exception as exc:  # pragma: no cover
         raise RuntimeError("openai package is required for chat proxy support.") from exc
     # The SDK's own default is 600 s per attempt, with two retries.
-    return OpenAI(api_key=_require_api_key(), base_url=_base_url(), timeout=settings.chat_ai_timeout_seconds)
+    # provider_key notes what the provider answers about the key on every call.
+    return OpenAI(
+        api_key=_require_api_key(),
+        base_url=_base_url(),
+        timeout=settings.chat_ai_timeout_seconds,
+        http_client=provider_key.http_client(),
+    )
 
 
 def is_vision_model(model_id: str) -> bool:
@@ -262,14 +268,19 @@ def list_available_models() -> dict[str, Any]:
     assignments = get_task_model_assignments()
     models: list[str] = []
     listed_ok = False
+    # Whether the list below is the provider's: "ok", or the configured names
+    # because it "refused" the key or was "unreachable". It used to be the
+    # configured names either way, and a refused key looked like a healthy list.
+    provider = "ok"
     try:
         client = _create_client()
         models = _raw_server_models(client)
         listed_ok = True
     except ChatConfigError:
         raise
-    except Exception:
+    except Exception as exc:
         models = []
+        provider = "refused" if provider_key.is_refusal(exc) else "unreachable"
 
     seen: set[str] = set()
     unique_models: list[str] = []
@@ -298,6 +309,7 @@ def list_available_models() -> dict[str, Any]:
 
     return {
         "models": unique_models,
+        "provider": provider,
         "default_model": assignments.chat_rag_model,
         "vision_models": [model for model in unique_models if is_vision_model(model)],
         "task_models": assignments.as_payload(),

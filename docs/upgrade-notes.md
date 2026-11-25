@@ -45,7 +45,8 @@ These behave differently from the first start:
   elsewhere, set the frontend's `BACKEND_URL`.
 - **`/api/health`** answers 503 ("unavailable") when the pipeline database
   cannot be used, and 200 with "degraded" when the OCR engine, the chat key,
-  the layout models or the line recogniser is missing, or when pages cannot
+  the layout models or the line recogniser is missing, when the provider
+  refused the chat key on its last call (health asks it nothing), or when pages cannot
   be indexed for search (`RAG_EMBEDDING_MODEL` needs the chat key and there
   is none; `RAG_EMBEDDING_MODEL=` indexes locally, see deployment.md,
   "Health"). It used to say "ok" regardless. The local embedder downloads its
