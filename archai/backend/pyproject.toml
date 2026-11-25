@@ -42,6 +42,9 @@ headless = [
 dev = [
     "pytest>=7.0.0",
     "httpx>=0.24.0",
+    # The version README.md's baseline was taken with: tests/test_mypy_baseline.py
+    # runs mypy and fails on a changed count, and skips when mypy is missing.
+    "mypy==2.4.1",
 ]
 # The inference stack pinned to the set the benchmarks were measured with and
 # the evaluation VM runs (scripts/eval_vm/setup.sh): layout segmentation
