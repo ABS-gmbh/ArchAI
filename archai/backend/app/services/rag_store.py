@@ -22,6 +22,7 @@ import logging
 import os
 import re
 import threading
+from collections import OrderedDict
 import time
 from typing import Any, Sequence
 
@@ -218,6 +219,36 @@ def _embed(texts: list[str]) -> list[list[float]] | None:
     except Exception as exc:  # noqa: BLE001 - any provider failure means no embeddings
         raise EmbeddingUnavailable(f"{model}: {exc}") from exc
     return embeddings
+
+
+# Query vectors by (model, text). A question searched both the chunk and the
+# entity collection, and each embedded the same query text: two provider
+# requests where one does, against a cap of 800 requests a day per key
+# (eval/chat/README.md). A repeated question costs none. Bounded; a failure
+# is never kept.
+_QUERY_VECTORS: "OrderedDict[tuple[str, str], list[float]]" = OrderedDict()
+_QUERY_VECTORS_MAX = 256
+
+
+def _embed_query(query: str) -> list[list[float]] | None:
+    """The query's vector as ``_embed`` returns it (a one-row list), embedded once per model and text."""
+    model = (settings.rag_embedding_model or "").strip()
+    text = embedding_input(query, query=True)
+    if not model:
+        return _embed([text])
+    key = (model, text)
+    with _LOCK:
+        vector = _QUERY_VECTORS.get(key)
+        if vector is not None:
+            _QUERY_VECTORS.move_to_end(key)
+            return [list(vector)]
+    vectors = _embed([text])  # raises EmbeddingUnavailable: nothing is kept
+    if vectors:
+        with _LOCK:
+            _QUERY_VECTORS[key] = list(vectors[0])
+            while len(_QUERY_VECTORS) > _QUERY_VECTORS_MAX:
+                _QUERY_VECTORS.popitem(last=False)
+    return vectors
 
 
 _EMBED_BATCH_SIZE = 64
@@ -843,7 +874,7 @@ def retrieve_chunks(
     query_embeddings: list[list[float]] | None = None
     dense: list[dict[str, Any]] | None = None
     try:
-        query_embeddings = _embed([embedding_input(query, query=True)])
+        query_embeddings = _embed_query(query)
     except EmbeddingUnavailable as exc:
         log.warning("Dense retrieval unavailable: %s", exc)
         notes.append("dense ranking unavailable")  # the error is in the log line above
@@ -1015,7 +1046,7 @@ def retrieve_entities(
     if not scope:
         return RetrievalResult(mode="none", notes=["no searchable run in scope"])
     try:
-        query_embeddings = _embed([embedding_input(query, query=True)])
+        query_embeddings = _embed_query(query)
     except EmbeddingUnavailable as exc:
         log.warning("Entity retrieval unavailable: %s", exc)
         return RetrievalResult(mode="none", notes=["dense ranking unavailable"])
