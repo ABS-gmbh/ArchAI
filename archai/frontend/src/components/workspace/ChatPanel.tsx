@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { Fragment, type ReactNode, useEffect, useRef } from "react";
 import Image from "next/image";
 
 import type { WorkspaceChatMessage } from "@/lib/workspace/types";
 
 import { describeVerification } from "./chatAnswer";
+import { type ChatSource, citedSourceList, describeLines, sourceLineIds, splitCitations } from "./citations";
 import { ExtractionBadges } from "./ExtractionBadges";
 import { RetrievalBadges } from "./RetrievalBadges";
 import { Button, Icon } from "./ui";
@@ -29,6 +30,136 @@ interface ChatPanelProps {
   /** Said once to screen readers when a reply ends. */
   announcement: string;
   hasTranscription: boolean;
+  /** The page's lines, numbered as in the transcription, and the run they were read in: what an answer's [n] can point at. */
+  lines?: readonly { id: string }[];
+  runId?: string | null;
+  /** The lines kept lit by a click on a [n], or null. */
+  pinnedLineIds?: readonly string[] | null;
+  /** Light up these lines while a [n] has focus or the pointer; null when it loses them. */
+  onPreviewLines?: (ids: string[] | null) => void;
+  /** A click on a [n]: keep its lines lit (a second click lets them go). */
+  onPinLines?: (ids: string[]) => void;
+}
+
+interface CitationProps {
+  lines: readonly { id: string }[];
+  runId: string | null;
+  pinnedKey: string | null;
+  onPreviewLines: (ids: string[] | null) => void;
+  onPinLines: (ids: string[]) => void;
+}
+
+/** One [n] that stands for lines of the page: a button that lights them up. */
+function CitationButton({
+  source,
+  lineIds,
+  children,
+  pinnedKey,
+  onPreviewLines,
+  onPinLines,
+  className,
+}: { source: ChatSource; lineIds: string[]; children: ReactNode; className: string } & Pick<
+  CitationProps,
+  "pinnedKey" | "onPreviewLines" | "onPinLines"
+>) {
+  return (
+    <button
+      type="button"
+      aria-label={`Source ${source.label}: ${describeLines(source)} of the page`}
+      aria-pressed={pinnedKey === lineIds.join(" ")}
+      onFocus={() => onPreviewLines(lineIds)}
+      onBlur={() => onPreviewLines(null)}
+      onMouseEnter={() => onPreviewLines(lineIds)}
+      onMouseLeave={() => onPreviewLines(null)}
+      onClick={() => onPinLines(lineIds)}
+      className={`rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-brand aria-pressed:bg-brand-wash ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** The answer's text, each [n] that stands for lines of this page a button; any other label stays as written. */
+function CitedAnswer({ text, sources, ...props }: { text: string; sources: readonly ChatSource[] } & CitationProps) {
+  const byLabel = new Map(sources.map((source) => [source.label, source]));
+  return (
+    <>
+      {splitCitations(text).map((part, index) => {
+        if (part.kind === "text") {
+          return <Fragment key={index}>{part.text}</Fragment>;
+        }
+        return (
+          <Fragment key={index}>
+            [
+            {part.labels.map((label, at) => {
+              const source = byLabel.get(label);
+              const lineIds = sourceLineIds(source, props.lines, props.runId);
+              const separator = at ? ", " : "";
+              if (!source || !lineIds.length) {
+                return (
+                  <Fragment key={at}>
+                    {separator}
+                    {label}
+                  </Fragment>
+                );
+              }
+              return (
+                <Fragment key={at}>
+                  {separator}
+                  <CitationButton
+                    source={source}
+                    lineIds={lineIds}
+                    pinnedKey={props.pinnedKey}
+                    onPreviewLines={props.onPreviewLines}
+                    onPinLines={props.onPinLines}
+                    className="px-0.5 text-xs font-medium text-brand underline decoration-dotted underline-offset-2 hover:decoration-solid"
+                  >
+                    {label}
+                  </CitationButton>
+                </Fragment>
+              );
+            })}
+            ]
+          </Fragment>
+        );
+      })}
+    </>
+  );
+}
+
+/** The sources the answer cites, in words, under it. */
+function SourceList({ sources, ...props }: { sources: readonly ChatSource[] } & CitationProps) {
+  const listed = citedSourceList(sources, props.lines, props.runId);
+  if (!listed.length) {
+    return null;
+  }
+  return (
+    <div className="mt-2 border-t border-rule pt-2 text-xs">
+      <p className="text-ink-muted">Sources on this page</p>
+      <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+        {listed.map(({ source, words, lineIds }) => (
+          <li key={source.label}>
+            {lineIds.length ? (
+              <CitationButton
+                source={source}
+                lineIds={lineIds}
+                pinnedKey={props.pinnedKey}
+                onPreviewLines={props.onPreviewLines}
+                onPinLines={props.onPinLines}
+                className="px-1 text-left hover:bg-well"
+              >
+                <span className="font-medium text-brand">[{source.label}]</span> {words}
+              </CitationButton>
+            ) : (
+              <span className="px-1 text-ink-muted">
+                [{source.label}] {words}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 const SUGGESTIONS = ["Who is named on this page?", "Summarise this page in two sentences.", "Translate the first five lines."];
@@ -99,8 +230,20 @@ export function ChatPanel({
   notice,
   announcement,
   hasTranscription,
+  lines = [],
+  runId = null,
+  pinnedLineIds = null,
+  onPreviewLines = () => {},
+  onPinLines = () => {},
 }: ChatPanelProps) {
   const endRef = useRef<HTMLDivElement | null>(null);
+  const citation: CitationProps = {
+    lines,
+    runId,
+    pinnedKey: pinnedLineIds ? pinnedLineIds.join(" ") : null,
+    onPreviewLines,
+    onPinLines,
+  };
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
@@ -157,13 +300,20 @@ export function ChatPanel({
                     }`}
                   >
                     {message.content ? (
-                      <p className={`whitespace-pre-wrap break-words ${message.failed ? "text-negative" : ""}`}>{message.content}</p>
+                      <p className={`whitespace-pre-wrap break-words ${message.failed ? "text-negative" : ""}`}>
+                        {!mine && !message.failed && message.sources?.length ? (
+                          <CitedAnswer text={message.content} sources={message.sources} {...citation} />
+                        ) : (
+                          message.content
+                        )}
+                      </p>
                     ) : sending && !mine ? (
                       <p role="status" className="text-ink-muted">
                         {loadingLabel}…
                       </p>
                     ) : null}
                     {message.extractionBadges?.length ? <ExtractionBadges badges={message.extractionBadges} /> : null}
+                    {!mine && !message.failed && message.sources?.length ? <SourceList sources={message.sources} {...citation} /> : null}
                     {!mine && message.retrieval ? <RetrievalBadges retrieval={message.retrieval} /> : null}
                     {!mine ? <VerificationNote message={message} /> : null}
                     {message.imageUrl ? (

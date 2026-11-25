@@ -18,6 +18,7 @@ import type { LabelRegionPayload } from "@/lib/api/chat";
 import type { FullPageLine, LinkingReport, RunSnapshot } from "@/lib/api/ocrAgent";
 import type { WorkspaceChatMessage, WorkspaceDocument, WorkspaceDocumentMetadata, WorkspacePage } from "@/lib/workspace/types";
 
+import { isSourceList } from "./citations";
 import type { ExtractionBadge } from "./workspaceExtraction";
 
 /** Raised by one whenever the stored record's shape changes; migrateRecord says what an older one becomes. */
@@ -318,6 +319,7 @@ function isMessage(value: unknown): boolean {
         Array.isArray(value.verification.notes) &&
         value.verification.notes.every(isString) &&
         (value.verification.self_check === undefined || typeof value.verification.self_check === "boolean"))) &&
+    (value.sources === undefined || isSourceList(value.sources)) &&
     (value.extractionBadges === undefined || (Array.isArray(value.extractionBadges) && value.extractionBadges.every(isBadge)))
   );
 }

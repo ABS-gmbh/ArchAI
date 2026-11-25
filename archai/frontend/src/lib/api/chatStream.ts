@@ -20,9 +20,18 @@ export interface StreamVerification {
 
 export type ChatStreamEvent =
   | { type: "delta"; delta: string }
-  | { type: "answer"; text: string; model?: string; retrieval?: unknown; checking?: boolean }
+  | { type: "answer"; text: string; model?: string; retrieval?: unknown; checking?: boolean; sources?: unknown }
   | { type: "verification"; verification: StreamVerification | null; retrieval?: unknown }
-  | { type: "done"; text?: string; model?: string; stage_metadata?: unknown; inspection?: unknown; verification?: StreamVerification | null; retrieval?: unknown }
+  | {
+      type: "done";
+      text?: string;
+      model?: string;
+      stage_metadata?: unknown;
+      inspection?: unknown;
+      verification?: StreamVerification | null;
+      retrieval?: unknown;
+      sources?: unknown;
+    }
   | { type: "error"; error?: string };
 
 export interface ChatStreamState {
@@ -32,6 +41,8 @@ export interface ChatStreamState {
   answer: string | null;
   model?: string;
   retrieval?: unknown;
+  /** What each [n] label stands for, from "answer" or "done", unparsed. */
+  sources?: unknown;
   stageMetadata?: unknown;
   inspection?: unknown;
   /** The answer event announced a check. */
@@ -67,6 +78,7 @@ export function applyStreamEvent(state: ChatStreamState, event: ChatStreamEvent)
           answer: event.text,
           model: event.model ?? state.model,
           retrieval: event.retrieval ?? state.retrieval,
+          sources: event.sources ?? state.sources,
           checkAnnounced: Boolean(event.checking),
           checking: Boolean(event.checking),
         },
@@ -89,6 +101,7 @@ export function applyStreamEvent(state: ChatStreamState, event: ChatStreamEvent)
           inspection: event.inspection,
           verification: event.verification ?? state.verification,
           retrieval: event.retrieval ?? state.retrieval,
+          sources: event.sources ?? state.sources,
           checking: false,
           finished: true,
         },

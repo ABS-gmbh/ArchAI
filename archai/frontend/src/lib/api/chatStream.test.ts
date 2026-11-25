@@ -59,6 +59,16 @@ describe("applyStreamEvent", () => {
     assert.equal(checkOutcome(state), "checked");
   });
 
+  it("keeps the sources the answer event carries, and those of done when it has its own", () => {
+    const sources = [{ label: "1", run_id: "run-1", line_start: 2, line_end: 3, cited: true }];
+    const atAnswer = run([{ type: "answer", text: "x [1]", sources }]);
+    assert.deepEqual(atAnswer.state.sources, sources);
+    const later = run([{ type: "answer", text: "x [1]", sources }, { type: "done", text: "x [1]" }]);
+    assert.deepEqual(later.state.sources, sources);
+    const fromDone = run([{ type: "delta", delta: "x [1]" }, { type: "done", text: "x [1]", sources }]);
+    assert.deepEqual(fromDone.state.sources, sources);
+  });
+
   it("says nothing of a check when none was announced", () => {
     const { state } = run([{ type: "answer", text: "x", checking: false }, { type: "done", text: "x" }]);
     assert.equal(checkOutcome(state), "none");

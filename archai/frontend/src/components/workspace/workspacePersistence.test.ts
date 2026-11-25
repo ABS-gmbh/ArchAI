@@ -255,3 +255,37 @@ describe("a message whose check had not come back", () => {
     assert.equal(recordFromStorage(raw).ok, false);
   });
 });
+
+describe("an answer's sources", () => {
+  const withSources = () => {
+    const source = snapshot();
+    source.messages[1] = {
+      ...source.messages[1],
+      content: "Lausanne [2].",
+      sources: [
+        { label: "1", run_id: "run-1", cited: false },
+        { label: "2", run_id: "run-1", line_start: 4, line_end: 7, cited: true },
+      ],
+    };
+    return source;
+  };
+
+  it("are kept with the message", async () => {
+    const built = serialiseWorkspace(withSources(), 1);
+    assert.ok(built);
+    const checked = recordFromStorage(stored(built.record));
+    assert.ok(checked.ok, checked.ok ? "" : checked.reason);
+    const restored = await restoreWorkspace(checked.record, built.blobs);
+    assert.deepEqual(restored?.messages[1].sources, withSources().messages[1].sources);
+  });
+
+  it("are refused when malformed", () => {
+    const built = serialiseWorkspace(withSources(), 1);
+    assert.ok(built);
+    for (const bad of ["[2]", [{ label: "2" }], [{ label: "2", run_id: "run-1", line_start: 4 }]]) {
+      const raw = stored(built.record) as { messages: Record<string, unknown>[] };
+      raw.messages[1].sources = bad;
+      assert.equal(recordFromStorage(raw).ok, false, JSON.stringify(bad));
+    }
+  });
+});
