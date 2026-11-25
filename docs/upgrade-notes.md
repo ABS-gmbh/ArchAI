@@ -40,6 +40,14 @@ These behave differently from the first start:
   in `FRONTEND_ORIGINS` (DNS rebinding); under any other name every `/api`
   request is refused with 403. A listed name accepts only the listed origins,
   scheme included. Opening it at `localhost` or an IP address needs nothing.
+- **The chat model is `qwen3.5-397b-a17b`.** `CHAT_RAG_MODEL` (and its
+  alias `ARCHAI_CHAT_AI_MODEL`) defaulted to `qwen3-30b-a3b-instruct-2507`.
+  On the same 79 questions and the same retrieved passages the new default
+  answered 61 of 62 correctly with none wrong, where the old one answered 47
+  correctly and 4 wrongly, and it starts answering as fast (measured against
+  the provider, 2026-11-25, thinking off). It needs `CHAT_DISABLE_THINKING`
+  left on: with thinking it starts after about 20 s. A `.env` that names the
+  old model keeps it; remove the line to get the new one.
 - **Translations use the chat model.** `TRANSLATION_MODEL` now defaults to
   empty, which means `CHAT_RAG_MODEL` translates. Its former default,
   `llama-3.3-70b-instruct`, is no longer offered by the provider, and with it

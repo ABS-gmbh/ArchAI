@@ -180,8 +180,16 @@ class Settings(BaseSettings):
     chat_ai_base_url: str = "https://chat-ai.academiccloud.de/v1"
     archai_chat_ai_api_key: str = ""
     archai_chat_ai_base_url: str = "https://chat-ai.academiccloud.de/v1"
-    archai_chat_ai_model: str = "qwen3-30b-a3b-instruct-2507"
-    chat_rag_model: str = "qwen3-30b-a3b-instruct-2507"
+    # The model that answers (and translates, see below). Chosen from a
+    # measurement against the provider on 2026-11-25: 79 questions on the same
+    # retrieved evidence, thinking off. qwen3.5-397b-a17b answered 61 of the 62
+    # answerable ones correctly and hedged on 1 (qwen3-30b-a3b-instruct-2507,
+    # the former default: 47 correct, 10 hedged, 4 wrong, 1 abstained), refused
+    # all 17 that the sources do not answer, cited the right passage on all
+    # 62, and sent its first token after a median 0.4 s. It thinks by default
+    # (first token after 20 s); chat_disable_thinking below turns that off.
+    archai_chat_ai_model: str = "qwen3.5-397b-a17b"
+    chat_rag_model: str = "qwen3.5-397b-a17b"
     # Empty: translations use the chat model (chat_rag_model). The former
     # default, llama-3.3-70b-instruct, is no longer offered by the provider
     # (403 "Not authorized to access this Model", seen 2026-11-25), so every
