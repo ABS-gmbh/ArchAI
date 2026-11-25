@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { answerProper, describeVerification } from "./chatAnswer";
+import { answerProper, describeVerification, replyAnnouncement } from "./chatAnswer";
 
 // The text of a real answer from 2026-11-25, shortened: the answer, then the blocks the backend appends.
 const ANSWER = 'The third commandment requires keeping the Sabbath holy. The text states: "Garde q̃ tu saintefies le ior dou sa medi."';
@@ -71,5 +71,19 @@ describe("a self-check", () => {
     const second = describeVerification({ assessment: "unsupported", corrected_answer: "", notes: [], self_check: false }, ANSWER);
     assert.equal(second?.label, "Checked: not supported");
     assert.match(String(second?.detail), /^A second model/);
+  });
+});
+
+describe("replyAnnouncement", () => {
+  it("says why there is no answer, in the words the failed message shows", () => {
+    assert.equal(
+      replyAnnouncement("The chat provider is limiting requests right now. Try again in 7 seconds.", null),
+      "No answer: The chat provider is limiting requests right now. Try again in 7 seconds.",
+    );
+  });
+
+  it("says a reply is ready, or that the request failed when only an error is known", () => {
+    assert.equal(replyAnnouncement(null, null), "Reply ready.");
+    assert.equal(replyAnnouncement(null, "The answer was cut off before it finished."), "The request failed.");
   });
 });

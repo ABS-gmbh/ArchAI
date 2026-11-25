@@ -57,7 +57,7 @@ import {
   resolveOcrPromptHints,
 } from "./workspaceIntents";
 import { BackendStatusBanner } from "./BackendStatusBanner";
-import { answerProper } from "./chatAnswer";
+import { answerProper, replyAnnouncement as announcementForReply } from "./chatAnswer";
 import { parseSources } from "./citations";
 import { chatNotice, type ChatProviderState, defaultChatModel, providerState } from "./chatAvailability";
 import { ChatPanel } from "./ChatPanel";
@@ -272,7 +272,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [replyAnnouncement, setReplyAnnouncement] = useState("");
   /** Whether the last chat request failed; its message is in the conversation, not above the composer. */
-  const [chatFailed, setChatFailed] = useState(false);
+  // Why the last question got no answer, in the words shown where the answer would be; null when it got one.
+  const [chatFailure, setChatFailure] = useState<string | null>(null);
   const metadataDialogWasOpenRef = useRef(false);
 
   const currentDocument = useMemo(
@@ -308,7 +309,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       setReplyAnnouncement("");
     } else if (chat) {
       chat = false;
-      setReplyAnnouncement(error || chatFailed ? "The request failed." : "Reply ready.");
+      setReplyAnnouncement(announcementForReply(chatFailure, error));
     }
     setAnnouncedFrom({ sending, label: assistantLoadingLabel, error, chat });
   }
@@ -617,7 +618,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       ],
     }));
     setError(null);
-    setChatFailed(false);
+    setChatFailure(null);
     setAssistantLoadingLabel(options?.loadingLabel || "Thinking");
     setSending(true);
 
@@ -751,7 +752,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Chat request failed.";
       // The failure is shown once, where the answer would have been.
-      setChatFailed(true);
+      setChatFailure(message);
       setMessagesByDocument((prev) => {
         const list = [...(prev[currentDocument.id] ?? [])];
         const index = list.findIndex((msg) => msg.id === assistantMessage.id);
