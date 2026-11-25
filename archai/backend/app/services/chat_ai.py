@@ -18,6 +18,7 @@ from app.services.model_router import (
     get_task_model_assignments,
     is_vision_model,
     model_for_chat_stage,
+    model_kind,
     task_models_not_offered,
 )
 from app.services.chat_presentation import (
@@ -309,11 +310,19 @@ def list_available_models() -> dict[str, Any]:
         assignments.label_visual_fallback_model,
         assignments.verifier_model,
     ]
-    for preferred in reversed(preferred_models):
-        if preferred and preferred not in seen:
-            unique_models = [preferred, *unique_models]
-            seen.add(preferred)
-    if not listed_ok:
+    configured_unoffered: list[str] = []
+    if listed_ok:
+        # The provider's list as it is: a configured model it lacks is named
+        # in not_offered and in models_info (offered false), not offered here.
+        for preferred in preferred_models:
+            if preferred and preferred not in seen and preferred not in configured_unoffered:
+                configured_unoffered.append(preferred)
+    else:
+        # The list could not be read: the configured names, so the workspace still renders.
+        for preferred in reversed(preferred_models):
+            if preferred and preferred not in seen:
+                unique_models = [preferred, *unique_models]
+                seen.add(preferred)
         for fallback in LEGACY_SAIA_MODEL_FALLBACKS:
             if fallback not in seen:
                 unique_models.append(fallback)
@@ -321,12 +330,30 @@ def list_available_models() -> dict[str, Any]:
 
     return {
         "models": unique_models,
+        # Each model in words for a client: what it is for, whether it takes
+        # images, whether it thinks before answering however it is asked
+        # (slow to start), and whether the provider offers it (null: its list
+        # could not be read).
+        "models_info": [
+            _model_info(model, offered=(model in seen) if listed_ok else None)
+            for model in [*unique_models, *configured_unoffered]
+        ],
         "provider": provider,
         # Each configured task model the provider's own list lacks (only when the list is the provider's).
         "not_offered": task_models_not_offered(models) if listed_ok else {},
         "default_model": assignments.chat_rag_model,
         "vision_models": [model for model in unique_models if is_vision_model(model)],
         "task_models": assignments.as_payload(),
+    }
+
+
+def _model_info(model: str, *, offered: bool | None) -> dict[str, Any]:
+    return {
+        "id": model,
+        "kind": model_kind(model),
+        "takes_images": is_vision_model(model),
+        "thinks_first": provider_thinking.thinks_regardless(model),
+        "offered": offered,
     }
 
 

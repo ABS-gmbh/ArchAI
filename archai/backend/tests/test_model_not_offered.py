@@ -407,3 +407,49 @@ def test_an_image_never_goes_to_a_text_model(provider: type[_Provider]) -> None:
     assert response.status_code == 422
     assert response.json()["detail"] == NO_VISION_MODEL
     assert not any(m in text_only for m in provider.asked)  # no text model was sent the image
+
+
+# ── What /api/chat/models says of each model ────────────────────────────
+
+def test_the_list_holds_only_what_the_provider_offers(provider: type[_Provider]) -> None:
+    """Configured names the provider lacks were put first in `models` (2026-11-25), so a client
+    offering that list would offer models that cannot answer; they are in not_offered and models_info."""
+    listed = chat_ai.list_available_models()
+    assert listed["models"] == OFFERED
+    unoffered = {info["id"] for info in listed["models_info"] if info["offered"] is False}
+    assert unoffered == set(listed["not_offered"].values())
+    assert {info["id"] for info in listed["models_info"] if info["offered"] is True} == set(OFFERED)
+    assert set(listed["vision_models"]) <= set(OFFERED)
+
+
+def test_each_model_is_described(provider: type[_Provider]) -> None:
+    info = {entry["id"]: entry for entry in chat_ai.list_available_models()["models_info"]}
+    assert info["qwen3.5-397b-a17b"] == {
+        "id": "qwen3.5-397b-a17b", "kind": "chat", "takes_images": True, "thinks_first": False, "offered": True,
+    }
+    assert info["qwen3-coder-next"]["kind"] == "code"
+    assert info["qwen3-omni-30b-a3b-instruct"]["kind"] == "audio_image"
+    # Thinks however it is asked: glm-5.3 ignores the switch, mistral-large refuses it.
+    assert [m for m in OFFERED if info[m]["thinks_first"]] == ["glm-5.3", "glm-5.3-flash", "mistral-large-4-1t-a52b"]
+    assert info["mistral-large-4-1t-a52b"]["takes_images"] is False
+
+
+def test_an_unread_list_stays_as_it_was(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(settings, "chat_ai_api_key", "k" * 32)
+    monkeypatch.setattr(settings, "chat_ai_base_url", "http://127.0.0.1:9/v1")  # nothing listens there
+    monkeypatch.setattr("app.services.provider_retry.time.sleep", lambda seconds: None)
+    listed = chat_ai.list_available_models()
+    assert listed["provider"] == "unreachable"
+    assert listed["models"][0] == settings.chat_rag_model  # the configured names, so the workspace still renders
+    assert {info["offered"] for info in listed["models_info"]} == {None}
+    assert [info["id"] for info in listed["models_info"]] == listed["models"]
+
+
+def test_what_a_model_is_for() -> None:
+    from app.services.model_router import model_kind
+
+    assert model_kind("multilingual-e5-large-instruct") == "embedding"
+    assert model_kind("qwen3-embedding-8b") == "embedding"
+    assert model_kind("qwen3-coder-next") == "code"
+    assert model_kind("qwen3-omni-30b-a3b-instruct") == "audio_image"
+    assert [model_kind(m) for m in ("qwen3.5-397b-a17b", "glm-5.3", "eurollm-22b-instruct-2512", "deepseek-v4-flash-0731")] == ["chat"] * 4

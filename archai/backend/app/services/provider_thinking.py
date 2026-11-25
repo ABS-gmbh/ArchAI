@@ -119,6 +119,23 @@ def applies(model: str) -> bool:
     return not (excepted and name.startswith(excepted))
 
 
+# Models that accept the kwarg and think anyway (measured 2026-11-25:
+# glm-5.3 and glm-5.3-flash, 13 s before the first token).
+_THINKS_ANYWAY = ("glm-5.3",)
+
+
+def thinks_regardless(model: str) -> bool:
+    """Whether *model* thinks however it is asked: it accepts the kwarg and ignores it, is excepted, or refused it."""
+    name = str(model or "").strip().lower()
+    if not name:
+        return False
+    with _lock:
+        if name in _rejected:
+            return True
+    excepted = _excepted()
+    return name.startswith(_THINKS_ANYWAY) or bool(excepted and name.startswith(excepted))
+
+
 def rejected() -> set[str]:
     with _lock:
         return set(_rejected)
