@@ -49,13 +49,24 @@ _rejected: set[str] = set()
 
 
 class ThinkingOnlyAnswer(RuntimeError):
-    """The model returned thinking (reasoning_content) and no answer text: its budget went on thinking."""
+    """The model returned thinking (reasoning_content) and no answer text: its budget went on thinking.
+
+    Its text, which goes to the log, carries the operator's remedy; the
+    reader is told reader_sentence, which advises only what a reader can
+    do (the workspace offers no choice of model).
+    """
 
     def __init__(self, model: str) -> None:
         self.model = str(model or "")
         super().__init__(
-            f"The model {self.model} spent its whole answer on thinking and returned no answer text."
+            f"The model {self.model} spent its whole answer on thinking and returned no answer text. "
+            "If it keeps happening, set CHAT_RAG_MODEL (chat), LABEL_VISUAL_MODEL (label analysis) or "
+            "PALEOGRAPHY_VERIFICATION_MODEL (the answer check) to a model that answers without thinking."
         )
+
+    @property
+    def reader_sentence(self) -> str:
+        return f"The model {self.model} spent its whole answer on thinking and gave no answer. Ask again."
 
 
 def _text_of(value: Any) -> str:

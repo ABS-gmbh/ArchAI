@@ -33,7 +33,7 @@ from app.services.saia_client import SaiaClient
 KEY = "k" * 32
 THINKING = "Let me consider the evidence line by line. The name might be"
 THINKING_ONLY_SENTENCE = (
-    "The model glm-5.3 spent its whole answer on thinking and gave no answer. Ask again, or choose another model."
+    "The model glm-5.3 spent its whole answer on thinking and gave no answer. Ask again."
 )
 
 
@@ -226,7 +226,19 @@ def test_label_analysis_says_so_when_no_model_answers(monkeypatch: pytest.Monkey
     monkeypatch.setattr(settings, "saia_label_analysis_model", "thinking-vl")
     with pytest.raises(LabelAnalysisAgentError) as caught:
         agent.run(_initial_payload())
-    assert str(caught.value) == (
-        "The model thinking-vl spent its whole answer on thinking and returned no answer text. "
-        "Ask again, or choose another model."
-    )
+    assert str(caught.value) == "The model thinking-vl spent its whole answer on thinking and gave no answer. Ask again."
+
+
+def test_the_reader_is_advised_only_what_they_can_do_and_the_log_says_the_rest(
+    provider: type[_Provider], caplog: pytest.LogCaptureFixture
+) -> None:
+    """The workspace offers no choice of model, so "or choose another model" was advice a reader could
+    not follow (2026-11-25). The log line keeps the operator's remedy."""
+    import logging
+
+    with caplog.at_level(logging.WARNING):
+        events = _events(_post(stream=True))
+    assert events == [{"type": "error", "error": THINKING_ONLY_SENTENCE}]
+    assert THINKING_ONLY_SENTENCE.endswith("gave no answer. Ask again.") and "choose" not in THINKING_ONLY_SENTENCE
+    logged = " ".join(record.getMessage() for record in caplog.records)
+    assert "set CHAT_RAG_MODEL" in logged
