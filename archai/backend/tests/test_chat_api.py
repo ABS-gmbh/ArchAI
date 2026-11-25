@@ -6,6 +6,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 _backend_src = Path(__file__).resolve().parent.parent / "app"
 if str(_backend_src.parent) not in sys.path:
     sys.path.insert(0, str(_backend_src.parent))
@@ -455,19 +457,35 @@ def test_create_chat_completion_appends_verification(monkeypatch: Any) -> None:
     assert "Verified answer: Verified answer." in result["text"]
 
 
-def test_create_chat_completion_retries_transient_proxy_error(monkeypatch: Any) -> None:
+# The provider client's transport sends a 5xx once more (provider_retry,
+# tests/test_provider_retry.py); a proxy error that reaches chat_ai is not sent
+# again to the same model, only to another offered one.
+def test_create_chat_completion_does_not_retry_a_transient_proxy_error_on_the_same_model(monkeypatch: Any) -> None:
     fake = _TransientRetryClient(["meta-llama-3.1-8b-instruct"], failures_before_success=1, completion_text="Recovered.")
     monkeypatch.setattr("app.services.chat_ai._create_client", lambda: fake)
     monkeypatch.setattr(settings, "chat_rag_model", "meta-llama-3.1-8b-instruct")
     monkeypatch.setattr("app.services.chat_ai.time.sleep", lambda seconds: None)
 
-    result = create_chat_completion(
-        messages=[{"role": "user", "content": "Translate page to English"}],
-        model=None,
-    )
+    with pytest.raises(Exception, match="502"):
+        create_chat_completion(
+            messages=[{"role": "user", "content": "Translate page to English"}],
+            model=None,
+        )
+    assert len(fake.calls) == 1
 
-    assert result["text"] == "Recovered."
-    assert len(fake.calls) == 2
+
+def test_create_chat_completion_tries_another_offered_model_after_a_transient_proxy_error(monkeypatch: Any) -> None:
+    fake = _TransientRetryClient(
+        ["meta-llama-3.1-8b-instruct", "qwen3-30b-a3b-instruct-2507"], failures_before_success=1, completion_text="Recovered."
+    )
+    monkeypatch.setattr("app.services.chat_ai._create_client", lambda: fake)
+    monkeypatch.setattr(settings, "chat_rag_model", "meta-llama-3.1-8b-instruct")
+    monkeypatch.setattr("app.services.chat_ai.time.sleep", lambda seconds: None)
+
+    result = create_chat_completion(messages=[{"role": "user", "content": "Translate page to English"}], model=None)
+
+    assert result["text"].startswith("Recovered.")
+    assert [call["model"] for call in fake.calls] == ["meta-llama-3.1-8b-instruct", "qwen3-30b-a3b-instruct-2507"]
 
 
 def test_create_chat_completion_returns_clean_degraded_verification_when_verifier_fails(monkeypatch: Any) -> None:
@@ -701,9 +719,9 @@ def test_format_verification_appendix_strips_reasoning_markers() -> None:
     assert "Verifier model: qwen3-235b-a22b" in appendix
 
 
-def test_stream_chat_completion_retries_transient_proxy_error(monkeypatch: Any) -> None:
+def test_stream_chat_completion_tries_another_offered_model_after_a_transient_proxy_error(monkeypatch: Any) -> None:
     fake = _TransientStreamRetryClient(
-        ["meta-llama-3.1-8b-instruct"],
+        ["meta-llama-3.1-8b-instruct", "qwen3-30b-a3b-instruct-2507"],
         failures_before_success=1,
         deltas=["Translated", " page"],
     )
@@ -719,7 +737,7 @@ def test_stream_chat_completion_retries_transient_proxy_error(monkeypatch: Any) 
     )
 
     assert "".join(event["delta"] for event in events if event["type"] == "delta") == "Translated page"
-    assert len(fake.calls) == 2
+    assert [call["model"] for call in fake.calls] == ["meta-llama-3.1-8b-instruct", "qwen3-30b-a3b-instruct-2507"]
     assert events[-1]["text"] == "Translated page"
 
 

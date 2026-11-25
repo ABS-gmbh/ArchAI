@@ -1,11 +1,11 @@
-"""The SAIA client retries transient gateway errors itself (audit AG-14).
+"""The SAIA client tries a transient gateway error again, once (audit AG-14).
 
 The audit read the OCR agents' own error handling and concluded that one 429
-or 502 from the SAIA gateway fails a page. The client underneath is the
-OpenAI SDK, which by default retries 408, 409, 429 and 5xx responses (and
-connection errors) twice with backoff, honouring Retry-After. These tests run
-the real SaiaClient against a local server to pin that behaviour, so the
-retries are not lost by someone setting max_retries=0.
+or 502 from the SAIA gateway fails a page. The OpenAI SDK underneath retried
+429 and 5xx twice by itself; since 2026-11-25 it retries nothing
+(max_retries=0) and app/services/provider_retry.py decides: a 5xx once more,
+a 429 once more only when its Retry-After asks for a short wait. These tests
+run the real SaiaClient against a local server to pin that.
 """
 
 from __future__ import annotations
@@ -66,14 +66,14 @@ def test_a_transient_error_is_retried(monkeypatch, status):
     assert result["text"] == "ok"
 
 
-def test_retries_stop_after_two(monkeypatch):
+def test_retries_stop_after_one(monkeypatch):
     server, seen = _server([502])
     try:
         with pytest.raises(Exception):
             _client(monkeypatch, server).chat_completion(model="m", messages=[{"role": "user", "content": "hi"}])
     finally:
         server.shutdown()
-    assert seen == [502, 502, 502]
+    assert seen == [502, 502]
 
 
 def test_a_client_error_is_not_retried(monkeypatch):

@@ -273,10 +273,14 @@ def test_label_analysis_agent_routes_plural_initial_query_to_multi_region_letter
     assert "decorated-initial analysis task" not in fake_client.calls[0]["messages"][1]["content"][0]["text"].lower()
 
 
-def test_label_analysis_agent_retries_transient_visual_error_and_uses_tighter_initial_letter_limits(monkeypatch: Any) -> None:
+# The provider client's transport sends a 5xx once more (provider_retry); a
+# transient error that reaches the agent goes to the fallback model, not to
+# the same model again.
+def test_label_analysis_agent_falls_back_after_a_transient_visual_error_and_uses_tighter_initial_letter_limits(monkeypatch: Any) -> None:
     fake_client = _TransientSaiaClient(text="A", failures_before_success=1)
     monkeypatch.setattr("app.agents.label_analysis_agent.time.sleep", lambda seconds: None)
     agent = LabelAnalysisAgent(client=fake_client)
+    monkeypatch.setattr(agent, "_choose_retry_model", lambda requested_model, prefer_vision: "internvl3.5-30b-a3b")
     payload = SimpleNamespace(
         question="Which letter is this embellished initial?",
         label_name="Embellished",
@@ -296,14 +300,15 @@ def test_label_analysis_agent_retries_transient_visual_error_and_uses_tighter_in
     assert result.status == "ok"
     assert result.text == "A"
     assert len(fake_client.calls) == 2
+    assert fake_client.calls[1]["model"] == "internvl3.5-30b-a3b"
     assert fake_client.calls[0]["max_tokens"] == 32
     assert fake_client.calls[0]["timeout_seconds"] == 12.0
     assert fake_client.calls[0]["deterministic"] is True
     assert result.stage_metadata["retry_count"] == 1
 
 
-def test_label_analysis_agent_falls_back_after_repeated_transient_initial_letter_failure(monkeypatch: Any) -> None:
-    fake_client = _TransientSaiaClient(text="A", failures_before_success=2)
+def test_label_analysis_agent_falls_back_after_a_transient_initial_letter_failure(monkeypatch: Any) -> None:
+    fake_client = _TransientSaiaClient(text="A", failures_before_success=1)
     fake_client.list_models = lambda: ["qwen3-vl-30b-a3b-instruct", "internvl3.5-30b-a3b"]  # type: ignore[attr-defined]
     monkeypatch.setattr("app.agents.label_analysis_agent.time.sleep", lambda seconds: None)
     agent = LabelAnalysisAgent(client=fake_client)
@@ -328,7 +333,7 @@ def test_label_analysis_agent_falls_back_after_repeated_transient_initial_letter
     assert result.text == "A"
     assert result.model_used == "internvl3.5-30b-a3b"
     assert any("LABEL_TRANSIENT_FALLBACK:internvl3.5-30b-a3b" in warning for warning in result.warnings)
-    assert result.stage_metadata["retry_count"] == 2
+    assert result.stage_metadata["retry_count"] == 1
 
 
 def test_label_analysis_agent_uses_illustration_specific_prompt() -> None:

@@ -11,7 +11,7 @@ from typing import Any
 
 from app.services.public_errors import RequestRefused, rate_limited
 from app.config import settings
-from app.services import provider_key, provider_thinking, setup_notices
+from app.services import provider_key, provider_retry, provider_thinking, setup_notices
 from app.services.model_router import (
     chat_stage_from_context,
     fallback_models_for_stage,
@@ -44,7 +44,9 @@ LEGACY_SAIA_MODEL_FALLBACKS = [
     "gemma-3-27b-it",
     "medgemma-27b-it",
 ]
-_TRANSIENT_CHAT_RETRY_DELAYS = (0.75, 1.5)
+# None: provider_retry already makes a call that met a 5xx once more; a
+# second model is still tried after it.
+_TRANSIENT_CHAT_RETRY_DELAYS: tuple[float, ...] = ()
 log = logging.getLogger(__name__)
 
 
@@ -93,18 +95,20 @@ def _create_client() -> Any:
         from openai import OpenAI  # type: ignore[import-not-found]
     except Exception as exc:  # pragma: no cover
         raise RuntimeError("openai package is required for chat proxy support.") from exc
-    # The SDK's own default is 600 s per attempt, with two retries.
+    # The SDK's own default is 600 s per attempt, with two retries; what is
+    # tried again is decided by provider_retry, around each call.
     # provider_key notes what the provider answers about the key on every call.
     return OpenAI(
         api_key=_require_api_key(),
         base_url=_base_url(),
         timeout=settings.chat_ai_timeout_seconds,
+        max_retries=0,
         http_client=provider_key.http_client(),
     )
 
 
 def _raw_server_models(client: Any) -> list[str]:
-    response = client.models.list()
+    response = provider_retry.call(client.models.list)
     models: list[str] = []
     seen: set[str] = set()
     for item in getattr(response, "data", []) or []:

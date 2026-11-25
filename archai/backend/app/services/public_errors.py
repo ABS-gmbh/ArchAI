@@ -40,8 +40,8 @@ def public_failure(what: str, exc: BaseException, *, logger: logging.Logger | No
     return f"{what} failed ({type(exc).__name__}). The details are in the server log."
 
 
-def _retry_after_seconds(response: object) -> int | None:
-    """The wait a 429 asks for, from its Retry-After header (seconds or an HTTP date), or None."""
+def retry_after_wait(response: object) -> float | None:
+    """The wait a response's Retry-After header asks for (seconds or an HTTP date), 0 for "now", or None."""
     headers = getattr(response, "headers", None)
     raw = str(headers.get("retry-after") or "").strip() if headers is not None else ""
     if not raw:
@@ -56,7 +56,15 @@ def _retry_after_seconds(response: object) -> int | None:
             seconds = (parsedate_to_datetime(raw) - datetime.now(timezone.utc)).total_seconds()
         except (TypeError, ValueError):
             return None
-    if seconds != seconds or seconds <= 0:  # NaN, or a date already past
+    if seconds != seconds or seconds == float("inf"):  # NaN, infinity
+        return None
+    return max(0.0, seconds)
+
+
+def _retry_after_seconds(response: object) -> int | None:
+    """The wait to tell the reader, in whole seconds, or None when the provider gave none worth saying."""
+    seconds = retry_after_wait(response)
+    if seconds is None or seconds <= 0:
         return None
     return max(1, math.ceil(seconds))
 
