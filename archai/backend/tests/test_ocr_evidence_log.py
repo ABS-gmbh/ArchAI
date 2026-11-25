@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
 _backend = Path(__file__).resolve().parents[1]
-if str(_backend) not in sys.path:
-    sys.path.insert(0, str(_backend))
 
 from app.config import Settings, settings  # type: ignore[import-untyped]  # noqa: E402
 from app.services.ocr_evidence import OcrEvidenceRecord, write_ocr_evidence_jsonl  # type: ignore[import-untyped]  # noqa: E402

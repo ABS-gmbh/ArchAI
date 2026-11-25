@@ -1,12 +1,6 @@
 """Regression tests for the proofreader guard (check_proofread_delta)."""
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-_backend_src = Path(__file__).resolve().parent.parent / "app"
-if str(_backend_src.parent) not in sys.path:
-    sys.path.insert(0, str(_backend_src.parent))
 
 from app.agents.ocr_proofreader_agent import check_proofread_delta  # type: ignore[import-untyped]
 

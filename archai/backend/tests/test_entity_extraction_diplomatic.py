@@ -11,8 +11,6 @@ from typing import Any
 import pytest
 
 _backend = Path(__file__).resolve().parents[1]
-if str(_backend) not in sys.path:
-    sys.path.insert(0, str(_backend))
 
 from app.services import mention_extraction  # type: ignore[import-untyped]  # noqa: E402
 from app.services.text_normalization import is_blacklisted_token  # type: ignore[import-untyped]  # noqa: E402

@@ -8,8 +8,6 @@ from pathlib import Path
 from typing import Any
 
 _backend = Path(__file__).resolve().parents[1]
-if str(_backend) not in sys.path:
-    sys.path.insert(0, str(_backend))
 
 from app.agents.ocr_proofreader_agent import OcrProofreaderAgent  # type: ignore[import-untyped]  # noqa: E402
 from app.services.proofread_guard import guard_proofread, judge_line  # type: ignore[import-untyped]  # noqa: E402

@@ -2,16 +2,11 @@ from __future__ import annotations
 
 import base64
 import io
-import sys
-from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
 from PIL import Image
 
-_backend_src = Path(__file__).resolve().parent.parent / "app"
-if str(_backend_src.parent) not in sys.path:
-    sys.path.insert(0, str(_backend_src.parent))
 
 from app.agents.label_analysis_agent import LabelAnalysisAgent  # type: ignore[import-untyped]
 from app.services.model_router import get_task_model_assignments  # type: ignore[import-untyped]

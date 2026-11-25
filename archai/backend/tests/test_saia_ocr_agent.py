@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sys
 import base64
 import io
 from pathlib import Path
@@ -9,9 +8,6 @@ from typing import Any
 import pytest
 from PIL import Image
 
-_backend_src = Path(__file__).resolve().parent.parent / "app"
-if str(_backend_src.parent) not in sys.path:
-    sys.path.insert(0, str(_backend_src.parent))
 
 from app.agents.saia_ocr_agent import (  # type: ignore[import-untyped]
     SAIA_OCR_USER_PROMPT,

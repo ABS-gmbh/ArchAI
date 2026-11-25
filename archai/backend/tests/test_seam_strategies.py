@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 
 import pytest
 
-_backend = Path(__file__).resolve().parents[1]
-if str(_backend) not in sys.path:
-    sys.path.insert(0, str(_backend))
 
 from app.services.seam_strategies import _make_grid, grid_shift  # type: ignore[import-untyped]  # noqa: E402
 

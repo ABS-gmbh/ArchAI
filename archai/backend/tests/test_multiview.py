@@ -1,12 +1,6 @@
 """Regression tests for multi-view image variant generation."""
 from __future__ import annotations
 
-import sys
-from pathlib import Path
-
-_backend_src = Path(__file__).resolve().parent.parent / "app"
-if str(_backend_src.parent) not in sys.path:
-    sys.path.insert(0, str(_backend_src.parent))
 
 from PIL import Image
 

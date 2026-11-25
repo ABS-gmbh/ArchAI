@@ -23,15 +23,11 @@ from __future__ import annotations
 
 import json
 import random
-import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-_backend_src = Path(__file__).resolve().parent.parent / "app"
-if str(_backend_src.parent) not in sys.path:
-    sys.path.insert(0, str(_backend_src.parent))
 
 from app.services import language_detection  # type: ignore[import-untyped]  # noqa: E402
 from app.services.lexicon_trust import best_fit_plausibility  # type: ignore[import-untyped]  # noqa: E402

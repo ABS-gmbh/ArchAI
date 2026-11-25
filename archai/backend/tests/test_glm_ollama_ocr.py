@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import io
-import sys
 from pathlib import Path
 from typing import Any
 
@@ -9,9 +8,6 @@ import pytest
 import requests
 from PIL import Image
 
-_backend_src = Path(__file__).resolve().parent.parent / "app"
-if str(_backend_src.parent) not in sys.path:
-    sys.path.insert(0, str(_backend_src.parent))
 
 from app.services import glm_ollama_ocr  # type: ignore[import-untyped]
 from app.schemas.agents_ocr import OCRDocumentMetadata  # type: ignore[import-untyped]

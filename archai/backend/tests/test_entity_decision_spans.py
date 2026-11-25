@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 _backend = Path(__file__).resolve().parents[1]
-if str(_backend) not in sys.path:
-    sys.path.insert(0, str(_backend))
 
 from app.db import pipeline_db  # type: ignore[import-untyped]  # noqa: E402
 from app.db.pipeline_db import merge_span_decisions  # type: ignore[import-untyped]  # noqa: E402
