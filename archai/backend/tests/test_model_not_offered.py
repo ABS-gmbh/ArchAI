@@ -178,6 +178,14 @@ def test_health_names_each_task_whose_model_is_not_offered(provider: type[_Provi
     assert TRANSLATION_SENTENCE in check["detail"]
     assert "LABEL_VISUAL_MODEL" in check["detail"]
     assert "PALEOGRAPHY_VERIFICATION_MODEL" in check["detail"]
+    assert (
+        "The configured label-analysis model is not offered by the provider; label analysis uses "
+        "deepseek-v4-flash-0731 instead. Set LABEL_VISUAL_MODEL to one of the provider's models."
+    ) in check["detail"]
+    assert (
+        "The configured answer-checking model is not offered by the provider; answers are given without that check. "
+        "Set PALEOGRAPHY_VERIFICATION_MODEL to one of the provider's models."
+    ) in check["detail"]
     assert "CHAT_RAG_MODEL" not in check["detail"]  # the chat model is offered
     assert sum(1 for model in provider.asked) == gets_before
 

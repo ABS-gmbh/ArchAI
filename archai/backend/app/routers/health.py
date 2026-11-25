@@ -207,11 +207,11 @@ def _check_search_index() -> dict[str, Any]:
 # What each provider-served task is called, and who its readers are, for the
 # sentences below. The setting names are model_router.TASK_MODEL_SETTINGS.
 _TASK_WORDS = {
-    "chat_rag_model": ("chat model", "questions"),
-    "translation_model": ("translation model", "translations"),
-    "label_visual_model": ("label-analysis model", "label analysis"),
-    "label_visual_fallback_model": ("second label-analysis model", "label analysis"),
-    "verifier_model": ("answer-checking model", "answer checks"),
+    "chat_rag_model": ("chat model", "questions use"),
+    "translation_model": ("translation model", "translations use"),
+    "label_visual_model": ("label-analysis model", "label analysis uses"),
+    "label_visual_fallback_model": ("second label-analysis model", "label analysis uses"),
+    "verifier_model": ("answer-checking model", ""),
 }
 
 
@@ -223,19 +223,18 @@ def _instead(task: str, model: str, offered: tuple[str, ...]) -> str:
     chat_model = get_task_model_assignments().chat_rag_model
     if task == "verifier_model":
         # The verifier does not fall back: the answer is given unchecked, and says so.
-        return "answers are not checked against the page instead"
+        return "answers are given without that check"
     if task in ("label_visual_model", "label_visual_fallback_model"):
         used = label_retry_model(model, list(offered), prefer_vision=True)
     else:
         stage = {"chat_rag_model": "rag_chat", "translation_model": "translation"}[task]
         used = _choose_retry_model(model, list(offered), False, stage=stage)
-    who = _TASK_WORDS[task][1]
-    verb = "use" if who.endswith("s") else "uses"
+    uses = _TASK_WORDS[task][1]  # "translations use", "label analysis uses"
     if not used:
-        return f"{who} fail until it is replaced"
+        return f"{uses.rsplit(' ', 1)[0]} cannot be done until it is replaced"
     if used == chat_model:
-        return f"{who} {verb} the chat model instead"
-    return f"{who} {verb} {used} instead"
+        return f"{uses} the chat model instead"
+    return f"{uses} {used} instead"
 
 
 def _check_task_models() -> dict[str, Any]:
