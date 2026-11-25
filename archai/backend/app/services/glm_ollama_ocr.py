@@ -306,6 +306,24 @@ def raise_for_ollama_status(resp: requests.Response, model: str) -> None:
     raise GlmOllamaOcrError(f"Ollama HTTP {resp.status_code} at {resp.url}: {detail}")
 
 
+class OllamaText(str):
+    """Ollama's answer text, and whether generation stopped because it ran out of tokens.
+
+    ``ran_out`` is True for done_reason "length", False for "stop", None when
+    Ollama did not say. A looping GLM-OCR reading ran out: on the two-line
+    test page (2026-11-25, Ollama 0.40.6) it ended with done_reason "length"
+    after 3,530 tokens, prompt and answer filling the 4,096-token context.
+    """
+
+    ran_out: bool | None
+
+    def __new__(cls, text: str, done_reason: object = None) -> "OllamaText":
+        obj = super().__new__(cls, text)
+        reason = str(done_reason or "").strip().lower()
+        obj.ran_out = True if reason == "length" else False if reason == "stop" else None
+        return obj
+
+
 def extract_text_from_generate(data: dict[str, object]) -> str:
     return str(data.get("response", "")).strip()
 
@@ -349,9 +367,10 @@ def ollama_extract(
         response = requests.post(chat_url, json=chat_payload, timeout=timeout)
         if response.status_code != 404:
             raise_for_ollama_status(response, model=model)
-            text = extract_text_from_chat(response.json())
+            answer = response.json()
+            text = extract_text_from_chat(answer)
             if text:
-                return text
+                return OllamaText(text, answer.get("done_reason") if isinstance(answer, dict) else None)
     except requests.RequestException as exc:
         raise GlmOllamaOcrError(f"Ollama request failed at {chat_url}: {exc}") from exc
 
@@ -369,10 +388,11 @@ def ollama_extract(
     try:
         response = requests.post(generate_url, json=generate_payload, timeout=timeout)
         raise_for_ollama_status(response, model=model)
-        text = extract_text_from_generate(response.json())
+        answer = response.json()
+        text = extract_text_from_generate(answer)
         if not text:
             raise GlmOllamaOcrError("Model returned empty text.")
-        return text
+        return OllamaText(text, answer.get("done_reason") if isinstance(answer, dict) else None)
     except requests.RequestException as exc:
         raise GlmOllamaOcrError(f"Ollama request failed at {generate_url}: {exc}") from exc
 
@@ -418,6 +438,79 @@ def is_unreachable_error(exc: Exception) -> bool:
     return False
 
 
+_FENCE_LINE_RE = re.compile(r"^```[A-Za-z0-9_-]*$")
+# How many copies of a block, back to back to the end of the text, make a loop.
+_LOOP_MIN_COPIES = 3
+# Without Ollama's stop reason, how much must repeat beyond the first copy. The
+# loops measured on 2026-11-25 (worker 2's four reference readings and the
+# two-line test page) repeated, beyond their first copy, 51 to 354 lines and
+# 2,057 to 6,715 characters: the smallest, 51 lines (old-french, one line 52
+# times) and 2,057 characters (latin-abaton, a 28-line block 3 times). A
+# manuscript's own repeat closing a page ("Amen" three times, a two-line
+# refrain three times) is a few lines and under 100 characters. 20 lines and
+# 500 characters sit 2.5 times under the smallest loop and far above that.
+_LOOP_MIN_LINES_BEYOND = 20
+_LOOP_MIN_CHARS_BEYOND = 500
+# Or: the last copy stops mid-line, where the tokens ran out, after at least
+# this many copies. No page ends on a cut-off word repeated five times.
+_LOOP_MIN_COPIES_CUT_SHORT = 5
+
+
+def cut_repetition_loop(text: str, *, ran_out: bool | None = None) -> tuple[str, int]:
+    """*text* without a reading loop, and how many copies were in it (0: none).
+
+    GLM-OCR can repeat a block of lines until it runs out of tokens: on the
+    reference pages one line 52 times, blocks of 7, 21 and 28 lines 3 to 16
+    times, and on a two-line test page the pair 178 times (2026-11-25, Ollama
+    0.40.6). Its tail is periodic: one block back to back to the very end of
+    the text, the last copy possibly cut short. But a page can end so itself:
+    "Amen" three times, a refrain three times. So periodicity alone is not
+    the signature; what a loop also does is run out of tokens.
+
+    *ran_out* is Ollama's word on that (OllamaText.ran_out). True: the tail is
+    cut if it is periodic (at least three copies). False, the generation
+    stopped by itself: never cut. None, not known (a fixture, a test): cut
+    only when the repeats are as large as a loop's (_LOOP_MIN_LINES_BEYOND
+    and _LOOP_MIN_CHARS_BEYOND beyond the first copy), or the last copy
+    stops mid-line after at least _LOOP_MIN_COPIES_CUT_SHORT copies. A cut
+    keeps everything before the loop and its first copy. A line or block
+    repeated twice, or with other text between or after it, is never cut.
+    """
+    if ran_out is False:
+        return text, 0
+    lines = text.split("\n")
+    keys = [line.strip() for line in lines]
+    end = len(keys)
+    while end and not keys[end - 1]:
+        end -= 1
+    best: tuple[int, int, int] | None = None  # (start of the first copy, block length, copies)
+    for size in range(1, end // _LOOP_MIN_COPIES + 1):
+        last = end - 1
+        # The last copy may stop mid-line, where the tokens ran out.
+        if last - size < 0 or not keys[last] or not keys[last - size].startswith(keys[last]):
+            continue
+        i = last - 1
+        while i - size >= 0 and keys[i] == keys[i - size]:
+            i -= 1
+        start = i + 1 - size
+        if start < 0:
+            continue
+        copies = (end - start) // size
+        if copies >= _LOOP_MIN_COPIES and (best is None or start < best[0]):
+            best = (start, size, copies)
+    if best is None:
+        return text, 0
+    start, size, copies = best
+    kept = "\n".join(lines[: start + size]).rstrip()
+    if ran_out is None:
+        beyond = lines[start + size : end]
+        cut_short = keys[end - 1] != keys[end - 1 - size]
+        large = len(beyond) >= _LOOP_MIN_LINES_BEYOND and len("\n".join(beyond)) >= _LOOP_MIN_CHARS_BEYOND
+        if not (large or (cut_short and copies >= _LOOP_MIN_COPIES_CUT_SHORT)):
+            return text, 0
+    return kept, copies
+
+
 def clean_model_output(text: str) -> str:
     if not text:
         return text
@@ -447,6 +540,11 @@ def clean_model_output(text: str) -> str:
     lines: list[str] = []
     for line in cleaned.splitlines():
         stripped = line.strip()
+        # A markdown code fence on a line of its own is never manuscript text.
+        # A looping reading opens and closes one around every copy, not only
+        # around the whole text (2026-11-25, Ollama 0.40.6).
+        if _FENCE_LINE_RE.match(stripped):
+            continue
         if re.match(r"^\*+\s*Step\s+\d+", stripped, flags=re.IGNORECASE):
             continue
         if re.match(r"^Step\s+\d+", stripped, flags=re.IGNORECASE):
@@ -564,6 +662,9 @@ def run_glm_ollama_ocr(
                     temperature=selected_temperature,
                 )
                 cleaned_text, echoed_lines = strip_prompt_echo(clean_model_output(raw_text), selected_prompt)
+                cleaned_text, loop_copies = cut_repetition_loop(
+                    cleaned_text, ran_out=getattr(raw_text, "ran_out", None)
+                )
                 if not cleaned_text:
                     if first_empty_variant is None:
                         first_empty_variant = variant
@@ -585,6 +686,14 @@ def run_glm_ollama_ocr(
                     warnings.append(f"OCR_RETRY_ATTEMPTS_USED:{attempt}")
                 if echoed_lines:
                     warnings.append(f"OCR_PROMPT_ECHO_REMOVED:{echoed_lines}")
+                if loop_copies:
+                    warnings.append(f"OCR_REPETITION_CUT:{loop_copies}")
+                    logger.warning(
+                        "OCR output repeated one block %d times to its end; kept the first copy ref=%s variant=%s",
+                        loop_copies,
+                        image_ref,
+                        variant.name,
+                    )
 
                 logger.info(
                     "OCR completed ref=%s variant=%s model=%s duration_seconds=%.3f text_chars=%s",
