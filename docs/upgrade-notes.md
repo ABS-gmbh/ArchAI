@@ -155,6 +155,13 @@ See [deployment.md, "Behind a reverse proxy"](deployment.md#behind-a-reverse-pro
   (timeout) or 429 (rate limit), not 500.
 - An analytics session token is accepted only for `ANALYTICS_USERNAME`.
   `/static/trace.html` is gone.
+- `POST /api/chat/completions` answers `sources`, in the response and in the
+  stream's `done` event: one entry per evidence block shown to the model,
+  with its `label` ("1", "2", ...), `run_id`, `chunk_ids`, `start_offset` and
+  `end_offset` in the run's text, each chunk's span, `line_start` and
+  `line_end` on the page where they can be counted, and `cited` when the
+  answer names the label. Answers cite as [1] or [2][3] instead of
+  "(asset_ref=..., run_id=..., chunk_id=..., offsets=...)".
 
 ## 4. What users of the workspace will see
 
