@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-from app.services.public_errors import RequestRefused
+from app.services.public_errors import RequestRefused, rate_limited
 from app.config import settings
 from app.agents.label_analysis_agent import LabelAnalysisAgent, LabelAnalysisAgentError
 from app.routers.errors import configuration_message, stream_error_message, unexpected_error
@@ -134,7 +134,12 @@ def _sse_events(payload: ChatCompletionRequest) -> Iterator[str]:
     except Exception as exc:
         # The stream has started, so the error travels as an event, not a status;
         # it says what a person can act on and leaves the rest to the log.
-        error_event = {"type": "error", "error": stream_error_message(exc)}
+        error_event: dict[str, Any] = {"type": "error", "error": stream_error_message(exc)}
+        # A 429's wait, from the provider's Retry-After, so the workspace can
+        # hold the next question that long (a status cannot carry it here).
+        limited = rate_limited(exc)
+        if limited is not None and limited[1] is not None:
+            error_event["retry_after_seconds"] = limited[1]
         yield f"data: {json.dumps(error_event, ensure_ascii=False)}\n\n"
 
 
@@ -190,6 +195,12 @@ async def chat_label_analysis(payload: LabelAnalysisRequest) -> LabelAnalysisRes
     try:
         return await asyncio.to_thread(_get_label_analysis_agent().run, payload)
     except LabelAnalysisAgentError as exc:
+        # The provider's limit is the chat's: answered as the chat route answers it, a 429 with its wait.
+        limited = rate_limited(exc)
+        if limited is not None:
+            sentence, wait = limited
+            headers = {"Retry-After": str(wait)} if wait is not None else None
+            raise HTTPException(status_code=429, detail=sentence, headers=headers) from exc
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except ChatConfigError as exc:
         raise HTTPException(status_code=422, detail=configuration_message(exc)) from exc

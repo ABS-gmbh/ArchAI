@@ -1,14 +1,27 @@
 export class ApiError extends Error {
   status: number;
   detail: string;
+  /** The wait a 429 asked for (the provider's Retry-After), in seconds; null without one. */
+  retryAfterSeconds: number | null;
 
   // Fields, not constructor parameter properties: Node's type stripping (npm test) does not take those.
-  constructor(status: number, detail: string) {
+  constructor(status: number, detail: string, retryAfterSeconds: number | null = null) {
     super(detail);
     this.status = status;
     this.detail = detail;
+    this.retryAfterSeconds = retryAfterSeconds;
     this.name = "ApiError";
   }
+}
+
+/** A response's Retry-After in seconds (a number or an HTTP date), or null. */
+export function retryAfterSeconds(res: { headers: { get(name: string): string | null } }, now = Date.now()): number | null {
+  const raw = (res.headers.get("retry-after") ?? "").trim();
+  if (!raw) {
+    return null;
+  }
+  const seconds = /^\d+(\.\d+)?$/.test(raw) ? Number(raw) : (Date.parse(raw) - now) / 1000;
+  return Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds) : null;
 }
 
 function isAbortError(err: unknown): boolean {

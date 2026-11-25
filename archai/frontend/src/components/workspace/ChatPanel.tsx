@@ -31,6 +31,10 @@ interface ChatPanelProps {
   /** Said once to screen readers when a reply ends. */
   announcement: string;
   hasTranscription: boolean;
+  /** Said beside Ask while the provider asks the reader to wait ("Ask again in 5 s", "You can ask again at 14:32"). */
+  waitNote?: string | null;
+  /** Ask is held until a short provider wait has passed; the box stays usable. */
+  askHeld?: boolean;
   /** The page's lines, numbered as in the transcription, and the run they were read in: what an answer's [n] can point at. */
   lines?: readonly { id: string }[];
   runId?: string | null;
@@ -241,6 +245,8 @@ export function ChatPanel({
   notice,
   announcement,
   hasTranscription,
+  waitNote = null,
+  askHeld = false,
   lines = [],
   runId = null,
   pinnedLineIds = null,
@@ -395,9 +401,13 @@ export function ChatPanel({
           <Button variant="quiet" onClick={onClear} disabled={!messages.length || sending}>
             Clear conversation
           </Button>
-          <Button variant="primary" onClick={onSend} disabled={Boolean(disabledReason) || sending || !input.trim()}>
-            {asking ? "Asking" : "Ask"} <Icon name="send" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Not a live region: the wait is said once, with the failure; this counts down for the eye. */}
+            {waitNote ? <span className="text-xs tabular-nums text-ink-muted">{waitNote}</span> : null}
+            <Button variant="primary" onClick={onSend} disabled={Boolean(disabledReason) || sending || askHeld || !input.trim()}>
+              {asking ? "Asking" : "Ask"} <Icon name="send" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
