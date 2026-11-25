@@ -16,6 +16,7 @@ from app.services.model_router import (
     chat_stage_from_context,
     fallback_models_for_stage,
     get_task_model_assignments,
+    is_vision_model,
     model_for_chat_stage,
     task_models_not_offered,
 )
@@ -100,11 +101,6 @@ def _create_client() -> Any:
         timeout=settings.chat_ai_timeout_seconds,
         http_client=provider_key.http_client(),
     )
-
-
-def is_vision_model(model_id: str) -> bool:
-    key = (model_id or "").lower()
-    return any(token in key for token in ("vl", "internvl", "vision"))
 
 
 def _raw_server_models(client: Any) -> list[str]:

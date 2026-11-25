@@ -352,12 +352,23 @@ def test_label_analysis_and_the_ocr_agent_share_one_vision_test() -> None:
 
     assert ocr_agent.is_vision_model is model_router.is_vision_model
     assert label_analysis_agent.LabelAnalysisAgent._is_vision_model is model_router.is_vision_model
+    assert chat_ai.is_vision_model is model_router.is_vision_model
     # The provider's documentation (2026-11-25): six of today's 14 take images; mistral-large does not.
     assert [m for m in OFFERED if model_router.is_vision_model(m)] == [
         "gemma-4-31b-it", "glm-5.3-flash", "qwen3-omni-30b-a3b-instruct",
         "qwen3.5-397b-a17b", "qwen3.6-35b-a3b", "qwen3.8-27b",
     ]
     assert not model_router.is_vision_model("mistral-large-4-1t-a52b")
+
+
+def test_the_workspace_is_told_which_offered_models_take_images(provider: type[_Provider]) -> None:
+    """/api/chat/models' vision_models used chat_ai's own test ("vl", "internvl", "vision"): of today's
+    models it named none, so a question with the page image went first to the configured label model the
+    provider does not offer (2026-11-25), not to the chat default, which takes images."""
+    listed = chat_ai.list_available_models()
+    assert listed["default_model"] in listed["vision_models"]
+    assert {"qwen3.6-35b-a3b", "qwen3.8-27b", "gemma-4-31b-it"} <= set(listed["vision_models"])
+    assert "mistral-large-4-1t-a52b" not in listed["vision_models"]
 
 
 def test_label_analysis_now_falls_back_to_a_model_its_test_calls_vision_capable() -> None:
