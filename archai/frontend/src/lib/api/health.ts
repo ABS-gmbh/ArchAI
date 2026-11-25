@@ -19,7 +19,7 @@ const CHECK_LABELS: Record<string, string> = {
 };
 
 // Checks whose detail is already a sentence that says what fails and what to do.
-const SENTENCE_CHECKS = new Set(["layout_models", "line_recognizer", "search_index"]);
+const SENTENCE_CHECKS = new Set(["layout_models", "line_recognizer", "search_index", "task_models"]);
 
 /**
  * GET /health, reduced to what the workspace shows. Never throws: a backend

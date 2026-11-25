@@ -780,25 +780,8 @@ class LabelAnalysisAgent(BaseAgent):
             available = self.client.list_models()
         except Exception:
             available = []
-        if not available:
-            return None
-        assignments = get_task_model_assignments()
-        preferred = []
-        if prefer_vision:
-            preferred.extend([assignments.label_visual_model, assignments.label_visual_fallback_model])
-        else:
-            preferred.extend([assignments.chat_rag_model, assignments.label_visual_model])
-        for candidate in preferred:
-            if candidate and candidate != requested_model and candidate in available:
-                return candidate
-        if prefer_vision:
-            for model_id in available:
-                if model_id != requested_model and self._is_vision_model(model_id):
-                    return model_id
-        for model_id in available:
-            if model_id != requested_model:
-                return model_id
-        return None
+        return label_retry_model(requested_model, available, prefer_vision=prefer_vision)
+
 
     @staticmethod
     def _allow_fallback_after_runtime_error(*, analysis_submode: str, prefer_vision: bool, fallback_used: bool) -> bool:
@@ -1544,3 +1527,30 @@ class LabelAnalysisAgent(BaseAgent):
                 initial_letter_confidence=initial_letter_confidence,
             ),
         )
+
+
+def label_retry_model(requested_model: str, available: Sequence[str], *, prefer_vision: bool) -> str | None:
+    """The model label analysis uses when *requested_model* is unavailable, from the provider's list.
+
+    A function of its own so /api/health can say which model that would be
+    without asking the provider (routers/health.py, task_models).
+    """
+    if not available:
+        return None
+    assignments = get_task_model_assignments()
+    preferred = []
+    if prefer_vision:
+        preferred.extend([assignments.label_visual_model, assignments.label_visual_fallback_model])
+    else:
+        preferred.extend([assignments.chat_rag_model, assignments.label_visual_model])
+    for candidate in preferred:
+        if candidate and candidate != requested_model and candidate in available:
+            return candidate
+    if prefer_vision:
+        for model_id in available:
+            if model_id != requested_model and LabelAnalysisAgent._is_vision_model(model_id):
+                return model_id
+    for model_id in available:
+        if model_id != requested_model:
+            return model_id
+    return None

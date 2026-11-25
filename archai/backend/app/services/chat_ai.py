@@ -17,6 +17,7 @@ from app.services.model_router import (
     fallback_models_for_stage,
     get_task_model_assignments,
     model_for_chat_stage,
+    task_models_not_offered,
 )
 from app.services.chat_presentation import (
     _build_stage_metadata,
@@ -116,6 +117,7 @@ def _raw_server_models(client: Any) -> list[str]:
             continue
         seen.add(model_id)
         models.append(model_id)
+    provider_key.record_offered(models)  # for health's task_models check, which asks nothing
     return models
 
 
@@ -320,6 +322,8 @@ def list_available_models() -> dict[str, Any]:
     return {
         "models": unique_models,
         "provider": provider,
+        # Each configured task model the provider's own list lacks (only when the list is the provider's).
+        "not_offered": task_models_not_offered(models) if listed_ok else {},
         "default_model": assignments.chat_rag_model,
         "vision_models": [model for model in unique_models if is_vision_model(model)],
         "task_models": assignments.as_payload(),

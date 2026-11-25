@@ -64,6 +64,7 @@ def test_all_dependencies_up_is_ok(client: TestClient, monkeypatch: pytest.Monke
         "layout_models": True,
         "line_recognizer": True,
         "search_index": True,
+        "task_models": True,  # the provider's list not fetched yet: nothing to say
     }
     assert body["checks"]["ollama"]["version"] == "0.6.0"
     assert body["models_loaded"] is True

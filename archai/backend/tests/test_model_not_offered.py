@@ -136,3 +136,62 @@ def test_the_shapes_of_the_errors() -> None:
         assert check(not_offered) is True
         assert check(refused) is False
         assert check(other_403) is False
+
+
+# ── (b) The operator is told, from the provider's own list ──────────────
+
+TRANSLATION_SENTENCE = (
+    "The configured translation model is not offered by the provider; translations use the chat model instead. "
+    "Set TRANSLATION_MODEL to one of the provider's models."
+)
+
+
+def _health_task_models() -> dict:
+    from fastapi.testclient import TestClient
+
+    import app.main as main
+
+    return TestClient(main.app).get("/api/health").json()["checks"]["task_models"]
+
+
+def test_nothing_is_said_before_the_provider_has_listed_its_models(provider: type[_Provider]) -> None:
+    provider_key.forget_offered()
+    assert _health_task_models() == {"ok": True, "detail": "The provider's models have not been listed yet."}
+
+
+def test_the_model_list_marks_each_configured_model_not_offered(provider: type[_Provider]) -> None:
+    listed = chat_ai.list_available_models()
+    assert listed["provider"] == "ok"
+    assert listed["not_offered"] == {
+        "translation_model": "llama-3.3-70b-instruct",
+        "label_visual_model": "qwen3-vl-30b-a3b-instruct",
+        "label_visual_fallback_model": "internvl3.5-30b-a3b",
+        "verifier_model": "qwen3-235b-a22b",  # PALEOGRAPHY_VERIFICATION_MODEL's default, not listed either
+    }
+
+
+def test_health_names_each_task_whose_model_is_not_offered(provider: type[_Provider]) -> None:
+    chat_ai.list_available_models()
+    gets_before = sum(1 for model in provider.asked)  # POSTs only; GETs counted below
+    check = _health_task_models()
+    assert check["ok"] is False
+    assert TRANSLATION_SENTENCE in check["detail"]
+    assert "LABEL_VISUAL_MODEL" in check["detail"]
+    assert "PALEOGRAPHY_VERIFICATION_MODEL" in check["detail"]
+    assert "CHAT_RAG_MODEL" not in check["detail"]  # the chat model is offered
+    assert sum(1 for model in provider.asked) == gets_before
+
+
+def test_health_sends_nothing_for_it(provider: type[_Provider], monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = []
+    monkeypatch.setattr(chat_ai, "_raw_server_models", lambda client: calls.append(1) or [])
+    _health_task_models()
+    _health_task_models()
+    assert calls == []
+
+
+def test_every_configured_model_offered_is_ok(provider: type[_Provider], monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("translation_model", "label_visual_model", "label_visual_fallback_model", "paleography_verification_model"):
+        monkeypatch.setattr(settings, name, "qwen3-omni-30b-a3b-instruct")
+    chat_ai.list_available_models()
+    assert _health_task_models() == {"ok": True, "detail": "The provider offers every configured model."}
