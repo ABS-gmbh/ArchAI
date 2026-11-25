@@ -1,7 +1,7 @@
 # ArchAI audit findings
 130 findings survived triage across both OCR pipelines and repository hygiene (5 critical, 33 high, 60 medium, 32 low). 5 were refuted and dropped.
 
-## Status (2026-11-24)
+## Status (2026-11-25)
 
 Every heading carries its status. **FIXED** means addressed and verified
 against the code, with the test that pins it where there is one. "Partly
@@ -13,11 +13,13 @@ evidence. "Open" says why it was left and what the next step would be.
 | Critical | 5 | 5 | 0 | 0 | 0 |
 | High | 33 | 31 | 1 | 1 | 0 |
 | Medium | 60 | 49 | 7 | 1 | 3 |
-| Low | 32 | 28 | 4 | 0 | 0 |
-| **All** | **130** | **113** | **12** | **2** | **3** |
+| Low | 32 | 29 | 3 | 0 | 0 |
+| **All** | **130** | **114** | **11** | **2** | **3** |
 
 Counted from the headings. SVC-24 ("not changed as proposed": the
-measurement favoured the code, and the docstring was corrected) is counted as
+measurement favoured the code, and the docstring was corrected) and the
+headings marked **MEASURED, NO CHANGE** (measured on real pages, and the code
+was better left as it is; the numbers are under the heading) are counted as
 fixed.
 
 The three open findings: SVC-12, SVC-13 and SVC-16 change OCR quality scoring
@@ -1066,13 +1068,14 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** Any exception from the four queries (locked DB, missing `visits` table, malformed row) skips conn.close() and leaks the handle, and is then reported to the caller as a perfectly valid dashboard showing zero visits — indistinguishable from "no traffic". The string-built WHERE clause is the standard injection shape: it is currently fed only from `datetime.now()`, but the pattern invites the next contributor to route `days`, `country`, or a date range straight in from the route (analytics.py:47 already forwards a client-supplied `days`).
 - **Fix:** Use `with sqlite3.connect(...) as conn:` inside a try/finally that closes, pass the cutoff as a bound `?` parameter with the WHERE clause chosen from a fixed pair of literal SQL strings, and let the exception propagate (or return an explicit error field) instead of masquerading as empty data.
 
-### [AL-14] Trigram profiles contain duplicate entries and differ in size by 40%, making lexical_plausibility incomparable across languages — partly fixed (repeats removed, no set changed; the gate already scores the best fit over all four profiles, so a French-label flip cannot flip it; sizes left unequal, since rescaling would move the calibrated 0.25 floor without a measured gain, and lexical_trust_adjustment on the SAIA path still scores the detected language's profile alone)
+### [AL-14] Trigram profiles contain duplicate entries and differ in size by 40%, making lexical_plausibility incomparable across languages — **MEASURED, NO CHANGE** (repeats removed earlier, sizes left unequal; the gate scores the best fit over all profiles, so it cannot be flipped by one profile; lexical_trust_adjustment, which scores the detected language's profile alone, only scales the provider path's confidence and is read by no gate)
 
 - **Where:** `vendor:app/services/lexicon_trust.py:123`  
 - **Category:** correctness  
 - **Evidence:** lexicon_trust.py:32-34 documents "the ~120 most frequent character trigrams for the language". The literals contain repeats that the `frozenset` silently collapses — 'latin' repeats "tur", "unt", "ita", "ere", "ect", "eri", "ris", "nos", "ter", "ati", "tis"; 'old_french' repeats "oit" 3×, "ois" 3×, "ent", "ere"/"ier", "ort" 3×, "ain", "ien", "ure", "ard", "oir". Measured actual sizes: latin 95, old_french 94, middle_french 103, french 74. `lexical_plausibility` then applies a single fixed divisor for all of them at lexicon_trust.py:123: `return min(1.0, ratio / 0.55)`.
 - **Impact:** Hit rate scales with profile size, so the identical Old French passage scores materially lower when the detector labels it 'french' (74 trigrams) than when it labels it 'middle_french' (103). Since the score is compared against a single cross-language hard limit of 0.20 in services/pipeline_hardening.py:477-480, a language-detection flip between two near-synonymous labels can flip the `token_search` gate and disable authority linking for the page. The aliasing at lexicon_trust.py:96-98 compounds this — Italian, Spanish and Portuguese are all scored against the LATIN profile, so genuine Romance-vernacular text is judged by Latin statistics.
 - **Fix:** De-duplicate the literals and pad each profile to a uniform count (the documented ~120), or normalize the hit ratio by profile size — `ratio / (0.55 * len(profile) / _REFERENCE_PROFILE_SIZE)` — so the 0.20 hard limit in pipeline_hardening.py means the same thing for every language. Add a module-level assertion that all non-'unknown' profiles have equal length.
+- **Measured (2026-11-25, held-out readings, `results/heldout/al14.py`, `al14_out.txt`):** the quality gate cannot change: `ocr_quality` scores `best_fit_plausibility`, and the held-out gate figures (CATMuS good readings blocked 1/76, bad readings allowed 81/128) do not involve `lexical_trust_adjustment` at all. That function only scales the provider (SAIA) path's tile and page confidence (x0.55 under 0.25, x0.75 under 0.40, x1.05 from 0.70) and adds a LEXICAL_* warning. On the 279 held-out pseudo-pages (93 blocks x 3 recognisers, Kraken readings standing in for any reading of the page), scoring the detected language's profile alone puts 67 pages in another band than the best fit would: 48 of the 128 bad readings (CER >= 25%) get the stronger penalty (x0.55 instead of x0.75), 4 of the 80 good ones (CER <= 10%) a penalty the best fit would not give, and 15 in between. Switching to the best fit would soften the penalty on twelve bad readings for every good one it spares, so it is left as it is.
 
 ### [SVC-23] Threshold literals scattered through code that the config module declares as its exclusive responsibility — **FIXED** (the nine literals of _derive_quality_label are named constants in ocr_quality_config, values unchanged; _LEXICAL_HARD_LIMIT was already gone)
 
