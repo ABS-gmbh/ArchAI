@@ -288,7 +288,7 @@ def _verify(answer_model: str) -> dict:
     )
 
 
-def test_the_verifier_falls_back_to_the_chat_model_and_says_it_checked_its_own_answer(
+def test_the_verifier_falls_back_to_a_second_fast_model_not_the_one_that_answered(
     provider: type[_Provider], caplog: pytest.LogCaptureFixture
 ) -> None:
     provider.content = VERDICT
@@ -296,12 +296,35 @@ def test_the_verifier_falls_back_to_the_chat_model_and_says_it_checked_its_own_a
     with caplog.at_level(logging.WARNING):
         verification = _verify(settings.chat_rag_model)
         _verify(settings.chat_rag_model)
-    assert provider.asked[:2] == ["qwen3-235b-a22b", settings.chat_rag_model]
+    assert provider.asked[:2] == ["qwen3-235b-a22b", "deepseek-v4.1-flash-1017"]  # the first fast one offered
     assert verification["assessment"] == "supported"
-    assert verification["model_used"] == settings.chat_rag_model
-    assert verification["self_check"] is True
+    assert verification["model_used"] == "deepseek-v4.1-flash-1017"
+    assert verification["self_check"] is False
     lines = [r.getMessage() for r in caplog.records if "qwen3-235b-a22b" in r.getMessage() and "not offered" in r.getMessage()]
     assert len(lines) == 1, lines
+
+
+def test_a_verifier_configured_as_the_answering_model_is_replaced_by_a_second_one(
+    provider: type[_Provider], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    provider.content = VERDICT
+    monkeypatch.setattr(settings, "paleography_verification_model", settings.chat_rag_model)
+    verification = _verify(settings.chat_rag_model)
+    assert verification["model_used"] != settings.chat_rag_model
+    assert verification["self_check"] is False
+
+
+def test_only_when_no_other_model_is_offered_does_the_answering_model_check_itself(provider: type[_Provider]) -> None:
+    provider.content = VERDICT
+    saved = list(OFFERED)
+    OFFERED[:] = [settings.chat_rag_model]
+    provider_key.forget_offered()
+    try:
+        verification = _verify(settings.chat_rag_model)
+    finally:
+        OFFERED[:] = saved
+    assert verification["model_used"] == settings.chat_rag_model
+    assert verification["self_check"] is True
 
 
 def test_a_second_model_is_not_a_self_check(provider: type[_Provider], monkeypatch: pytest.MonkeyPatch) -> None:
@@ -312,12 +335,11 @@ def test_a_second_model_is_not_a_self_check(provider: type[_Provider], monkeypat
     assert verification["self_check"] is False
 
 
-def test_health_says_answers_are_checked_by_the_model_that_wrote_them(provider: type[_Provider]) -> None:
+def test_health_says_which_second_model_checks_answers(provider: type[_Provider]) -> None:
     chat_ai.list_available_models()
     assert (
-        "The configured answer-checking model is not offered by the provider; answers are checked by the chat model "
-        "instead, the model that wrote them, which is weaker than a second model. Set PALEOGRAPHY_VERIFICATION_MODEL "
-        "to one of the provider's models."
+        "The configured answer-checking model is not offered by the provider; answers are checked by "
+        "deepseek-v4.1-flash-1017 instead. Set PALEOGRAPHY_VERIFICATION_MODEL to one of the provider's models."
     ) in _health_task_models()["detail"]
 
 

@@ -433,7 +433,7 @@ or the server restarts with another key. `task_models` compares the
 configured chat, translation, label-analysis and answer-checking models with
 the provider's own model list as the app last fetched it (when the workspace
 opens), and names each one the provider does not offer, what is used instead
-(translations and answer checks fall back to the chat model; an answer checked by the model that wrote it is marked "Self-checked", weaker than a second model's check)
+(translations fall back to the chat model; answers are checked by a second offered model, fast ones first from `FAST_VERIFIER_MODELS` in `app/services/model_router.py`, and by the model that wrote them only when no other is offered, which the answer marks "Self-checked")
 and the setting to change: `CHAT_RAG_MODEL`, `TRANSLATION_MODEL`,
 `LABEL_VISUAL_MODEL`, `LABEL_VISUAL_FALLBACK_MODEL`,
 `PALEOGRAPHY_VERIFICATION_MODEL`. `/api/chat/models` lists the same under

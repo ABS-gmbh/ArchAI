@@ -8,8 +8,12 @@ from typing import Any
 
 from app.agents.base import BaseAgent
 from app.config import settings
-from app.services import setup_notices
-from app.services.model_router import fallback_models_for_stage, get_task_model_assignments
+from app.services import provider_key, setup_notices
+from app.services.model_router import (
+    fallback_models_for_stage,
+    get_task_model_assignments,
+    second_model_for_checking,
+)
 
 
 PALEOGRAPHY_VERIFICATION_SYSTEM_PROMPT = "\n".join(
@@ -312,6 +316,7 @@ class PaleographyVerificationAgent(BaseAgent):
         from app.services.chat_ai import (
             _create_client,
             _is_model_not_found_error,
+            _raw_server_models,
         )
 
         started_at = time.perf_counter()
@@ -352,6 +357,22 @@ class PaleographyVerificationAgent(BaseAgent):
 
         client = _create_client()
         selected_model = self._target_model()
+        # Two models: the one that answered must not be the one that checks.
+        answer_model = str(getattr(payload, "answer_model", "") or "")
+
+        def offered_models() -> list[str]:
+            known = provider_key.offered()
+            if known is not None:
+                return list(known)
+            try:
+                return _raw_server_models(client)  # records the list for health too
+            except Exception:
+                return []
+
+        if answer_model and selected_model.lower() == answer_model.lower():
+            second = second_model_for_checking(answer_model, offered_models())
+            if second:
+                selected_model = second
 
         def _run_completion(target_model: str) -> Any:
             return client.chat.completions.create(
@@ -371,13 +392,14 @@ class PaleographyVerificationAgent(BaseAgent):
             if not _is_model_not_found_error(exc):
                 raise PaleographyVerificationAgentError(f"Verification failed: {exc}") from exc
             # The provider does not serve the verifier's model (2026-11-25: the
-            # default qwen3-235b-a22b is no longer offered): the next model of
-            # fallback_models_for_stage("verification"), the chat model, checks
-            # instead. The result's model_used says which model it was, and the
-            # chat answer marks a check by the answering model as a self-check.
-            fallback = next(
-                (model for model in fallback_models_for_stage("verification") if model != selected_model),
-                "",
+            # default qwen3-235b-a22b is no longer offered). Another offered model
+            # checks, fast ones first and never the one that answered; only when
+            # there is none does the answering model check its own answer, and
+            # the chat answer marks that a self-check. model_used says which.
+            fallback = (
+                second_model_for_checking(answer_model, offered_models(), exclude=[selected_model])
+                or answer_model
+                or next((model for model in fallback_models_for_stage("verification") if model != selected_model), "")
             )
             if not fallback:
                 raise PaleographyVerificationAgentError(f"Verification model unavailable: {selected_model}") from exc

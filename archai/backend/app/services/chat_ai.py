@@ -1348,6 +1348,7 @@ def _run_paleography_verification(
                 authority_report=str((context or {}).get("authority_report") or ""),
                 evidence_text=evidence_text,
                 ocr_run_id=str((context or {}).get("ocr_run_id") or (context or {}).get("run_id") or ""),
+                answer_model=answer_model,
             )
         )
         return {

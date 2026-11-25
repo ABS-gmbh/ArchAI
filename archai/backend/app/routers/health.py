@@ -58,7 +58,12 @@ from app.config import settings
 from app.db import pipeline_db
 from app.body_limit import max_json_bytes
 from app.services import model_files, provider_key
-from app.services.model_router import TASK_MODEL_SETTINGS, get_task_model_assignments, task_models_not_offered
+from app.services.model_router import (
+    TASK_MODEL_SETTINGS,
+    get_task_model_assignments,
+    second_model_for_checking,
+    task_models_not_offered,
+)
 from app.services.image_limits import max_decode_pixels
 from app.services.saia_client import SaiaClient, SaiaConfigError
 
@@ -222,10 +227,14 @@ def _instead(task: str, model: str, offered: tuple[str, ...]) -> str:
 
     chat_model = get_task_model_assignments().chat_rag_model
     if task == "verifier_model":
-        # The verifier falls back to the chat model (fallback_models_for_stage),
-        # the model that wrote the answer: say what that check is worth.
+        # A second offered model checks, never the one that wrote the answer
+        # (model_router.second_model_for_checking); only without one does the
+        # chat model check itself, which is weaker, and the sentence says so.
+        second = second_model_for_checking(chat_model, offered, exclude=[model])
+        if second:
+            return f"answers are checked by {second} instead"
         if chat_model.lower() in {m.lower() for m in offered}:
-            return "answers are checked by the chat model instead, the model that wrote them, which is weaker than a second model"
+            return "answers are checked by the same model that wrote them, which is weaker than a second model"
         return "answers are given without that check"
     if task in ("label_visual_model", "label_visual_fallback_model"):
         used = label_retry_model(model, list(offered), prefer_vision=True)
