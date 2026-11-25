@@ -429,7 +429,15 @@ makes anyway (the model list when the workspace opens, questions,
 translation, embeddings, SAIA OCR), not by health, which sends nothing to the
 provider: `chat_api_key` says the key was accepted, not yet used, or refused
 (a 401 or 403 answer). A refused key is degraded until a later call succeeds
-or the server restarts with another key.
+or the server restarts with another key. `task_models` compares the
+configured chat, translation, label-analysis and answer-checking models with
+the provider's own model list as the app last fetched it (when the workspace
+opens), and names each one the provider does not offer, what is used instead
+(translations fall back to the chat model; answers are then given unchecked)
+and the setting to change: `CHAT_RAG_MODEL`, `TRANSLATION_MODEL`,
+`LABEL_VISUAL_MODEL`, `LABEL_VISUAL_FALLBACK_MODEL`,
+`PALEOGRAPHY_VERIFICATION_MODEL`. `/api/chat/models` lists the same under
+`not_offered`. The server log says once per model which one was used instead.
 
 The `search_index` check fails when `RAG_EMBEDDING_MODEL` names a provider
 model (the default, `multilingual-e5-large-instruct`) and there is no chat

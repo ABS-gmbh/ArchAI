@@ -58,6 +58,7 @@ from app.config import settings
 from app.db import pipeline_db
 from app.body_limit import max_json_bytes
 from app.services import model_files, provider_key
+from app.services.model_router import TASK_MODEL_SETTINGS, get_task_model_assignments, task_models_not_offered
 from app.services.image_limits import max_decode_pixels
 from app.services.saia_client import SaiaClient, SaiaConfigError
 
@@ -203,6 +204,57 @@ def _check_search_index() -> dict[str, Any]:
     return {"ok": True, "detail": "Pages are indexed with the provider's embedding model; the key is not validated here."}
 
 
+# What each provider-served task is called, and who its readers are, for the
+# sentences below. The setting names are model_router.TASK_MODEL_SETTINGS.
+_TASK_WORDS = {
+    "chat_rag_model": ("chat model", "questions"),
+    "translation_model": ("translation model", "translations"),
+    "label_visual_model": ("label-analysis model", "label analysis"),
+    "label_visual_fallback_model": ("second label-analysis model", "label analysis"),
+    "verifier_model": ("answer-checking model", "answer checks"),
+}
+
+
+def _instead(task: str, model: str, offered: tuple[str, ...]) -> str:
+    """What the task does instead, as its own code path would choose (chat_ai, label_analysis_agent)."""
+    from app.agents.label_analysis_agent import label_retry_model
+    from app.services.chat_ai import _choose_retry_model
+
+    chat_model = get_task_model_assignments().chat_rag_model
+    if task == "verifier_model":
+        # The verifier does not fall back: the answer is given unchecked, and says so.
+        return "answers are not checked against the page instead"
+    if task in ("label_visual_model", "label_visual_fallback_model"):
+        used = label_retry_model(model, list(offered), prefer_vision=True)
+    else:
+        stage = {"chat_rag_model": "rag_chat", "translation_model": "translation"}[task]
+        used = _choose_retry_model(model, list(offered), False, stage=stage)
+    who = _TASK_WORDS[task][1]
+    verb = "use" if who.endswith("s") else "uses"
+    if not used:
+        return f"{who} fail until it is replaced"
+    if used == chat_model:
+        return f"{who} {verb} the chat model instead"
+    return f"{who} {verb} {used} instead"
+
+
+def _check_task_models() -> dict[str, Any]:
+    # From the provider's own list as the app last fetched it (provider_key.py):
+    # health asks the provider nothing.
+    offered = provider_key.offered()
+    if offered is None:
+        return {"ok": True, "detail": "The provider's models have not been listed yet."}
+    missing = task_models_not_offered(offered)
+    if not missing:
+        return {"ok": True, "detail": "The provider offers every configured model."}
+    sentences = [
+        f"The configured {_TASK_WORDS[task][0]} is not offered by the provider; {_instead(task, model, offered)}. "
+        f"Set {TASK_MODEL_SETTINGS[task]} to one of the provider's models."
+        for task, model in missing.items()
+    ]
+    return {"ok": False, "detail": " ".join(sentences)}
+
+
 # A plain def: the checks are a SQLite query and an HTTP request, which FastAPI
 # runs in its threadpool instead of on the event loop.
 @router.get("/health")
@@ -214,6 +266,7 @@ def health_check() -> JSONResponse:
         "layout_models": _check_layout_models(),
         "line_recognizer": _check_line_recognizer(),
         "search_index": _check_search_index(),
+        "task_models": _check_task_models(),
     }
     if not checks["database"]["ok"]:
         status, code = "unavailable", 503

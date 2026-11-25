@@ -24,6 +24,8 @@ KeyState = Literal["untried", "accepted", "refused"]
 
 _lock = threading.Lock()
 _state: KeyState = "untried"
+# The provider's own model list as last fetched (chat_ai, saia_client), or None.
+_offered: tuple[str, ...] | None = None
 
 
 def state() -> KeyState:
@@ -46,9 +48,28 @@ def observe_status(status: int) -> None:
 
 
 def reset() -> None:
-    global _state
+    global _state, _offered
     with _lock:
         _state = "untried"
+        _offered = None
+
+
+def record_offered(models: list[str]) -> None:
+    """The provider's model list, as a call the app made anyway fetched it."""
+    global _offered
+    with _lock:
+        _offered = tuple(models)
+
+
+def offered() -> tuple[str, ...] | None:
+    with _lock:
+        return _offered
+
+
+def forget_offered() -> None:
+    global _offered
+    with _lock:
+        _offered = None
 
 
 # A 403 that names a model is the provider declining that model for this key

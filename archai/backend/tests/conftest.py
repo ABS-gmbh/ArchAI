@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import socket
 import sys
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -177,3 +178,13 @@ def _no_held_tasks():
     if held is not None:
         with file_manager._lock:
             held.clear()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_provider_state() -> Iterator[None]:
+    """What the chat provider last said (app/services/provider_key.py) is process state: each test starts from nothing."""
+    from app.services import provider_key
+
+    provider_key.reset()
+    yield
+    provider_key.reset()

@@ -138,6 +138,7 @@ class SaiaClient:
             models.append(model_id)
 
         SaiaClient._shared_models_cache = (now + max(1, self._cache_ttl_seconds), models)
+        provider_key.record_offered(models)  # for health's task_models check, which asks nothing
         return list(models)
 
     def chat_completion(

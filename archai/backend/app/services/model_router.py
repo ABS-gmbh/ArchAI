@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from collections.abc import Sequence
 from typing import Any
 
 from app.config import settings
@@ -113,3 +114,25 @@ def fallback_models_for_stage(stage: str | None, *, prefer_vision: bool = False)
         seen.add(clean)
         deduped.append(clean)
     return deduped
+
+
+# The task models the chat provider serves, and the setting that names each
+# (GLM-OCR runs on Ollama; the embedding model answers without being listed).
+TASK_MODEL_SETTINGS: dict[str, str] = {
+    "chat_rag_model": "CHAT_RAG_MODEL",
+    "translation_model": "TRANSLATION_MODEL",
+    "label_visual_model": "LABEL_VISUAL_MODEL",
+    "label_visual_fallback_model": "LABEL_VISUAL_FALLBACK_MODEL",
+    "verifier_model": "PALEOGRAPHY_VERIFICATION_MODEL",
+}
+
+
+def task_models_not_offered(offered: Sequence[str]) -> dict[str, str]:
+    """Each configured task model missing from the provider's own list *offered*, by task."""
+    available = {str(model).lower() for model in offered}
+    payload = get_task_model_assignments().as_payload()
+    return {
+        task: payload[task]
+        for task in TASK_MODEL_SETTINGS
+        if payload.get(task) and payload[task].lower() not in available
+    }
