@@ -737,23 +737,52 @@ def delete_run(run_id: str) -> bool:
     return deleted > 0
 
 
+def _get_run(conn: sqlite3.Connection, run_id: str) -> dict[str, Any] | None:
+    row = conn.execute("SELECT * FROM pipeline_runs WHERE run_id=?", (run_id,)).fetchone()
+    return None if row is None else _row_to_dict(row)
+
+
 def get_run(run_id: str) -> dict[str, Any] | None:
     _init_db_if_needed()
     with _connect() as conn:
-        row = conn.execute("SELECT * FROM pipeline_runs WHERE run_id=?", (run_id,)).fetchone()
-    if row is None:
-        return None
-    return _row_to_dict(row)
+        return _get_run(conn, run_id)
+
+
+def _list_events(conn: sqlite3.Connection, run_id: str) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT id, run_id, ts, stage, event, message FROM pipeline_events WHERE run_id=? ORDER BY id ASC",
+        (run_id,),
+    ).fetchall()
+    return [{key: row[key] for key in row.keys()} for row in rows]
 
 
 def list_events(run_id: str) -> list[dict[str, Any]]:
     _init_db_if_needed()
     with _connect() as conn:
-        rows = conn.execute(
-            "SELECT id, run_id, ts, stage, event, message FROM pipeline_events WHERE run_id=? ORDER BY id ASC",
-            (run_id,),
-        ).fetchall()
-    return [{key: row[key] for key in row.keys()} for row in rows]
+        return _list_events(conn, run_id)
+
+
+def read_trace(run_id: str, *, preview_limit: int = 20) -> dict[str, Any] | None:
+    """What a trace-stream tick shows of a run, read on one connection (audit DB-03).
+
+    The run, its events, the first *preview_limit* chunks and mentions, and
+    the chunk and mention counts (the run's own when it has them). Each of
+    these was a connection of its own: six per tick, every 400 ms per open
+    stream. None for an unknown run.
+    """
+    _init_db_if_needed()
+    with _connect() as conn:
+        run = _get_run(conn, run_id)
+        if run is None:
+            return None
+        return {
+            "run": run,
+            "events": _list_events(conn, run_id),
+            "chunks_preview": _list_chunks(conn, run_id, limit=preview_limit),
+            "mentions_preview": _list_entity_mentions(conn, run_id, limit=preview_limit),
+            "chunks_count": int(run.get("chunks_count") or _count(conn, "chunks", run_id)),
+            "mentions_count": int(run.get("mentions_count") or _count(conn, "entity_mentions", run_id)),
+        }
 
 
 def _table_columns(conn: sqlite3.Connection, table_name: str) -> list[str]:
@@ -929,16 +958,20 @@ def insert_entity_candidates(rows: list[dict[str, Any]]) -> list[dict[str, Any]]
     return inserted
 
 
-def list_chunks(run_id: str, *, limit: int | None = None) -> list[dict[str, Any]]:
-    _init_db_if_needed()
+def _list_chunks(conn: sqlite3.Connection, run_id: str, *, limit: int | None = None) -> list[dict[str, Any]]:
     sql = "SELECT chunk_id, run_id, idx, start_offset, end_offset, text FROM chunks WHERE run_id=? ORDER BY idx ASC"
     params: list[Any] = [run_id]
     if limit is not None:
         sql += " LIMIT ?"
         params.append(int(limit))
-    with _connect() as conn:
-        rows = conn.execute(sql, params).fetchall()
+    rows = conn.execute(sql, params).fetchall()
     return [{key: row[key] for key in row.keys()} for row in rows]
+
+
+def list_chunks(run_id: str, *, limit: int | None = None) -> list[dict[str, Any]]:
+    _init_db_if_needed()
+    with _connect() as conn:
+        return _list_chunks(conn, run_id, limit=limit)
 
 
 # SQLite's default cap on bound parameters was 999 before 3.32.
@@ -1058,8 +1091,7 @@ def list_chunks_for_runs(run_ids: Sequence[str], *, limit: int | None = None) ->
     return out
 
 
-def list_entity_mentions(run_id: str, *, limit: int | None = None) -> list[dict[str, Any]]:
-    _init_db_if_needed()
+def _list_entity_mentions(conn: sqlite3.Connection, run_id: str, *, limit: int | None = None) -> list[dict[str, Any]]:
     sql = (
         "SELECT mention_id, run_id, chunk_id, start_offset, end_offset, surface, norm, label, ent_type, confidence, method, notes "
         "FROM entity_mentions WHERE run_id=? ORDER BY start_offset ASC, confidence DESC"
@@ -1068,23 +1100,33 @@ def list_entity_mentions(run_id: str, *, limit: int | None = None) -> list[dict[
     if limit is not None:
         sql += " LIMIT ?"
         params.append(int(limit))
-    with _connect() as conn:
-        rows = conn.execute(sql, params).fetchall()
+    rows = conn.execute(sql, params).fetchall()
     return [{key: row[key] for key in row.keys()} for row in rows]
+
+
+def list_entity_mentions(run_id: str, *, limit: int | None = None) -> list[dict[str, Any]]:
+    _init_db_if_needed()
+    with _connect() as conn:
+        return _list_entity_mentions(conn, run_id, limit=limit)
+
+
+def _count(conn: sqlite3.Connection, table: str, run_id: str) -> int:
+    if table not in ("chunks", "entity_mentions"):
+        raise ValueError(f"not a per-run table: {table}")
+    row = conn.execute(f"SELECT COUNT(*) AS c FROM {table} WHERE run_id=?", (run_id,)).fetchone()  # noqa: S608 - fixed names
+    return int(row["c"] if row else 0)
 
 
 def count_chunks(run_id: str) -> int:
     _init_db_if_needed()
     with _connect() as conn:
-        row = conn.execute("SELECT COUNT(*) AS c FROM chunks WHERE run_id=?", (run_id,)).fetchone()
-    return int(row["c"] if row else 0)
+        return _count(conn, "chunks", run_id)
 
 
 def count_entity_mentions(run_id: str) -> int:
     _init_db_if_needed()
     with _connect() as conn:
-        row = conn.execute("SELECT COUNT(*) AS c FROM entity_mentions WHERE run_id=?", (run_id,)).fetchone()
-    return int(row["c"] if row else 0)
+        return _count(conn, "entity_mentions", run_id)
 
 
 def table_view_for_chunks(run_id: str, limit: int | None = None) -> dict[str, Any]:
