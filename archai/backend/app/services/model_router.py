@@ -167,3 +167,25 @@ VISION_MODEL_FRAGMENTS = ("vl", "vision", "internvl", "gemma", "omni", "pixtral"
 def is_vision_model(model_id: str) -> bool:
     key = (model_id or "").strip().lower()
     return key in KNOWN_VISION_MODELS or any(fragment in key for fragment in VISION_MODEL_FRAGMENTS)
+
+
+# Models that check answers when the configured verifier cannot: it is not
+# offered, or it is the model that wrote the answer (a model checking its own
+# answer is weaker than a second model). Fast ones first, as the user asked
+# (2026-11-25: "make the pipeline fast"). Chosen by name from the provider's
+# documentation ("flash" variants, few active parameters) and not yet timed:
+# worker 2's measurements will set this order and the verifier's default.
+FAST_VERIFIER_MODELS = ("deepseek-v4.1-flash-1017", "deepseek-v4-flash-0731", "glm-5.3-flash", "qwen3.6-35b-a3b")
+
+
+def second_model_for_checking(answering_model: str, offered: Sequence[str], *, exclude: Sequence[str] = ()) -> str | None:
+    """A model from *offered* to check an answer written by *answering_model*, never that model; None if there is none."""
+    by_lower = {str(model).lower(): str(model) for model in offered}
+    skip = {str(answering_model or "").lower(), *(str(model).lower() for model in exclude)}
+    for model in FAST_VERIFIER_MODELS:
+        if model.lower() in by_lower and model.lower() not in skip:
+            return by_lower[model.lower()]
+    for model in offered:
+        if str(model).lower() not in skip:
+            return str(model)
+    return None

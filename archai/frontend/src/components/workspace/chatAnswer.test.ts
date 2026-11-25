@@ -62,7 +62,7 @@ describe("a self-check", () => {
   it("is called what it is", () => {
     const self = describeVerification({ assessment: "supported", corrected_answer: ANSWER, notes: [], self_check: true }, ANSWER);
     assert.equal(self?.label, "Self-checked: supported");
-    assert.match(String(self?.detail), /model that wrote the answer/);
+    assert.match(String(self?.detail), /^Checked by the same model that wrote the answer, which compared/);
     assert.match(String(self?.detail), /weaker than a second model/);
     assert.doesNotMatch(String(self?.detail), /A second model/);
   });
