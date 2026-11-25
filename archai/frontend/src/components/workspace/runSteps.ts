@@ -87,6 +87,8 @@ const MESSAGE_WORDS: [RegExp, (match: RegExpExecArray) => string][] = [
   [/^OCR_ENGINE_FALLBACK:segmented_failed(?::\w+)?$/, () => "The page was read as a whole: the line-by-line reader failed on it."],
   [/^OCR_ENGINE_FALLBACK:no_text_regions$/, () => "The page was read as a whole: no text regions were found on it."],
   [/^OCR_ENGINE_FALLBACK:no_text$/, () => "The page was read as a whole: the line-by-line reader found no text."],
+  // GLM-OCR looping: one block over and over to the end of its output (glm_ollama_ocr.cut_repetition_loop).
+  [/^OCR_REPETITION_CUT:(\d+)$/, (m) => `The reader repeated the same passage ${m[1]} times over; the repeats were cut and the first copy kept.`],
   // The exception's class name means nothing to a reader; its message is kept.
   [/^Post-OCR pipeline failed: \w+: ([\s\S]*)$/, (m) => `The steps after reading failed: ${m[1]}`],
 ];

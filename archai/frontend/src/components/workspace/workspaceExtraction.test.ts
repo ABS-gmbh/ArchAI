@@ -147,6 +147,10 @@ describe("a reading's warnings", () => {
     );
     assert.equal(read(["OCR_ENGINE_FALLBACK:no_text_regions"]).at(-1)?.detail, "The page was read as a whole: no text regions were found on it.");
     assert.equal(read(["OCR_ENGINE_FALLBACK:no_text"]).at(-1)?.detail, "The page was read as a whole: the line-by-line reader found no text.");
+    assert.equal(
+      read(["OCR_REPETITION_CUT:178"]).at(-1)?.detail,
+      "The reader repeated the same passage 178 times over; the repeats were cut and the first copy kept.",
+    );
   });
 
   it("keep a code that has no words as it came, beside the ones that do", () => {
