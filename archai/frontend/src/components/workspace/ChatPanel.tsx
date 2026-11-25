@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, type ReactNode, useEffect, useRef } from "react";
+import { Fragment, type ReactNode, useEffect, useId, useRef } from "react";
 import Image from "next/image";
 
 import type { WorkspaceChatMessage } from "@/lib/workspace/types";
@@ -128,29 +128,36 @@ function CitedAnswer({ text, sources, ...props }: { text: string; sources: reado
   );
 }
 
-/** The sources the answer cites, in words, under it. */
+/**
+ * The sources the answer cites, in words, under it. Text, not buttons: the
+ * answer's own [n] buttons are the way to them by keyboard, and the list
+ * repeated them, two tab stops and two identical names per label (a reader
+ * with three answers met 18 stops on the way back up). A pointer over an
+ * entry, or a click on it, still lights its lines up.
+ */
 function SourceList({ sources, ...props }: { sources: readonly ChatSource[] } & CitationProps) {
+  const headingId = useId();
   const listed = citedSourceList(sources, props.lines, props.runId);
   if (!listed.length) {
     return null;
   }
   return (
     <div className="mt-2 border-t border-rule pt-2 text-xs">
-      <p className="text-ink-muted">Sources on this page</p>
-      <ul className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
+      <p id={headingId} className="text-ink-muted">
+        Sources on this page
+      </p>
+      <ul aria-labelledby={headingId} className="mt-1 flex flex-wrap gap-x-3 gap-y-1">
         {listed.map(({ source, words, lineIds }) => (
           <li key={source.label}>
             {lineIds.length ? (
-              <CitationButton
-                source={source}
-                lineIds={lineIds}
-                pinnedKey={props.pinnedKey}
-                onPreviewLines={props.onPreviewLines}
-                onPinLines={props.onPinLines}
-                className="px-1 text-left hover:bg-well"
+              <span
+                onMouseEnter={() => props.onPreviewLines(lineIds)}
+                onMouseLeave={() => props.onPreviewLines(null)}
+                onClick={() => props.onPinLines(lineIds)}
+                className={`cursor-pointer rounded-sm px-1 hover:bg-well ${props.pinnedKey === lineIds.join(" ") ? "bg-brand-wash" : ""}`}
               >
                 <span className="font-medium text-brand">[{source.label}]</span> {words}
-              </CitationButton>
+              </span>
             ) : (
               <span className="px-1 text-ink-muted">
                 [{source.label}] {words}
