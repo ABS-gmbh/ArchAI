@@ -38,10 +38,14 @@ to ``--out`` for review. ``--score`` re-scores a saved file.
 
 An answer is scored by its text:
 
-- answerable items: ``correct`` if every accept group matches; ``abstained``
-  if it says the sources do not contain the answer and the terms do not
-  match; otherwise ``wrong``. ``cited`` if it names the chunk_id of a chunk
-  holding the answer span.
+- answerable items: ``correct`` if every accept group matches and the answer
+  does not open by saying the sources lack the answer; ``hedged`` if it opens
+  that way but the terms match (read these: some quote and give the answer,
+  some only refuse); ``abstained`` if it says the sources do not contain the
+  answer and the terms do not match; otherwise ``wrong``. ``cited`` if it cites a label ([1], [2], ...)
+  whose evidence block covers a chunk holding the answer span; for answers
+  saved before labels (no ``sources`` in the record), if it names the
+  chunk_id of such a chunk.
 - not-in-sources items: ``abstained`` if it says the sources do not contain
   the answer, else ``answered``.
 
@@ -57,6 +61,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -69,6 +74,17 @@ ABSTAIN_RE = re.compile(
     r"|not\s+(?:mentioned|stated|found|specified|addressed|given|provided|recorded)"
     r"|not\s+in\s+the\s+(?:sources?|evidence|text|page|transcription|passage)"
     r"|no\s+(?:information|mention|evidence|passage|indication)",
+    re.IGNORECASE,
+)
+
+
+# A sentence that says the sources do not hold the answer: narrower than
+# ABSTAIN_RE, which also matches an answer such as "No: he is not given to
+# return".
+SOURCE_REFUSAL_RE = re.compile(
+    r"\b(?:text|texts|sources?|evidence|manuscript|passages?|page|transcription|excerpts?)\b[^.!?]{0,60}?"
+    r"\b(?:do(?:es)?\s*n[o']?t|cannot|can't)\s+(?:contain|mention|provide|say|state|specify|address|answer|include|give|tell)"
+    r"|\bnot\s+in\s+the\s+(?:sources?|evidence|text|page|transcription|passage)",
     re.IGNORECASE,
 )
 
@@ -98,14 +114,29 @@ def evidence_chunk_ids(evidence: str) -> set[str]:
     return ids
 
 
-def score_answer(item: dict[str, Any], text: str, relevant_chunk_ids: set[str]) -> dict[str, Any]:
+def score_answer(
+    item: dict[str, Any], text: str, relevant_chunk_ids: set[str], sources: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
     abstained = bool(ABSTAIN_RE.search(text or ""))
     if item["kind"] == "not_in_sources":
         return {"outcome": "abstained" if abstained else "answered"}
     lowered = (text or "").lower()
     correct = all(any(term.lower() in lowered for term in group) for group in item["accept"])
-    outcome = "correct" if correct else ("abstained" if abstained else "wrong")
-    return {"outcome": outcome, "cited": any(chunk_id in (text or "") for chunk_id in relevant_chunk_ids)}
+    # An answer that opens by saying the sources do not hold the answer is not
+    # scored correct on its terms alone: "does not contain" holds "not", and a
+    # restated question holds its own words. If the terms are there it is
+    # "hedged" (some go on to quote and give the answer, some only refuse:
+    # read them), otherwise "abstained".
+    opening = re.split(r"(?<=[.!?])\s", (text or "").strip(), maxsplit=1)[0]
+    if SOURCE_REFUSAL_RE.search(opening):
+        outcome = "hedged" if correct else "abstained"
+    else:
+        outcome = "correct" if correct else ("abstained" if abstained else "wrong")
+    if sources is None:  # saved before citation labels
+        cited = any(chunk_id in (text or "") for chunk_id in relevant_chunk_ids)
+    else:
+        cited = any(s.get("cited") and relevant_chunk_ids & set(s.get("chunk_ids") or []) for s in sources)
+    return {"outcome": outcome, "cited": cited}
 
 
 E5_LOCAL_MODEL = "intfloat/multilingual-e5-large-instruct"
@@ -187,24 +218,128 @@ def evaluate_retrieval(items, runs, references) -> list[dict[str, Any]]:
     return rows
 
 
-def evaluate_live(items, runs, references, out: Path) -> list[dict[str, Any]]:
+REQUESTS: dict[str, int] = defaultdict(int)
+# The chat route's default (ChatCompletionRequest.temperature); the workspace sends no other.
+TEMPERATURE = 0.2
+
+
+def _count_requests() -> None:
+    """Count every HTTP request the provider client sends, by path (embeddings, chat/completions, models).
+
+    The openai package sends through httpx or, in recent versions, its fork
+    httpx2; both clients are counted.
+    """
+    import importlib
+
+    for name in ("httpx", "httpx2"):
+        try:
+            client_class = importlib.import_module(name).Client
+        except (ImportError, AttributeError):
+            continue
+        real_send = client_class.send
+
+        def send(self, request, *args, _real=real_send, **kwargs):  # type: ignore[no-untyped-def]
+            path = str(request.url.path).rstrip("/").rsplit("/v1/", 1)[-1]
+            REQUESTS[f"{CURRENT_PHASE[0]}:{path}"] += 1
+            return _real(self, request, *args, **kwargs)
+
+        client_class.send = send  # type: ignore[method-assign]
+
+
+CURRENT_PHASE = ["index"]
+USAGE: list[dict[str, Any]] = []
+
+
+def _record_usage() -> None:
+    """Keep the provider's token usage of every non-streamed chat completion (``USAGE``), to give tokens per second."""
+    from app.services import chat_ai
+
+    real_create_client = chat_ai._create_client
+
+    def create_client():  # type: ignore[no-untyped-def]
+        client = real_create_client()
+        completions = client.chat.completions
+        real_create = completions.create
+
+        def create(*args, **kwargs):  # type: ignore[no-untyped-def]
+            response = real_create(*args, **kwargs)
+            usage = getattr(response, "usage", None)
+            if usage is not None and not kwargs.get("stream"):
+                USAGE.append({"model": kwargs.get("model"), "completion_tokens": getattr(usage, "completion_tokens", None),
+                              "prompt_tokens": getattr(usage, "prompt_tokens", None)})
+            return response
+
+        completions.create = create
+        return client
+
+    chat_ai._create_client = create_client
+
+
+def _cache_embeddings(path: Path) -> None:
+    """Keep every embedding by model and text in *path*, so repeated runs retrieve the same evidence and spend no embedding request twice."""
+    from app.config import settings
+    from app.services import rag_store
+
+    cache: dict[str, list[float]] = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    real = rag_store._embed
+
+    def embed(texts: list[str]) -> list[list[float]]:
+        # What the app itself would send for this call (batches of 64), cached or not.
+        REQUESTS[f"{CURRENT_PHASE[0]}:embeddings, as the app sends them"] += -(-len(texts) // rag_store._EMBED_BATCH_SIZE)
+        model = str(settings.rag_embedding_model or "local")
+        keys = [f"{model}\n{text}" for text in texts]
+        missing = [text for text, key in zip(texts, keys) if key not in cache]
+        if missing:
+            for text, vector in zip(missing, real(missing)):
+                cache[f"{model}\n{text}"] = [float(x) for x in vector]
+            path.write_text(json.dumps(cache), encoding="utf-8")
+        return [cache[key] for key in keys]
+
+    rag_store._embed = embed
+
+
+def evaluate_live(
+    items, runs, references, out: Path, *, model: str | None = None, verify: bool = False, resume: bool = False, stream_first: int = 0
+) -> list[dict[str, Any]]:
     from app.config import settings
     from app.services import chat_ai
 
-    settings.paleography_verification_enabled = False
-    rows = []
-    with out.open("w", encoding="utf-8") as handle:
+    settings.paleography_verification_enabled = verify
+    done = {json.loads(line)["id"]: json.loads(line) for line in out.read_text(encoding="utf-8").splitlines() if line.strip()} if resume and out.is_file() else {}
+    rows = [done[item["id"]] for item in items if item["id"] in done]
+    with out.open("a" if resume else "w", encoding="utf-8") as handle:
         for item in items:
+            if item["id"] in done:
+                continue
+            CURRENT_PHASE[0] = "question"
             run = runs[item["page_id"]]
-            result = chat_ai.create_chat_completion(
-                messages=[{"role": "user", "content": item["question"]}], model=None, context=_context(run)
-            )
+            started = time.perf_counter()
+            first_token = None
+            usage_before = len(USAGE)
+            messages = [{"role": "user", "content": item["question"]}]
+            if items.index(item) < stream_first:
+                # Streamed, as the workspace asks: the time to the first token is what a reader waits.
+                result = {}
+                for event in chat_ai.stream_chat_completion(messages=messages, model=model, temperature=TEMPERATURE, context=_context(run)):
+                    if event.get("type") == "delta" and event.get("delta") and first_token is None:
+                        first_token = time.perf_counter() - started
+                    if event.get("type") == "done":
+                        result = event
+            else:
+                result = chat_ai.create_chat_completion(messages=messages, model=model, temperature=TEMPERATURE, context=_context(run))
             record = {
                 "id": item["id"],
                 "question": item["question"],
                 "answer": result["text"],
                 "model": result.get("model"),
+                "verification": result.get("verification"),
                 "retrieval": result.get("retrieval"),
+                "sources": result.get("sources"),
+                "seconds": round(time.perf_counter() - started, 2),
+                "first_token_seconds": round(first_token, 2) if first_token is not None else None,
+                "streamed": items.index(item) < stream_first,
+                "temperature": TEMPERATURE,
+                "usage": USAGE[usage_before:],
                 "relevant_chunk_ids": sorted(
                     answer_chunks(run["chunks"], references[item["page_id"]], item["answer_span"])
                 )
@@ -212,6 +347,7 @@ def evaluate_live(items, runs, references, out: Path) -> list[dict[str, Any]]:
                 else [],
             }
             handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+            handle.flush()
             rows.append(record)
     return rows
 
@@ -221,9 +357,35 @@ def score_saved(items: list[dict[str, Any]], records: list[dict[str, Any]]) -> l
     rows = []
     for record in records:
         item = by_id[record["id"]]
-        scored = score_answer(item, record["answer"], set(record.get("relevant_chunk_ids") or []))
+        scored = score_answer(item, record["answer"], set(record.get("relevant_chunk_ids") or []), record.get("sources"))
         rows.append({"id": item["id"], "page_id": item["page_id"], "kind": item["kind"], **scored})
     return rows
+
+
+def timing(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Seconds per answer (median, 90th percentile), seconds to the first streamed token, and tokens per second."""
+
+    def quantile(values: list[float], q: float) -> float | None:
+        values = sorted(values)
+        return round(values[min(len(values) - 1, int(q * len(values)))], 2) if values else None
+
+    seconds = [float(r["seconds"]) for r in records if r.get("seconds") is not None]
+    first = [float(r["first_token_seconds"]) for r in records if r.get("first_token_seconds") is not None]
+    rates = []
+    for r in records:
+        tokens = sum(int(u.get("completion_tokens") or 0) for u in r.get("usage") or [] if u.get("model") == r.get("model"))
+        if tokens and r.get("seconds") and not r.get("streamed"):
+            rates.append(tokens / float(r["seconds"]))
+    return {
+        "answers": len(seconds),
+        "seconds_median": quantile(seconds, 0.5),
+        "seconds_p90": quantile(seconds, 0.9),
+        "first_token_n": len(first),
+        "first_token_median": quantile(first, 0.5),
+        "first_token_p90": quantile(first, 0.9),
+        "tokens_per_second_median": quantile(rates, 0.5),
+        "models": sorted({str(r.get("model")) for r in records}),
+    }
 
 
 def tally(rows: list[dict[str, Any]], field: str) -> dict[str, dict[str, Any]]:
@@ -265,6 +427,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--live", action="store_true", help="ask the configured chat model and score its answers")
     parser.add_argument("--out", type=Path, help="with --live, where to save the answers (JSONL)")
     parser.add_argument("--score", type=Path, help="score answers saved by an earlier --live run")
+    parser.add_argument("--model", help="with --live, the chat model to ask (default: the configured one)")
+    parser.add_argument("--verify", action="store_true", help="with --live, run the configured verifier on each answer")
+    parser.add_argument("--resume", action="store_true", help="with --live, keep the answers already in --out and ask only the rest")
+    parser.add_argument("--embed-cache", type=Path, help="keep embeddings by text in this file and reuse them")
+    parser.add_argument("--stream-first", type=int, default=0, help="with --live, stream the first N questions to time the first token")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
@@ -272,17 +439,25 @@ def main(argv: list[str] | None = None) -> int:
     if args.score:
         records = [json.loads(line) for line in args.score.read_text(encoding="utf-8").splitlines() if line.strip()]
         rows = score_saved(items, records)
-        report = {"outcome": tally(rows, "outcome"), "cited": tally(rows, "cited")}
+        report = {"outcome": tally(rows, "outcome"), "cited": tally(rows, "cited"), "timing": timing(records)}
     else:
         references = load_references(args.readings)
         if args.live and not args.out:
             parser.error("--live needs --out, so the answers can be read")
         with tempfile.TemporaryDirectory(prefix="archai-chat-eval-") as tmp:
+            _count_requests()
+            if args.embed_cache:
+                if args.embedder == "e5-local":
+                    _use_local_e5()
+                _cache_embeddings(args.embed_cache)
             runs = build_store(Path(tmp), references, {item["page_id"] for item in items}, embedder=args.embedder)
             if args.live:
-                records = evaluate_live(items, runs, references, args.out)
+                _record_usage()
+                records = evaluate_live(
+                    items, runs, references, args.out, model=args.model, verify=args.verify, resume=args.resume, stream_first=args.stream_first
+                )
                 rows = score_saved(items, records)
-                report = {"outcome": tally(rows, "outcome"), "cited": tally(rows, "cited")}
+                report = {"outcome": tally(rows, "outcome"), "cited": tally(rows, "cited"), "timing": timing(records)}
             else:
                 rows = evaluate_retrieval(items, runs, references)
                 report = {
@@ -291,12 +466,17 @@ def main(argv: list[str] | None = None) -> int:
                     "not_in_sources_instruction": tally(rows, "not_in_sources_instruction"),
                 }
             report["index_status"] = {page: run["index_status"] for page, run in runs.items()}
+            report["requests"] = dict(REQUESTS)
     if args.json:
         print(json.dumps({"report": report, "rows": rows}, ensure_ascii=False, indent=2))
         return 0
     for name, table in report.items():
         if name == "index_status":
             print("index status: " + ", ".join(f"{page} {status}" for page, status in table.items()))
+        elif name == "timing":
+            print("timing: " + ", ".join(f"{key} {value}" for key, value in table.items()))
+        elif name == "requests":
+            print("provider requests: " + ", ".join(f"{key} {count}" for key, count in sorted(table.items())))
         else:
             _print_tally(name, table)
     return 0
