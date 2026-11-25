@@ -172,10 +172,11 @@ results folder.
 
 Counted on the requests the client sends:
 
-- **A question**: 2 embedding requests (the same query text, once for the
-  chunk collection and once for the entity collection), 1 chat request, and
-  1 more when the answer is checked (the verifier). 3 without the check, 4
-  with it.
+- **A question**: 1 embedding request for the query, 1 chat request, and 1
+  more when the answer is checked (the verifier): 2 without the check, 3
+  with it. Until the query was embedded once (`rag_store._embed_query`) the
+  chunk and the entity collection each embedded the same text, 2 requests;
+  a repeated question now embeds nothing.
 - **A page read** with the provider embedder: 1 embedding request per 64
   chunks (one for a page of this size) and 1 per 64 entity documents when
   the page has linked names. The recogniser and the authority lookups do
@@ -184,9 +185,10 @@ Counted on the requests the client sends:
   seconds, 400 an hour, 800 a day ("user daily request limit reached (800
   of 800)", met at 13:00 on 2026-11-25 with Retry-After 39,597 s, that is
   until midnight).
-- **In the app's units**: 800 a day is about 200 checked questions, or 266
+- **In the app's units**: 800 a day is about 266 checked questions, or 400
   unchecked ones, for a whole installation on one key, fewer for every page
-  indexed; 400 an hour is about 100 checked questions an hour. The OpenAI
+  indexed; 400 an hour is about 133 checked questions an hour. (With the
+  query embedded twice it was 200 and 266.) The OpenAI
   client's own retries spent more: before the eval set max_retries=0, two
   79-question runs made 38 and 60 extra chat requests, most likely 429s
   from the 10-in-10-seconds limit, retried without a word in the log.

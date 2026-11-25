@@ -190,3 +190,16 @@ def _fresh_provider_state() -> Iterator[None]:
     yield
     provider_key.reset()
     provider_thinking.reset()
+
+
+@pytest.fixture(autouse=True)
+def _no_cached_query_vectors():
+    """Query vectors kept by rag_store._embed_query would cross from one test into the next."""
+    from app.services import rag_store
+
+    vectors = getattr(rag_store, "_QUERY_VECTORS", None)
+    if vectors is not None:
+        vectors.clear()
+    yield
+    if vectors is not None:
+        vectors.clear()
