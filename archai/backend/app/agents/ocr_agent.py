@@ -15,7 +15,7 @@ from PIL import Image
 
 from app.agents._llm_common import chat_completion_preferring_json_object, is_image_too_large_error
 from app.agents.base import BaseAgent
-from app.services import setup_notices
+from app.services import model_router, setup_notices
 from app.services.public_errors import RequestRefused, public_failure
 from app.agents.crop_agent import crop_page_region, decode_image_bytes, decode_page
 from app.agents.ocr_proofreader_agent import OcrProofreaderAgent
@@ -276,9 +276,8 @@ def ignored_model_requests(payload: OCRExtractRequest) -> list[str]:
     return warnings
 
 
-def is_vision_model(model_id: str) -> bool:
-    key = (model_id or "").lower()
-    return any(token in key for token in ("vl", "vision", "internvl", "gemma", "mistral", "omni"))
+# The shared name test (model_router.VISION_MODEL_FRAGMENTS), also label analysis's.
+is_vision_model = model_router.is_vision_model
 
 
 def choose_models(available_models: Sequence[str], preferred_models: Sequence[str]) -> list[str]:

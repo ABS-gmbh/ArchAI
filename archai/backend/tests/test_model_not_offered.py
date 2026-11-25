@@ -78,6 +78,12 @@ def provider(monkeypatch: pytest.MonkeyPatch) -> Iterator[type[_Provider]]:
     monkeypatch.setattr(settings, "translation_model", "llama-3.3-70b-instruct")
     provider_key.reset()
     setup_notices.reset()
+    # The label agent and the SAIA model list are cached per process; they must reach this stand-in.
+    from app.routers import chat as chat_router
+    from app.services.saia_client import SaiaClient
+
+    monkeypatch.setattr(chat_router, "_label_analysis_agent_instance", None)
+    monkeypatch.setattr(SaiaClient, "_shared_models_cache", None)
     yield handler
     server.shutdown()
     provider_key.reset()
@@ -181,7 +187,7 @@ def test_health_names_each_task_whose_model_is_not_offered(provider: type[_Provi
     assert "PALEOGRAPHY_VERIFICATION_MODEL" in check["detail"]
     assert (
         "The configured label-analysis model is not offered by the provider; label analysis uses "
-        "deepseek-v4-flash-0731 instead. Set LABEL_VISUAL_MODEL to one of the provider's models."
+        "gemma-4-31b-it instead. Set LABEL_VISUAL_MODEL to one of the provider's models."
     ) in check["detail"]
     assert "Set PALEOGRAPHY_VERIFICATION_MODEL to one of the provider's models." in check["detail"]
     assert "CHAT_RAG_MODEL" not in check["detail"]  # the chat model is offered
@@ -313,3 +319,58 @@ def test_health_says_answers_are_checked_by_the_model_that_wrote_them(provider: 
         "instead, the model that wrote them, which is weaker than a second model. Set PALEOGRAPHY_VERIFICATION_MODEL "
         "to one of the provider's models."
     ) in _health_task_models()["detail"]
+
+
+
+# ── One vision test for label analysis and the provider OCR ─────────────
+
+def test_label_analysis_and_the_ocr_agent_share_one_vision_test() -> None:
+    from app.agents import label_analysis_agent, ocr_agent
+    from app.services import model_router
+
+    assert ocr_agent.is_vision_model is model_router.is_vision_model
+    assert label_analysis_agent.LabelAnalysisAgent._is_vision_model is model_router.is_vision_model
+    # The provider's documentation (2026-11-25): six of today's 14 take images; mistral-large does not.
+    assert [m for m in OFFERED if model_router.is_vision_model(m)] == [
+        "gemma-4-31b-it", "glm-5.3-flash", "qwen3-omni-30b-a3b-instruct",
+        "qwen3.5-397b-a17b", "qwen3.6-35b-a3b", "qwen3.8-27b",
+    ]
+    assert not model_router.is_vision_model("mistral-large-4-1t-a52b")
+
+
+def test_label_analysis_now_falls_back_to_a_model_its_test_calls_vision_capable() -> None:
+    from app.agents.label_analysis_agent import label_retry_model
+
+    # Today's catalogue, read in order: the first listed that the shared test accepts.
+    assert label_retry_model("qwen3-vl-30b-a3b-instruct", OFFERED, prefer_vision=True) == "gemma-4-31b-it"
+
+
+
+def test_an_image_never_goes_to_a_text_model(provider: type[_Provider]) -> None:
+    from fastapi.testclient import TestClient
+
+    import app.main as main
+    from app.agents.label_analysis_agent import NO_VISION_MODEL, label_retry_model
+
+    text_only = [m for m in OFFERED if m not in {"gemma-4-31b-it", "glm-5.3-flash", "qwen3-omni-30b-a3b-instruct", "qwen3.5-397b-a17b", "qwen3.6-35b-a3b", "qwen3.8-27b"}]
+    assert label_retry_model("qwen3-vl-30b-a3b-instruct", text_only, prefer_vision=True) is None
+    # A question about the text may still go to a text model.
+    assert label_retry_model("qwen3-vl-30b-a3b-instruct", text_only, prefer_vision=False) is not None
+
+    OFFERED[:] , saved = text_only, list(OFFERED)
+    try:
+        from app.services.saia_client import SaiaClient
+
+        SaiaClient._shared_models_cache = None
+        response = TestClient(main.app).post("/api/chat/label-analysis", json={
+            "question": "Which letter is this initial?",
+            "label_name": "Plain initial - Black",
+            "image_b64": _png_b64(),
+            "regions": [{"region_id": "r1", "bbox_xyxy": [10, 10, 100, 60], "polygons": []}],
+        })
+    finally:
+        OFFERED[:] = saved
+        SaiaClient._shared_models_cache = None
+    assert response.status_code == 422
+    assert response.json()["detail"] == NO_VISION_MODEL
+    assert not any(m in text_only for m in provider.asked)  # no text model was sent the image

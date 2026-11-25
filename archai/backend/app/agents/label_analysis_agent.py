@@ -18,7 +18,7 @@ from app.core.constants import FINAL_CLASSES
 from app.services import setup_notices
 from app.services.public_errors import public_failure
 from app.services.glm_ollama_ocr import GlmOllamaOcrError, build_glm_ocr_prompt, run_glm_ollama_ocr
-from app.services.model_router import get_task_model_assignments
+from app.services.model_router import get_task_model_assignments, is_vision_model
 from app.services.saia_client import SaiaClient, is_model_not_found_error
 
 log = logging.getLogger(__name__)
@@ -428,6 +428,14 @@ class LabelAnalysisResult:
     inspection: dict[str, Any] | None = None
 
 
+# What the reader is told when the configured label models are not offered and
+# the provider offers no other model this server knows to read images.
+NO_VISION_MODEL = (
+    "Label analysis needs a model that reads images, and the chat provider offers none that this server knows of. "
+    "Tell whoever runs the server."
+)
+
+
 class LabelAnalysisAgentError(RuntimeError):
     """Raised when label analysis cannot be completed."""
 
@@ -471,10 +479,10 @@ class LabelAnalysisAgent(BaseAgent):
         assignments = get_task_model_assignments()
         return assignments.chat_rag_model
 
-    @staticmethod
-    def _is_vision_model(model_id: str) -> bool:
-        key = str(model_id or "").lower()
-        return any(token in key for token in ("vl", "vision", "internvl"))
+    # The test shared with the provider OCR (model_router.is_vision_model):
+    # label analysis had its own, which found no vision model in the provider's
+    # catalogue and fell back to a text model (2026-11-25).
+    _is_vision_model = staticmethod(is_vision_model)
 
     @staticmethod
     def _is_transient_error(exc: Exception) -> bool:
@@ -870,6 +878,9 @@ class LabelAnalysisAgent(BaseAgent):
                             f"SAIA label analysis failed: {self._friendly_error(exc)}"
                         ) from exc
                     retry_model = self._choose_retry_model(selected_model, prefer_vision=prefer_vision)
+                    if not retry_model and prefer_vision:
+                        # Never a text model for a request that carries an image.
+                        raise LabelAnalysisAgentError(NO_VISION_MODEL) from exc
                     if not retry_model:
                         raise LabelAnalysisAgentError(
                             f"SAIA label analysis failed: {self._friendly_error(exc)}"
@@ -1554,9 +1565,12 @@ def label_retry_model(requested_model: str, available: Sequence[str], *, prefer_
         if candidate and candidate != requested_model and candidate in available:
             return candidate
     if prefer_vision:
+        # A request that carries an image goes to a model that reads images, or
+        # nowhere: a text model was the fallback before (2026-11-25).
         for model_id in available:
-            if model_id != requested_model and LabelAnalysisAgent._is_vision_model(model_id):
+            if model_id != requested_model and is_vision_model(model_id):
                 return model_id
+        return None
     for model_id in available:
         if model_id != requested_model:
             return model_id
