@@ -533,3 +533,17 @@ def test_a_crop_from_the_decoded_page_matches_the_crop_from_base64() -> None:
     from_page, box_page, _ = LabelAnalysisAgent._crop_from(LabelAnalysisAgent._decode_page(page_b64), [region])
     assert box_page == box_b64
     assert from_page.tobytes() == from_b64.tobytes()
+
+
+def test_duration_is_the_whole_analysis_and_the_timeout_the_last_calls_limit(monkeypatch: Any) -> None:
+    """Audit AG-18 (b): with several regions, timeout_seconds is the last call's limit, not a total;
+    duration_ms is the wall-clock time of all of them."""
+    clock = _fake_clock(monkeypatch)
+    client = _SlowSequenceClient(["Letter: R", "Letter: C", "Letter: A"], clock, seconds=3.0)
+
+    result = LabelAnalysisAgent(client=client).run(_three_initials_payload())
+
+    assert len(client.calls) == 3
+    assert result.stage_metadata["duration_ms"] == 9000.0
+    assert result.stage_metadata["timeout_seconds"] == client.calls[-1]["timeout_seconds"]
+    assert result.stage_metadata["timeout_seconds"] < sum(call["timeout_seconds"] for call in client.calls)

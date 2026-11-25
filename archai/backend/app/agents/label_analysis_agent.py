@@ -822,6 +822,14 @@ class LabelAnalysisAgent(BaseAgent):
         timeout_seconds: float,
         retry_count: int,
     ) -> dict[str, Any]:
+        """What the analysis took, for the inspection panel and the log.
+
+        ``duration_ms`` is the wall-clock time of the whole analysis, every
+        region and retry included. ``timeout_seconds`` is the time limit the
+        last provider call was given: with several regions, each call gets
+        what is left of the overall deadline, so it is not a total, and a sum
+        of them would exceed the wall clock (audit AG-18 b).
+        """
         return {
             "stage_name": "label_analysis",
             "model_used": model_used,
