@@ -438,6 +438,11 @@ and the setting to change: `CHAT_RAG_MODEL`, `TRANSLATION_MODEL`,
 `LABEL_VISUAL_MODEL`, `LABEL_VISUAL_FALLBACK_MODEL`,
 `PALEOGRAPHY_VERIFICATION_MODEL`. `/api/chat/models` lists the same under
 `not_offered`. The server log says once per model which one was used instead.
+`/api/chat/models` lists in `models` only what the provider offers (the
+configured names, when its list could not be read), and in `models_info`
+describes each model: what it is for (`chat`, `embedding`, `code`,
+`audio_image`), whether it takes images, whether it thinks before answering
+however it is asked, and whether the provider offers it.
 
 A call to the provider is sent again at most once, by the backend, not by
 the OpenAI SDK (which retried every 429 and 5xx twice): a 5xx or a refused
