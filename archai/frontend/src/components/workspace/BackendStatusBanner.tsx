@@ -8,8 +8,8 @@ const RECHECK_MS = 60_000;
 
 const HEADLINES: Record<Exclude<BackendHealth["status"], "ok">, string> = {
   degraded: "Some features are unavailable",
-  unavailable: "The backend cannot serve requests",
-  unreachable: "The backend is not reachable",
+  unavailable: "The server cannot answer right now",
+  unreachable: "The server is not answering",
 };
 
 const BUTTON =
@@ -31,8 +31,10 @@ function nextFocusableAfter(root: HTMLElement): HTMLElement | null {
 /**
  * A banner that says what is wrong with the backend before a request fails:
  * unreachable, unavailable (database down) or degraded (an optional engine,
- * the chat key or the models missing). Renders nothing while the backend is
- * healthy or not yet checked.
+ * the chat key or the models missing). It says what a reader cannot do, and
+ * keeps what to change (settings, files, services) in a closed "Details for
+ * whoever runs this server". Renders nothing while the backend is healthy or
+ * not yet checked.
  *
  * Degraded notices can be hidden: a deployment that never uses Ollama should
  * not carry "OCR engine (Ollama)" all session. They stay hidden until a
@@ -98,14 +100,16 @@ export function BackendStatusBanner({ recheckAfter = 0 }: { recheckAfter?: numbe
     return null;
   }
   const severe = health.status !== "degraded";
-  if (!severe && health.problems.length > 0 && health.problems.every((problem) => hidden.has(problem))) {
+  // Hidden by the operator's sentences, the finer of the two lists: a new
+  // cause shows the banner again even when its reader's sentence is the same.
+  if (!severe && health.details.length > 0 && health.details.every((detail) => hidden.has(detail))) {
     return null;
   }
   // Hide removes the banner, and with it the focused button: without a target,
   // a keyboard user is left on the document body. Focus the next control instead.
   const hide = () => {
     const next = rootRef.current ? nextFocusableAfter(rootRef.current) : null;
-    setHidden(new Set(health.problems));
+    setHidden(new Set(health.details));
     requestAnimationFrame(() => next?.focus());
   };
   return (
@@ -128,6 +132,21 @@ export function BackendStatusBanner({ recheckAfter = 0 }: { recheckAfter?: numbe
           </ul>
         ) : null}
       </div>
+      {/* What to change, in the backend's words (settings, files, services):
+          for whoever runs the server, closed until asked for, and outside the
+          live region so it is not read out on every check. */}
+      {health.details.length ? (
+        <details className="order-last basis-full text-xs">
+          <summary className="cursor-pointer rounded outline-none focus-visible:ring-2 focus-visible:ring-current">
+            Details for whoever runs this server
+          </summary>
+          <ul className="mt-1 list-inside list-disc">
+            {health.details.map((detail) => (
+              <li key={detail}>{detail}</li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
       <div className="flex shrink-0 gap-2">
         {/* aria-disabled, not disabled: a disabled button loses focus, and the
             keyboard user who pressed it would be left on the document body. */}
