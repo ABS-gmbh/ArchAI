@@ -411,7 +411,13 @@ def _format_retrieval_notice(retrieval: dict[str, Any] | None) -> str:
 
 
 def _format_verification_appendix(verification: dict[str, Any] | None) -> str:
-    if not verification:
+    """The "[Verification]" block appended to an answer's ``text`` for old clients.
+
+    Nothing when no verifier ran, or when it could not run: that is a state
+    (``retrieval.verifier`` "unavailable", ``verification.assessment``), not a
+    block of text repeating the answer.
+    """
+    if not verification or str(verification.get("assessment") or "") == "unavailable":
         return ""
     notes = [_clean_verification_value(item) for item in list(verification.get("notes") or [])]
     notes = [item for item in notes if item]

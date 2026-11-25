@@ -190,6 +190,12 @@ See [deployment.md, "Behind a reverse proxy"](deployment.md#behind-a-reverse-pro
   shows each cited label with lines on the page as a button that lights them
   up, lists the cited sources under the answer, and keeps them with the
   conversation.
+- `POST /api/chat/completions` answers `answer`, the answer alone, in the
+  response and the stream's `done` event (the stream's `answer` event already
+  carries it as `text`). `text` keeps the "[Verification]"
+  and "[Retrieval]" blocks appended for older clients; the same facts are in
+  `verification` and `retrieval`. A verifier that could not run adds no
+  block any more: `retrieval.verifier` is "unavailable".
 
 ## 4. What users of the workspace will see
 

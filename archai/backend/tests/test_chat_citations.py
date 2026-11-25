@@ -98,3 +98,16 @@ def test_the_answer_event_carries_the_sources_before_the_verdict(monkeypatch: py
     answer = next(event for event in events if event["type"] == "answer")
     assert answer["sources"][0]["label"] == "1" and answer["sources"][0]["cited"] is True
     assert answer["sources"][0]["line_start"] == 3
+
+
+def test_the_answer_comes_apart_from_its_appendices(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``answer`` is the answer alone; ``text`` keeps the [Retrieval] notice and [Verification] block for old clients."""
+    _setup(monkeypatch, _FakeClient(["meta-llama-3.1-8b-instruct"], completion_text="Sages hom [1]."))
+    monkeypatch.setattr("app.services.rag_store.retrieve_chunks", lambda *a, **k: RetrievalResult(HITS[:1], mode="lexical", notes=["dense ranking unavailable"]))
+    result = chat_ai.create_chat_completion(messages=[{"role": "user", "content": "Who?"}], context={"ocr_run_id": "run-1"})
+    assert result["answer"] == "Sages hom [1]."
+    assert result["text"].startswith("Sages hom [1].") and "[Retrieval]" in result["text"]
+    _setup(monkeypatch, _FakeStreamClient(["meta-llama-3.1-8b-instruct"], deltas=["Sages ", "hom."]))
+    monkeypatch.setattr("app.services.rag_store.retrieve_chunks", lambda *a, **k: RetrievalResult(HITS[:1], mode="lexical", notes=["dense ranking unavailable"]))
+    done = list(chat_ai.stream_chat_completion(messages=[{"role": "user", "content": "Who?"}], context={"ocr_run_id": "run-1"}))[-1]
+    assert done["answer"] == "Sages hom." and "[Retrieval]" in done["text"]

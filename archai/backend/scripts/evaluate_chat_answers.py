@@ -248,6 +248,9 @@ def _count_requests() -> None:
 
 CURRENT_PHASE = ["index"]
 USAGE: list[dict[str, Any]] = []
+# --no-thinking: ask Qwen 3.x-style models to answer without a reasoning pass
+# (chat_template_kwargs.enable_thinking=false). The app does not send this yet.
+NO_THINKING = [False]
 
 
 def _record_usage() -> None:
@@ -262,6 +265,10 @@ def _record_usage() -> None:
         real_create = completions.create
 
         def create(*args, **kwargs):  # type: ignore[no-untyped-def]
+            if NO_THINKING[0]:
+                extra = dict(kwargs.get("extra_body") or {})
+                extra["chat_template_kwargs"] = {**dict(extra.get("chat_template_kwargs") or {}), "enable_thinking": False}
+                kwargs["extra_body"] = extra
             response = real_create(*args, **kwargs)
             usage = getattr(response, "usage", None)
             if usage is not None and not kwargs.get("stream"):
@@ -330,7 +337,10 @@ def evaluate_live(
             record = {
                 "id": item["id"],
                 "question": item["question"],
-                "answer": result["text"],
+                # The answer proper (``answer``), without the [Verification] and
+                # [Retrieval] appendices ``text`` keeps; older backends had text only.
+                "answer": result.get("answer") or result["text"],
+                "text": result["text"],
                 "model": result.get("model"),
                 "verification": result.get("verification"),
                 "retrieval": result.get("retrieval"),
@@ -339,6 +349,7 @@ def evaluate_live(
                 "first_token_seconds": round(first_token, 2) if first_token is not None else None,
                 "streamed": items.index(item) < stream_first,
                 "temperature": TEMPERATURE,
+                "thinking": "off" if NO_THINKING[0] else "model default",
                 "usage": USAGE[usage_before:],
                 "relevant_chunk_ids": sorted(
                     answer_chunks(run["chunks"], references[item["page_id"]], item["answer_span"])
@@ -432,6 +443,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--resume", action="store_true", help="with --live, keep the answers already in --out and ask only the rest")
     parser.add_argument("--embed-cache", type=Path, help="keep embeddings by text in this file and reuse them")
     parser.add_argument("--stream-first", type=int, default=0, help="with --live, stream the first N questions to time the first token")
+    parser.add_argument("--limit", type=int, help="with --live, ask only the first N questions")
+    parser.add_argument("--no-thinking", action="store_true", help="with --live, send enable_thinking=false (Qwen 3.x models)")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
@@ -453,6 +466,9 @@ def main(argv: list[str] | None = None) -> int:
             runs = build_store(Path(tmp), references, {item["page_id"] for item in items}, embedder=args.embedder)
             if args.live:
                 _record_usage()
+                NO_THINKING[0] = args.no_thinking
+                if args.limit:
+                    items = items[: args.limit]
                 records = evaluate_live(
                     items, runs, references, args.out, model=args.model, verify=args.verify, resume=args.resume, stream_first=args.stream_first
                 )

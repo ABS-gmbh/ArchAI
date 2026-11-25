@@ -502,11 +502,10 @@ def test_create_chat_completion_returns_clean_degraded_verification_when_verifie
     assert result["verification"]["assessment"] == "unavailable"
     assert result["verification"]["corrected_answer"] == "Draft answer."
     assert result["verification"]["notes"] == ["Verifier response could not be parsed cleanly."]
-    assert "[Verification]" in result["text"]
-    assert "Assessment: unavailable" in result["text"]
-    assert "Verified answer: Draft answer." in result["text"]
-    assert "Notes: Verifier response could not be parsed cleanly." in result["text"]
-    assert "Citations checked: none" in result["text"]
+    # A verifier that could not run is a state, not a block of text repeating the answer.
+    assert "[Verification]" not in result["text"]
+    assert result["retrieval"]["verifier"] == "unavailable"
+    assert result["answer"] == "Draft answer."
 
 
 def test_create_chat_completion_uses_translation_stage_model_and_skips_verification(monkeypatch: Any) -> None:
