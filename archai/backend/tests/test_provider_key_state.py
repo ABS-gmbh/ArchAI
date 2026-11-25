@@ -160,3 +160,22 @@ def test_health_sends_nothing_to_the_provider(provider: type[_Provider]) -> None
     _health()
     _health()
     assert provider_key.state() == requests_before == "untried"
+
+
+def test_the_search_index_says_what_the_key_check_says(provider: type[_Provider], monkeypatch: pytest.MonkeyPatch) -> None:
+    """search_index said "the key is not validated here" next to chat_api_key's "the provider
+    accepted it" (2026-11-25). Both are said from the same remembered state now."""
+    monkeypatch.setattr(settings, "rag_embedding_model", "multilingual-e5-large-instruct")
+    monkeypatch.setattr(settings, "rag_auto_index", True)
+    checks = _health()["checks"]
+    assert checks["search_index"]["detail"].endswith("the provider has not been asked about the key yet.")
+    assert checks["chat_api_key"]["detail"].endswith("the provider has not been asked yet.")
+    provider.status = 200
+    chat_ai.list_available_models()
+    checks = _health()["checks"]
+    assert checks["chat_api_key"]["detail"] == "A chat API key is configured and the provider accepted it."
+    assert checks["search_index"] == {
+        "ok": True,
+        "detail": "Pages are indexed with the provider's embedding model; the provider accepted the key.",
+    }
+    assert "not validated" not in str(checks)
