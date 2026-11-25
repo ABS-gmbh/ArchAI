@@ -25,8 +25,8 @@ def get_task_model_assignments() -> TaskModelAssignments:
     chat_rag_model = str(
         settings.chat_rag_model
         or settings.archai_chat_ai_model
-        or "qwen3-30b-a3b-instruct-2507"
-    ).strip() or "qwen3-30b-a3b-instruct-2507"
+        or "qwen3.5-397b-a17b"
+    ).strip() or "qwen3.5-397b-a17b"
     # No model of its own unless TRANSLATION_MODEL names one: the chat model translates.
     translation_model = str(settings.translation_model or "").strip() or chat_rag_model
     label_visual_model = str(

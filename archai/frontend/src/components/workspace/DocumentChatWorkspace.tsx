@@ -90,7 +90,7 @@ interface DocumentChatWorkspaceProps {
 }
 
 const STORAGE_KEY = "archai_workspace_state_v1";
-const DEFAULT_CHAT_MODEL_ID = "qwen3-30b-a3b-instruct-2507";
+const DEFAULT_CHAT_MODEL_ID = "qwen3.5-397b-a17b";
 const DEFAULT_TASK_MODELS = {
   ocr_model: "glm-ocr:latest",
   chat_rag_model: DEFAULT_CHAT_MODEL_ID,

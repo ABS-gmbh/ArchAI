@@ -14,6 +14,7 @@ if str(_backend_src.parent) not in sys.path:
     sys.path.insert(0, str(_backend_src.parent))
 
 from app.agents.label_analysis_agent import LabelAnalysisAgent  # type: ignore[import-untyped]
+from app.services.model_router import get_task_model_assignments  # type: ignore[import-untyped]
 
 
 def _png_b64(size: tuple[int, int] = (120, 90)) -> str:
@@ -204,7 +205,8 @@ def test_label_analysis_agent_uses_text_model_for_textual_explanation(monkeypatc
     assert result.status == "ok"
     assert result.analysis_mode == "textual"
     assert fake_client.calls
-    assert fake_client.calls[0]["model"] == "qwen3-30b-a3b-instruct-2507"
+    # The text model is the chat model, whichever the configuration names.
+    assert fake_client.calls[0]["model"] == get_task_model_assignments().chat_rag_model
     assert isinstance(fake_client.calls[0]["messages"][1]["content"], str)
     assert "This is a textual label explanation task." in fake_client.calls[0]["messages"][1]["content"]
 
