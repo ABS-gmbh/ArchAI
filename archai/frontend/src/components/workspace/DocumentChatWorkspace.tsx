@@ -62,6 +62,7 @@ import { chatNotice, type ChatProviderState, providerState } from "./chatAvailab
 import { ChatPanel } from "./ChatPanel";
 import { DocumentPanel } from "./DocumentPanel";
 import { EntitiesPanel, type LinkingState } from "./EntitiesPanel";
+import { labelWarningsInWords } from "./labelWarnings";
 import { groupMentions, splitMentions } from "./linkReason";
 import { MetadataDialog } from "./MetadataDialog";
 import { PageViewer } from "./PageViewer";
@@ -938,13 +939,15 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           imageAlt: `${label} crop`,
         },
       ]);
-      if (response.warnings.length) {
-        setError(response.warnings.join(" | "));
-      }
+      // What happened on the way (a fallback model, a region read twice) is
+      // part of the result, in words, not an error (labelWarnings.ts).
+      const notes = labelWarningsInWords(response.warnings ?? []);
       setLabelStatus(
-        response.analysis_mode
-          ? `Label analysis complete for "${label}" in ${response.analysis_mode} mode using ${response.model_used}.`
-          : `Label analysis complete for "${label}" using ${response.model_used}.`,
+        `${
+          response.analysis_mode
+            ? `Label analysis complete for "${label}" in ${response.analysis_mode} mode using ${response.model_used}.`
+            : `Label analysis complete for "${label}" using ${response.model_used}.`
+        }${notes ? ` ${notes}` : ""}`,
       );
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Label analysis request failed.";
