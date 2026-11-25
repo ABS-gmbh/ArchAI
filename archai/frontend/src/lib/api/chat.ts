@@ -68,6 +68,8 @@ export interface ChatCompletionResult {
     notes: string[];
     citations_checked: string[];
     model_used: string;
+    /** The answering model checked its own answer (the verifier's model is not offered). */
+    self_check?: boolean;
     stage_metadata?: {
       stage_name: string;
       model_used: string;

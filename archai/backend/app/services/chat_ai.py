@@ -1284,7 +1284,15 @@ def _run_paleography_verification(
     draft_text: str,
     context: dict[str, Any] | None,
     evidence_text: str,
+    answer_model: str = "",
 ) -> dict[str, Any] | None:
+    """The verifier's verdict on *draft_text*, or None when no check applies.
+
+    `self_check` is true when the model that checked is the one that answered
+    (*answer_model*): the verifier falls back to the chat model when its own is
+    not offered, and a model checking its own answer is weaker than a second
+    model, which the workspace says.
+    """
     if not _should_run_verification(context, evidence_text):
         return None
 
@@ -1348,6 +1356,7 @@ def _run_paleography_verification(
             "notes": result.notes,
             "citations_checked": result.citations_checked,
             "model_used": result.model_used,
+            "self_check": bool(answer_model) and result.model_used == answer_model,
             "stage_metadata": result.stage_metadata,
             "inspection": result.inspection,
         }
@@ -1411,6 +1420,7 @@ def create_chat_completion(
         draft_text=draft_text,
         context=context,
         evidence_text=evidence_text,
+        answer_model=selected_model,
     )
     retrieval = _retrieval_payload(evidence_text, verification, context)
     text = draft_text + _format_verification_appendix(verification) + _format_retrieval_notice(retrieval)
@@ -1536,6 +1546,7 @@ def stream_chat_completion(
         draft_text=full_text,
         context=context,
         evidence_text=evidence_text,
+        answer_model=selected_model,
     )
     retrieval = _retrieval_payload(evidence_text, verification, context)
     appendix = _format_verification_appendix(verification) + _format_retrieval_notice(retrieval)

@@ -314,7 +314,8 @@ function isMessage(value: unknown): boolean {
         isString(value.verification.assessment) &&
         isString(value.verification.corrected_answer) &&
         Array.isArray(value.verification.notes) &&
-        value.verification.notes.every(isString))) &&
+        value.verification.notes.every(isString) &&
+        (value.verification.self_check === undefined || typeof value.verification.self_check === "boolean"))) &&
     (value.extractionBadges === undefined || (Array.isArray(value.extractionBadges) && value.extractionBadges.every(isBadge)))
   );
 }

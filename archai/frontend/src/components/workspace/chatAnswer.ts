@@ -7,6 +7,8 @@ export interface AnswerVerification {
   assessment: string;
   corrected_answer: string;
   notes: string[];
+  /** The model that answered also checked: the verifier's own model is not offered (2026-11-25). */
+  self_check?: boolean;
 }
 
 export interface VerificationNote {
@@ -63,8 +65,16 @@ export function describeVerification(verification: AnswerVerification | null | u
   const corrected = String(verification.corrected_answer || "").trim();
   // The checker is given the answer with its appendix-free text; its "corrected answer" may still carry one.
   const correctedProper = answerProper(corrected);
+  // A check by the model that wrote the answer is weaker than a second model's, and is called so.
+  const said = verification.self_check
+    ? {
+        ...verdict,
+        label: verdict.label.replace(/^Checked/, "Self-checked"),
+        detail: `${verdict.detail.replace(/^A second model/, "The model that wrote the answer")} A model checking its own answer is weaker than a second model.`,
+      }
+    : verdict;
   return {
-    ...verdict,
+    ...said,
     corrected: correctedProper && !sameText(correctedProper, answer) ? correctedProper : null,
     notes: (verification.notes ?? []).map((note) => String(note || "").trim()).filter(Boolean).slice(0, 4),
   };

@@ -39,7 +39,7 @@ export interface WorkspaceChatMessage {
   /** No answer came: the content says why. */
   failed?: boolean;
   /** What the verifier made of an answer, when one ran: its verdict, its own wording and its notes. */
-  verification?: { assessment: string; corrected_answer: string; notes: string[] } | null;
+  verification?: { assessment: string; corrected_answer: string; notes: string[]; self_check?: boolean } | null;
 }
 
 export interface WorkspacePersistedState {

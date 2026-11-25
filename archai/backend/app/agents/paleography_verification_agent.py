@@ -8,7 +8,8 @@ from typing import Any
 
 from app.agents.base import BaseAgent
 from app.config import settings
-from app.services.model_router import get_task_model_assignments
+from app.services import setup_notices
+from app.services.model_router import fallback_models_for_stage, get_task_model_assignments
 
 
 PALEOGRAPHY_VERIFICATION_SYSTEM_PROMPT = "\n".join(
@@ -367,11 +368,31 @@ class PaleographyVerificationAgent(BaseAgent):
         try:
             response = _run_completion(selected_model)
         except Exception as exc:
-            if _is_model_not_found_error(exc):
-                raise PaleographyVerificationAgentError(
-                    f"Verification model unavailable: {selected_model}"
-                ) from exc
-            raise PaleographyVerificationAgentError(f"Verification failed: {exc}") from exc
+            if not _is_model_not_found_error(exc):
+                raise PaleographyVerificationAgentError(f"Verification failed: {exc}") from exc
+            # The provider does not serve the verifier's model (2026-11-25: the
+            # default qwen3-235b-a22b is no longer offered): the next model of
+            # fallback_models_for_stage("verification"), the chat model, checks
+            # instead. The result's model_used says which model it was, and the
+            # chat answer marks a check by the answering model as a self-check.
+            fallback = next(
+                (model for model in fallback_models_for_stage("verification") if model != selected_model),
+                "",
+            )
+            if not fallback:
+                raise PaleographyVerificationAgentError(f"Verification model unavailable: {selected_model}") from exc
+            setup_notices.report_once(
+                f"model-not-offered:{selected_model}",
+                f"The configured model {selected_model} is not offered by the provider; {fallback} was used instead "
+                "to check answers.",
+            )
+            selected_model = fallback
+            try:
+                response = _run_completion(selected_model)
+            except Exception as retry_exc:
+                if _is_model_not_found_error(retry_exc):
+                    raise PaleographyVerificationAgentError(f"Verification model unavailable: {selected_model}") from retry_exc
+                raise PaleographyVerificationAgentError(f"Verification failed: {retry_exc}") from retry_exc
 
         choices = list(getattr(response, "choices", []) or [])
         raw_text = ""
