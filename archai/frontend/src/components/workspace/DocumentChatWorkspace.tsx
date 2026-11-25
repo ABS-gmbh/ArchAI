@@ -57,6 +57,7 @@ import {
   resolveOcrPromptHints,
 } from "./workspaceIntents";
 import { BackendStatusBanner } from "./BackendStatusBanner";
+import { answerProper } from "./chatAnswer";
 import { ChatPanel } from "./ChatPanel";
 import { DocumentPanel } from "./DocumentPanel";
 import { EntitiesPanel, type LinkingState } from "./EntitiesPanel";
@@ -609,6 +610,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     ];
 
     try {
+      let streamed = "";
       const result = await createChatCompletion(
         {
           messages: apiMessages,
@@ -636,13 +638,18 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           },
         },
         (delta) => {
+          // Everything streamed so far is kept here; the reader is shown the
+          // answer only, not the "[Verification]" and "[Retrieval]" blocks
+          // the backend appends at the end for text-only clients.
+          streamed += delta;
+          const shown = answerProper(streamed, true);
           setMessagesByDocument((prev) => {
             const list = [...(prev[currentDocument.id] ?? [])];
             const index = list.findIndex((msg) => msg.id === assistantMessage.id);
             if (index === -1) {
               return prev;
             }
-            list[index] = { ...list[index], content: `${list[index].content}${delta}` };
+            list[index] = { ...list[index], content: shown };
             return { ...prev, [currentDocument.id]: list };
           });
         },
@@ -655,12 +662,20 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           if (index === -1) {
             return prev;
           }
+          const answer = answerProper(result.text);
           list[index] = {
             ...list[index],
             content: result.incomplete
-              ? `${result.text}\n\n[Incomplete answer: the connection closed before the answer finished. It was not verified.]`
-              : result.text,
+              ? `${answer}\n\n[Incomplete answer: the connection closed before the answer finished. It was not verified.]`
+              : answer,
             retrieval: result.retrieval ?? null,
+            verification: result.verification
+              ? {
+                  assessment: String(result.verification.assessment || ""),
+                  corrected_answer: String(result.verification.corrected_answer || ""),
+                  notes: (result.verification.notes ?? []).map(String),
+                }
+              : null,
           };
           return { ...prev, [currentDocument.id]: list };
         });
