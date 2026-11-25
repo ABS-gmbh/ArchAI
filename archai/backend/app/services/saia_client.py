@@ -5,7 +5,7 @@ import time
 from typing import Any, Callable, Sequence, cast
 
 from app.config import settings
-from app.services import provider_key, setup_notices
+from app.services import provider_key, provider_thinking, setup_notices
 
 
 class SaiaConfigError(RuntimeError):
@@ -182,7 +182,7 @@ class SaiaClient:
                 client = with_options(timeout=float(timeout_seconds))
 
         try:
-            response = client.chat.completions.create(**payload)
+            response = provider_thinking.create(client.chat.completions.create, **payload)
         except Exception as exc:
             lowered = str(exc).lower()
             if deterministic and (
@@ -192,7 +192,7 @@ class SaiaClient:
                 or "unexpected keyword" in lowered
             ):
                 payload.pop("extra_body", None)
-                response = client.chat.completions.create(**payload)
+                response = provider_thinking.create(client.chat.completions.create, **payload)
             else:
                 raise
         choices = list(getattr(response, "choices", []) or [])

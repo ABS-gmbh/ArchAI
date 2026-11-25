@@ -439,6 +439,15 @@ and the setting to change: `CHAT_RAG_MODEL`, `TRANSLATION_MODEL`,
 `PALEOGRAPHY_VERIFICATION_MODEL`. `/api/chat/models` lists the same under
 `not_offered`. The server log says once per model which one was used instead.
 
+Some provider models think before they answer unless told not to (qwen3.5,
+qwen3.6 and qwen3.8, measured 2026-11-25: 10 to 48 s, sometimes empty text).
+Every chat, translation, verifier, label-analysis and provider-OCR call asks
+the model not to think, except for models named in
+`CHAT_DISABLE_THINKING_EXCEPT` (default `mistral-large`, which refuses the
+request); `CHAT_DISABLE_THINKING=false` stops it. A model that refuses it
+(400 naming chat_template) is asked again without it and not sent it again
+until a restart. glm-5.3 accepts the request and thinks anyway.
+
 The `search_index` check fails when `RAG_EMBEDDING_MODEL` names a provider
 model (the default, `multilingual-e5-large-instruct`) and there is no chat
 key: pages are then read but not indexed, and the workspace marks each one

@@ -197,6 +197,16 @@ class Settings(BaseSettings):
     # treating its chunks as re-sent text dropped repeated characters ("1300"
     # arrived as "130").
     chat_stream_cumulative: bool = False
+    # Provider-side thinking off. qwen3.5, qwen3.6 and qwen3.8 think by
+    # default: with thinking on they returned empty text at max_tokens 200 and
+    # took 10 to 48 s; with it off they answered in 0.5 to 1.3 s (measured
+    # 2026-11-25). Sent as chat_template_kwargs={"enable_thinking": false} to
+    # every model except those whose name starts with one of the
+    # comma-separated prefixes below: mistral-large refuses it with 400. Any
+    # other model that refuses it is asked again without it and not sent it
+    # again by this process.
+    chat_disable_thinking: bool = True
+    chat_disable_thinking_except: str = "mistral-large"
 
     @field_validator("chat_ai_timeout_seconds")
     @classmethod
