@@ -304,6 +304,29 @@ def test_the_verifier_falls_back_to_a_second_fast_model_not_the_one_that_answere
     assert len(lines) == 1, lines
 
 
+def test_a_verifier_the_known_list_lacks_is_not_asked_first(provider: type[_Provider]) -> None:
+    """Each check asked qwen3-235b-a22b first, which the provider no longer offers: a 403, then the
+    second model, two calls per question against the 400-an-hour budget (2026-11-25). Once the
+    provider's list is known, the check goes to the second model at once; before, it asks as it did."""
+    provider.content = VERDICT
+    _verify(settings.chat_rag_model)  # the list is not known yet: asked first, refused, then the second
+    assert provider.asked == ["qwen3-235b-a22b", "deepseek-v4.1-flash-1017"]
+    provider.asked.clear()
+    verification = _verify(settings.chat_rag_model)
+    assert provider.asked == ["deepseek-v4.1-flash-1017"]  # one call
+    assert verification["model_used"] == "deepseek-v4.1-flash-1017"
+    assert verification["self_check"] is False
+
+
+def test_with_the_list_read_when_the_workspace_opens_every_check_is_one_call(provider: type[_Provider]) -> None:
+    provider.content = VERDICT
+    chat_ai.list_available_models()  # what the workspace asks when it opens
+    provider.asked.clear()
+    for _ in range(3):
+        _verify(settings.chat_rag_model)
+    assert provider.asked == ["deepseek-v4.1-flash-1017"] * 3
+
+
 def test_a_verifier_configured_as_the_answering_model_is_replaced_by_a_second_one(
     provider: type[_Provider], monkeypatch: pytest.MonkeyPatch
 ) -> None:
