@@ -308,6 +308,13 @@ function isMessage(value: unknown): boolean {
     isString(value.content) &&
     isNumber(value.createdAt) &&
     (value.imageUrl === undefined || isString(value.imageUrl)) &&
+    (value.verification === undefined ||
+      value.verification === null ||
+      (isObject(value.verification) &&
+        isString(value.verification.assessment) &&
+        isString(value.verification.corrected_answer) &&
+        Array.isArray(value.verification.notes) &&
+        value.verification.notes.every(isString))) &&
     (value.extractionBadges === undefined || (Array.isArray(value.extractionBadges) && value.extractionBadges.every(isBadge)))
   );
 }

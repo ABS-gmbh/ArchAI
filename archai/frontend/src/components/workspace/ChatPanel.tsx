@@ -5,6 +5,7 @@ import Image from "next/image";
 
 import type { WorkspaceChatMessage } from "@/lib/workspace/types";
 
+import { describeVerification } from "./chatAnswer";
 import { ExtractionBadges } from "./ExtractionBadges";
 import { RetrievalBadges } from "./RetrievalBadges";
 import { Button, Icon } from "./ui";
@@ -29,6 +30,37 @@ interface ChatPanelProps {
 }
 
 const SUGGESTIONS = ["Who is named on this page?", "Summarise this page in two sentences.", "Translate the first five lines."];
+
+const VERDICT_TONE = { ok: "text-positive", warn: "text-warning", error: "text-negative" } as const;
+
+/** What a second model made of the answer: its verdict, and its own wording where that differs. */
+function VerificationNote({ message }: { message: WorkspaceChatMessage }) {
+  const note = describeVerification(message.verification, message.content);
+  if (!note) {
+    return null;
+  }
+  return (
+    <div className="mt-2 border-t border-rule pt-2 text-xs">
+      <p className={`font-medium ${VERDICT_TONE[note.tone]}`} title={note.detail}>
+        {note.label}
+        <span className="sr-only">. {note.detail}</span>
+      </p>
+      {note.corrected ? (
+        <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6">
+          <span className="text-xs text-ink-muted">The checker&apos;s wording: </span>
+          {note.corrected}
+        </p>
+      ) : null}
+      {note.notes.length ? (
+        <ul className="mt-1 list-disc space-y-0.5 pl-4 text-ink-muted">
+          {note.notes.map((text) => (
+            <li key={text}>{text}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * Questions about the page, answered from its own text. Each answer says how
@@ -109,6 +141,7 @@ export function ChatPanel({
                     ) : null}
                     {message.extractionBadges?.length ? <ExtractionBadges badges={message.extractionBadges} /> : null}
                     {!mine && message.retrieval ? <RetrievalBadges retrieval={message.retrieval} /> : null}
+                    {!mine ? <VerificationNote message={message} /> : null}
                     {message.imageUrl ? (
                       <Image
                         src={message.imageUrl}
