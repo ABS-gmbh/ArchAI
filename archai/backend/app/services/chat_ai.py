@@ -1541,6 +1541,21 @@ def stream_chat_completion(
                 continue
             yield {"type": "delta", "delta": delta}
 
+    # The answer is whole here. It is sent as its own event before the verifier
+    # runs, so the reader can read it and ask the next question while it is
+    # checked; the verdict follows as a "verification" event. The verifier used
+    # to run first, and a slow one held the composer (2026-11-25). "done" stays
+    # last and carries everything, for clients that read only it.
+    checking = _should_run_verification(context, evidence_text)
+    yield {
+        "type": "answer",
+        "text": full_text,
+        "model": selected_model,
+        "context_used": bool(context),
+        "retrieval": _retrieval_payload(evidence_text, None, context),
+        "checking": checking,
+    }
+
     verification = _run_paleography_verification(
         question=verification_question,
         draft_text=full_text,
@@ -1549,6 +1564,8 @@ def stream_chat_completion(
         answer_model=selected_model,
     )
     retrieval = _retrieval_payload(evidence_text, verification, context)
+    if checking:
+        yield {"type": "verification", "verification": verification, "retrieval": retrieval}
     appendix = _format_verification_appendix(verification) + _format_retrieval_notice(retrieval)
     if appendix:
         full_text += appendix

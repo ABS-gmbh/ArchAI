@@ -146,7 +146,8 @@ export function serialiseWorkspace(
       },
       pageIndex: snapshot.pageIndex,
       zoom: snapshot.zoom,
-      messages: snapshot.messages,
+      // A check still running when the page goes will not come back to this page.
+      messages: snapshot.messages.map((message) => (message.check === "checking" ? { ...message, check: "not_checked" } : message)),
       readings: onPages(snapshot.readings),
       regions: onPages(snapshot.regions),
     }),
@@ -308,6 +309,7 @@ function isMessage(value: unknown): boolean {
     isString(value.content) &&
     isNumber(value.createdAt) &&
     (value.imageUrl === undefined || isString(value.imageUrl)) &&
+    (value.check === undefined || value.check === "checking" || value.check === "not_checked") &&
     (value.verification === undefined ||
       value.verification === null ||
       (isObject(value.verification) &&

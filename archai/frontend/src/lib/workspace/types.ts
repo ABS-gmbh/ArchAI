@@ -40,6 +40,8 @@ export interface WorkspaceChatMessage {
   failed?: boolean;
   /** What the verifier made of an answer, when one ran: its verdict, its own wording and its notes. */
   verification?: { assessment: string; corrected_answer: string; notes: string[]; self_check?: boolean } | null;
+  /** The answer is shown and its check is running ("checking"), or the check never came back ("not_checked"). */
+  check?: "checking" | "not_checked";
 }
 
 export interface WorkspacePersistedState {

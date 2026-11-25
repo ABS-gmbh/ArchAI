@@ -241,6 +241,8 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
     typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "page" : "text",
   );
   const runFollowersRef = useRef<Set<AbortController>>(new Set());
+  // Counts chat requests: the latest one owns the composer (a check may outlive its answer).
+  const chatRequestRef = useRef(0);
   // The run each page's latest read reserved: an older run's follower may not write over it.
   // For the check before a read (workspaceFiles.ts pageRefusal): each page's
   // natural size once its image has loaded, and the server's request limits
@@ -621,6 +623,19 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
           },
     ];
 
+    // This request owns the composer until its answer is whole; a later request
+    // may start while this one's answer is still being checked.
+    const request = ++chatRequestRef.current;
+    const updateAnswerMessage = (patch: Partial<WorkspaceChatMessage>) =>
+      setMessagesByDocument((prev) => {
+        const list = [...(prev[currentDocument.id] ?? [])];
+        const index = list.findIndex((msg) => msg.id === assistantMessage.id);
+        if (index === -1) {
+          return prev;
+        }
+        list[index] = { ...list[index], ...patch };
+        return { ...prev, [currentDocument.id]: list };
+      });
     try {
       let streamed = "";
       const result = await createChatCompletion(
@@ -665,6 +680,19 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
             return { ...prev, [currentDocument.id]: list };
           });
         },
+        (answer) => {
+          // The answer is whole: show it, say whether it is being checked, and
+          // free the composer before the verdict comes.
+          updateAnswerMessage({
+            content: answerProper(answer.text),
+            retrieval: answer.retrieval ?? null,
+            check: answer.check === "checking" ? "checking" : undefined,
+          });
+          if (chatRequestRef.current === request) {
+            setSending(false);
+            setAssistantLoadingLabel("Thinking");
+          }
+        },
       );
 
       if (result.text) {
@@ -681,6 +709,7 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
               ? `${answer}\n\n[Incomplete answer: the connection closed before the answer finished. It was not verified.]`
               : answer,
             retrieval: result.retrieval ?? null,
+            check: result.check === "not_checked" ? "not_checked" : undefined,
             verification: result.verification
               ? {
                   assessment: String(result.verification.assessment || ""),
@@ -718,8 +747,12 @@ export function DocumentChatWorkspace({ initialDocumentId }: DocumentChatWorkspa
       });
       return { ok: false, error: message };
     } finally {
-      setSending(false);
-      setAssistantLoadingLabel("Thinking");
+      // Only the latest request decides: an earlier one whose check ends late
+      // must not free (or busy) the composer of the one asked since.
+      if (chatRequestRef.current === request) {
+        setSending(false);
+        setAssistantLoadingLabel("Thinking");
+      }
     }
   };
 

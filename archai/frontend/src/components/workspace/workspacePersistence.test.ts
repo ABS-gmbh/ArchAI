@@ -234,3 +234,24 @@ describe("readingsFromState and back", () => {
     assert.equal(readings["page-1"].names, null);
   });
 });
+
+// The verdict arrives after the answer (2026-11-25). A message saved while its
+// check is still running must not come back "checking" for ever after a reload.
+describe("a message whose check had not come back", () => {
+  it("is kept as not checked", () => {
+    const source = snapshot();
+    source.messages.push({ id: "m3", role: "assistant", content: "Lausanne.", createdAt: 1764000003000, check: "checking" });
+    const built = serialiseWorkspace(source, 1);
+    assert.ok(built);
+    assert.equal(built.record.messages.at(-1)?.check, "not_checked");
+    assert.ok(recordFromStorage(stored(built.record)).ok);
+  });
+
+  it("refuses a check state it does not know", () => {
+    const built = serialiseWorkspace(snapshot(), 1);
+    assert.ok(built);
+    const raw = stored(built.record) as { messages: Record<string, unknown>[] };
+    raw.messages[1].check = "maybe";
+    assert.equal(recordFromStorage(raw).ok, false);
+  });
+});
