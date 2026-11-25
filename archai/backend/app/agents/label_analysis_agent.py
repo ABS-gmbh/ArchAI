@@ -926,7 +926,9 @@ class LabelAnalysisAgent(BaseAgent):
                             retry_count += 1
                             warnings.append(f"LABEL_THINKING_FALLBACK:{retry_model}")
                             continue
-                    raise LabelAnalysisAgentError(f"{exc} Ask again, or choose another model.") from exc
+                    # The operator's remedy goes to the log; the reader is told only what they can do.
+                    log.warning("label analysis: %s", exc)
+                    raise LabelAnalysisAgentError(exc.reader_sentence) from exc
 
                 if self._is_timeout_error(exc):
                     if self._allow_fallback_after_runtime_error(

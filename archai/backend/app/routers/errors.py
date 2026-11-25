@@ -68,11 +68,7 @@ def provider_failure(exc: BaseException, *, provider: str) -> HTTPException | No
         if isinstance(current, _TIMEOUTS):
             return HTTPException(status_code=504, detail=f"The {provider} did not answer in time. Try again.")
         if isinstance(current, ThinkingOnlyAnswer):
-            return HTTPException(
-                status_code=502,
-                detail=f"The model {current.model} spent its whole answer on thinking and gave no answer. "
-                "Ask again, or choose another model.",
-            )
+            return HTTPException(status_code=502, detail=current.reader_sentence)
         if isinstance(current, openai.RateLimitError):
             sentence, wait = rate_limited(current, provider=provider) or ("", None)
             # The provider's own wait, when it gave one, for the reader and for clients that read the header.
