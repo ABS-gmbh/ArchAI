@@ -13,8 +13,8 @@ evidence. "Open" says why it was left and what the next step would be.
 | Critical | 5 | 5 | 0 | 0 | 0 |
 | High | 33 | 31 | 1 | 1 | 0 |
 | Medium | 60 | 48 | 8 | 1 | 3 |
-| Low | 32 | 27 | 5 | 0 | 0 |
-| **All** | **130** | **111** | **14** | **2** | **3** |
+| Low | 32 | 28 | 4 | 0 | 0 |
+| **All** | **130** | **112** | **13** | **2** | **3** |
 
 Counted from the headings. SVC-24 ("not changed as proposed": the
 measurement favoured the code, and the docstring was corrected) is counted as
@@ -992,7 +992,7 @@ _filter_internvl_models (line 443) keeps only ids containing the literal substri
 - **Impact:** Setting SAIA_OCR_MODELS=qwen3-vl-30b-a3b-instruct (the model_router default vision model, services/model_router.py:37) produces prefs == [] and the agent silently falls back to the hardcoded InternVL defaults. The operator sees no warning, and every run reports model_used=internvl* while the config file says otherwise. Also blocks passing a test double via SaiaOCRAgent(model_prefs=[...]).
 - **Fix:** Remove _filter_internvl_models from the explicit-config paths (lines 1874 and 1881) — an operator naming a model has already made the choice. Keep the filter only as the discovery heuristic in _select_candidate_models (line 1932), and log a warning when a configured preference is not present in client.list_models().
 
-### [AG-18] Dead branches and mis-reported metadata in the agent hot paths — partly fixed ((a) the unreachable EMPTY_MODEL_RESPONSE branch and (c) VISION_MODEL_HINTS are deleted; (b) is left: summing per-region timeout budgets, which are each the time remaining, would report more than the wall clock)
+### [AG-18] Dead branches and mis-reported metadata in the agent hot paths — **FIXED** ((a) the unreachable EMPTY_MODEL_RESPONSE branch and (c) VISION_MODEL_HINTS are deleted; (b) the fields are now said for what they are, unchanged: stage_metadata.timeout_seconds is the time limit of the last provider call, each call getting what is left of the overall deadline, so summing them would report more than the wall clock; duration_ms, already there, is the wall-clock time of the whole analysis, every region included. Documented on LabelAnalysisAgent._stage_metadata, pinned by test_label_analysis_agent.py::test_duration_is_the_whole_analysis_and_the_timeout_the_last_calls_limit)
 
 - **Where:** `vendor:app/agents/saia_ocr_agent.py:2625`  
 - **Category:** hygiene  
